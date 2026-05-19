@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, touch-action=manipulation">
+    <title>✨ 星空画板 · 稳定版 .star</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0b0b15;
+            font-family: system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .app {
+            width: 100%;
+            max-width: 1100px;
+            background: #1a1c2e;
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            background: #14162b;
+            color: #ddd;
+        }
+        .logo {
+            font-weight: 700;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .logo .badge {
+            background: #7c8cf8;
+            color: #fff;
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .canvas-info {
+            font-size: 0.75rem;
+            color: #888;
+        }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 10px 16px;
+            background: #1e2035;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .tool-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding-right: 8px;
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .tool-group:last-child {
+            border-right: none;
+        }
+        .tool-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            background: transparent;
+            color: #bbb;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.2s;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .tool-btn:hover {
+            background: #2a2c42;
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        .tool-btn.active {
+            background: #3a3c56;
+            color: #fff;
+            border-color: #8b9af8;
+            box-shadow: 0 0 8px #8b9af855;
+        }
+        .color-picker-wrap {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .color-picker-wrap input {
+            position: absolute;
+            top: -8px;
+            left: -8px;
+            width: 50px;
+            height: 50px;
+            border: none;
+            cursor: pointer;
+        }
+        .preset-colors {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        .preset-dot {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            flex-shrink: 0;
+            transition: 0.15s;
+        }
+        .preset-dot:hover {
+            transform: scale(1.2);
+            border-color: #fff;
+        }
+        .preset-dot.selected {
+            border-color: #fff;
+            box-shadow: 0 0 10px currentColor;
+            transform: scale(1.15);
+        }
+        .brush-size {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #bbb;
+            font-size: 0.8rem;
+        }
+        .brush-size input {
+            width: 70px;
+            accent-color: #7c8cf8;
+        }
+        .advanced-color-panel {
+            background: #16182a;
+            padding: 12px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+        }
+        .color-wheel-box {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        canvas#colorWheel {
+            border-radius: 50%;
+            cursor: crosshair;
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+            flex-shrink: 0;
+        }
+        .sliders-box {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 180px;
+            color: #ccc;
+        }
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .slider-row label {
+            font-size: 0.7rem;
+            width: 45px;
+            flex-shrink: 0;
+        }
+        .slider-row input {
+            flex: 1;
+            accent-color: #7c8cf8;
+        }
+        .slider-row span {
+            font-size: 0.7rem;
+            width: 35px;
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .hex-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 4px;
+        }
+        .hex-input {
+            background: #1e2038;
+            border: 1px solid #555;
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            width: 100px;
+            text-transform: uppercase;
+            outline: none;
+        }
+        .hex-input:focus {
+            border-color: #8b9af8;
+        }
+        .history-box {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .history-label {
+            font-size: 0.7rem;
+            color: #aaa;
+            margin-right: 4px;
+            white-space: nowrap;
+        }
+        .history-dot {
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            flex-shrink: 0;
+            transition: 0.15s;
+        }
+        .history-dot:hover {
+            border-color: #fff;
+            transform: scale(1.15);
+        }
+        .canvas-area {
+            padding: 12px;
+            display: flex;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.3);
+        }
+        canvas#drawCanvas {
+            display: block;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            cursor: crosshair;
+            max-width: 100%;
+            height: auto;
+            touch-action: none;
+        }
+        canvas.eraser-mode {
+            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Ccircle cx='10' cy='10' r='6' fill='none' stroke='%23f06a6a' stroke-width='2'/%3E%3C/svg%3E") 10 10, auto;
+        }
+        .actions {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: #1e2035;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 8px 18px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: transparent;
+            color: #ccc;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.8rem;
+            transition: 0.2s;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+            white-space: nowrap;
+        }
+        .btn:hover {
+            background: #2a2c42;
+            border-color: #fff6;
+            color: #fff;
+        }
+        .btn:active {
+            transform: scale(0.95);
+        }
+        .btn.primary {
+            background: #7c8cf8;
+            border-color: #7c8cf8;
+            color: #fff;
+        }
+        .btn.primary:hover {
+            background: #8b9af8;
+            box-shadow: 0 4px 16px rgba(124, 140, 248, 0.4);
+        }
+        .btn.danger {
+            border-color: #f06a6a;
+            color: #f06a6a;
+        }
+        .btn.danger:hover {
+            background: rgba(240, 106, 106, 0.15);
+        }
+        @media (max-width: 750px) {
+            .advanced-color-panel {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .tool-btn {
+                width: 30px;
+                height: 30px;
+                font-size: 0.85rem;
+            }
+            .btn {
+                padding: 6px 12px;
+                font-size: 0.7rem;
+            }
+            .sliders-box {
+                min-width: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="header">
+            <div class="logo">⭐ 星空画板 <span class="badge">.star (SVG)</span></div>
+            <div class="canvas-info" id="canvasInfo">800 × 500</div>
+        </div>
+
+        <div class="toolbar">
+            <div class="tool-group">
+                <button class="tool-btn active" data-tool="pen" title="画笔 (B)">✏️</button>
+                <button class="tool-btn" data-tool="eraser" title="橡皮擦 (E)">🧹</button>
+                <button class="tool-btn" data-tool="fill" title="油漆桶 (G)">🪣</button>
+                <button class="tool-btn" data-tool="eyedropper" title="吸管取色 (I)">💉</button>
+            </div>
+            <div class="tool-group">
+                <button class="tool-btn" data-tool="line" title="直线 (L)">📏</button>
+                <button class="tool-btn" data-tool="rect" title="矩形 (R)">▭</button>
+                <button class="tool-btn" data-tool="circle" title="圆形 (C)">⭕</button>
+                <button class="tool-btn" data-tool="text" title="文字 (T)">🔤</button>
+                <button class="tool-btn" id="fillToggleBtn" title="填充切换" style="display:none;">🔲</button>
+            </div>
+            <div class="tool-group">
+                <div class="color-picker-wrap" id="colorPickerWrap">
+                    <input type="color" id="colorPicker" value="#7c8cf8">
+                </div>
+                <div class="preset-colors" id="presetColors"></div>
+                <div class="brush-size">
+                    <span>大小</span>
+                    <input type="range" id="sizeSlider" min="1" max="40" value="5">
+                    <span id="sizeValue">5</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="advanced-color-panel">
+            <div class="color-wheel-box">
+                <canvas id="colorWheel" width="140" height="140"></canvas>
+                <div class="sliders-box">
+                    <div class="slider-row">
+                        <label>色相</label>
+                        <input type="range" id="hueSlider" min="0" max="360" value="231">
+                        <span id="hueVal">231°</span>
+                    </div>
+                    <div class="slider-row">
+                        <label>饱和度</label>
+                        <input type="range" id="satSlider" min="0" max="100" value="78">
+                        <span id="satVal">78%</span>
+                    </div>
+                    <div class="slider-row">
+                        <label>明度</label>
+                        <input type="range" id="lightSlider" min="0" max="100" value="97">
+                        <span id="lightVal">97%</span>
+                    </div>
+                    <div class="hex-row">
+                        <input type="text" class="hex-input" id="hexInput" value="#7c8cf8" placeholder="#000000">
+                        <span style="font-size:0.7rem;color:#aaa;">#000000~#FFFFFF</span>
+                    </div>
+                </div>
+            </div>
+            <div class="history-box">
+                <span class="history-label">🕒 历史颜色</span>
+                <div id="historyColors" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+            </div>
+        </div>
+
+        <div class="canvas-area">
+            <canvas id="drawCanvas" width="800" height="500"></canvas>
+        </div>
+
+        <div class="actions">
+            <button class="btn" id="undoBtn">↩ 撤销</button>
+            <button class="btn" id="redoBtn">↪ 重做</button>
+            <button class="btn danger" id="clearBtn">🗑 清除</button>
+            <button class="btn" id="loadBtn">📂 打开文件</button>
+            <button class="btn primary" id="downloadBtn">✨ 下载 .star (SVG)</button>
+            <input type="file" id="fileInput" accept=".star,.svg,.png,.jpg,.jpeg,.webp,.bmp" style="display:none;">
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ==================== DOM 元素 ====================
+            const canvas = document.getElementById('drawCanvas');
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            const colorPicker = document.getElementById('colorPicker');
+            const sizeSlider = document.getElementById('sizeSlider');
+            const sizeValue = document.getElementById('sizeValue');
+            const undoBtn = document.getElementById('undoBtn');
+            const redoBtn = document.getElementById('redoBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const loadBtn = document.getElementById('loadBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const fileInput = document.getElementById('fileInput');
+            const toolBtns = document.querySelectorAll('[data-tool]');
+            const presetContainer = document.getElementById('presetColors');
+            const fillToggleBtn = document.getElementById('fillToggleBtn');
+            const colorWheelCanvas = document.getElementById('colorWheel');
+            const wheelCtx = colorWheelCanvas.getContext('2d');
+            const hueSlider = document.getElementById('hueSlider');
+            const satSlider = document.getElementById('satSlider');
+            const lightSlider = document.getElementById('lightSlider');
+            const hexInput = document.getElementById('hexInput');
+            const hueVal = document.getElementById('hueVal');
+            const satVal = document.getElementById('satVal');
+            const lightVal = document.getElementById('lightVal');
+            const historyContainer = document.getElementById('historyColors');
+            const canvasInfo = document.getElementById('canvasInfo');
+
+            // ==================== 状态变量 ====================
+            let currentTool = 'pen';
+            let currentColor = '#7c8cf8';
+            let brushSize = 5;
+            let isDrawing = false;
+            let lastX = 0, lastY = 0;
+            let shapeStartX = 0, shapeStartY = 0;
+            let shapeFillMode = false;
+            let snapshotImage = null;
+            const MAX_HISTORY = 30;
+            let historyStack = [];
+            let historyIndex = -1;
+            let colorHistory = ['#7c8cf8', '#1a1a2e', '#ffffff', '#f06a6a', '#f0a86a', '#5cdb8b', '#5cc8db', '#c06af0'];
+            let panelHue = 231, panelSat = 78, panelLight = 97;
+
+            // ==================== 初始化 ====================
+            function init() {
+                if (!canvas || !ctx) {
+                    alert('画布初始化失败，请检查浏览器兼容性。');
+                    return;
+                }
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                saveState();
+                updateBrushStyle();
+                renderPresets();
+                updateActiveToolUI();
+                updateSizeLabel();
+                drawColorWheel();
+                syncPanelFromColor(currentColor);
+                renderHistory();
+                bindEvents();
+                updateUndoRedoUI();
+                console.log('✅ 星空画板初始化成功（颜色递归已修复）');
+            }
+
+            function updateBrushStyle() {
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.lineWidth = brushSize;
+                if (currentTool === 'eraser') {
+                    ctx.globalCompositeOperation = 'destination-out';
+                    ctx.strokeStyle = '#000000';
+                } else {
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.strokeStyle = currentColor;
+                }
+            }
+
+            // ==================== 历史记录 ====================
+            function saveState() {
+                if (historyIndex < historyStack.length - 1) {
+                    historyStack = historyStack.slice(0, historyIndex + 1);
+                }
+                historyStack.push(canvas.toDataURL('image/png'));
+                historyIndex++;
+                if (historyStack.length > MAX_HISTORY) {
+                    historyStack.shift();
+                    historyIndex--;
+                }
+                updateUndoRedoUI();
+            }
+
+            function undo() {
+                if (historyIndex <= 0) return;
+                historyIndex--;
+                restore(historyStack[historyIndex]);
+                updateUndoRedoUI();
+            }
+
+            function redo() {
+                if (historyIndex >= historyStack.length - 1) return;
+                historyIndex++;
+                restore(historyStack[historyIndex]);
+                updateUndoRedoUI();
+            }
+
+            function restore(dataUrl) {
+                const img = new Image();
+                img.onload = function() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                };
+                img.src = dataUrl;
+            }
+
+            function updateUndoRedoUI() {
+                if (undoBtn) undoBtn.style.opacity = historyIndex > 0 ? '1' : '0.4';
+                if (redoBtn) redoBtn.style.opacity = historyIndex < historyStack.length - 1 ? '1' : '0.4';
+            }
+
+            // ==================== 颜色管理（已解耦） ====================
+            function setColor(hex) {
+                if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return;
+                if (currentColor === hex) return;
+                currentColor = hex;
+                colorPicker.value = hex;
+                updateColorPickerBg();
+                updatePresetSelection();
+                if (['pen', 'fill', 'line', 'rect', 'circle'].includes(currentTool)) {
+                    ctx.strokeStyle = hex;
+                }
+                addHistoryColor(hex);
+                syncPanelFromColor(hex);
+            }
+
+            function applyPanelColor() {
+                const hex = hslToHex(panelHue, panelSat, panelLight);
+                if (currentColor === hex) return;
+                currentColor = hex;
+                colorPicker.value = hex;
+                updateColorPickerBg();
+                updatePresetSelection();
+                if (['pen', 'fill', 'line', 'rect', 'circle'].includes(currentTool)) {
+                    ctx.strokeStyle = hex;
+                }
+                addHistoryColor(hex);
+            }
+
+            function syncPanelFromColor(hex) {
+                const { h, s, l } = hexToHsl(hex);
+                panelHue = h;
+                panelSat = s;
+                panelLight = l;
+                updatePanelDisplay();
+            }
+
+            function updatePanelDisplay() {
+                if (hueSlider) hueSlider.value = panelHue;
+                if (satSlider) satSlider.value = panelSat;
+                if (lightSlider) lightSlider.value = panelLight;
+                if (hueVal) hueVal.textContent = Math.round(panelHue) + '°';
+                if (satVal) satVal.textContent = Math.round(panelSat) + '%';
+                if (lightVal) lightVal.textContent = Math.round(panelLight) + '%';
+                if (hexInput) hexInput.value = hslToHex(panelHue, panelSat, panelLight);
+            }
+
+            function updateColorPickerBg() {
+                const wrap = document.getElementById('colorPickerWrap');
+                if (wrap) wrap.style.background = currentColor;
+            }
+
+            function addHistoryColor(hex) {
+                colorHistory = [hex, ...colorHistory.filter(c => c !== hex)];
+                if (colorHistory.length > 14) colorHistory.pop();
+                renderHistory();
+            }
+
+            function renderHistory() {
+                if (!historyContainer) return;
+                historyContainer.innerHTML = colorHistory.map(c =>
+                    `<div class="history-dot" style="background:${c};" data-color="${c}" title="${c}"></div>`
+                ).join('');
+            }
+
+            function renderPresets() {
+                if (!presetContainer) return;
+                const presets = ['#7c8cf8','#1a1a2e','#ffffff','#f06a6a','#f0a86a','#f0e86a','#5cdb8b','#5cc8db','#c06af0','#f06ac8'];
+                presetContainer.innerHTML = presets.map(c =>
+                    `<div class="preset-dot ${c===currentColor?'selected':''}" style="background:${c};" data-color="${c}" title="${c}"></div>`
+                ).join('');
+            }
+
+            function updatePresetSelection() {
+                document.querySelectorAll('.preset-dot').forEach(d => {
+                    d.classList.toggle('selected', d.dataset.color === currentColor);
+                });
+            }
+
+            function updateActiveToolUI() {
+                toolBtns.forEach(b => b.classList.toggle('active', b.dataset.tool === currentTool));
+                canvas.classList.toggle('eraser-mode', currentTool === 'eraser');
+                if (fillToggleBtn) {
+                    const showFillToggle = ['rect', 'circle'].includes(currentTool);
+                    fillToggleBtn.style.display = showFillToggle ? 'flex' : 'none';
+                    fillToggleBtn.textContent = shapeFillMode ? '🟦' : '🔲';
+                }
+            }
+
+            function updateSizeLabel() {
+                if (sizeValue) sizeValue.textContent = brushSize;
+            }
+
+            // ==================== 形状预览 ====================
+            async function captureSnapshot() {
+                return new Promise(resolve => {
+                    const img = new Image();
+                    img.onload = () => resolve(img);
+                    img.src = canvas.toDataURL('image/png');
+                });
+            }
+
+            function restoreSnapshot(img) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+            }
+
+            function drawShapePreview(x1, y1, x2, y2) {
+                if (!snapshotImage) return;
+                restoreSnapshot(snapshotImage);
+                ctx.lineWidth = brushSize;
+                ctx.strokeStyle = currentColor;
+                ctx.fillStyle = currentColor;
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.beginPath();
+                const w = x2 - x1, h = y2 - y1;
+                switch (currentTool) {
+                    case 'line': ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); break;
+                    case 'rect':
+                        if (shapeFillMode) ctx.fillRect(x1, y1, w, h);
+                        else ctx.strokeRect(x1, y1, w, h);
+                        break;
+                    case 'circle':
+                        const rx = Math.abs(w)/2, ry = Math.abs(h)/2;
+                        ctx.ellipse(x1 + w/2, y1 + h/2, rx, ry, 0, 0, Math.PI*2);
+                        if (shapeFillMode) ctx.fill(); else ctx.stroke();
+                        break;
+                }
+            }
+
+            // ==================== 油漆桶 ====================
+            function floodFill(sx, sy, fillColor) {
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                const width = canvas.width, height = canvas.height;
+                const startIdx = (Math.floor(sy) * width + Math.floor(sx)) * 4;
+                const startR = data[startIdx], startG = data[startIdx+1], startB = data[startIdx+2], startA = data[startIdx+3];
+                const tmpCanvas = document.createElement('canvas');
+                tmpCanvas.width = tmpCanvas.height = 1;
+                const tmpCtx = tmpCanvas.getContext('2d');
+                tmpCtx.fillStyle = fillColor;
+                tmpCtx.fillRect(0,0,1,1);
+                const [fr, fg, fb, fa] = tmpCtx.getImageData(0,0,1,1).data;
+                const tolerance = 32;
+                const match = (idx) =>
+                    Math.abs(data[idx]-startR)<=tolerance && Math.abs(data[idx+1]-startG)<=tolerance &&
+                    Math.abs(data[idx+2]-startB)<=tolerance && Math.abs(data[idx+3]-startA)<=tolerance;
+                if (!match(startIdx)) return;
+                const stack = [[Math.floor(sx), Math.floor(sy)]];
+                const visited = new Uint8Array(width * height);
+                while (stack.length) {
+                    const [x, y] = stack.pop();
+                    if (x<0||x>=width||y<0||y>=height) continue;
+                    const idx = y * width + x;
+                    if (visited[idx]) continue;
+                    if (!match(idx*4)) continue;
+                    visited[idx] = 1;
+                    data[idx*4]=fr; data[idx*4+1]=fg; data[idx*4+2]=fb; data[idx*4+3]=fa;
+                    stack.push([x+1,y],[x-1,y],[x,y+1],[x,y-1]);
+                }
+                ctx.putImageData(imageData, 0, 0);
+            }
+
+            function getPos(e) {
+                const rect = canvas.getBoundingClientRect();
+                return {
+                    x: (e.clientX - rect.left) * (canvas.width / rect.width),
+                    y: (e.clientY - rect.top) * (canvas.height / rect.height)
+                };
+            }
+
+            // ==================== 绘图事件 ====================
+            async function pointerDown(e) {
+                e.preventDefault();
+                const pos = getPos(e);
+                if (currentTool === 'fill') { floodFill(pos.x, pos.y, currentColor); saveState(); return; }
+                if (currentTool === 'eyedropper') {
+                    const pixel = ctx.getImageData(Math.floor(pos.x), Math.floor(pos.y), 1, 1).data;
+                    if (pixel[3] > 0) {
+                        const hex = '#' + [pixel[0],pixel[1],pixel[2]].map(v=>v.toString(16).padStart(2,'0')).join('');
+                        setColor(hex);
+                    }
+                    currentTool = 'pen'; updateActiveToolUI(); updateBrushStyle(); return;
+                }
+                if (currentTool === 'text') {
+                    const txt = prompt('请输入文字：', 'Hello');
+                    if (txt) {
+                        ctx.font = `${brushSize*3}px "PingFang SC","Microsoft YaHei",sans-serif`;
+                        ctx.fillStyle = currentColor;
+                        ctx.globalCompositeOperation = 'source-over';
+                        ctx.fillText(txt, pos.x, pos.y);
+                        saveState();
+                    }
+                    return;
+                }
+                if (['line','rect','circle'].includes(currentTool)) {
+                    shapeStartX = pos.x; shapeStartY = pos.y;
+                    snapshotImage = await captureSnapshot();
+                    isDrawing = true;
+                } else {
+                    isDrawing = true; lastX = pos.x; lastY = pos.y;
+                    updateBrushStyle();
+                    ctx.beginPath();
+                    ctx.arc(lastX, lastY, brushSize/2, 0, Math.PI*2);
+                    ctx.fillStyle = currentTool==='eraser'?'#000000':currentColor;
+                    ctx.fill();
+                    ctx.beginPath(); ctx.moveTo(lastX, lastY);
+                }
+            }
+
+            function pointerMove(e) {
+                if (!isDrawing) return;
+                e.preventDefault();
+                const pos = getPos(e);
+                if (['line','rect','circle'].includes(currentTool)) {
+                    drawShapePreview(shapeStartX, shapeStartY, pos.x, pos.y);
+                    return;
+                }
+                updateBrushStyle();
+                ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(pos.x, pos.y); ctx.stroke();
+                lastX = pos.x; lastY = pos.y;
+            }
+
+            function pointerUp() {
+                if (!isDrawing) return;
+                isDrawing = false;
+                if (['line','rect','circle'].includes(currentTool)) {
+                    saveState();
+                    snapshotImage = null;
+                } else {
+                    ctx.beginPath();
+                    saveState();
+                }
+            }
+
+            // ==================== 颜色转换 ====================
+            function hslToHex(h, s, l) {
+                s /= 100; l /= 100;
+                let r, g, b;
+                if (s === 0) { r = g = b = l; }
+                else {
+                    const hue2rgb = (p, q, t) => {
+                        if (t < 0) t += 1; if (t > 1) t -= 1;
+                        if (t < 1/6) return p + (q - p) * 6 * t;
+                        if (t < 1/2) return q;
+                        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                        return p;
+                    };
+                    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                    const p = 2 * l - q;
+                    r = hue2rgb(p, q, h/360 + 1/3);
+                    g = hue2rgb(p, q, h/360);
+                    b = hue2rgb(p, q, h/360 - 1/3);
+                }
+                const toHex = x => Math.round(x * 255).toString(16).padStart(2, '0');
+                return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+            }
+
+            function hexToHsl(hex) {
+                hex = hex.replace('#', '');
+                let r, g, b;
+                if (hex.length === 3) {
+                    r = parseInt(hex[0]+hex[0],16); g = parseInt(hex[1]+hex[1],16); b = parseInt(hex[2]+hex[2],16);
+                } else {
+                    r = parseInt(hex.substring(0,2),16); g = parseInt(hex.substring(2,4),16); b = parseInt(hex.substring(4,6),16);
+                }
+                r /= 255; g /= 255; b /= 255;
+                const max = Math.max(r,g,b), min = Math.min(r,g,b), l = (max+min)/2;
+                let h = 0, s = 0;
+                if (max !== min) {
+                    const d = max - min;
+                    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                    switch (max) {
+                        case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+                        case g: h = ((b - r) / d + 2) / 6; break;
+                        case b: h = ((r - g) / d + 4) / 6; break;
+                    }
+                }
+                return { h: h * 360, s: s * 100, l: l * 100 };
+            }
+
+            function drawColorWheel() {
+                if (!wheelCtx) return;
+                const size = 140, center = 70, radius = 62;
+                wheelCtx.clearRect(0, 0, size, size);
+                for (let angle = 0; angle < 360; angle += 1) {
+                    const start = (angle-1)*Math.PI/180, end = angle*Math.PI/180;
+                    for (let r = 0; r <= radius; r++) {
+                        wheelCtx.fillStyle = `hsl(${angle}, ${(r/radius)*100}%, 50%)`;
+                        wheelCtx.beginPath();
+                        wheelCtx.arc(center, center, r, start, end);
+                        wheelCtx.lineTo(center, center);
+                        wheelCtx.fill();
+                    }
+                }
+            }
+
+            // ==================== SVG 导出 ====================
+            function downloadStarFile() {
+                const pngDataURL = canvas.toDataURL('image/png');
+                const now = new Date();
+                const timestamp = now.getFullYear() +
+                    String(now.getMonth() + 1).padStart(2, '0') +
+                    String(now.getDate()).padStart(2, '0') + '_' +
+                    String(now.getHours()).padStart(2, '0') +
+                    String(now.getMinutes()).padStart(2, '0') +
+                    String(now.getSeconds()).padStart(2, '0');
+                const svgContent = `<?xml version="1.0" encoding="UTF-8"?>
+        <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${canvas.width}" height="${canvas.height}" viewBox="0 0 ${canvas.width} ${canvas.height}" version="1.1">
+          <title>星空画板作品</title>
+          <desc>创建于 ${now.toLocaleString('zh-CN')} · 画板尺寸 ${canvas.width}×${canvas.height}</desc>
+          <image width="${canvas.width}" height="${canvas.height}" xlink:href="${pngDataURL}"/>
+        </svg>`;
+                const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `star-drawing_${timestamp}.star`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 200);
+                showToast('✅ 已下载 .star 文件（本质为 SVG）');
+            }
+
+            function loadFile(file) {
+                if (!file) return;
+                const fileName = file.name.toLowerCase();
+                if (fileName.endsWith('.star') || fileName.endsWith('.svg')) {
+                    const reader = new FileReader();
+                    reader.onload = function(ev) {
+                        try {
+                            const parser = new DOMParser();
+                            const svgDoc = parser.parseFromString(ev.target.result, 'image/svg+xml');
+                            const imgEl = svgDoc.querySelector('image');
+                            const href = imgEl ? (imgEl.getAttribute('href') || imgEl.getAttributeNS('http://www.w3.org/1999/xlink', 'href')) : null;
+                            if (href && href.startsWith('data:image/')) {
+                                const img = new Image();
+                                img.onload = function() {
+                                    if (historyStack.length>1 && !confirm('加载文件将覆盖当前画布，是否继续？')) return;
+                                    ctx.clearRect(0,0,canvas.width,canvas.height);
+                                    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+                                    saveState();
+                                    showToast('✅ 已加载 .star (SVG) 文件');
+                                };
+                                img.src = href;
+                            } else showToast('❌ SVG 文件中未找到有效图片');
+                        } catch (err) { showToast('❌ SVG 解析失败'); }
+                    };
+                    reader.readAsText(file);
+                } else {
+                    const reader = new FileReader();
+                    reader.onload = function(ev) {
+                        const img = new Image();
+                        img.onload = function() {
+                            if (historyStack.length>1 && !confirm('加载图片将覆盖当前画布，是否继续？')) return;
+                            ctx.clearRect(0,0,canvas.width,canvas.height);
+                            ctx.drawImage(img,0,0,canvas.width,canvas.height);
+                            saveState();
+                            showToast('✅ 已加载图片文件');
+                        };
+                        img.src = ev.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+
+            function showToast(msg) {
+                let toast = document.getElementById('toastMsg');
+                if (!toast) {
+                    toast = document.createElement('div');
+                    toast.id = 'toastMsg';
+                    toast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1e2038;color:#fff;padding:10px 24px;border-radius:25px;font-size:0.85rem;font-weight:600;z-index:9999;pointer-events:none;transition:all 0.35s;opacity:0;border:1px solid rgba(255,255,255,0.15);box-shadow:0 8px 30px rgba(0,0,0,0.5);';
+                    document.body.appendChild(toast);
+                }
+                toast.textContent = msg;
+                toast.style.opacity = '1';
+                toast.style.transform = 'translateX(-50%) translateY(0)';
+                clearTimeout(toast._timer);
+                toast._timer = setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(-50%) translateY(-30px)'; }, 2200);
+            }
+
+            // ==================== 事件绑定 ====================
+            function bindEvents() {
+                canvas.addEventListener('pointerdown', pointerDown);
+                canvas.addEventListener('pointermove', pointerMove);
+                canvas.addEventListener('pointerup', pointerUp);
+                canvas.addEventListener('pointerleave', pointerUp);
+                canvas.addEventListener('pointercancel', pointerUp);
+
+                toolBtns.forEach(btn => btn.addEventListener('click', function() {
+                    currentTool = this.dataset.tool;
+                    updateActiveToolUI();
+                    updateBrushStyle();
+                }));
+
+                fillToggleBtn.addEventListener('click', () => {
+                    shapeFillMode = !shapeFillMode;
+                    updateActiveToolUI();
+                });
+
+                colorPicker.addEventListener('input', e => setColor(e.target.value));
+                sizeSlider.addEventListener('input', () => { brushSize = parseInt(sizeSlider.value); updateSizeLabel(); });
+
+                presetContainer.addEventListener('click', e => {
+                    const dot = e.target.closest('.preset-dot');
+                    if (dot) setColor(dot.dataset.color);
+                });
+
+                undoBtn.addEventListener('click', undo);
+                redoBtn.addEventListener('click', redo);
+                clearBtn.addEventListener('click', () => {
+                    if (historyStack.length > 1 && !confirm('确定要清除画布吗？此操作可以撤销。')) return;
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    saveState();
+                    showToast('🗑 画布已清除');
+                });
+
+                loadBtn.addEventListener('click', () => fileInput.click());
+                fileInput.addEventListener('change', e => {
+                    if (e.target.files[0]) loadFile(e.target.files[0]);
+                    fileInput.value = '';
+                });
+
+                downloadBtn.addEventListener('click', downloadStarFile);
+
+                // 调色板滑块（调用 applyPanelColor 而非 setColor）
+                hueSlider.addEventListener('input', () => {
+                    panelHue = parseInt(hueSlider.value);
+                    updatePanelDisplay();
+                    applyPanelColor();
+                });
+                satSlider.addEventListener('input', () => {
+                    panelSat = parseInt(satSlider.value);
+                    updatePanelDisplay();
+                    applyPanelColor();
+                });
+                lightSlider.addEventListener('input', () => {
+                    panelLight = parseInt(lightSlider.value);
+                    updatePanelDisplay();
+                    applyPanelColor();
+                });
+
+                // 色号输入
+                hexInput.addEventListener('change', () => {
+                    const val = hexInput.value.trim();
+                    if (/^#[0-9a-fA-F]{6}$/.test(val)) setColor(val);
+                    else { alert('请输入6位十六进制颜色值'); hexInput.value = currentColor; }
+                });
+                hexInput.addEventListener('keydown', e => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        hexInput.blur();
+                        const val = hexInput.value.trim();
+                        if (/^#[0-9a-fA-F]{6}$/.test(val)) setColor(val);
+                        else { alert('请输入6位十六进制颜色值'); hexInput.value = currentColor; }
+                    }
+                });
+
+                // 色盘点击
+                colorWheelCanvas.addEventListener('click', e => {
+                    const rect = colorWheelCanvas.getBoundingClientRect();
+                    const cx = rect.width/2, cy = rect.height/2;
+                    const x = e.clientX - rect.left - cx;
+                    const y = e.clientY - rect.top - cy;
+                    const dist = Math.sqrt(x*x + y*y);
+                    if (dist > 62) return;
+                    let angle = Math.atan2(y, x) * 180 / Math.PI;
+                    if (angle < 0) angle += 360;
+                    panelHue = Math.round(angle);
+                    panelSat = Math.min(100, Math.round((dist/62)*100));
+                    updatePanelDisplay();
+                    applyPanelColor();
+                });
+
+                historyContainer.addEventListener('click', e => {
+                    const dot = e.target.closest('.history-dot');
+                    if (dot) setColor(dot.dataset.color);
+                });
+
+                document.addEventListener('keydown', e => {
+                    if (e.ctrlKey && e.key === 'z') { e.preventDefault(); undo(); }
+                    if (e.ctrlKey && (e.key === 'y' || (e.shiftKey && e.key==='z'))) { e.preventDefault(); redo(); }
+                    if (e.key === 'b' && !e.ctrlKey) { currentTool='pen'; updateActiveToolUI(); updateBrushStyle(); }
+                    if (e.key === 'e' && !e.ctrlKey) { currentTool='eraser'; updateActiveToolUI(); updateBrushStyle(); }
+                    if (e.key === 'g' && !e.ctrlKey) { currentTool='fill'; updateActiveToolUI(); }
+                    if (e.key === 'i' && !e.ctrlKey) { currentTool='eyedropper'; updateActiveToolUI(); }
+                    if (e.key === 'l' && !e.ctrlKey) { currentTool='line'; updateActiveToolUI(); }
+                    if (e.key === 'r' && !e.ctrlKey) { currentTool='rect'; updateActiveToolUI(); }
+                    if (e.key === 'c' && !e.ctrlKey) { currentTool='circle'; updateActiveToolUI(); }
+                    if (e.key === 't' && !e.ctrlKey) { currentTool='text'; updateActiveToolUI(); }
+                    if (e.ctrlKey && e.key === 's') { e.preventDefault(); downloadStarFile(); }
+                });
+
+                window.addEventListener('resize', () => {
+                    if (canvasInfo) canvasInfo.textContent = `${canvas.width} × ${canvas.height}`;
+                });
+            }
+
+            init();
+        })();
+    </script>
+</body>
+</html>

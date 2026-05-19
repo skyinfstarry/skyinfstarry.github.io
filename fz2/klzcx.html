@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>科拉兹猜想 · 反例检测 + 实时曲线</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 20% 30%, #1a1a2e, #0f0c29);
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 20px; color: #e0e0e0;
+    }
+    .card {
+      background: rgba(15, 15, 35, 0.7); backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 36px;
+      padding: 32px; width: 100%; max-width: 1100px;
+      box-shadow: 0 30px 60px rgba(0,0,0,0.7);
+    }
+    h1 { font-size: 2.8rem; text-align: center; color: #fff; letter-spacing: 4px; margin-bottom: 4px; }
+    .subtitle { text-align: center; color: #a0a0c0; margin-bottom: 24px; font-size: 1rem; }
+    .top-row {
+      display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 24px;
+    }
+    input {
+      flex: 4; min-width: 200px; padding: 14px 16px; font-size: 1rem;
+      border: 1px solid rgba(255,255,255,0.2); border-radius: 16px;
+      background: rgba(255,255,255,0.07); color: white; outline: none;
+    }
+    input:focus { border-color: #e83e8c; box-shadow: 0 0 0 3px rgba(232,62,140,0.3); }
+    button {
+      padding: 14px 20px; font-size: 1rem; font-weight: 600; border: none;
+      border-radius: 16px; cursor: pointer; background: #e83e8c; color: white;
+      letter-spacing: 1px; transition: 0.2s; white-space: nowrap;
+    }
+    button:hover:not(:disabled) { background: #d42e76; }
+    button:active:not(:disabled) { transform: scale(0.96); }
+    button:disabled { background: #5e3a4e; cursor: not-allowed; }
+    .control-bar {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
+      background: rgba(0,0,0,0.3); border-radius: 20px; padding: 14px 20px;
+      margin-bottom: 20px;
+    }
+    .speed-slider {
+      display: flex; align-items: center; gap: 10px; flex: 2; min-width: 200px;
+    }
+    .speed-slider label { color: #c0c0e0; font-size: 0.9rem; white-space: nowrap; }
+    input[type=range] {
+      width: 100%; accent-color: #e83e8c; height: 6px;
+    }
+    .speed-value {
+      background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 10px;
+      font-size: 0.9rem; min-width: 55px; text-align: center;
+    }
+    .live-panel {
+      display: flex; gap: 20px; flex-wrap: wrap;
+    }
+    .main-display {
+      flex: 2; min-width: 300px;
+      background: rgba(0,0,0,0.35); border-radius: 24px; padding: 20px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .stats {
+      display: flex; justify-content: space-between; font-size: 1.1rem; margin-bottom: 16px;
+    }
+    .stat span:first-child { color: #b0b0c0; }
+    .stat span:last-child {
+      font-weight: 700; background: rgba(255,255,255,0.1);
+      padding: 2px 12px; border-radius: 10px; margin-left: 8px;
+    }
+    .current-number-box {
+      background: rgba(20,20,45,0.6); border-radius: 18px; padding: 16px;
+      border: 1px solid #e83e8c40; text-align: center;
+    }
+    .current-label { font-size: 0.85rem; color: #a0a0c0; margin-bottom: 8px; }
+    .current-value {
+      font-family: 'Fira Code', monospace;
+      font-size: 1.8rem; font-weight: 700;
+      color: #ffb3d9;
+      word-break: break-all;
+      overflow-wrap: anywhere;
+      max-height: 120px; overflow-y: auto;
+      line-height: 1.4;
+      transition: background-color 0.1s;
+    }
+    .current-value.flash {
+      background-color: rgba(232,62,140,0.3);
+    }
+    .history-panel {
+      flex: 1; min-width: 220px; max-height: 300px;
+      background: rgba(0,0,0,0.3); border-radius: 20px;
+      padding: 14px; border: 1px solid rgba(255,255,255,0.06);
+      display: flex; flex-direction: column;
+    }
+    .history-title {
+      font-size: 0.9rem; color: #c0c0e0; margin-bottom: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px;
+    }
+    .history-list {
+      list-style: none; overflow-y: auto; flex: 1;
+      font-family: 'Fira Code', monospace; font-size: 0.8rem; color: #ccc;
+      word-break: break-all; line-height: 1.5; padding-right: 4px;
+    }
+    .history-list li {
+      padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .curve-container {
+      background: rgba(0,0,0,0.3); border-radius: 20px; padding: 16px;
+      margin-top: 20px; border: 1px solid rgba(255,255,255,0.08);
+    }
+    canvas {
+      width: 100%; height: 300px; display: block; border-radius: 12px;
+      background: rgba(0,0,0,0.3);
+    }
+    .result-area {
+      background: rgba(0,0,0,0.3); border-radius: 20px; padding: 20px;
+      border: 1px solid rgba(255,255,255,0.06); font-size: 1rem;
+      line-height: 1.6; word-break: break-word; max-height: 350px; overflow-y: auto;
+      margin-top: 20px;
+    }
+    .loop-highlight {
+      color: #ff78b0; font-weight: 700; background: rgba(232,62,140,0.2);
+      padding: 2px 8px; border-radius: 8px;
+    }
+    .counterexample {
+      color: #ff6060; font-weight: 700; background: rgba(255,80,80,0.2);
+      padding: 2px 8px; border-radius: 8px; font-size: 1.2rem;
+    }
+    .success { color: #80ff80; font-weight: 700; }
+    .error { color: #ff9090; }
+    .footer { text-align: center; margin-top: 20px; font-size: 0.8rem; color: #6a6a8a; }
+    hr { border-color: rgba(255,255,255,0.08); margin: 16px 0; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>科拉兹猜想</h1>
+  <div class="subtitle">实时推演 · 反例检测 · 变化曲线</div>
+
+  <div class="top-row">
+    <input type="text" id="numberInput" placeholder="输入正整数，例如 27 或你的超大数">
+    <button id="startBtn" onclick="startEngine()">▶ 开始</button>
+    <button id="stopBtn" onclick="stopEngine()" disabled>⏹️ 停止</button>
+  </div>
+
+  <div class="control-bar">
+    <div class="speed-slider">
+      <label>🐢 慢</label>
+      <input type="range" id="speedSlider" min="0" max="2000" value="200" step="1">
+      <label>🐇 快</label>
+      <span class="speed-value" id="speedDisplay">200 ms</span>
+    </div>
+    <button id="pauseBtn" onclick="togglePause()" disabled>⏸️ 暂停</button>
+    <button id="stepBtn" onclick="stepOnce()" disabled>⏭️ 单步</button>
+  </div>
+
+  <div class="live-panel">
+    <div class="main-display">
+      <div class="stats">
+        <div class="stat"><span>步数</span><span id="stepCount">0</span></div>
+        <div class="stat"><span>序列长度</span><span id="seqLength">0</span></div>
+      </div>
+      <div class="current-number-box">
+        <div class="current-label">✨ 当前数字</div>
+        <div class="current-value" id="currentNumber">—</div>
+      </div>
+    </div>
+    <div class="history-panel">
+      <div class="history-title">📜 最近 8 步</div>
+      <ul class="history-list" id="historyList"></ul>
+    </div>
+  </div>
+
+  <div class="curve-container">
+    <canvas id="curveCanvas"></canvas>
+  </div>
+
+  <div class="result-area" id="finalResult">
+    <p style="color:#9e9eb0;">👆 输入数字，点击开始，实时监视科拉兹序列，自动检测反例。</p>
+  </div>
+  <div class="footer">科拉兹猜想 · 3n+1 问题</div>
+</div>
+
+<script>
+  // ---------- Web Worker (支持反例检测) ----------
+  const workerCode = `
+    let current = 0n;
+    let seq = [];
+    let step = 0;
+    let running = false;
+
+    self.onmessage = function(e) {
+      const msg = e.data;
+      if (msg.type === 'start') {
+        const n = BigInt(msg.number);
+        if (n <= 0n) {
+          self.postMessage({ type: 'error', message: '数字必须大于0' });
+          return;
+        }
+        current = n;
+        seq = [];
+        step = 0;
+        running = true;
+        self.postMessage({ type: 'tick', current: current.toString(), step, length: seq.length });
+      } else if (msg.type === 'compute' && running) {
+        // 检查当前数字是否已经出现在序列中（即形成循环）
+        const foundIdx = seq.findIndex(x => x === current);
+        if (foundIdx !== -1) {
+          const loopStartIdx = foundIdx;
+          const loopArr = seq.slice(loopStartIdx);
+          loopArr.push(current); // 补上重复数字，形成完整循环展示
+          const isTrivial = current === 4n; // 平凡循环 4→2→1
+          self.postMessage({
+            type: 'done',
+            sequence: seq.map(x => x.toString()),
+            loopStart: current.toString(),
+            loopArr: loopArr.map(x => x.toString()),
+            totalSteps: step,
+            isTrivial: isTrivial,
+          });
+          running = false;
+          return;
+        }
+
+        seq.push(current);
+        if (current % 2n === 0n) {
+          current = current / 2n;
+        } else {
+          current = 3n * current + 1n;
+        }
+        step++;
+        self.postMessage({ type: 'tick', current: current.toString(), step, length: seq.length });
+      } else if (msg.type === 'stop') {
+        running = false;
+        self.postMessage({ type: 'stopped', step });
+      }
+    };
+  `;
+
+  const blob = new Blob([workerCode], { type: 'application/javascript' });
+  const workerUrl = URL.createObjectURL(blob);
+  let worker = null;
+  let timerId = null;
+  let isPaused = false;
+  let currentSpeed = 200;
+
+  // DOM
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const stepBtn = document.getElementById('stepBtn');
+  const numberInput = document.getElementById('numberInput');
+  const stepCountEl = document.getElementById('stepCount');
+  const seqLengthEl = document.getElementById('seqLength');
+  const currentNumberEl = document.getElementById('currentNumber');
+  const historyListEl = document.getElementById('historyList');
+  const finalResultEl = document.getElementById('finalResult');
+  const speedSlider = document.getElementById('speedSlider');
+  const speedDisplay = document.getElementById('speedDisplay');
+  const canvas = document.getElementById('curveCanvas');
+  const ctx = canvas.getContext('2d');
+
+  let curveData = [];
+  const MAX_CURVE_POINTS = 2000;
+  const history = [];
+  const MAX_HISTORY = 8;
+
+  function approxLog10(numStr) {
+    if (numStr === '0') return 0;
+    const len = numStr.length;
+    const firstDigit = parseInt(numStr[0]);
+    return (len - 1) + Math.log10(firstDigit);
+  }
+
+  function updateCurve(logValue) {
+    curveData.push(logValue);
+    if (curveData.length > MAX_CURVE_POINTS) curveData.shift();
+    drawCurve();
+  }
+
+  function resetCurve() {
+    curveData = [];
+    drawCurve();
+  }
+
+  function drawCurve() {
+    if (!canvas || !ctx) return;
+    const w = canvas.width = canvas.clientWidth || 800;
+    const h = canvas.height = canvas.clientHeight || 300;
+    ctx.clearRect(0, 0, w, h);
+
+    if (curveData.length < 2) {
+      ctx.fillStyle = '#888';
+      ctx.font = '14px sans-serif';
+      ctx.fillText('等待数据...', 20, 30);
+      return;
+    }
+
+    const maxLog = Math.max(...curveData);
+    const minLog = Math.min(...curveData);
+    const yRange = maxLog - minLog || 1;
+    const padding = 40;
+    const plotWidth = w - padding * 2;
+    const plotHeight = h - padding * 2;
+
+    // 网格
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 5; i++) {
+      const y = padding + (plotHeight / 5) * i;
+      ctx.beginPath();
+      ctx.moveTo(padding, y);
+      ctx.lineTo(w - padding, y);
+      ctx.stroke();
+    }
+    for (let i = 0; i <= 10; i++) {
+      const x = padding + (plotWidth / 10) * i;
+      ctx.beginPath();
+      ctx.moveTo(x, padding);
+      ctx.lineTo(x, h - padding);
+      ctx.stroke();
+    }
+
+    // Y轴标签
+    ctx.fillStyle = '#ccc';
+    ctx.font = '12px monospace';
+    for (let i = 0; i <= 5; i++) {
+      const val = minLog + (yRange / 5) * i;
+      const y = h - padding - (plotHeight / 5) * i;
+      ctx.fillText(`10^${val.toFixed(1)}`, 5, y + 4);
+    }
+
+    // 曲线
+    ctx.beginPath();
+    ctx.strokeStyle = '#e83e8c';
+    ctx.lineWidth = 2;
+    let firstPoint = true;
+    curveData.forEach((logVal, idx) => {
+      const x = padding + (idx / (curveData.length - 1)) * plotWidth;
+      const y = h - padding - ((logVal - minLog) / yRange) * plotHeight;
+      if (firstPoint) {
+        ctx.moveTo(x, y);
+        firstPoint = false;
+      } else {
+        ctx.lineTo(x, y);
+      }
+    });
+    ctx.stroke();
+
+    if (curveData.length > 0) {
+      const lastIdx = curveData.length - 1;
+      const lastLog = curveData[lastIdx];
+      const x = padding + (lastIdx / (curveData.length - 1)) * plotWidth;
+      const y = h - padding - ((lastLog - minLog) / yRange) * plotHeight;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.fillStyle = '#aaa';
+    ctx.font = '13px sans-serif';
+    ctx.fillText('序列数值的对数变化 (log₁₀)', padding + 10, padding - 10);
+  }
+
+  window.addEventListener('resize', drawCurve);
+
+  function updateHistory(numStr) {
+    history.push(numStr);
+    if (history.length > MAX_HISTORY) history.shift();
+    historyListEl.innerHTML = history.map(n => `<li>${n}</li>`).join('');
+    historyListEl.scrollTop = historyListEl.scrollHeight;
+  }
+
+  function flashCurrentNumber() {
+    currentNumberEl.classList.remove('flash');
+    void currentNumberEl.offsetWidth;
+    currentNumberEl.classList.add('flash');
+  }
+
+  function sendCompute() {
+    if (worker) worker.postMessage({ type: 'compute' });
+  }
+
+  function startTimer() {
+    stopTimer();
+    if (isPaused) return;
+    if (currentSpeed === 0) {
+      function fastLoop() {
+        if (!isPaused && worker) {
+          sendCompute();
+          timerId = setTimeout(fastLoop, 0);
+        }
+      }
+      timerId = setTimeout(fastLoop, 0);
+    } else {
+      timerId = setInterval(sendCompute, currentSpeed);
+    }
+  }
+
+  function stopTimer() {
+    if (timerId) {
+      clearInterval(timerId);
+      clearTimeout(timerId);
+      timerId = null;
+    }
+  }
+
+  function setPaused(paused) {
+    isPaused = paused;
+    if (paused) {
+      stopTimer();
+      pauseBtn.textContent = '▶️ 继续';
+    } else {
+      pauseBtn.textContent = '⏸️ 暂停';
+      startTimer();
+    }
+  }
+
+  function togglePause() {
+    setPaused(!isPaused);
+  }
+
+  function stepOnce() {
+    if (!worker || !isPaused) return;
+    sendCompute();
+  }
+
+  function stopEngine() {
+    if (worker) {
+      worker.terminate();
+      worker = null;
+    }
+    stopTimer();
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    pauseBtn.disabled = true;
+    stepBtn.disabled = true;
+    isPaused = false;
+    pauseBtn.textContent = '⏸️ 暂停';
+    currentNumberEl.textContent = '—';
+    stepCountEl.textContent = '0';
+    seqLengthEl.textContent = '0';
+    history.length = 0;
+    historyListEl.innerHTML = '';
+    resetCurve();
+    finalResultEl.innerHTML = '<p style="color:#9e9eb0;">计算已停止。</p>';
+  }
+
+  function startEngine() {
+    const raw = numberInput.value.trim();
+    if (!/^\d+$/.test(raw)) {
+      finalResultEl.innerHTML = '<p class="error">⚠️ 请输入纯数字正整数。</p>';
+      return;
+    }
+    let n;
+    try {
+      n = BigInt(raw);
+    } catch (e) {
+      finalResultEl.innerHTML = '<p class="error">⚠️ 无法解析该数字。</p>';
+      return;
+    }
+    if (n <= 0n) {
+      finalResultEl.innerHTML = '<p class="error">⚠️ 数字必须大于 0。</p>';
+      return;
+    }
+
+    if (worker) {
+      worker.terminate();
+      worker = null;
+    }
+    stopTimer();
+    resetCurve();
+    history.length = 0;
+    historyListEl.innerHTML = '';
+
+    worker = new Worker(workerUrl);
+    worker.onmessage = function(e) {
+      const msg = e.data;
+      if (msg.type === 'tick') {
+        stepCountEl.textContent = msg.step.toLocaleString();
+        seqLengthEl.textContent = msg.length.toLocaleString();
+        currentNumberEl.textContent = msg.current;
+        flashCurrentNumber();
+        updateHistory(msg.current);
+        updateCurve(approxLog10(msg.current));
+      } else if (msg.type === 'done') {
+        stopTimer();
+        stepCountEl.textContent = msg.totalSteps.toLocaleString();
+        seqLengthEl.textContent = (msg.sequence.length + 1).toLocaleString();
+        currentNumberEl.textContent = msg.isTrivial ? '4 (循环)' : msg.loopStart + ' (非平凡循环)';
+
+        const prefix = msg.sequence.slice(0, msg.sequence.indexOf(msg.loopStart));
+        const loopPart = msg.loopArr;
+        let seqHtml = '';
+        if (prefix.length > 0) seqHtml += prefix.join(' → ') + ' → ';
+        seqHtml += `<span class="loop-highlight">${loopPart.join(' → ')}</span>`;
+
+        let verdictHtml = '';
+        if (msg.isTrivial) {
+          verdictHtml = `<p class="success">✅ 进入 4→2→1 平凡循环，科拉兹猜想对此数成立。</p>`;
+        } else {
+          verdictHtml = `<p class="counterexample">🚨 发现非平凡循环！科拉兹猜想被反例推翻！</p>
+                         <p>循环起始数字: <span class="counterexample">${msg.loopStart}</span></p>`;
+        }
+
+        finalResultEl.innerHTML = `
+          <p><strong>📐 完整序列：</strong></p>
+          <p style="font-size:1.05rem;">${seqHtml}</p>
+          <hr>
+          ${verdictHtml}
+          <p>🔄 循环部分：<span class="loop-highlight">${loopPart.join(' → ')}</span></p>
+          <p style="margin-top:10px; font-size:0.9rem; color:#aaa;">总步数：${msg.totalSteps.toLocaleString()} 步</p>
+        `;
+        setPaused(true);
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+        pauseBtn.disabled = true;
+        stepBtn.disabled = true;
+      } else if (msg.type === 'stopped') {
+        stopTimer();
+        finalResultEl.innerHTML = `<p>⏹️ 已手动停止（计算了 ${msg.step.toLocaleString()} 步）。</p>`;
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+        pauseBtn.disabled = true;
+        stepBtn.disabled = true;
+      } else if (msg.type === 'error') {
+        finalResultEl.innerHTML = `<p class="error">⚠️ ${msg.message}</p>`;
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+        pauseBtn.disabled = true;
+        stepBtn.disabled = true;
+      }
+    };
+
+    worker.onerror = function(err) {
+      finalResultEl.innerHTML = `<p class="error">⚠️ Worker 错误: ${err.message}</p>`;
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      pauseBtn.disabled = true;
+      stepBtn.disabled = true;
+    };
+
+    worker.postMessage({ type: 'start', number: raw });
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    pauseBtn.disabled = false;
+    stepBtn.disabled = true;
+    setPaused(false);
+    finalResultEl.innerHTML = '<p style="color:#cccccc;">⏳ 正在计算，实时检测反例…</p>';
+  }
+
+  speedSlider.addEventListener('input', function() {
+    currentSpeed = parseInt(this.value);
+    speedDisplay.textContent = currentSpeed + ' ms';
+    if (!isPaused) {
+      stopTimer();
+      startTimer();
+    }
+  });
+  speedDisplay.textContent = currentSpeed + ' ms';
+
+  numberInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') startEngine();
+  });
+
+  window.addEventListener('beforeunload', () => {
+    if (worker) worker.terminate();
+  });
+</script>
+</body>
+</html>
