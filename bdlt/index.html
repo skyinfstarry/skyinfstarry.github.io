@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>星星の病毒论坛 · 文件管理版</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* ===== 白色主题（同前，简洁） ===== */
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Segoe UI','PingFang SC',Roboto,sans-serif; background:#f8f9fc; color:#1e2a3a; padding:20px; min-height:100vh; }
+        .container { max-width:1100px; margin:0 auto; background:#fff; border-radius:28px; box-shadow:0 20px 60px rgba(0,0,0,0.06); padding:32px 40px 50px; }
+        .header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; padding-bottom:20px; border-bottom:2px solid #f0f2f5; margin-bottom:30px; }
+        .header-left { display:flex; align-items:center; gap:12px; }
+        .header-left h1 { font-size:28px; font-weight:700; background:linear-gradient(135deg,#f5b042,#f7a83e); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+        .header-left .star-icon { font-size:30px; }
+        .header-right { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+        .user-badge { display:flex; align-items:center; gap:8px; background:#f0f4fe; padding:6px 16px 6px 12px; border-radius:40px; font-size:14px; font-weight:500; color:#2c3e6b; border:1px solid #e2e8f0; }
+        .user-badge .avatar { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; background:#d4e0ff; border-radius:50%; font-size:14px; font-weight:600; color:#1a3a7a; }
+        .btn { display:inline-block; padding:8px 20px; border-radius:40px; font-size:14px; font-weight:600; border:none; cursor:pointer; transition:all 0.2s; background:#f0f2f5; color:#1e2a3a; text-decoration:none; white-space:nowrap; }
+        .btn-primary { background:#2c3e6b; color:#fff; }
+        .btn-primary:hover { background:#1f2f50; transform:translateY(-1px); }
+        .btn-outline { background:transparent; border:1.5px solid #d0d7e2; }
+        .btn-outline:hover { background:#f0f4fe; border-color:#b0c0d8; }
+        .btn-sm { padding:4px 14px; font-size:13px; }
+        .loading-mask { text-align:center; padding:60px 20px; color:#8a9bb5; font-size:16px; }
+        .loading-mask .spinner { display:inline-block; width:32px; height:32px; border:4px solid #e2e8f0; border-top-color:#2c3e6b; border-radius:50%; animation:spin 0.8s linear infinite; margin-bottom:12px; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        .virus-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:28px; margin-top:12px; }
+        .virus-card { background:#fff; border:1px solid #eef1f6; border-radius:20px; padding:24px 24px 18px; transition:all 0.2s; box-shadow:0 4px 12px rgba(0,0,0,0.02); display:flex; flex-direction:column; }
+        .virus-card:hover { border-color:#d0dbe8; box-shadow:0 8px 24px rgba(44,62,107,0.06); }
+        .virus-name { font-size:20px; font-weight:700; color:#1a2a4a; margin-bottom:6px; display:flex; align-items:center; gap:8px; }
+        .virus-name .badge { font-size:12px; font-weight:500; background:#eef3fa; color:#4a5f7a; padding:0 10px; border-radius:40px; line-height:22px; }
+        .virus-desc { font-size:14px; color:#4a5f7a; line-height:1.6; margin:6px 0 16px; flex:1; white-space:pre-wrap; }
+        .virus-actions { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:4px; }
+        .virus-actions .btn-download { background:#2a9d8f; color:#fff; padding:8px 24px; border-radius:40px; font-weight:600; font-size:14px; border:none; cursor:pointer; transition:0.2s; text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
+        .virus-actions .btn-download:hover { background:#1f7a6e; transform:translateY(-2px); }
+        .virus-actions .btn-comment-toggle { background:transparent; border:1.5px solid #d0d7e2; padding:6px 16px; border-radius:40px; font-size:13px; font-weight:500; color:#4a5f7a; cursor:pointer; transition:0.2s; }
+        .virus-actions .btn-comment-toggle:hover { background:#f0f4fe; border-color:#b0c0d8; }
+        .virus-actions .comment-count { font-size:13px; color:#8a9bb5; margin-left:4px; }
+        .comment-section { margin-top:18px; border-top:1.5px solid #f0f2f5; padding-top:18px; display:none; }
+        .comment-section.open { display:block; }
+        .comment-list { max-height:360px; overflow-y:auto; margin-bottom:14px; padding-right:4px; }
+        .comment-list::-webkit-scrollbar { width:4px; }
+        .comment-list::-webkit-scrollbar-thumb { background:#d0d7e2; border-radius:8px; }
+        .comment-item { display:flex; justify-content:space-between; align-items:flex-start; padding:10px 0; border-bottom:1px solid #f2f5fa; font-size:14px; gap:12px; }
+        .comment-item:last-child { border-bottom:none; }
+        .comment-item .comment-body { flex:1; min-width:0; }
+        .comment-item .comment-author { font-weight:600; color:#1e2a3a; font-size:13px; }
+        .comment-item .comment-author .time { font-weight:400; color:#9aabb8; font-size:12px; margin-left:10px; }
+        .comment-item .comment-content { color:#2d3f5a; margin-top:2px; word-break:break-word; line-height:1.5; }
+        .comment-item .comment-delete-btn { background:none; border:none; color:#c0ccdd; cursor:pointer; font-size:15px; padding:4px 6px; border-radius:6px; transition:0.15s; flex-shrink:0; margin-top:2px; }
+        .comment-item .comment-delete-btn:hover { color:#e74c5e; background:#fef0f2; }
+        .comment-item .comment-delete-btn.visible { color:#b0c0d8; }
+        .comment-item .comment-delete-btn.visible:hover { color:#e74c5e; background:#fef0f2; }
+        .comment-input-area { display:flex; gap:10px; margin-top:6px; align-items:flex-end; }
+        .comment-input-area textarea { flex:1; padding:10px 14px; border-radius:16px; border:1.5px solid #e2e8f0; font-size:14px; font-family:inherit; resize:vertical; min-height:52px; max-height:120px; transition:0.2s; background:#fafcff; }
+        .comment-input-area textarea:focus { outline:none; border-color:#2c3e6b; background:#fff; box-shadow:0 0 0 3px rgba(44,62,107,0.08); }
+        .comment-input-area .btn-submit-comment { background:#2c3e6b; color:#fff; border:none; padding:10px 24px; border-radius:40px; font-weight:600; font-size:14px; cursor:pointer; transition:0.2s; white-space:nowrap; height:52px; align-self:flex-end; }
+        .comment-input-area .btn-submit-comment:hover { background:#1f2f50; }
+        .comment-input-area .btn-submit-comment:disabled { opacity:0.5; cursor:not-allowed; }
+        .empty-state { text-align:center; padding:40px 20px; color:#9aabb8; font-size:15px; }
+        .empty-state .icon { font-size:44px; margin-bottom:12px; opacity:0.6; }
+        .modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.25); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; z-index:999; padding:20px; animation:fadeIn 0.25s ease; }
+        .modal-overlay.hidden { display:none; }
+        @keyframes fadeIn { from { opacity:0; transform:scale(0.96); } to { opacity:1; transform:scale(1); } }
+        .modal-box { background:#fff; border-radius:32px; padding:40px 44px; max-width:440px; width:100%; box-shadow:0 40px 80px rgba(0,0,0,0.15); text-align:center; }
+        .modal-box h2 { font-size:24px; font-weight:700; color:#1a2a4a; margin-bottom:8px; }
+        .modal-box p { color:#5a6f8a; font-size:15px; margin-bottom:24px; line-height:1.5; }
+        .modal-box input { width:100%; padding:14px 18px; border-radius:40px; border:1.5px solid #dce2ec; font-size:16px; font-weight:500; text-align:center; transition:0.2s; background:#fafcff; }
+        .modal-box input:focus { outline:none; border-color:#2c3e6b; background:#fff; box-shadow:0 0 0 4px rgba(44,62,107,0.08); }
+        .modal-box .btn-confirm-name { margin-top:18px; width:100%; padding:14px; border-radius:40px; border:none; background:#2c3e6b; color:#fff; font-size:17px; font-weight:700; cursor:pointer; transition:0.2s; }
+        .modal-box .btn-confirm-name:hover { background:#1f2f50; }
+        .modal-box .btn-confirm-name:disabled { opacity:0.5; cursor:not-allowed; }
+        .footer { margin-top:40px; text-align:center; font-size:13px; color:#b0c0d8; border-top:1px solid #f0f2f5; padding-top:24px; display:flex; justify-content:center; gap:24px; flex-wrap:wrap; }
+        .footer .github-info { color:#b0c0d8; font-size:12px; }
+        @media (max-width:700px) {
+            .container { padding:18px 16px 30px; border-radius:18px; }
+            .header { flex-direction:column; align-items:stretch; gap:14px; }
+            .header-left h1 { font-size:22px; }
+            .header-right { justify-content:space-between; }
+            .virus-grid { grid-template-columns:1fr; gap:18px; }
+            .modal-box { padding:30px 22px; }
+            .comment-input-area { flex-direction:column; align-items:stretch; }
+            .comment-input-area .btn-submit-comment { height:48px; align-self:stretch; }
+            .virus-actions { flex-wrap:wrap; }
+        }
+        @media (max-width:440px) {
+            .header-left h1 { font-size:19px; }
+            .user-badge { font-size:13px; padding:4px 12px; }
+            .btn { font-size:13px; padding:6px 14px; }
+            .virus-card { padding:18px 16px 14px; }
+        }
+        .text-muted { color:#9aabb8; }
+    </style>
+</head>
+<body>
+
+<div class="container" id="app">
+    <header class="header">
+        <div class="header-left">
+            <span class="star-icon">⭐</span>
+            <h1>星星の病毒论坛</h1>
+        </div>
+        <div class="header-right">
+            <div class="user-badge" id="userBadge">
+                <span class="avatar" id="userAvatar">👤</span>
+                <span id="userDisplayName">加载中...</span>
+            </div>
+            <button class="btn btn-outline btn-sm" id="refreshBtn" title="刷新数据">🔄</button>
+        </div>
+    </header>
+
+    <main id="mainContent">
+        <div class="loading-mask" id="loadingMask">
+            <div class="spinner"></div>
+            <div>加载病毒库中...</div>
+        </div>
+        <div id="virusGridContainer" style="display:none;">
+            <div class="virus-grid" id="virusGrid"></div>
+        </div>
+    </main>
+
+    <div class="footer">
+        <span>⭐ 星星の病毒论坛 · 仅供安全研究</span>
+        <span class="github-info" id="githubInfo">数据源：GitHub 仓库</span>
+    </div>
+</div>
+
+<!-- 设置名字模态框 -->
+<div class="modal-overlay hidden" id="nameModal">
+    <div class="modal-box">
+        <h2>🌟 欢迎来到星星の病毒论坛</h2>
+        <p>首次访问，请给自己取一个响亮的昵称吧！<br /><span class="text-muted" style="font-size:13px;">（之后会自动识别你的设备）</span></p>
+        <input type="text" id="nameInput" placeholder="输入你的昵称…" maxlength="20" autofocus />
+        <button class="btn-confirm-name" id="confirmNameBtn">✨ 确认</button>
+        <div style="margin-top:12px; font-size:13px; color:#b0c0d8;" id="nameError"></div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<script>
+    // ================================================================
+    //  🔧 配置区域（已根据您的部署路径 skyinfstarry.github.io/bdlt/ 填写）
+    // ================================================================
+
+    // 1. Supabase 配置
+    const SUPABASE_URL = 'https://xdavyegtdbrfmwkmsfns.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkYXZ5ZWd0ZGJyZm13a21zZm5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2Mjk3MDUsImV4cCI6MjEwMDIwNTcwNX0.J0MO1VcuhRXI6AwmAZ4sC7PHnVewWiSEE6llUfp1RpY';
+
+    // 2. GitHub 仓库信息
+    const GITHUB_OWNER = 'skyinfstarry';
+    const GITHUB_REPO = 'skyinfstarry.github.io';
+
+    // 3. 部署路径：index.html 所在的子目录（相对于仓库根目录）
+    //    因为要部署到 https://skyinfstarry.github.io/bdlt/，所以填 'bdlt'
+    const BASE_PATH = 'bdlt';
+
+    // ================================================================
+    //  初始化 Supabase 客户端
+    // ================================================================
+    const { createClient } = supabase;
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ================================================================
+    //  DOM 引用
+    // ================================================================
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => document.querySelectorAll(sel);
+
+    const loadingMask = $('#loadingMask');
+    const virusGridContainer = $('#virusGridContainer');
+    const virusGrid = $('#virusGrid');
+    const userDisplayName = $('#userDisplayName');
+    const userAvatar = $('#userAvatar');
+    const userBadge = $('#userBadge');
+
+    const nameModal = $('#nameModal');
+    const nameInput = $('#nameInput');
+    const confirmNameBtn = $('#confirmNameBtn');
+    const nameError = $('#nameError');
+
+    const refreshBtn = $('#refreshBtn');
+    const githubInfo = $('#githubInfo');
+
+    // ================================================================
+    //  全局状态
+    // ================================================================
+    let currentUser = null; // { id, name }
+    let allViruses = [];
+    const commentSubscriptions = {};
+
+    // ================================================================
+    //  工具函数
+    // ================================================================
+    function formatTime(isoString) {
+        if (!isoString) return '刚刚';
+        const date = new Date(isoString);
+        const now = new Date();
+        const diff = (now - date) / 1000;
+        if (diff < 60) return '刚刚';
+        if (diff < 3600) return Math.floor(diff / 60) + '分钟前';
+        if (diff < 86400) return Math.floor(diff / 3600) + '小时前';
+        if (diff < 604800) return Math.floor(diff / 86400) + '天前';
+        return date.toLocaleDateString('zh-CN');
+    }
+
+    function getAvatarLetter(name) {
+        if (!name) return '👤';
+        return name.trim().charAt(0);
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function showLoading(show) {
+        loadingMask.style.display = show ? 'block' : 'none';
+        virusGridContainer.style.display = show ? 'none' : 'block';
+    }
+
+    // ---------- UUID v5 生成器（基于文件夹名） ----------
+    async function generateUUIDv5(name) {
+        const namespace = new Uint8Array([
+            0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1,
+            0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8
+        ]);
+        const encoder = new TextEncoder();
+        const data = new Uint8Array(namespace.length + encoder.encode(name).length);
+        data.set(namespace);
+        data.set(encoder.encode(name), namespace.length);
+        const hash = await crypto.subtle.digest('SHA-1', data);
+        const bytes = new Uint8Array(hash);
+        bytes[6] = (bytes[6] & 0x0f) | 0x50;
+        bytes[8] = (bytes[8] & 0x3f) | 0x80;
+        const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+        return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20,32)}`;
+    }
+
+    // ================================================================
+    //  用户认证 & 名字管理
+    // ================================================================
+    async function fetchUserProfile(authId) {
+        const { data, error } = await supabaseClient
+            .from('users')
+            .select('*')
+            .eq('auth_id', authId)
+            .maybeSingle();
+        if (error) {
+            console.error('获取用户信息失败', error);
+            return null;
+        }
+        return data;
+    }
+
+    async function saveUserProfile(authId, name) {
+        const { error } = await supabaseClient
+            .from('users')
+            .upsert({ auth_id: authId, name: name.trim() }, { onConflict: 'auth_id' });
+        if (error) {
+            console.error('保存用户信息失败', error);
+            return false;
+        }
+        return true;
+    }
+
+    function showNameModal() {
+        nameModal.classList.remove('hidden');
+        nameInput.value = '';
+        nameError.textContent = '';
+        nameInput.focus();
+        return new Promise((resolve) => {
+            const handler = async () => {
+                const val = nameInput.value.trim();
+                if (!val) {
+                    nameError.textContent = '请输入一个昵称～';
+                    return;
+                }
+                if (val.length > 20) {
+                    nameError.textContent = '昵称不能超过20个字符';
+                    return;
+                }
+                confirmNameBtn.disabled = true;
+                nameError.textContent = '保存中…';
+                const ok = await saveUserProfile(currentUser.id, val);
+                confirmNameBtn.disabled = false;
+                if (ok) {
+                    nameModal.classList.add('hidden');
+                    currentUser.name = val;
+                    updateUserUI();
+                    resolve(val);
+                } else {
+                    nameError.textContent = '保存失败，请重试';
+                }
+            };
+            confirmNameBtn.onclick = handler;
+            nameInput.onkeydown = (e) => { if (e.key === 'Enter') handler(); };
+        });
+    }
+
+    function updateUserUI() {
+        if (currentUser && currentUser.name) {
+            userDisplayName.textContent = currentUser.name;
+            userAvatar.textContent = getAvatarLetter(currentUser.name);
+        } else {
+            userDisplayName.textContent = '未命名';
+            userAvatar.textContent = '👤';
+        }
+    }
+
+    // ================================================================
+    //  从 GitHub 加载病毒数据（使用 BASE_PATH）
+    // ================================================================
+    async function loadVirusesFromGitHub() {
+        try {
+            // 构建 API 路径：如果 BASE_PATH 非空，则拼接到路径中
+            const contentsPath = BASE_PATH ? `${BASE_PATH}/` : '';
+            const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${contentsPath}`;
+            const response = await fetch(url);
+            if (!response.ok) {
+                if (response.status === 404) {
+                    throw new Error(`路径 "${contentsPath}" 不存在，请检查 BASE_PATH 是否正确。`);
+                }
+                throw new Error(`GitHub API 错误: ${response.status}`);
+            }
+            const items = await response.json();
+            // 只取文件夹，并过滤掉隐藏文件夹（以 . 开头）
+            const folders = items.filter(item => 
+                item.type === 'dir' && !item.name.startsWith('.')
+            );
+            if (folders.length === 0) {
+                throw new Error('目录下没有找到任何病毒文件夹。请创建文件夹，例如 "彩虹猫"。');
+            }
+
+            const viruses = [];
+            for (const folder of folders) {
+                const folderName = folder.name;
+                // 获取该文件夹内的文件列表
+                const folderUrl = folder.url;
+                const folderResp = await fetch(folderUrl);
+                if (!folderResp.ok) continue;
+                const folderItems = await folderResp.json();
+                // 查找 jj.txt 和 lj.txt
+                const jjFile = folderItems.find(f => f.name === 'jj.txt');
+                const ljFile = folderItems.find(f => f.name === 'lj.txt');
+                let description = '暂无简介';
+                let downloadUrl = '#';
+                if (jjFile) {
+                    const contentResp = await fetch(jjFile.download_url);
+                    if (contentResp.ok) {
+                        description = await contentResp.text();
+                    }
+                }
+                if (ljFile) {
+                    const contentResp = await fetch(ljFile.download_url);
+                    if (contentResp.ok) {
+                        downloadUrl = (await contentResp.text()).trim();
+                    }
+                }
+                const virusId = await generateUUIDv5(folderName);
+                viruses.push({
+                    id: virusId,
+                    name: folderName,
+                    description: description.trim(),
+                    download_url: downloadUrl,
+                });
+            }
+            return viruses;
+        } catch (err) {
+            console.error('加载病毒数据失败:', err);
+            throw err;
+        }
+    }
+
+    // ================================================================
+    //  渲染病毒卡片 & 评论绑定
+    // ================================================================
+    function renderViruses() {
+        if (!allViruses.length) {
+            virusGrid.innerHTML = `
+                <div class="empty-state" style="grid-column:1/-1;">
+                    <div class="icon">🦠</div>
+                    <p>没有找到病毒，请确保目录下有病毒文件夹。</p>
+                </div>
+            `;
+            return;
+        }
+
+        let html = '';
+        for (const virus of allViruses) {
+            html += `
+                <div class="virus-card" data-virus-id="${virus.id}">
+                    <div class="virus-name">
+                        ${escapeHtml(virus.name)}
+                        <span class="badge">#${virus.id.slice(0,6)}</span>
+                    </div>
+                    <div class="virus-desc">${escapeHtml(virus.description)}</div>
+                    <div class="virus-actions">
+                        <a href="${virus.download_url}" target="_blank" class="btn-download" rel="noopener">⬇ 下载</a>
+                        <button class="btn-comment-toggle" data-virus-id="${virus.id}">
+                            💬 评论 <span class="comment-count" id="count-${virus.id}">0</span>
+                        </button>
+                    </div>
+                    <div class="comment-section" id="comments-${virus.id}">
+                        <div class="comment-list" id="commentList-${virus.id}">
+                            <div class="empty-state" style="padding:16px 0;font-size:14px;">
+                                <span class="text-muted">暂无评论，快来抢沙发！</span>
+                            </div>
+                        </div>
+                        <div class="comment-input-area">
+                            <textarea placeholder="写下你的评论…" id="commentInput-${virus.id}" rows="1"></textarea>
+                            <button class="btn-submit-comment" data-virus-id="${virus.id}">发布</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        virusGrid.innerHTML = html;
+
+        // 评论展开/收起
+        $$('.btn-comment-toggle').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const vid = btn.dataset.virusId;
+                const section = document.getElementById(`comments-${vid}`);
+                if (!section) return;
+                const isOpen = section.classList.toggle('open');
+                btn.textContent = isOpen ? '💬 收起' : `💬 评论 `;
+                const countSpan = document.getElementById(`count-${vid}`);
+                if (countSpan) btn.appendChild(countSpan);
+                if (isOpen) {
+                    loadCommentsForVirus(vid);
+                } else {
+                    if (commentSubscriptions[vid]) {
+                        commentSubscriptions[vid]();
+                        delete commentSubscriptions[vid];
+                    }
+                }
+            });
+        });
+
+        // 提交评论
+        $$('.btn-submit-comment').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const vid = btn.dataset.virusId;
+                const textarea = document.getElementById(`commentInput-${vid}`);
+                if (!textarea) return;
+                const content = textarea.value.trim();
+                if (!content) { textarea.focus(); return; }
+                await submitComment(vid, content);
+                textarea.value = '';
+            });
+        });
+
+        // Ctrl+Enter 快捷提交
+        $$('.comment-input-area textarea').forEach(ta => {
+            ta.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault();
+                    const vid = ta.id.replace('commentInput-', '');
+                    const btn = document.querySelector(`.btn-submit-comment[data-virus-id="${vid}"]`);
+                    if (btn) btn.click();
+                }
+            });
+            ta.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+            });
+        });
+    }
+
+    // ================================================================
+    //  评论系统
+    // ================================================================
+    async function submitComment(virusId, content) {
+        if (!currentUser || !currentUser.id || !currentUser.name) {
+            alert('请先设置昵称再评论');
+            return;
+        }
+        try {
+            const { error } = await supabaseClient
+                .from('comments')
+                .insert({
+                    virus_id: virusId,
+                    user_id: currentUser.id,
+                    user_name: currentUser.name,
+                    content: content.trim()
+                });
+            if (error) throw error;
+        } catch (e) {
+            console.error('发表评论失败', e);
+            alert('评论发送失败，请重试');
+        }
+    }
+
+    function loadCommentsForVirus(virusId) {
+        if (commentSubscriptions[virusId]) {
+            commentSubscriptions[virusId]();
+            delete commentSubscriptions[virusId];
+        }
+
+        const subscription = supabaseClient
+            .channel(`comments_${virusId}`)
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'comments',
+                filter: `virus_id=eq.${virusId}`
+            }, () => {
+                refreshCommentList(virusId);
+            })
+            .subscribe();
+
+        commentSubscriptions[virusId] = () => {
+            supabaseClient.removeChannel(subscription);
+        };
+
+        refreshCommentList(virusId);
+    }
+
+    async function refreshCommentList(virusId) {
+        const list = document.getElementById(`commentList-${virusId}`);
+        if (!list) return;
+
+        const { data, error } = await supabaseClient
+            .from('comments')
+            .select('*')
+            .eq('virus_id', virusId)
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            console.error('获取评论失败', error);
+            return;
+        }
+
+        const countSpan = document.getElementById(`count-${virusId}`);
+        if (countSpan) {
+            countSpan.textContent = data.length;
+            const parentBtn = document.querySelector(`.btn-comment-toggle[data-virus-id="${virusId}"]`);
+            if (parentBtn) {
+                const isOpen = document.getElementById(`comments-${virusId}`)?.classList.contains('open');
+                parentBtn.innerHTML = isOpen ? `💬 收起 <span class="comment-count" id="count-${virusId}">${data.length}</span>` :
+                    `💬 评论 <span class="comment-count" id="count-${virusId}">${data.length}</span>`;
+            }
+        }
+
+        if (!data.length) {
+            list.innerHTML = `<div class="empty-state" style="padding:16px 0;font-size:14px;">
+                    <span class="text-muted">暂无评论，快来抢沙发！</span>
+                </div>`;
+            return;
+        }
+
+        let html = '';
+        for (const c of data) {
+            const isMine = c.user_id === currentUser?.id;
+            html += `
+                <div class="comment-item" data-comment-id="${c.id}">
+                    <div class="comment-body">
+                        <div class="comment-author">
+                            ${escapeHtml(c.user_name)}
+                            <span class="time">${formatTime(c.created_at)}</span>
+                            ${isMine ? '<span style="font-weight:400;color:#7a8fa8;font-size:12px;margin-left:6px;">· 我</span>' : ''}
+                        </div>
+                        <div class="comment-content">${escapeHtml(c.content)}</div>
+                    </div>
+                    <button class="comment-delete-btn ${isMine ? 'visible' : ''}" 
+                            data-comment-id="${c.id}" 
+                            data-virus-id="${virusId}"
+                            ${!isMine ? 'disabled style="opacity:0.3;cursor:not-allowed;"' : ''}
+                            title="${isMine ? '删除我的评论' : '只能删除自己的评论'}">
+                        ✕
+                    </button>
+                </div>
+            `;
+        }
+        list.innerHTML = html;
+
+        list.querySelectorAll('.comment-delete-btn.visible').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const commentId = btn.dataset.commentId;
+                if (!confirm('确定要删除这条评论吗？')) return;
+                try {
+                    const { error } = await supabaseClient
+                        .from('comments')
+                        .delete()
+                        .eq('id', commentId);
+                    if (error) throw error;
+                } catch (err) {
+                    console.error('删除评论失败', err);
+                    alert('删除失败，请重试');
+                }
+            });
+        });
+    }
+
+    // ================================================================
+    //  刷新（重新从 GitHub 加载）
+    // ================================================================
+    refreshBtn.addEventListener('click', async () => {
+        showLoading(true);
+        try {
+            allViruses = await loadVirusesFromGitHub();
+            renderViruses();
+            // 重新加载已展开的评论
+            $$('.comment-section.open').forEach(section => {
+                const vid = section.id.replace('comments-', '');
+                if (commentSubscriptions[vid]) {
+                    commentSubscriptions[vid]();
+                    delete commentSubscriptions[vid];
+                }
+                loadCommentsForVirus(vid);
+            });
+        } catch (err) {
+            alert('刷新失败：' + err.message);
+        } finally {
+            showLoading(false);
+        }
+    });
+
+    // ================================================================
+    //  启动应用
+    // ================================================================
+    async function initApp() {
+        // 检查配置
+        if (SUPABASE_ANON_KEY === '你的 anon public key' || GITHUB_OWNER === '你的GitHub用户名') {
+            document.body.innerHTML = `
+                <div style="max-width:700px;margin:60px auto;padding:40px;background:#fff;border-radius:24px;box-shadow:0 8px 30px rgba(0,0,0,0.08);text-align:center;font-family:sans-serif;">
+                    <h2 style="color:#c0394b;">⚠️ 请先配置</h2>
+                    <p style="color:#4a5f7a;line-height:1.7;">在 HTML 代码开头的 <code>配置区域</code> 中修改：</p>
+                    <ul style="text-align:left;max-width:400px;margin:16px auto;background:#f8fafd;padding:16px 24px;border-radius:12px;color:#1e2a3a;">
+                        <li><code>SUPABASE_URL</code> 和 <code>SUPABASE_ANON_KEY</code></li>
+                        <li><code>GITHUB_OWNER</code> 和 <code>GITHUB_REPO</code></li>
+                        <li><code>BASE_PATH</code>（部署子目录）</li>
+                    </ul>
+                    <p style="color:#8a9bb5;font-size:14px;">确保在指定目录下创建病毒文件夹，内含 <code>jj.txt</code> 和 <code>lj.txt</code>。</p>
+                    <hr style="border-color:#eee;margin:24px 0;" />
+                    <p style="font-size:13px;color:#b0c0d8;">星星の病毒论坛 · 文件管理版</p>
+                </div>
+            `;
+            return;
+        }
+
+        githubInfo.textContent = `数据源：${GITHUB_OWNER}/${GITHUB_REPO}/${BASE_PATH || '根目录'}`;
+
+        // 匿名登录
+        const { data, error } = await supabaseClient.auth.signInAnonymously();
+        if (error) {
+            console.error('匿名登录失败', error);
+            showLoading(false);
+            virusGrid.innerHTML = `<div class="empty-state"><div class="icon">🚫</div><p>登录失败，请检查 Supabase 配置</p></div>`;
+            return;
+        }
+
+        const authId = data.user.id;
+        const profile = await fetchUserProfile(authId);
+        if (profile && profile.name) {
+            currentUser = { id: authId, name: profile.name };
+            updateUserUI();
+        } else {
+            currentUser = { id: authId, name: null };
+            updateUserUI();
+            showLoading(false);
+            virusGrid.innerHTML = `<div class="empty-state"><div class="icon">🌟</div><p>请先设置你的昵称～</p></div>`;
+            const name = await showNameModal();
+            if (!name) return;
+        }
+
+        // 加载病毒数据
+        showLoading(true);
+        try {
+            allViruses = await loadVirusesFromGitHub();
+            renderViruses();
+            showLoading(false);
+        } catch (err) {
+            showLoading(false);
+            virusGrid.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${escapeHtml(err.message)}</p></div>`;
+        }
+    }
+
+    initApp().catch(err => console.error('启动失败', err));
+
+    nameModal.addEventListener('click', (e) => {
+        if (e.target === nameModal) nameInput.focus();
+    });
+
+    console.log('⭐ 星星の病毒论坛 (文件管理·子目录版) 已启动！');
+    console.log('📁 病毒数据源:', `${GITHUB_OWNER}/${GITHUB_REPO}/${BASE_PATH || '根目录'}`);
+    console.log('📄 每个病毒文件夹内需包含 jj.txt（简介）和 lj.txt（下载链接）');
+</script>
+</body>
+</html>
