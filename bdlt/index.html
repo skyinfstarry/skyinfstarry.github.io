@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>星星の病毒论坛 · 文件管理版</title>
+    <title>星星の病毒论坛 · 最终版</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* ===== 白色主题（同前，简洁） ===== */
+        /* ===== 白色主题 ===== */
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family:'Segoe UI','PingFang SC',Roboto,sans-serif; background:#f8f9fc; color:#1e2a3a; padding:20px; min-height:100vh; }
         .container { max-width:1100px; margin:0 auto; background:#fff; border-radius:28px; box-shadow:0 20px 60px rgba(0,0,0,0.06); padding:32px 40px 50px; }
@@ -74,6 +74,8 @@
         .modal-box .btn-confirm-name:disabled { opacity:0.5; cursor:not-allowed; }
         .footer { margin-top:40px; text-align:center; font-size:13px; color:#b0c0d8; border-top:1px solid #f0f2f5; padding-top:24px; display:flex; justify-content:center; gap:24px; flex-wrap:wrap; }
         .footer .github-info { color:#b0c0d8; font-size:12px; }
+        /* 隐私模式提示横幅 */
+        .privacy-banner { background:#ff6b6b; color:#fff; padding:12px; text-align:center; font-weight:bold; position:sticky; top:0; z-index:999; }
         @media (max-width:700px) {
             .container { padding:18px 16px 30px; border-radius:18px; }
             .header { flex-direction:column; align-items:stretch; gap:14px; }
@@ -95,6 +97,9 @@
     </style>
 </head>
 <body>
+
+<!-- ===== 隐私模式提示容器（由 JS 动态注入） ===== -->
+<div id="privacyBanner"></div>
 
 <div class="container" id="app">
     <header class="header">
@@ -123,7 +128,7 @@
 
     <div class="footer">
         <span>⭐ 星星の病毒论坛 · 仅供安全研究</span>
-        <span class="github-info" id="githubInfo">数据源：GitHub 仓库</span>
+        <span class="github-info" id="githubInfo">数据源：静态JSON</span>
     </div>
 </div>
 
@@ -141,20 +146,34 @@
 <!-- ============================================================ -->
 <script>
     // ================================================================
-    //  🔧 配置区域（已根据您的部署路径 skyinfstarry.github.io/bdlt/ 填写）
+    //  🔧 配置区域
     // ================================================================
-
-    // 1. Supabase 配置
     const SUPABASE_URL = 'https://xdavyegtdbrfmwkmsfns.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkYXZ5ZWd0ZGJyZm13a21zZm5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2Mjk3MDUsImV4cCI6MjEwMDIwNTcwNX0.J0MO1VcuhRXI6AwmAZ4sC7PHnVewWiSEE6llUfp1RpY';
-
-    // 2. GitHub 仓库信息
     const GITHUB_OWNER = 'skyinfstarry';
     const GITHUB_REPO = 'skyinfstarry.github.io';
-
-    // 3. 部署路径：index.html 所在的子目录（相对于仓库根目录）
-    //    因为要部署到 https://skyinfstarry.github.io/bdlt/，所以填 'bdlt'
     const BASE_PATH = 'bdlt';
+
+    // ================================================================
+    //  检测 localStorage 可用性（隐私模式）
+    // ================================================================
+    function isLocalStorageAvailable() {
+        try {
+            localStorage.setItem('_test', '1');
+            localStorage.removeItem('_test');
+            return true;
+        } catch {
+            return false;
+        }
+    }
+    const storageAvailable = isLocalStorageAvailable();
+    if (!storageAvailable) {
+        document.getElementById('privacyBanner').innerHTML = `
+            <div class="privacy-banner">
+                ⚠️ 您正在使用隐私/无痕模式，每次刷新页面都会被识别为新用户，已发表的评论将无法删除。建议切换到普通模式。
+            </div>
+        `;
+    }
 
     // ================================================================
     //  初始化 Supabase 客户端
@@ -186,7 +205,7 @@
     // ================================================================
     //  全局状态
     // ================================================================
-    let currentUser = null; // { id, name }
+    let currentUser = null;
     let allViruses = [];
     const commentSubscriptions = {};
 
@@ -221,7 +240,7 @@
         virusGridContainer.style.display = show ? 'none' : 'block';
     }
 
-    // ---------- UUID v5 生成器（基于文件夹名） ----------
+    // ---------- UUID v5 生成器 ----------
     async function generateUUIDv5(name) {
         const namespace = new Uint8Array([
             0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1,
@@ -243,27 +262,62 @@
     //  用户认证 & 名字管理
     // ================================================================
     async function fetchUserProfile(authId) {
-        const { data, error } = await supabaseClient
-            .from('users')
-            .select('*')
-            .eq('auth_id', authId)
-            .maybeSingle();
-        if (error) {
-            console.error('获取用户信息失败', error);
+        try {
+            const { data, error } = await supabaseClient
+                .from('users')
+                .select('*')
+                .eq('auth_id', authId)
+                .maybeSingle();
+            if (error) {
+                console.error('获取用户信息失败:', error);
+                return null;
+            }
+            return data;
+        } catch (err) {
+            console.error('获取用户信息异常:', err);
             return null;
         }
-        return data;
     }
 
     async function saveUserProfile(authId, name) {
-        const { error } = await supabaseClient
-            .from('users')
-            .upsert({ auth_id: authId, name: name.trim() }, { onConflict: 'auth_id' });
-        if (error) {
-            console.error('保存用户信息失败', error);
+        try {
+            // 先查询是否存在
+            const { data: existing, error: selectError } = await supabaseClient
+                .from('users')
+                .select('id')
+                .eq('auth_id', authId)
+                .maybeSingle();
+
+            if (selectError) {
+                console.error('查询用户失败:', selectError);
+                return false;
+            }
+
+            if (existing) {
+                // 更新
+                const { error: updateError } = await supabaseClient
+                    .from('users')
+                    .update({ name: name.trim() })
+                    .eq('auth_id', authId);
+                if (updateError) {
+                    console.error('更新用户失败:', updateError);
+                    return false;
+                }
+            } else {
+                // 插入
+                const { error: insertError } = await supabaseClient
+                    .from('users')
+                    .insert({ auth_id: authId, name: name.trim() });
+                if (insertError) {
+                    console.error('插入用户失败:', insertError);
+                    return false;
+                }
+            }
+            return true;
+        } catch (err) {
+            console.error('保存用户信息异常:', err);
             return false;
         }
-        return true;
     }
 
     function showNameModal() {
@@ -290,9 +344,13 @@
                     nameModal.classList.add('hidden');
                     currentUser.name = val;
                     updateUserUI();
+                    // 如果是隐私模式，提醒用户
+                    if (!storageAvailable) {
+                        alert('昵称保存成功！但请注意，由于您使用了隐私模式，关闭页面后您的身份将丢失，已发表的评论将无法删除。');
+                    }
                     resolve(val);
                 } else {
-                    nameError.textContent = '保存失败，请重试';
+                    nameError.textContent = '保存失败，请重试（查看控制台错误）';
                 }
             };
             confirmNameBtn.onclick = handler;
@@ -311,60 +369,33 @@
     }
 
     // ================================================================
-    //  从 GitHub 加载病毒数据（使用 BASE_PATH）
+    //  加载病毒数据（从 viruses.json）
     // ================================================================
     async function loadVirusesFromGitHub() {
         try {
-            // 构建 API 路径：如果 BASE_PATH 非空，则拼接到路径中
-            const contentsPath = BASE_PATH ? `${BASE_PATH}/` : '';
-            const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${contentsPath}`;
-            const response = await fetch(url);
+            const basePath = window.location.pathname.replace(/\/[^/]*$/, '');
+            const jsonUrl = `${window.location.origin}${basePath}/viruses.json`;
+            console.log('正在加载病毒数据:', jsonUrl);
+            const response = await fetch(jsonUrl);
             if (!response.ok) {
                 if (response.status === 404) {
-                    throw new Error(`路径 "${contentsPath}" 不存在，请检查 BASE_PATH 是否正确。`);
+                    throw new Error(`viruses.json 未找到，请在 ${BASE_PATH} 目录下创建该文件。`);
                 }
-                throw new Error(`GitHub API 错误: ${response.status}`);
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            const items = await response.json();
-            // 只取文件夹，并过滤掉隐藏文件夹（以 . 开头）
-            const folders = items.filter(item => 
-                item.type === 'dir' && !item.name.startsWith('.')
-            );
-            if (folders.length === 0) {
-                throw new Error('目录下没有找到任何病毒文件夹。请创建文件夹，例如 "彩虹猫"。');
+            const data = await response.json();
+            if (!Array.isArray(data) || data.length === 0) {
+                throw new Error('viruses.json 格式不正确或为空，请检查。');
             }
-
             const viruses = [];
-            for (const folder of folders) {
-                const folderName = folder.name;
-                // 获取该文件夹内的文件列表
-                const folderUrl = folder.url;
-                const folderResp = await fetch(folderUrl);
-                if (!folderResp.ok) continue;
-                const folderItems = await folderResp.json();
-                // 查找 jj.txt 和 lj.txt
-                const jjFile = folderItems.find(f => f.name === 'jj.txt');
-                const ljFile = folderItems.find(f => f.name === 'lj.txt');
-                let description = '暂无简介';
-                let downloadUrl = '#';
-                if (jjFile) {
-                    const contentResp = await fetch(jjFile.download_url);
-                    if (contentResp.ok) {
-                        description = await contentResp.text();
-                    }
-                }
-                if (ljFile) {
-                    const contentResp = await fetch(ljFile.download_url);
-                    if (contentResp.ok) {
-                        downloadUrl = (await contentResp.text()).trim();
-                    }
-                }
-                const virusId = await generateUUIDv5(folderName);
+            for (const item of data) {
+                if (!item.name) continue;
+                const virusId = await generateUUIDv5(item.name);
                 viruses.push({
                     id: virusId,
-                    name: folderName,
-                    description: description.trim(),
-                    download_url: downloadUrl,
+                    name: item.name,
+                    description: item.description || '暂无简介',
+                    download_url: item.download_url || '#'
                 });
             }
             return viruses;
@@ -375,14 +406,14 @@
     }
 
     // ================================================================
-    //  渲染病毒卡片 & 评论绑定
+    //  渲染病毒卡片 & 评论绑定（与之前相同）
     // ================================================================
     function renderViruses() {
         if (!allViruses.length) {
             virusGrid.innerHTML = `
                 <div class="empty-state" style="grid-column:1/-1;">
                     <div class="icon">🦠</div>
-                    <p>没有找到病毒，请确保目录下有病毒文件夹。</p>
+                    <p>没有找到病毒，请确保 viruses.json 文件存在且内容正确。</p>
                 </div>
             `;
             return;
@@ -596,14 +627,13 @@
     }
 
     // ================================================================
-    //  刷新（重新从 GitHub 加载）
+    //  刷新
     // ================================================================
     refreshBtn.addEventListener('click', async () => {
         showLoading(true);
         try {
             allViruses = await loadVirusesFromGitHub();
             renderViruses();
-            // 重新加载已展开的评论
             $$('.comment-section.open').forEach(section => {
                 const vid = section.id.replace('comments-', '');
                 if (commentSubscriptions[vid]) {
@@ -620,10 +650,10 @@
     });
 
     // ================================================================
-    //  启动应用
+    //  启动应用（核心：复用会话 + 隐私模式检测）
     // ================================================================
     async function initApp() {
-        // 检查配置
+        // 配置检查（略）
         if (SUPABASE_ANON_KEY === '你的 anon public key' || GITHUB_OWNER === '你的GitHub用户名') {
             document.body.innerHTML = `
                 <div style="max-width:700px;margin:60px auto;padding:40px;background:#fff;border-radius:24px;box-shadow:0 8px 30px rgba(0,0,0,0.08);text-align:center;font-family:sans-serif;">
@@ -634,40 +664,63 @@
                         <li><code>GITHUB_OWNER</code> 和 <code>GITHUB_REPO</code></li>
                         <li><code>BASE_PATH</code>（部署子目录）</li>
                     </ul>
-                    <p style="color:#8a9bb5;font-size:14px;">确保在指定目录下创建病毒文件夹，内含 <code>jj.txt</code> 和 <code>lj.txt</code>。</p>
+                    <p style="color:#8a9bb5;font-size:14px;">确保在指定目录下创建 <code>viruses.json</code> 文件。</p>
                     <hr style="border-color:#eee;margin:24px 0;" />
-                    <p style="font-size:13px;color:#b0c0d8;">星星の病毒论坛 · 文件管理版</p>
+                    <p style="font-size:13px;color:#b0c0d8;">星星の病毒论坛 · 最终版</p>
                 </div>
             `;
             return;
         }
 
-        githubInfo.textContent = `数据源：${GITHUB_OWNER}/${GITHUB_REPO}/${BASE_PATH || '根目录'}`;
+        githubInfo.textContent = `数据源：静态JSON (${BASE_PATH}/viruses.json)`;
 
-        // 匿名登录
-        const { data, error } = await supabaseClient.auth.signInAnonymously();
-        if (error) {
-            console.error('匿名登录失败', error);
-            showLoading(false);
-            virusGrid.innerHTML = `<div class="empty-state"><div class="icon">🚫</div><p>登录失败，请检查 Supabase 配置</p></div>`;
-            return;
+        // ---------- 核心：获取或创建匿名用户 ----------
+        let authId = null;
+
+        // 1. 尝试获取已有会话（仅当 localStorage 可用时才可能有效）
+        if (storageAvailable) {
+            try {
+                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+                if (sessionError) {
+                    console.warn('获取会话失败，将重新登录:', sessionError);
+                } else if (session && session.user) {
+                    authId = session.user.id;
+                    console.log('✅ 复用已有匿名会话，用户ID:', authId);
+                }
+            } catch (e) {
+                console.warn('获取会话异常:', e);
+            }
         }
 
-        const authId = data.user.id;
+        // 2. 如果没有有效会话，进行匿名登录
+        if (!authId) {
+            const { data, error } = await supabaseClient.auth.signInAnonymously();
+            if (error) {
+                console.error('匿名登录失败', error);
+                showLoading(false);
+                virusGrid.innerHTML = `<div class="empty-state"><div class="icon">🚫</div><p>登录失败：${error.message}</p></div>`;
+                return;
+            }
+            authId = data.user.id;
+            console.log('✅ 新建匿名会话，用户ID:', authId);
+        }
+
+        // 3. 查询用户信息
         const profile = await fetchUserProfile(authId);
         if (profile && profile.name) {
             currentUser = { id: authId, name: profile.name };
             updateUserUI();
         } else {
+            // 首次使用，需要设置昵称
             currentUser = { id: authId, name: null };
             updateUserUI();
             showLoading(false);
             virusGrid.innerHTML = `<div class="empty-state"><div class="icon">🌟</div><p>请先设置你的昵称～</p></div>`;
             const name = await showNameModal();
-            if (!name) return;
+            if (!name) return; // 如果用户取消，不再继续
         }
 
-        // 加载病毒数据
+        // 4. 加载病毒数据
         showLoading(true);
         try {
             allViruses = await loadVirusesFromGitHub();
@@ -685,9 +738,9 @@
         if (e.target === nameModal) nameInput.focus();
     });
 
-    console.log('⭐ 星星の病毒论坛 (文件管理·子目录版) 已启动！');
-    console.log('📁 病毒数据源:', `${GITHUB_OWNER}/${GITHUB_REPO}/${BASE_PATH || '根目录'}`);
-    console.log('📄 每个病毒文件夹内需包含 jj.txt（简介）和 lj.txt（下载链接）');
+    console.log('⭐ 星星の病毒论坛 (最终版) 已启动！');
+    console.log('📁 数据源:', `${BASE_PATH}/viruses.json`);
+    console.log('🔒 localStorage 可用:', storageAvailable ? '是' : '否 (隐私模式)');
 </script>
 </body>
 </html>
