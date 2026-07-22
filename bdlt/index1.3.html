@@ -6,7 +6,7 @@
     <title>星星の病毒论坛 · 私信版</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* ===== 基础样式（完整保留，同之前） ===== */
+        /* ===== 白色主题（与之前一致） ===== */
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family:'Segoe UI','PingFang SC',Roboto,sans-serif; background:#f8f9fc; color:#1e2a3a; padding:20px; min-height:100vh; }
         .container { max-width:1100px; margin:0 auto; background:#fff; border-radius:28px; box-shadow:0 20px 60px rgba(0,0,0,0.06); padding:32px 40px 50px; }
@@ -64,43 +64,30 @@
         .comment-input-area .btn-submit-comment:disabled { opacity:0.5; cursor:not-allowed; }
         .empty-state { text-align:center; padding:40px 20px; color:#9aabb8; font-size:15px; }
         .empty-state .icon { font-size:44px; margin-bottom:12px; opacity:0.6; }
-        /* ===== 模态框通用 ===== */
+        /* 模态框通用 */
         .modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.25); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; z-index:999; padding:20px; animation:fadeIn 0.25s ease; }
         .modal-overlay.hidden { display:none; }
         @keyframes fadeIn { from { opacity:0; transform:scale(0.96); } to { opacity:1; transform:scale(1); } }
-        .modal-box { background:#fff; border-radius:32px; padding:30px 35px; max-width:900px; width:100%; max-height:90vh; box-shadow:0 40px 80px rgba(0,0,0,0.15); overflow:hidden; display:flex; flex-direction:column; }
+        .modal-box { background:#fff; border-radius:32px; padding:30px 35px; max-width:600px; width:100%; max-height:80vh; box-shadow:0 40px 80px rgba(0,0,0,0.15); overflow-y:auto; }
         .modal-box h2 { font-size:22px; font-weight:700; color:#1a2a4a; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; }
         .modal-box h2 .close-btn { background:none; border:none; font-size:24px; cursor:pointer; color:#9aabb8; }
-        /* ===== 私信新布局：左右两栏 ===== */
-        .msg-container { display:flex; flex:1; min-height:400px; border:1px solid #eef1f6; border-radius:20px; overflow:hidden; }
-        .msg-left { width:220px; background:#f8fafd; border-right:1px solid #eef1f6; overflow-y:auto; padding:8px 0; flex-shrink:0; display:flex; flex-direction:column; }
-        .msg-left .add-contact { display:flex; padding:8px 12px; border-bottom:1px solid #eef1f6; gap:6px; flex-shrink:0; }
-        .msg-left .add-contact input { flex:1; padding:6px 10px; border-radius:20px; border:1.5px solid #dce2ec; font-size:13px; outline:none; }
-        .msg-left .add-contact input:focus { border-color:#2c3e6b; }
-        .msg-left .add-contact button { padding:4px 14px; border-radius:20px; border:none; background:#2c3e6b; color:#fff; font-weight:600; cursor:pointer; white-space:nowrap; font-size:13px; }
-        .msg-left .add-contact button:hover { background:#1f2f50; }
-        .msg-left .contact-list { flex:1; overflow-y:auto; padding:4px 0; }
-        .msg-left .contact-item { display:flex; align-items:center; gap:10px; padding:10px 16px; cursor:pointer; transition:0.15s; border-bottom:1px solid #f0f2f5; }
-        .msg-left .contact-item:hover { background:#eef3fa; }
-        .msg-left .contact-item.active { background:#d4e0ff; }
-        .msg-left .contact-item .contact-avatar { width:36px; height:36px; border-radius:50%; background:#d4e0ff; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:14px; color:#1a3a7a; flex-shrink:0; }
-        .msg-left .contact-item .contact-name { font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .msg-right { flex:1; display:flex; flex-direction:column; background:#fff; min-width:0; }
-        .msg-right .msg-header { padding:12px 20px; border-bottom:1px solid #eef1f6; display:flex; justify-content:space-between; align-items:center; background:#fafcff; }
-        .msg-right .msg-header .target-uuid { font-size:13px; color:#8a9bb5; cursor:pointer; user-select:all; }
-        .msg-right .msg-list { flex:1; overflow-y:auto; padding:12px 20px; display:flex; flex-direction:column; gap:8px; max-height:350px; }
-        .msg-right .msg-item { padding:8px 12px; border-radius:16px; max-width:80%; word-break:break-word; font-size:14px; }
-        .msg-right .msg-item.sent { align-self:flex-end; background:#2c3e6b; color:#fff; }
-        .msg-right .msg-item.received { align-self:flex-start; background:#f0f2f5; color:#1e2a3a; }
-        .msg-right .msg-item .msg-time { font-size:11px; opacity:0.7; margin-top:4px; text-align:right; }
-        .msg-right .msg-input-area { display:flex; padding:12px 20px; border-top:1px solid #eef1f6; gap:12px; align-items:center; background:#fafcff; }
-        .msg-right .msg-input-area textarea { flex:1; padding:10px 14px; border-radius:20px; border:1.5px solid #e2e8f0; font-size:14px; font-family:inherit; resize:none; min-height:44px; max-height:100px; background:#fff; }
-        .msg-right .msg-input-area textarea:focus { outline:none; border-color:#2c3e6b; }
-        .msg-right .msg-input-area .send-btn { padding:8px 24px; background:#2c3e6b; color:#fff; border:none; border-radius:40px; font-weight:600; cursor:pointer; transition:0.2s; white-space:nowrap; height:44px; }
-        .msg-right .msg-input-area .send-btn:hover { background:#1f2f50; }
+        .modal-box .tabs { display:flex; gap:12px; border-bottom:1px solid #eef1f6; margin-bottom:16px; padding-bottom:8px; }
+        .modal-box .tabs button { background:none; border:none; padding:6px 16px; font-size:14px; font-weight:600; color:#8a9bb5; cursor:pointer; border-radius:20px; transition:0.2s; }
+        .modal-box .tabs button.active { color:#2c3e6b; background:#eef3fa; }
+        .modal-box .msg-list { max-height:300px; overflow-y:auto; margin-bottom:12px; }
+        .modal-box .msg-item { padding:8px 0; border-bottom:1px solid #f0f2f5; font-size:14px; }
+        .modal-box .msg-item .msg-meta { display:flex; justify-content:space-between; color:#7a8fa8; font-size:12px; }
+        .modal-box .msg-item .msg-content { margin-top:4px; word-break:break-word; }
+        .modal-box .msg-form { display:flex; flex-direction:column; gap:10px; margin-top:12px; border-top:1px solid #eef1f6; padding-top:16px; }
+        .modal-box .msg-form input, .modal-box .msg-form textarea { padding:10px 14px; border-radius:14px; border:1.5px solid #e2e8f0; font-size:14px; font-family:inherit; background:#fafcff; }
+        .modal-box .msg-form input:focus, .modal-box .msg-form textarea:focus { outline:none; border-color:#2c3e6b; background:#fff; box-shadow:0 0 0 3px rgba(44,62,107,0.08); }
+        .modal-box .msg-form textarea { resize:vertical; min-height:60px; max-height:120px; }
+        .modal-box .msg-form .send-btn { align-self:flex-end; padding:8px 28px; background:#2c3e6b; color:#fff; border:none; border-radius:40px; font-weight:600; cursor:pointer; transition:0.2s; }
+        .modal-box .msg-form .send-btn:hover { background:#1f2f50; }
         .privacy-banner { background:#ff6b6b; color:#fff; padding:12px; text-align:center; font-weight:bold; position:sticky; top:0; z-index:999; }
         .footer { margin-top:40px; text-align:center; font-size:13px; color:#b0c0d8; border-top:1px solid #f0f2f5; padding-top:24px; display:flex; justify-content:center; gap:24px; flex-wrap:wrap; }
         .footer .github-info { color:#b0c0d8; font-size:12px; }
+        /* 自定义滚动条 */
         ::-webkit-scrollbar { width:4px; }
         ::-webkit-scrollbar-thumb { background:#d0d7e2; border-radius:8px; }
         @media (max-width:700px) {
@@ -110,11 +97,6 @@
             .header-right { justify-content:space-between; }
             .virus-grid { grid-template-columns:1fr; gap:18px; }
             .modal-box { padding:20px; max-width:95%; }
-            .msg-left { width:120px; }
-            .msg-left .contact-item .contact-name { font-size:12px; }
-            .msg-left .contact-item .contact-avatar { width:28px; height:28px; font-size:12px; }
-            .msg-left .add-contact input { font-size:12px; padding:4px 8px; }
-            .msg-left .add-contact button { font-size:12px; padding:3px 10px; }
         }
         @media (max-width:440px) {
             .header-left h1 { font-size:19px; }
@@ -123,9 +105,12 @@
             .virus-card { padding:18px 16px 14px; }
         }
         .text-muted { color:#9aabb8; }
+        .copy-hint { font-size:11px; color:#b0c0d8; cursor:pointer; }
+        .copy-hint:hover { color:#2c3e6b; }
     </style>
 </head>
 <body>
+
 <div id="privacyBanner"></div>
 
 <div class="container" id="app">
@@ -172,41 +157,25 @@
             <span>📩 私信</span>
             <button class="close-btn" id="closeMsgModal">&times;</button>
         </h2>
-        <div class="msg-container">
-            <div class="msg-left">
-                <div class="add-contact">
-                    <input type="text" id="addContactInput" placeholder="输入UUID添加" />
-                    <button id="addContactBtn">添加</button>
-                </div>
-                <div class="contact-list" id="contactList">
-                    <div class="empty-state" style="padding:20px;">暂无联系人</div>
-                </div>
-            </div>
-            <div class="msg-right" id="chatArea">
-                <div class="msg-header">
-                    <span id="chatTargetName">选择联系人</span>
-                    <span class="target-uuid" id="chatTargetUuid" title="点击复制UUID">UUID: —</span>
-                </div>
-                <div class="msg-list" id="chatMessages">
-                    <div class="empty-state" style="padding:20px;">选择联系人开始聊天</div>
-                </div>
-                <div class="msg-input-area" id="msgInputArea" style="display:none;">
-                    <textarea id="msgInputText" placeholder="输入消息…" rows="1"></textarea>
-                    <button class="send-btn" id="sendMsgBtn">发送</button>
-                </div>
-            </div>
+        <div class="tabs">
+            <button class="active" data-tab="inbox">收件箱</button>
+            <button data-tab="outbox">发件箱</button>
+            <button data-tab="send">发送</button>
+        </div>
+        <div id="msgContent">
+            <!-- 动态渲染 -->
         </div>
     </div>
 </div>
 
-<!-- 设置名字模态框 -->
+<!-- 设置名字模态框（保持不变） -->
 <div class="modal-overlay hidden" id="nameModal">
-    <div class="modal-box" style="max-width:440px;max-height:60vh;">
+    <div class="modal-box">
         <h2>🌟 欢迎来到星星の病毒论坛</h2>
-        <p style="color:#5a6f8a;font-size:15px;margin-bottom:24px;line-height:1.5;">首次访问，请给自己取一个响亮的昵称吧！<br /><span style="color:#9aabb8;font-size:13px;">（之后会自动识别你的设备）</span></p>
-        <input type="text" id="nameInput" placeholder="输入你的昵称…" maxlength="20" autofocus style="width:100%;padding:14px 18px;border-radius:40px;border:1.5px solid #dce2ec;font-size:16px;font-weight:500;text-align:center;background:#fafcff;" />
-        <button class="btn-confirm-name" id="confirmNameBtn" style="margin-top:18px;width:100%;padding:14px;border-radius:40px;border:none;background:#2c3e6b;color:#fff;font-size:17px;font-weight:700;cursor:pointer;transition:0.2s;">✨ 确认</button>
-        <div style="margin-top:12px;font-size:13px;color:#b0c0d8;text-align:center;" id="nameError"></div>
+        <p>首次访问，请给自己取一个响亮的昵称吧！<br /><span class="text-muted" style="font-size:13px;">（之后会自动识别你的设备）</span></p>
+        <input type="text" id="nameInput" placeholder="输入你的昵称…" maxlength="20" autofocus />
+        <button class="btn-confirm-name" id="confirmNameBtn">✨ 确认</button>
+        <div style="margin-top:12px; font-size:13px; color:#b0c0d8;" id="nameError"></div>
     </div>
 </div>
 
@@ -252,6 +221,7 @@
     const virusGrid = $('#virusGrid');
     const userDisplayName = $('#userDisplayName');
     const userAvatar = $('#userAvatar');
+    const userBadge = $('#userBadge');
     const uuidDisplay = $('#uuidDisplay');
 
     const nameModal = $('#nameModal');
@@ -264,23 +234,12 @@
     const messageBtn = $('#messageBtn');
     const messageModal = $('#messageModal');
     const closeMsgModal = $('#closeMsgModal');
-    const contactList = $('#contactList');
-    const chatArea = $('#chatArea');
-    const chatTargetName = $('#chatTargetName');
-    const chatTargetUuid = $('#chatTargetUuid');
-    const chatMessages = $('#chatMessages');
-    const msgInputArea = $('#msgInputArea');
-    const msgInputText = $('#msgInputText');
-    const sendMsgBtn = $('#sendMsgBtn');
-    const addContactInput = $('#addContactInput');
-    const addContactBtn = $('#addContactBtn');
+    const msgContent = $('#msgContent');
 
     let currentUser = null;
     let allViruses = [];
     const commentSubscriptions = {};
     let messagesSubscription = null;
-    let currentContactId = null;
-    let tempContacts = [];
 
     // ================================================================
     //  工具函数
@@ -433,192 +392,97 @@
     // ================================================================
     //  私信功能
     // ================================================================
-    async function getContacts() {
-        if (!currentUser) return [];
-        const { data, error } = await supabaseClient
-            .from('messages')
-            .select('from_user_id, to_user_id')
-            .or(`from_user_id.eq.${currentUser.id},to_user_id.eq.${currentUser.id}`);
-        if (error) {
-            console.error('获取联系人失败:', error);
-            return [];
-        }
-        const ids = new Set();
-        data.forEach(msg => {
-            if (msg.from_user_id !== currentUser.id) ids.add(msg.from_user_id);
-            if (msg.to_user_id !== currentUser.id) ids.add(msg.to_user_id);
-        });
-        tempContacts.forEach(c => ids.add(c.auth_id));
-        const idArray = Array.from(ids);
-        if (idArray.length === 0) return [];
-        const { data: users, error: userError } = await supabaseClient
-            .from('users')
-            .select('auth_id, name')
-            .in('auth_id', idArray);
-        if (userError) {
-            console.error('获取联系人信息失败:', userError);
-            return idArray.map(id => ({ auth_id: id, name: id.slice(0,8)+'...' }));
-        }
-        const userMap = {};
-        users.forEach(u => { userMap[u.auth_id] = u.name; });
-        const contacts = idArray.map(id => ({
-            auth_id: id,
-            name: userMap[id] || id.slice(0,8)+'...'+id.slice(-4)
-        }));
-        contacts.sort((a,b) => a.name.localeCompare(b.name));
-        return contacts;
-    }
-
-    async function renderContactList() {
-        const contacts = await getContacts();
-        if (!contacts.length) {
-            contactList.innerHTML = `<div class="empty-state" style="padding:20px;">暂无联系人</div>`;
-            return;
-        }
-        let html = '';
-        for (const c of contacts) {
-            const initial = getAvatarLetter(c.name);
-            html += `
-                <div class="contact-item" data-uuid="${c.auth_id}">
-                    <div class="contact-avatar">${initial}</div>
-                    <div class="contact-name">${escapeHtml(c.name)}</div>
-                </div>
-            `;
-        }
-        contactList.innerHTML = html;
-        contactList.querySelectorAll('.contact-item').forEach(el => {
-            el.addEventListener('click', () => {
-                const uuid = el.dataset.uuid;
-                openChatWith(uuid);
-            });
-        });
-        if (currentContactId) {
-            const active = contactList.querySelector(`.contact-item[data-uuid="${currentContactId}"]`);
-            if (active) {
-                active.classList.add('active');
-                openChatWith(currentContactId);
-            } else {
-                currentContactId = null;
-                chatTargetName.textContent = '选择联系人';
-                chatTargetUuid.textContent = 'UUID: —';
-                chatMessages.innerHTML = `<div class="empty-state" style="padding:20px;">选择联系人开始聊天</div>`;
-                msgInputArea.style.display = 'none';
-            }
-        } else {
-            const first = contactList.querySelector('.contact-item');
-            if (first) first.click();
-        }
-    }
-
-    async function openChatWith(uuid) {
+    async function loadMessages(type) {
         if (!currentUser) return;
-        currentContactId = uuid;
-        contactList.querySelectorAll('.contact-item').forEach(el => el.classList.remove('active'));
-        const activeItem = contactList.querySelector(`.contact-item[data-uuid="${uuid}"]`);
-        if (activeItem) activeItem.classList.add('active');
-
-        const { data: userData, error } = await supabaseClient
-            .from('users')
-            .select('name')
-            .eq('auth_id', uuid)
-            .maybeSingle();
-        let displayName = uuid.slice(0,8)+'...'+uuid.slice(-4);
-        if (userData && userData.name) displayName = userData.name;
-        chatTargetName.textContent = displayName;
-        chatTargetUuid.textContent = `UUID: ${uuid}`;
-        chatTargetUuid.title = `点击复制完整UUID: ${uuid}`;
-        chatTargetUuid.onclick = () => {
-            navigator.clipboard.writeText(uuid).then(() => {
-                chatTargetUuid.textContent = '✅ 已复制!';
-                setTimeout(() => chatTargetUuid.textContent = `UUID: ${uuid}`, 2000);
-            }).catch(() => alert('复制失败，请手动复制: ' + uuid));
-        };
-
-        await loadChatMessages(uuid);
-        msgInputArea.style.display = 'flex';
-        msgInputText.value = '';
-        msgInputText.focus();
-    }
-
-    async function loadChatMessages(otherId) {
-        if (!currentUser) return;
-        const { data, error } = await supabaseClient
+        const query = supabaseClient
             .from('messages')
             .select('*')
-            .or(`and(from_user_id.eq.${currentUser.id},to_user_id.eq.${otherId}),and(from_user_id.eq.${otherId},to_user_id.eq.${currentUser.id})`)
-            .order('created_at', { ascending: true });
+            .order('created_at', { ascending: false });
+        if (type === 'inbox') {
+            query.eq('to_user_id', currentUser.id);
+        } else if (type === 'outbox') {
+            query.eq('from_user_id', currentUser.id);
+        }
+        const { data, error } = await query;
         if (error) {
             console.error('加载消息失败:', error);
-            chatMessages.innerHTML = `<div class="empty-state">加载失败</div>`;
-            return;
+            return [];
         }
-        if (!data.length) {
-            chatMessages.innerHTML = `<div class="empty-state" style="padding:20px;">暂无消息，发送一条吧</div>`;
-            return;
-        }
-        let html = '';
-        for (const msg of data) {
-            const isSent = msg.from_user_id === currentUser.id;
-            html += `
-                <div class="msg-item ${isSent ? 'sent' : 'received'}">
-                    ${escapeHtml(msg.content)}
-                    <div class="msg-time">${formatTime(msg.created_at)}</div>
-                </div>
-            `;
-        }
-        chatMessages.innerHTML = html;
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+        return data;
     }
 
-    async function sendMessage() {
-        const content = msgInputText.value.trim();
-        if (!content || !currentContactId) return;
-        try {
-            const { error } = await supabaseClient
-                .from('messages')
-                .insert({
-                    from_user_id: currentUser.id,
-                    to_user_id: currentContactId,
-                    content: content
-                });
-            if (error) throw error;
-            msgInputText.value = '';
-            await loadChatMessages(currentContactId);
-        } catch (err) {
-            console.error('发送失败:', err);
-            alert('发送失败：' + err.message);
-        }
+    function renderMessages(type) {
+        loadMessages(type).then(messages => {
+            if (!messages.length) {
+                msgContent.innerHTML = `<div class="empty-state"><p>暂无消息</p></div>`;
+                return;
+            }
+            let html = '<div class="msg-list">';
+            for (const msg of messages) {
+                const isOutbox = type === 'outbox';
+                const otherId = isOutbox ? msg.to_user_id : msg.from_user_id;
+                const otherName = otherId === currentUser.id ? '我' : otherId.slice(0,8) + '...';
+                html += `
+                    <div class="msg-item">
+                        <div class="msg-meta">
+                            <span>${isOutbox ? '→' : '←'} ${escapeHtml(otherName)}</span>
+                            <span>${formatTime(msg.created_at)}</span>
+                        </div>
+                        <div class="msg-content">${escapeHtml(msg.content)}</div>
+                    </div>
+                `;
+            }
+            html += '</div>';
+            msgContent.innerHTML = html;
+        });
     }
 
-    async function addContact() {
-        const input = addContactInput.value.trim();
-        if (!input) return;
-        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input)) {
-            alert('请输入正确的UUID格式');
-            return;
-        }
-        const contacts = await getContacts();
-        if (contacts.some(c => c.auth_id === input)) {
-            alert('该联系人已存在');
-            return;
-        }
-        const { data, error } = await supabaseClient
-            .from('users')
-            .select('name')
-            .eq('auth_id', input)
-            .maybeSingle();
-        if (error || !data) {
-            alert('该用户不存在');
-            return;
-        }
-        const name = data.name || input.slice(0,8)+'...';
-        tempContacts.push({ auth_id: input, name: name });
-        await renderContactList();
-        openChatWith(input);
-        addContactInput.value = '';
+    function renderSendForm() {
+        msgContent.innerHTML = `
+            <div class="msg-form">
+                <input type="text" id="recipientUuid" placeholder="接收者 UUID（可以从对方昵称下方复制）" />
+                <textarea id="msgContentInput" placeholder="输入私信内容…" rows="3"></textarea>
+                <button class="send-btn" id="sendMsgBtn">发送</button>
+            </div>
+        `;
+        document.getElementById('sendMsgBtn').addEventListener('click', async () => {
+            const toUuid = document.getElementById('recipientUuid').value.trim();
+            const content = document.getElementById('msgContentInput').value.trim();
+            if (!toUuid || !content) {
+                alert('请填写完整');
+                return;
+            }
+            try {
+                const { error } = await supabaseClient
+                    .from('messages')
+                    .insert({
+                        from_user_id: currentUser.id,
+                        to_user_id: toUuid,
+                        content: content
+                    });
+                if (error) throw error;
+                alert('✅ 发送成功！');
+                document.getElementById('recipientUuid').value = '';
+                document.getElementById('msgContentInput').value = '';
+                // 切换到收件箱刷新
+                document.querySelector('[data-tab="inbox"]').click();
+            } catch (err) {
+                console.error('发送失败:', err);
+                alert('发送失败：' + err.message);
+            }
+        });
     }
 
-    function subscribeMessages() {
+    // 消息按钮点击
+    messageBtn.addEventListener('click', () => {
+        if (!currentUser) {
+            alert('请先设置昵称');
+            return;
+        }
+        messageModal.classList.remove('hidden');
+        // 默认显示收件箱
+        document.querySelector('[data-tab="inbox"]').click();
+        // 实时订阅消息变化
         if (messagesSubscription) {
             supabaseClient.removeChannel(messagesSubscription);
         }
@@ -628,16 +492,58 @@
                 event: '*',
                 schema: 'public',
                 table: 'messages',
-                filter: `or(to_user_id.eq.${currentUser.id},from_user_id.eq.${currentUser.id})`
+                filter: `to_user_id=eq.${currentUser.id}`
             }, () => {
-                if (currentContactId) {
-                    loadChatMessages(currentContactId);
+                // 如果当前显示的是收件箱，刷新
+                const activeTab = document.querySelector('.tabs .active');
+                if (activeTab && activeTab.dataset.tab === 'inbox') {
+                    renderMessages('inbox');
                 }
-                renderContactList();
             })
             .subscribe();
         messagesSubscription = channel;
-    }
+    });
+
+    // 关闭消息模态框
+    closeMsgModal.addEventListener('click', () => {
+        messageModal.classList.add('hidden');
+        if (messagesSubscription) {
+            supabaseClient.removeChannel(messagesSubscription);
+            messagesSubscription = null;
+        }
+    });
+    // 点击外部关闭
+    messageModal.addEventListener('click', (e) => {
+        if (e.target === messageModal) {
+            closeMsgModal.click();
+        }
+    });
+
+    // 选项卡切换
+    document.querySelectorAll('.tabs button').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const tab = btn.dataset.tab;
+            if (tab === 'send') {
+                renderSendForm();
+            } else {
+                renderMessages(tab);
+            }
+        });
+    });
+
+    // 点击UUID复制
+    uuidDisplay.addEventListener('click', () => {
+        if (currentUser && currentUser.id) {
+            navigator.clipboard.writeText(currentUser.id).then(() => {
+                uuidDisplay.textContent = '✅ 已复制!';
+                setTimeout(() => updateUserUI(), 2000);
+            }).catch(() => {
+                alert('复制失败，请手动复制: ' + currentUser.id);
+            });
+        }
+    });
 
     // ================================================================
     //  加载病毒数据（从 viruses.json）
@@ -677,9 +583,9 @@
     }
 
     // ================================================================
-    //  渲染病毒卡片 & 评论绑定（改进：预加载评论计数）
+    //  渲染病毒卡片 & 评论绑定（保持不变）
     // ================================================================
-    async function renderViruses() {
+    function renderViruses() {
         if (!allViruses.length) {
             virusGrid.innerHTML = `
                 <div class="empty-state" style="grid-column:1/-1;">
@@ -689,52 +595,8 @@
             `;
             return;
         }
-
-        // 1. 批量获取所有病毒的评论数量
-        const virusIds = allViruses.map(v => v.id);
-        let commentCounts = {};
-        if (virusIds.length > 0) {
-            try {
-                const { data, error } = await supabaseClient
-                    .from('comments')
-                    .select('virus_id', { count: 'exact', head: true })
-                    .in('virus_id', virusIds)
-                    .group('virus_id');
-                // 注意：count 在 group 下不能直接用，改用分别查询或使用聚合函数
-                // 更可靠的方式：分别查询每个病毒，但为了性能，使用 group by 和 count
-                // Supabase 不支持直接 group by 并返回 count，但可以使用 rpc 或多次查询。
-                // 为了简单，采用循环查询每个病毒（如果病毒数量不多，可以接受）
-                // 或者使用一个 raw 查询：select virus_id, count(*) from comments where virus_id = any(...) group by virus_id
-                // 这里改用更简单的方法：逐个查询（如果病毒数量小于 20 可以接受）
-                // 但为了效率，使用 in 和 group by 通过 PostgreSQL 函数，但 Supabase JS 客户端不直接支持。
-                // 改用手动循环，因为论坛病毒数量一般不多。
-                // 我们改为在循环中单独查询，但会引入异步延迟，但在渲染前一次性加载所有计数。
-                // 更好的方式：使用 Supabase 的 rpc 或直接使用 `select` 语句加 `group`。
-                // 但我们利用 Supabase 的 `select` 配合 `count` 和 `group` 的变通：使用 `select('virus_id, count()')` 但需要聚合。
-                // 实际可以使用 `from('comments').select('virus_id, count()', { count: 'exact' }).group('virus_id')` 但 JS 客户端不支持 group。
-                // 稳妥起见，我循环查询每个病毒，但并行执行。
-                const promises = allViruses.map(async (virus) => {
-                    const { count, error } = await supabaseClient
-                        .from('comments')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('virus_id', virus.id);
-                    if (!error) {
-                        commentCounts[virus.id] = count;
-                    } else {
-                        commentCounts[virus.id] = 0;
-                    }
-                });
-                await Promise.all(promises);
-            } catch (e) {
-                console.warn('获取评论计数失败，将显示为0', e);
-                commentCounts = {};
-            }
-        }
-
-        // 2. 生成 HTML
         let html = '';
         for (const virus of allViruses) {
-            const count = commentCounts[virus.id] || 0;
             html += `
                 <div class="virus-card" data-virus-id="${virus.id}">
                     <div class="virus-name">
@@ -745,7 +607,7 @@
                     <div class="virus-actions">
                         <a href="${virus.download_url}" target="_blank" class="btn-download" rel="noopener">⬇ 下载</a>
                         <button class="btn-comment-toggle" data-virus-id="${virus.id}">
-                            💬 评论 <span class="comment-count" id="count-${virus.id}">${count}</span>
+                            💬 评论 <span class="comment-count" id="count-${virus.id}">0</span>
                         </button>
                     </div>
                     <div class="comment-section" id="comments-${virus.id}">
@@ -764,7 +626,6 @@
         }
         virusGrid.innerHTML = html;
 
-        // 3. 绑定事件（与之前相同）
         $$('.btn-comment-toggle').forEach(btn => {
             btn.addEventListener('click', () => {
                 const vid = btn.dataset.virusId;
@@ -812,7 +673,7 @@
     }
 
     // ================================================================
-    //  评论系统（refreshCommentList 会更新计数）
+    //  评论系统（不变）
     // ================================================================
     async function submitComment(virusId, content) {
         if (!currentUser || !currentUser.id || !currentUser.name) {
@@ -932,8 +793,7 @@
         showLoading(true);
         try {
             allViruses = await loadVirusesFromGitHub();
-            await renderViruses();
-            // 重新加载已展开的评论
+            renderViruses();
             $$('.comment-section.open').forEach(section => {
                 const vid = section.id.replace('comments-', '');
                 if (commentSubscriptions[vid]) {
@@ -1016,7 +876,7 @@
         showLoading(true);
         try {
             allViruses = await loadVirusesFromGitHub();
-            await renderViruses();
+            renderViruses();
             showLoading(false);
         } catch (err) {
             showLoading(false);
@@ -1026,54 +886,11 @@
 
     initApp().catch(err => console.error('启动失败', err));
 
-    // 事件绑定（私信）
-    messageBtn.addEventListener('click', async () => {
-        if (!currentUser) {
-            alert('请先设置昵称');
-            return;
-        }
-        messageModal.classList.remove('hidden');
-        currentContactId = null;
-        await renderContactList();
-        subscribeMessages();
-    });
-    closeMsgModal.addEventListener('click', () => {
-        messageModal.classList.add('hidden');
-        if (messagesSubscription) {
-            supabaseClient.removeChannel(messagesSubscription);
-            messagesSubscription = null;
-        }
-    });
-    messageModal.addEventListener('click', (e) => {
-        if (e.target === messageModal) closeMsgModal.click();
-    });
-    sendMsgBtn.addEventListener('click', sendMessage);
-    msgInputText.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
-        }
-    });
-    addContactBtn.addEventListener('click', addContact);
-    addContactInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') addContact();
-    });
-
     nameModal.addEventListener('click', (e) => {
         if (e.target === nameModal) nameInput.focus();
     });
-    uuidDisplay.addEventListener('click', () => {
-        if (currentUser && currentUser.id) {
-            navigator.clipboard.writeText(currentUser.id).then(() => {
-                uuidDisplay.textContent = '✅ 已复制!';
-                setTimeout(() => updateUserUI(), 2000);
-            }).catch(() => {
-                alert('复制失败，请手动复制: ' + currentUser.id);
-            });
-        }
-    });
 
-    console.log('⭐ 星星の病毒论坛 (私信版·评论计数预加载) 已启动！');
+    console.log('⭐ 星星の病毒论坛 (私信版) 已启动！');
     console.log('📁 数据源:', `${BASE_PATH}/viruses.json`);
     console.log('🔒 localStorage 可用:', storageAvailable ? '是' : '否 (隐私模式)');
 </script>
