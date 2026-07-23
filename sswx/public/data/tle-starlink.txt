@@ -1,3 +1,0 @@
-GP data has not updated since your last successful
-download of GROUP=starlink at 2026-07-16 10:39:53 UTC.
-Data is updated once every 2 hours.
