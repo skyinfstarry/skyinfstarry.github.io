@@ -228,7 +228,7 @@
         }
         .empty-state .icon { font-size: 44px; margin-bottom: 12px; opacity: 0.6; }
 
-        /* Toast */
+        /* ===== Toast 通知（z-index 最高） ===== */
         .toast-container {
             position: fixed;
             top: 20px;
@@ -273,7 +273,7 @@
         }
         .toast .toast-close:hover { color: var(--text); }
 
-        /* 通用模态框 */
+        /* ===== 通用模态框（z-index 中等） ===== */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -341,7 +341,7 @@
         }
         .modal-box .modal-actions .btn { min-width: 80px; text-align: center; }
 
-        /* 发帖全屏模态框 */
+        /* ===== 发帖全屏模态框（z-index 最低） ===== */
         #postModal {
             position: fixed;
             top: 0;
@@ -435,7 +435,7 @@
             font-size: 16px;
         }
 
-        /* 病毒卡片 */
+        /* ===== 病毒卡片 ===== */
         .virus-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -627,7 +627,7 @@
             transform: translateY(-1px);
         }
 
-        /* 自由论坛 */
+        /* ===== 自由论坛 ===== */
         .forum-post-item {
             background: #fff;
             border: 1px solid var(--border);
@@ -754,7 +754,7 @@
             gap: 10px;
         }
 
-        /* 私信模态框内部 */
+        /* ===== 私信模态框内部 ===== */
         .msg-container {
             display: flex;
             flex:1;
@@ -952,7 +952,7 @@
             transform: translateY(-1px);
         }
 
-        /* 调试面板 */
+        /* ===== 调试面板 ===== */
         .debug-panel {
             background: #f8fafd;
             border-radius: var(--radius);
@@ -991,63 +991,6 @@
             display: flex;
             gap: 12px;
             margin-top: 16px;
-            flex-wrap: wrap;
-        }
-
-        /* ===== 百宝箱样式 ===== */
-        .toolbox-tabs {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 16px;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 8px;
-        }
-        .toolbox-tabs button {
-            background: none;
-            border: none;
-            padding: 6px 20px;
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--text-muted);
-            cursor: pointer;
-            border-radius: 20px;
-            transition: 0.2s;
-        }
-        .toolbox-tabs button.active {
-            color: var(--primary);
-            background: #eef3fa;
-        }
-        .toolbox-tabs button:hover { background: #f0f4fe; }
-        .toolbox-content {
-            min-height: 200px;
-        }
-        .toolbox-item {
-            display: flex;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid #f0f2f5;
-            gap: 12px;
-        }
-        .toolbox-item .item-check {
-            flex-shrink: 0;
-        }
-        .toolbox-item .item-body {
-            flex:1;
-        }
-        .toolbox-item .item-body .item-meta {
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-        .toolbox-item .item-body .item-content {
-            font-size: 14px;
-            color: var(--text);
-        }
-        .toolbox-actions {
-            display: flex;
-            gap: 12px;
-            margin-top: 16px;
-            padding-top: 12px;
-            border-top: 1px solid var(--border);
             flex-wrap: wrap;
         }
 
@@ -1160,20 +1103,14 @@
             </div>
         </header>
 
-        <!-- ===== 导航标签（新增百宝箱） ===== -->
         <div class="nav-tabs">
-            <button class="active" data-tab="forum">💬 自由论坛</button>
-            <button data-tab="viruses">🦠 病毒样本</button>
-            <button data-tab="toolbox">🧰 百宝箱</button>
+            <button class="active" data-tab="viruses">🦠 病毒样本</button>
+            <button data-tab="forum">💬 自由论坛</button>
             <button data-tab="debug">🔧 调试</button>
         </div>
 
-        <!-- ===== Tab 内容 ===== -->
-        <div class="tab-content active" id="tabForum">
-            <div id="forumContent"></div>
-        </div>
-
-        <div class="tab-content" id="tabViruses">
+        <!-- 病毒标签 -->
+        <div class="tab-content active" id="tabViruses">
             <main id="mainContent">
                 <div class="loading-mask" id="loadingMask">
                     <div class="spinner"></div>
@@ -1185,22 +1122,12 @@
             </main>
         </div>
 
-        <!-- ===== 百宝箱标签 ===== -->
-        <div class="tab-content" id="tabToolbox">
-            <div style="margin-bottom:8px;">
-                <span style="font-weight:600;font-size:18px;">🧰 百宝箱</span>
-                <span style="color:var(--text-muted);font-size:14px;margin-left:12px;">管理你的内容</span>
-            </div>
-            <div class="toolbox-tabs">
-                <button class="active" data-tool="comments">我的评论</button>
-                <button data-tool="posts">我的帖子</button>
-            </div>
-            <div class="toolbox-content" id="toolboxContent">
-                <div class="empty-state">请选择一个工具</div>
-            </div>
+        <!-- 自由论坛标签 -->
+        <div class="tab-content" id="tabForum">
+            <div id="forumContent"></div>
         </div>
 
-        <!-- ===== 调试标签 ===== -->
+        <!-- 调试标签 -->
         <div class="tab-content" id="tabDebug">
             <div class="debug-panel">
                 <h3 style="margin-bottom:16px;">🔧 系统调试</h3>
@@ -1444,12 +1371,6 @@
     const submitPostBtn = $('#submitPostBtn');
     const postTitleInput = $('#postTitleInput');
     const postContentInput = $('#postContentInput');
-
-    // 百宝箱相关
-    const toolboxContent = $('#toolboxContent');
-    let currentTool = 'comments'; // 'comments' or 'posts'
-    let toolboxItems = [];
-    let selectedIds = new Set();
 
     let currentUser = null;
     let allViruses = [];
@@ -2355,142 +2276,6 @@
     }
 
     // ================================================================
-    //  百宝箱功能
-    // ================================================================
-    async function loadToolboxItems(type) {
-        if (!currentUser) {
-            toolboxContent.innerHTML = `<div class="empty-state"><div class="icon">🔒</div><p>请先登录</p></div>`;
-            return;
-        }
-        toolboxContent.innerHTML = `<div class="loading-mask"><div class="spinner"></div><div>加载中...</div></div>`;
-        try {
-            let data;
-            if (type === 'comments') {
-                const { data: comments, error } = await supabaseClient
-                    .from('comments')
-                    .select('*')
-                    .eq('user_id', currentUser.id)
-                    .order('created_at', { ascending: false });
-                if (error) throw error;
-                data = comments.map(c => ({
-                    id: c.id,
-                    type: 'comment',
-                    content: c.content,
-                    meta: `在病毒 ${c.virus_id.slice(0,8)} 中评论 · ${formatTime(c.created_at)}`,
-                    raw: c
-                }));
-            } else if (type === 'posts') {
-                const { data: posts, error } = await supabaseClient
-                    .from('posts')
-                    .select('*')
-                    .eq('user_id', currentUser.id)
-                    .order('created_at', { ascending: false });
-                if (error) throw error;
-                data = posts.map(p => ({
-                    id: p.id,
-                    type: 'post',
-                    content: p.title + (p.content ? '\n' + p.content : ''),
-                    meta: `发布于 ${formatTime(p.created_at)}`,
-                    raw: p
-                }));
-            }
-            toolboxItems = data || [];
-            selectedIds.clear();
-            renderToolboxItems();
-        } catch (err) {
-            console.error('加载数据失败:', err);
-            toolboxContent.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>加载失败：${err.message}</p></div>`;
-        }
-    }
-
-    function renderToolboxItems() {
-        if (!toolboxItems.length) {
-            toolboxContent.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>暂无内容</p></div>`;
-            return;
-        }
-        let html = '';
-        for (const item of toolboxItems) {
-            const checked = selectedIds.has(item.id) ? 'checked' : '';
-            html += `
-                <div class="toolbox-item">
-                    <input type="checkbox" class="item-check" data-id="${item.id}" ${checked} />
-                    <div class="item-body">
-                        <div class="item-content">${escapeHtml(item.content)}</div>
-                        <div class="item-meta">${escapeHtml(item.meta)}</div>
-                    </div>
-                </div>
-            `;
-        }
-        html += `
-            <div class="toolbox-actions">
-                <button class="btn btn-outline btn-sm" id="selectAllBtn">全选</button>
-                <button class="btn btn-outline btn-sm" id="deselectAllBtn">取消全选</button>
-                <button class="btn btn-danger btn-sm" id="deleteSelectedBtn">🗑 删除选中 (${selectedIds.size})</button>
-            </div>
-        `;
-        toolboxContent.innerHTML = html;
-
-        // 绑定事件
-        document.querySelectorAll('.item-check').forEach(cb => {
-            cb.addEventListener('change', (e) => {
-                const id = e.target.dataset.id;
-                if (e.target.checked) {
-                    selectedIds.add(id);
-                } else {
-                    selectedIds.delete(id);
-                }
-                updateDeleteBtn();
-            });
-        });
-        document.getElementById('selectAllBtn').addEventListener('click', () => {
-            document.querySelectorAll('.item-check').forEach(cb => {
-                cb.checked = true;
-                selectedIds.add(cb.dataset.id);
-            });
-            updateDeleteBtn();
-        });
-        document.getElementById('deselectAllBtn').addEventListener('click', () => {
-            document.querySelectorAll('.item-check').forEach(cb => {
-                cb.checked = false;
-                selectedIds.delete(cb.dataset.id);
-            });
-            updateDeleteBtn();
-        });
-        document.getElementById('deleteSelectedBtn').addEventListener('click', async () => {
-            if (selectedIds.size === 0) {
-                showToast('请至少选中一项', 'warning');
-                return;
-            }
-            const confirmed = await showConfirm(`确定要删除选中的 ${selectedIds.size} 条内容吗？此操作不可撤销。`, '批量删除');
-            if (!confirmed) return;
-            const ids = Array.from(selectedIds);
-            const type = currentTool;
-            let table = type === 'comments' ? 'comments' : 'posts';
-            try {
-                const { error } = await supabaseClient
-                    .from(table)
-                    .delete()
-                    .in('id', ids)
-                    .eq('user_id', currentUser.id); // 确保只删除自己的
-                if (error) throw error;
-                showToast(`✅ 成功删除 ${ids.length} 条`, 'success');
-                // 重新加载
-                await loadToolboxItems(currentTool);
-            } catch (err) {
-                console.error('批量删除失败:', err);
-                showToast('删除失败：' + err.message, 'error');
-            }
-        });
-    }
-
-    function updateDeleteBtn() {
-        const btn = document.getElementById('deleteSelectedBtn');
-        if (btn) {
-            btn.textContent = `🗑 删除选中 (${selectedIds.size})`;
-        }
-    }
-
-    // ================================================================
     //  调试功能
     // ================================================================
     async function testLatency() {
@@ -2590,33 +2375,19 @@
             btn.classList.add('active');
             const tab = btn.dataset.tab;
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            if (tab === 'forum') {
+            if (tab === 'viruses') {
+                document.getElementById('tabViruses').classList.add('active');
+            } else if (tab === 'forum') {
                 document.getElementById('tabForum').classList.add('active');
                 if (forumView === 'list') {
                     renderForumList();
                 } else {
                     openPostDetail(currentPostId);
                 }
-            } else if (tab === 'viruses') {
-                document.getElementById('tabViruses').classList.add('active');
-            } else if (tab === 'toolbox') {
-                document.getElementById('tabToolbox').classList.add('active');
-                // 加载当前工具数据
-                loadToolboxItems(currentTool);
             } else if (tab === 'debug') {
                 document.getElementById('tabDebug').classList.add('active');
                 testLatency();
             }
-        });
-    });
-
-    // 百宝箱内部子选项卡
-    document.querySelectorAll('.toolbox-tabs button').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.toolbox-tabs button').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentTool = btn.dataset.tool;
-            loadToolboxItems(currentTool);
         });
     });
 
@@ -2680,7 +2451,7 @@
                     </ul>
                     <p style="color:#8a9bb5;font-size:14px;">确保已执行所有建表 SQL（posts, replies, daily_matches, debug_tests）。</p>
                     <hr style="border-color:#eee;margin:24px 0;" />
-                    <p style="font-size:13px;color:#b0c0d8;">星星の病毒论坛 · 完整版（百宝箱）</p>
+                    <p style="font-size:13px;color:#b0c0d8;">星星の病毒论坛 · 完整版（全屏发帖）</p>
                 </div>
             `;
             return;
@@ -2728,19 +2499,24 @@
             await showNameSetup();
         }
 
-        // 加载病毒数据（但默认显示论坛）
+        // 加载病毒数据
         showLoading(true);
         try {
             allViruses = await loadVirusesFromGitHub();
             renderViruses();
             forumView = 'list';
-            renderForumList();
             showLoading(false);
         } catch (err) {
             showLoading(false);
             virusGrid.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${escapeHtml(err.message)}</p></div>`;
             showToast('加载病毒失败：' + err.message, 'error');
         }
+
+        document.querySelector('[data-tab="forum"]').addEventListener('click', () => {
+            if (forumView === 'list') {
+                renderForumList();
+            }
+        });
     }
 
     initApp().catch(err => {
@@ -2758,7 +2534,7 @@
         }
     });
 
-    console.log('⭐ 星星の病毒论坛 (完整版含百宝箱) 已启动！');
+    console.log('⭐ 星星の病毒论坛 (完整版含全屏发帖) 已启动！');
     </script>
 </body>
 </html>
