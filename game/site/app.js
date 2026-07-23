@@ -1,0 +1,499 @@
+const GH_REPO = "sausi-7/games";
+const DEFAULT_LOCALE = "en";
+const LOCALE_STORAGE_KEY = "language";
+const I18N = {
+  en: {
+    "brand.name": "游戏中心",
+    "hero.titleLine1": "140+ 款可玩游戏。",
+    "hero.titleLine2": "一个仓库。无需安装。",
+    "hero.subtitle": "不断增长的浏览器内置 HTML5 游戏合集 — 使用 Phaser、Three.js 和原生 JS 构建。点击任意卡片即可立即游玩。",
+    "cta.playRandom": "随机游玩",
+    "cta.browseAll": "浏览全部",
+    "search.placeholder": "搜索游戏 — 名称、标签、分类…",
+    "empty.noMatches": "没有找到匹配的游戏。",
+    "empty.clearFilters": "清除筛选",
+    "footer.builtBy": "由",
+    "footer.source": "源码",
+    "footer.contribute": "贡献",
+    "footer.licensed": "MIT 许可",
+    "footer.language": "语言：",
+    "footer.press": "按下",
+    "footer.toSearch": "搜索",
+    "footer.toClose": "关闭",
+    "footer.forRandom": "随机",
+    "language.english": "中文",
+    "language.hindi": "英文",
+    "modal.defaultTitle": "—",
+    "aria.toggleTheme": "切换主题",
+    "aria.viewSourceGithub": "在 GitHub 查看源码",
+    "aria.filterGames": "筛选游戏",
+    "aria.categories": "分类",
+    "aria.toggleFullscreen": "切换全屏",
+    "aria.restartGame": "重新开始游戏",
+    "aria.openInNewTab": "在新标签页中打开",
+    "aria.close": "关闭",
+    "title.fullscreen": "全屏",
+    "title.restart": "重新开始",
+    "title.openInNewTab": "在新标签页中打开",
+    "title.close": "关闭",
+    "title.game": "游戏",
+    "errors.registryLoad": "无法加载 <code>games/registry.json</code>。您是否通过 HTTP 提供服务？尝试 <code>python -m http.server</code>。",
+    "stats.games": "款游戏",
+    "filters.all": "全部",
+    "card.tech.phaser": "Phaser",
+    "card.tech.three": "Three.js",
+    "card.tech.html": "HTML5",
+    "card.aria.play": "游玩 {name}",
+  },
+  hi: {
+    "brand.name": "Games Hub",
+    "hero.titleLine1": "140+ playable games.",
+    "hero.titleLine2": "One repo. Zero installs.",
+    "hero.subtitle": "A growing collection of browser-built HTML5 games — built with Phaser, Three.js, and vanilla JS. Click any card to play instantly.",
+    "cta.playRandom": "Play random",
+    "cta.browseAll": "Browse all",
+    "search.placeholder": "Search games — name, tag, category…",
+    "empty.noMatches": "No games match this search.",
+    "empty.clearFilters": "Clear filters",
+    "footer.builtBy": "Built by",
+    "footer.source": "Source",
+    "footer.contribute": "Contribute",
+    "footer.licensed": "MIT licensed",
+    "footer.language": "Language:",
+    "footer.press": "Press",
+    "footer.toSearch": "to search",
+    "footer.toClose": "to close",
+    "footer.forRandom": "for random",
+    "language.english": "Chinese",
+    "language.hindi": "English",
+    "modal.defaultTitle": "—",
+    "aria.toggleTheme": "Toggle theme",
+    "aria.viewSourceGithub": "View source on GitHub",
+    "aria.filterGames": "Filter games",
+    "aria.categories": "Categories",
+    "aria.toggleFullscreen": "Toggle fullscreen",
+    "aria.restartGame": "Restart game",
+    "aria.openInNewTab": "Open in new tab",
+    "aria.close": "Close",
+    "title.fullscreen": "Fullscreen",
+    "title.restart": "Restart",
+    "title.openInNewTab": "Open in new tab",
+    "title.close": "Close",
+    "title.game": "Game",
+    "errors.registryLoad": "Couldn't load <code>games/registry.json</code>. Are you serving over HTTP? Try <code>python -m http.server</code>.",
+    "stats.games": "games",
+    "filters.all": "All",
+    "card.tech.phaser": "Phaser",
+    "card.tech.three": "Three.js",
+    "card.tech.html": "HTML5",
+    "card.aria.play": "Play {name}",
+  },
+};
+
+// per-category emoji used as the visual on cards
+const CATEGORY_EMOJI_FALLBACK = {
+  puzzle: "🧩",
+  arcade: "🕹️",
+  shooter: "🎯",
+  racing: "🏎️",
+  sports: "⚽",
+  platformer: "🏃",
+  casual: "🎈",
+  board: "♟️",
+  "word-quiz": "📝",
+  "3d": "🌐",
+};
+
+// per-category gradient pair for the card art
+const CATEGORY_GRAD = {
+  puzzle:     ["#7c3aed", "#4c1d95"],
+  arcade:     ["#ec4899", "#831843"],
+  shooter:    ["#ef4444", "#7f1d1d"],
+  racing:     ["#f59e0b", "#7c2d12"],
+  sports:     ["#10b981", "#064e3b"],
+  platformer: ["#06b6d4", "#0c4a6e"],
+  casual:     ["#f472b6", "#831843"],
+  board:      ["#64748b", "#1e293b"],
+  "word-quiz":["#3b82f6", "#1e3a8a"],
+  "3d":       ["#8b5cf6", "#4c1d95"],
+};
+
+// per-game emoji overrides (fall back to category emoji)
+const GAME_EMOJI = {
+  "2048": "🔢", "tetris": "🟦", "snake": "🐍", "curve-snake": "🐍",
+  "snake-and-ladder": "🎲", "chess": "♟️", "ludo": "🎲", "tic-tac-toe": "⭕",
+  "rock-paper-scissors": "✊", "carrom": "🪙", "sudoku": "🔢",
+  "memory": "🧠", "memory-cards": "🧠", "pacman": "👻", "flappy": "🐤",
+  "mario": "🍄", "doodle-jump": "⬆️", "bubble-shooter": "🫧", "bubble-pop": "🫧",
+  "candy-crush": "🍬", "candy-crusher": "🍬", "fruit-merge": "🍇",
+  "fruit-basket": "🧺", "fruit-cosmics": "🍓", "cooking": "👨‍🍳",
+  "buttermilk": "🥛", "wordle": "🅰️", "words-of-wonder": "🔠",
+  "math-quest": "➕", "quiz": "❓", "football": "⚽", "basketball": "🏀",
+  "bowling": "🎳", "cricket-123": "🏏", "table-tennis": "🏓",
+  "archer": "🏹", "penalty": "🥅",
+  "bird-shooter": "🐦", "alien-battle": "👾", "fighter-jet": "✈️",
+  "fighter-fury": "✈️", "sniper": "🔭", "shooter": "🔫", "shoot-enemy": "🎯",
+  "cannon-blaster": "💥", "robot-destruction": "🤖", "vaccine-shooter": "💉",
+  "tower-shooter": "🗼", "tee-shooter": "🏌️", "thunder-god": "⚡",
+  "shadow-shooter": "🌑", "space-fighter": "🚀", "trench-defence": "🪖",
+  "gunman": "🤠", "gun-run": "🔫", "projectile-enemy": "🎯",
+  "survivor": "🧟",
+  "car-race": "🏎️", "road-fighter": "🚗", "one-car": "🚙", "two-cars": "🚗",
+  "two-cars-ai": "🤖", "endless-runner": "🏃", "forest-runner": "🌲",
+  "shadow-runner": "🌑", "survival-run": "🏃", "straight-rush": "💨",
+  "antigravity": "🌀", "cool-platformer": "🦘", "flip-jump": "🔄",
+  "parkour": "🤸", "devil-king": "😈", "level-devil": "😈",
+  "that-level-again-1": "🔁", "that-level-again-2": "🔁",
+  "that-level-again-3": "🔁", "that-level-again-4": "🔁",
+  "that-level-again-5": "🔁",
+  "stack-tower": "🏗️", "cosmic-cleaner": "🧹", "orbital-outpost": "🛰️",
+  "planet-visitor": "🪐", "planet-war": "🪐",
+  "hex-puzzle": "⬡", "cut-rope": "✂️", "connected": "🔗", "link": "🔗",
+  "laser-bounce": "💡", "circuit-bulb": "💡", "signal-circuit": "📡",
+  "colour-pour": "🧪", "screw-master": "🔩", "shape-fitter": "🧩",
+  "shape-collector": "🔷", "perfect-square": "⬜", "tile-tap": "🎹",
+  "slide-puzzle": "🧩", "pathfinder": "🧭", "number-merge": "🔢",
+  "four-dots": "🔵", "cargo-stack": "📦", "pairing": "🃏",
+  "line-trap": "✏️", "unruly": "⚪", "6oct": "🔶", "square-one": "🔲",
+  "circle-path": "⭕", "color-dash": "🎨", "balance-stack": "📚",
+  "bomb-blast": "💣", "boom-dots": "💥", "bug-smasher": "🐛",
+  "whack-a-bug": "🐞", "tap-target": "🎯", "kaiju-krush": "🦖",
+  "crowd-control": "👥", "crossy-road": "🛣️", "road-cross": "🛣️",
+  "red-light-green-light": "🚦", "glass-step": "🪟", "swipe-assassin": "🗡️",
+  "fly-monkey": "🐒", "hungry-player": "😋", "jump-dot": "⬆️",
+  "demon": "👹", "abhita": "✨", "ellars": "✨", "dream-weaver": "💭",
+  "endless-mafia": "🕴️", "dodge-enemy": "💨", "dodge-master": "💨",
+  "catch-me-if-you-can": "🏃", "collector": "💎", "pirates": "🏴‍☠️",
+  "spaceman": "👨‍🚀", "space-waves": "🌊", "sky-high": "🪂",
+  "luma-bounce": "🟡", "stick-game": "🪵", "stick-toss": "🪵",
+  "breakoid": "🧱", "window-shooter": "🪟", "tile": "🎹",
+};
+
+const els = {
+  grid: document.getElementById("grid"),
+  empty: document.getElementById("empty"),
+  search: document.getElementById("search-input"),
+  filters: document.getElementById("filters"),
+  stats: document.getElementById("stats"),
+  themeToggle: document.getElementById("theme-toggle"),
+  themeIcon: document.querySelector(".theme-icon"),
+  starCount: document.getElementById("star-count"),
+  randomBtn: document.getElementById("random-game"),
+  clearFilters: document.getElementById("clear-filters"),
+  modal: document.getElementById("modal"),
+  modalTitle: document.getElementById("modal-title"),
+  modalChip: document.getElementById("modal-chip"),
+  modalFrame: document.getElementById("modal-frame"),
+  modalOpen: document.getElementById("modal-open"),
+  modalReload: document.getElementById("modal-reload"),
+  modalFs: document.getElementById("modal-fullscreen"),
+  languageSelect: document.getElementById("language-select"),
+};
+
+const state = {
+  games: [],
+  categories: [],
+  q: "",
+  category: "all",
+  locale: DEFAULT_LOCALE,
+};
+
+// ---------- Init ----------
+init();
+
+async function init() {
+  state.locale = loadLanguage();
+  document.documentElement.lang = state.locale;
+  loadTheme();
+  applyI18n();
+  if (els.languageSelect) els.languageSelect.value = state.locale;
+  attachUiEvents();
+
+  try {
+    const res = await fetch("games/registry.json", { cache: "no-store" });
+    if (!res.ok) throw new Error(`registry fetch ${res.status}`);
+    const data = await res.json();
+    state.games = data.games || [];
+    state.categories = data.categories || [];
+  } catch (err) {
+    console.error("Failed to load registry:", err);
+    els.grid.innerHTML = `<p style="grid-column:1/-1;color:var(--text-dim);text-align:center;padding:40px">
+      ${t("errors.registryLoad")}</p>`;
+    return;
+  }
+
+  renderStats();
+  renderFilters();
+  renderGrid();
+  hydrateFromHash();
+  fetchStarCount();
+}
+
+// ---------- Theme ----------
+function loadTheme() {
+  const saved = localStorage.getItem("theme");
+  const initial = saved || "light";
+  setTheme(initial);
+}
+function setTheme(t) {
+  document.documentElement.dataset.theme = t;
+  els.themeIcon.textContent = t === "light" ? "☀️" : "🌙";
+  localStorage.setItem("theme", t);
+}
+
+// ---------- UI events ----------
+function attachUiEvents() {
+  if (els.languageSelect) {
+    els.languageSelect.addEventListener("change", (e) => {
+      setLanguage(e.target.value);
+      window.location.reload();
+    });
+  }
+  els.themeToggle.addEventListener("click", () => {
+    setTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light");
+  });
+  els.search.addEventListener("input", (e) => {
+    state.q = e.target.value.trim().toLowerCase();
+    renderGrid();
+  });
+  els.randomBtn.addEventListener("click", playRandom);
+  if (els.clearFilters) {
+    els.clearFilters.addEventListener("click", () => {
+      state.q = "";
+      state.category = "all";
+      els.search.value = "";
+      renderFilters();
+      renderGrid();
+    });
+  }
+
+  // Modal close buttons
+  els.modal.querySelectorAll("[data-close]").forEach((el) =>
+    el.addEventListener("click", closeModal)
+  );
+  els.modalReload.addEventListener("click", () => {
+    const src = els.modalFrame.getAttribute("src");
+    els.modalFrame.setAttribute("src", "about:blank");
+    requestAnimationFrame(() => els.modalFrame.setAttribute("src", src));
+  });
+  els.modalFs.addEventListener("click", () => {
+    const target = els.modal.querySelector(".modal__panel");
+    if (!document.fullscreenElement) target.requestFullscreen?.();
+    else document.exitFullscreen?.();
+  });
+
+  // Keyboard
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !els.modal.hidden) {
+      closeModal();
+      return;
+    }
+    if (e.target.matches("input, textarea")) return;
+    if (e.key === "/") { e.preventDefault(); els.search.focus(); }
+    else if (e.key.toLowerCase() === "r" && els.modal.hidden) playRandom();
+  });
+
+  // Hash changes
+  window.addEventListener("hashchange", hydrateFromHash);
+}
+
+// ---------- Stats ----------
+function renderStats() {
+  const counts = {};
+  for (const g of state.games) counts[g.category] = (counts[g.category] || 0) + 1;
+  const top = state.categories
+    .map((c) => ({ c, n: counts[c.id] || 0 }))
+    .sort((a, b) => b.n - a.n)
+    .slice(0, 4);
+  els.stats.innerHTML = `
+    <span class="stat"><span class="stat__num">${state.games.length}</span> ${t("stats.games")}</span>
+    ${top.map(({ c, n }) => `<span class="stat"><span class="stat__num">${n}</span> ${c.emoji} ${c.label}</span>`).join("")}
+  `;
+}
+
+// ---------- Filters ----------
+function renderFilters() {
+  const counts = {};
+  for (const g of state.games) counts[g.category] = (counts[g.category] || 0) + 1;
+  const all = `<button class="chip" type="button" data-cat="all" aria-pressed="${state.category === "all"}">
+    ${t("filters.all")} <span class="chip__count">${state.games.length}</span>
+  </button>`;
+  const cats = state.categories
+    .map((c) => `<button class="chip" type="button" data-cat="${c.id}" aria-pressed="${state.category === c.id}">
+      <span aria-hidden="true">${c.emoji}</span> ${c.label}
+      <span class="chip__count">${counts[c.id] || 0}</span>
+    </button>`)
+    .join("");
+  els.filters.innerHTML = all + cats;
+  els.filters.querySelectorAll(".chip").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      state.category = btn.dataset.cat;
+      renderFilters();
+      renderGrid();
+    })
+  );
+}
+
+// ---------- Grid ----------
+function renderGrid() {
+  const filtered = state.games.filter((g) => {
+    if (state.category !== "all" && g.category !== state.category) return false;
+    if (!state.q) return true;
+    const hay = `${g.name} ${g.category} ${(g.tags || []).join(" ")} ${g.description}`.toLowerCase();
+    return hay.includes(state.q);
+  });
+
+  if (!filtered.length) {
+    els.grid.innerHTML = "";
+    els.empty.hidden = false;
+    return;
+  }
+  els.empty.hidden = true;
+
+  els.grid.innerHTML = filtered.map(renderCard).join("");
+  els.grid.querySelectorAll(".card").forEach((card) =>
+    card.addEventListener("click", () => openGame(card.dataset.slug))
+  );
+}
+
+function renderCard(g) {
+  const emoji = GAME_EMOJI[g.slug] || CATEGORY_EMOJI_FALLBACK[g.category] || "🎮";
+  const grad = CATEGORY_GRAD[g.category] || ["#444", "#222"];
+  const cat = state.categories.find((c) => c.id === g.category);
+  const techLabel = g.tech === "phaser" ? t("card.tech.phaser") : g.tech === "three" ? t("card.tech.three") : t("card.tech.html");
+  return `
+    <button class="card" data-slug="${g.slug}" data-category="${g.category}"
+      style="--card-c1:${grad[0]};--card-c2:${grad[1]}" aria-label="${escapeAttr(t("card.aria.play", { name: g.name }))}">
+      <div class="card__art">
+        <span class="card__emoji" aria-hidden="true">${emoji}</span>
+        <span class="card__play" aria-hidden="true">▶</span>
+      </div>
+      <div class="card__body">
+        <h3 class="card__title">${escapeHtml(g.name)}</h3>
+        <p class="card__desc">${escapeHtml(g.description || "")}</p>
+        <div class="card__meta">
+          <span class="card__chip">${cat?.emoji || ""} ${cat?.label || g.category}</span>
+          <span class="card__tech">${techLabel}</span>
+        </div>
+      </div>
+    </button>
+  `;
+}
+
+// ---------- Modal player ----------
+function openGame(slug) {
+  const g = state.games.find((x) => x.slug === slug);
+  if (!g) return;
+  const cat = state.categories.find((c) => c.id === g.category);
+  els.modalTitle.textContent = g.name;
+  els.modalChip.textContent = `${cat?.emoji || ""} ${cat?.label || g.category}`;
+  els.modalChip.style.background = CATEGORY_GRAD[g.category]?.[0] || "var(--accent)";
+  els.modalFrame.setAttribute("src", g.path);
+  els.modalOpen.setAttribute("href", g.path);
+  els.modal.hidden = false;
+  document.body.style.overflow = "hidden";
+  if (location.hash !== `#play=${slug}`) {
+    history.replaceState(null, "", `#play=${slug}`);
+  }
+}
+
+function closeModal() {
+  els.modal.hidden = true;
+  els.modalFrame.setAttribute("src", "about:blank");
+  document.body.style.overflow = "";
+  if (location.hash.startsWith("#play=")) {
+    history.replaceState(null, "", location.pathname + location.search);
+  }
+  if (document.fullscreenElement) document.exitFullscreen?.();
+}
+
+function hydrateFromHash() {
+  const m = location.hash.match(/^#play=([\w-]+)/);
+  if (m) openGame(m[1]);
+  else if (!els.modal.hidden) closeModal();
+}
+
+function playRandom() {
+  if (!state.games.length) return;
+  const pool = state.category === "all"
+    ? state.games
+    : state.games.filter((g) => g.category === state.category);
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  openGame(pick.slug);
+}
+
+// ---------- Star count (cached 1h) ----------
+async function fetchStarCount() {
+  const cached = readCache("gh_stars", 60 * 60 * 1000);
+  if (cached != null) return showStars(cached);
+  try {
+    const res = await fetch(`https://api.github.com/repos/${GH_REPO}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (typeof data.stargazers_count === "number") {
+      writeCache("gh_stars", data.stargazers_count);
+      showStars(data.stargazers_count);
+    }
+  } catch {}
+}
+function showStars(n) {
+  els.starCount.hidden = false;
+  els.starCount.querySelector("em").textContent = formatNum(n);
+}
+function readCache(key, maxAgeMs) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const { v, t } = JSON.parse(raw);
+    if (Date.now() - t > maxAgeMs) return null;
+    return v;
+  } catch { return null; }
+}
+function writeCache(key, v) {
+  try { localStorage.setItem(key, JSON.stringify({ v, t: Date.now() })); } catch {}
+}
+function formatNum(n) {
+  return n >= 1000 ? (n / 1000).toFixed(1).replace(/\.0$/, "") + "k" : String(n);
+}
+
+// ---------- Helpers ----------
+function escapeHtml(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+}
+function escapeAttr(s) { return escapeHtml(s); }
+
+function loadLanguage() {
+  const saved = localStorage.getItem(LOCALE_STORAGE_KEY);
+  if (saved && I18N[saved]) return saved;
+  return DEFAULT_LOCALE;
+}
+
+function setLanguage(locale) {
+  state.locale = I18N[locale] ? locale : DEFAULT_LOCALE;
+  localStorage.setItem(LOCALE_STORAGE_KEY, state.locale);
+  document.documentElement.lang = state.locale;
+}
+
+function t(key, vars = {}) {
+  const dict = I18N[state.locale] || I18N[DEFAULT_LOCALE];
+  let text = dict[key] ?? key;
+  for (const [name, value] of Object.entries(vars)) {
+    text = text.replaceAll(`{${name}}`, String(value));
+  }
+  return text;
+}
+
+function applyI18n(root = document) {
+  root.querySelectorAll("[data-i18n]").forEach((el) => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  root.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+    el.setAttribute("placeholder", t(el.dataset.i18nPlaceholder));
+  });
+  root.querySelectorAll("[data-i18n-aria-label]").forEach((el) => {
+    el.setAttribute("aria-label", t(el.dataset.i18nAriaLabel));
+  });
+  root.querySelectorAll("[data-i18n-title]").forEach((el) => {
+    el.setAttribute("title", t(el.dataset.i18nTitle));
+  });
+}
