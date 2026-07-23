@@ -6,7 +6,7 @@
     <title>星星の病毒论坛 · 完整版</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* ===== 全局重置 & 变量 ===== */
+        /* ===== 完整样式（与之前相同，仅新增调试面板样式） ===== */
         :root {
             --primary: #2c3e6b;
             --primary-dark: #1f2f50;
@@ -228,12 +228,12 @@
         }
         .empty-state .icon { font-size: 44px; margin-bottom: 12px; opacity: 0.6; }
 
-        /* ===== Toast 通知（z-index 最高） ===== */
+        /* Toast */
         .toast-container {
             position: fixed;
             top: 20px;
             right: 20px;
-            z-index: 10002;
+            z-index: 9999;
             display: flex;
             flex-direction: column;
             gap: 10px;
@@ -273,7 +273,7 @@
         }
         .toast .toast-close:hover { color: var(--text); }
 
-        /* ===== 通用模态框（z-index 中等） ===== */
+        /* 自定义模态框 */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -285,7 +285,7 @@
             display: none;
             align-items: center;
             justify-content: center;
-            z-index: 10001;
+            z-index: 999;
             padding: 20px;
             animation: fadeInOverlay 0.25s ease;
         }
@@ -341,101 +341,7 @@
         }
         .modal-box .modal-actions .btn { min-width: 80px; text-align: center; }
 
-        /* ===== 发帖全屏模态框（z-index 最低） ===== */
-        #postModal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #fff;
-            z-index: 10000;
-            display: none;
-            flex-direction: column;
-            padding: 40px 50px;
-            overflow-y: auto;
-            animation: fadeInPost 0.3s ease;
-        }
-        #postModal.active { display: flex; }
-        @keyframes fadeInPost {
-            from { opacity:0; transform:scale(0.98); }
-            to { opacity:1; transform:scale(1); }
-        }
-        #postModal .post-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-            border-bottom: 2px solid var(--border);
-            padding-bottom: 16px;
-        }
-        #postModal .post-header h2 {
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--text);
-        }
-        #postModal .post-header .close-btn {
-            background: none;
-            border: none;
-            font-size: 30px;
-            cursor: pointer;
-            color: var(--text-muted);
-            transition: 0.2s;
-        }
-        #postModal .post-header .close-btn:hover {
-            color: var(--text);
-            transform: rotate(90deg);
-        }
-        #postModal .post-body {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        #postModal .post-body input,
-        #postModal .post-body textarea {
-            width: 100%;
-            padding: 16px 20px;
-            border-radius: 16px;
-            border: 1.5px solid #dce2ec;
-            font-size: 16px;
-            font-family: inherit;
-            background: #fafcff;
-            transition: 0.2s;
-        }
-        #postModal .post-body input:focus,
-        #postModal .post-body textarea:focus {
-            outline: none;
-            border-color: var(--primary);
-            background: #fff;
-            box-shadow: 0 0 0 4px rgba(44,62,107,0.06);
-        }
-        #postModal .post-body input {
-            font-size: 20px;
-            font-weight: 600;
-            height: 56px;
-        }
-        #postModal .post-body textarea {
-            flex: 1;
-            min-height: 300px;
-            resize: vertical;
-            font-size: 16px;
-            line-height: 1.8;
-        }
-        #postModal .post-footer {
-            display: flex;
-            justify-content: flex-end;
-            gap: 16px;
-            margin-top: 24px;
-            border-top: 1px solid var(--border);
-            padding-top: 20px;
-        }
-        #postModal .post-footer .btn {
-            padding: 12px 36px;
-            font-size: 16px;
-        }
-
-        /* ===== 病毒卡片 ===== */
+        /* 病毒卡片 */
         .virus-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -627,7 +533,7 @@
             transform: translateY(-1px);
         }
 
-        /* ===== 自由论坛 ===== */
+        /* 自由论坛 */
         .forum-post-item {
             background: #fff;
             border: 1px solid var(--border);
@@ -754,7 +660,7 @@
             gap: 10px;
         }
 
-        /* ===== 私信模态框内部 ===== */
+        /* 私信模态框内部 */
         .msg-container {
             display: flex;
             flex:1;
@@ -994,6 +900,7 @@
             flex-wrap: wrap;
         }
 
+        /* 其他 */
         .privacy-banner {
             background: var(--danger);
             color: #fff;
@@ -1017,10 +924,8 @@
             flex-wrap: wrap;
         }
 
+        /* 响应式 */
         @media (max-width: 700px) {
-            #postModal { padding: 20px; }
-            #postModal .post-body input { font-size: 18px; height: 48px; }
-            #postModal .post-body textarea { min-height: 200px; }
             .container { padding: 18px 16px 30px; border-radius: 18px; }
             .header { flex-direction: column; align-items: stretch; gap: 14px; }
             .header-left h1 { font-size: 22px; }
@@ -1051,7 +956,7 @@
     <!-- Toast 容器 -->
     <div class="toast-container" id="toastContainer"></div>
 
-    <!-- 通用模态框 -->
+    <!-- 自定义模态框 -->
     <div class="modal-overlay" id="customModal">
         <div class="modal-box">
             <h2 id="modalTitle">标题</h2>
@@ -1061,22 +966,6 @@
                 <button class="btn btn-outline" id="modalCancelBtn">取消</button>
                 <button class="btn btn-primary" id="modalConfirmBtn">确认</button>
             </div>
-        </div>
-    </div>
-
-    <!-- 发帖全屏模态框 -->
-    <div id="postModal">
-        <div class="post-header">
-            <h2>📝 发布新帖</h2>
-            <button class="close-btn" id="closePostBtn">&times;</button>
-        </div>
-        <div class="post-body">
-            <input type="text" id="postTitleInput" placeholder="请输入标题..." maxlength="100" />
-            <textarea id="postContentInput" placeholder="请输入内容（支持换行）..."></textarea>
-        </div>
-        <div class="post-footer">
-            <button class="btn btn-outline" id="cancelPostBtn">取消</button>
-            <button class="btn btn-primary" id="submitPostBtn">📤 发布</button>
         </div>
     </div>
 
@@ -1103,6 +992,7 @@
             </div>
         </header>
 
+        <!-- 导航标签（新增调试） -->
         <div class="nav-tabs">
             <button class="active" data-tab="viruses">🦠 病毒样本</button>
             <button data-tab="forum">💬 自由论坛</button>
@@ -1157,7 +1047,7 @@
         </div>
     </div>
 
-    <!-- 私信模态框（使用通用 modal-overlay） -->
+    <!-- 私信模态框 -->
     <div class="modal-overlay" id="messageModal">
         <div class="modal-box" style="max-width:900px;padding:20px;">
             <h2 style="margin-bottom:12px;">
@@ -1197,7 +1087,7 @@
 
     <script>
     // ================================================================
-    //  图形化工具
+    //  图形化工具（完整，与之前相同）
     // ================================================================
     function showToast(message, type = 'info', duration = 3000) {
         const container = document.getElementById('toastContainer');
@@ -1364,14 +1254,6 @@
     const testWriteBtn = $('#testWriteBtn');
     const clearDebugBtn = $('#clearDebugBtn');
 
-    // 发帖模态框元素
-    const postModal = $('#postModal');
-    const closePostBtn = $('#closePostBtn');
-    const cancelPostBtn = $('#cancelPostBtn');
-    const submitPostBtn = $('#submitPostBtn');
-    const postTitleInput = $('#postTitleInput');
-    const postContentInput = $('#postContentInput');
-
     let currentUser = null;
     let allViruses = [];
     const commentSubscriptions = {};
@@ -1516,7 +1398,7 @@
     }
 
     // ================================================================
-    //  私信功能
+    //  私信功能（完整，与之前相同）
     // ================================================================
     async function getContacts() {
         if (!currentUser) return [];
@@ -1815,7 +1697,7 @@
     }
 
     // ================================================================
-    //  自由论坛
+    //  自由论坛（含删除帖子功能）
     // ================================================================
     async function renderForumList() {
         const { data: posts, error } = await supabaseClient
@@ -1991,29 +1873,13 @@
         });
     }
 
-    // ================================================================
-    //  发帖功能（全屏模态框）
-    // ================================================================
-    function showNewPostModal() {
-        postTitleInput.value = '';
-        postContentInput.value = '';
-        postModal.classList.add('active');
-        setTimeout(() => postTitleInput.focus(), 100);
-    }
-
-    function closePostModal() {
-        postModal.classList.remove('active');
-    }
-
-    async function submitNewPost() {
-        const title = postTitleInput.value.trim();
-        const content = postContentInput.value.trim();
-        if (!title || !content) {
+    async function showNewPostModal() {
+        const title = await showPrompt('请输入帖子标题', '📝 发新帖', '', '标题');
+        if (title === null) return;
+        const content = await showPrompt('请输入帖子内容（可多行）', '📝 发新帖', '', '内容');
+        if (content === null) return;
+        if (!title.trim() || !content.trim()) {
             showToast('标题和内容不能为空', 'warning');
-            return;
-        }
-        if (!currentUser) {
-            showToast('请先设置昵称', 'warning');
             return;
         }
         try {
@@ -2022,12 +1888,11 @@
                 .insert({
                     user_id: currentUser.id,
                     user_name: currentUser.name,
-                    title: title,
-                    content: content
+                    title: title.trim(),
+                    content: content.trim()
                 });
             if (error) throw error;
             showToast('✅ 发帖成功！', 'success');
-            closePostModal();
             renderForumList();
         } catch (err) {
             console.error('发帖失败:', err);
@@ -2035,17 +1900,8 @@
         }
     }
 
-    closePostBtn.addEventListener('click', closePostModal);
-    cancelPostBtn.addEventListener('click', closePostModal);
-    submitPostBtn.addEventListener('click', submitNewPost);
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && postModal.classList.contains('active')) {
-            closePostModal();
-        }
-    });
-
     // ================================================================
-    //  病毒相关
+    //  病毒相关（评论系统）
     // ================================================================
     async function loadVirusesFromGitHub() {
         try {
@@ -2283,6 +2139,7 @@
         latencyResult.className = 'debug-result';
         try {
             const start = performance.now();
+            // 查询 users 表，限制1条
             const { data, error } = await supabaseClient
                 .from('users')
                 .select('id')
@@ -2304,12 +2161,14 @@
         writeResult.className = 'debug-result';
         try {
             const start = performance.now();
+            // 插入一条记录
             const { data: insertData, error: insertError } = await supabaseClient
                 .from('debug_tests')
                 .insert({ user_id: currentUser ? currentUser.id : 'anonymous' })
                 .select('id');
             if (insertError) throw insertError;
             const insertedId = insertData[0].id;
+            // 删除记录
             const { error: deleteError } = await supabaseClient
                 .from('debug_tests')
                 .delete()
@@ -2328,10 +2187,11 @@
 
     async function clearDebugData() {
         try {
+            // 删除 debug_tests 表中所有记录（因为无外键，可以直接删除）
             const { error } = await supabaseClient
                 .from('debug_tests')
                 .delete()
-                .neq('id', '00000000-0000-0000-0000-000000000000');
+                .neq('id', '00000000-0000-0000-0000-000000000000'); // 删除所有
             if (error) throw error;
             showToast('🧹 调试数据已清理', 'success');
         } catch (err) {
@@ -2386,6 +2246,7 @@
                 }
             } else if (tab === 'debug') {
                 document.getElementById('tabDebug').classList.add('active');
+                // 自动测一次延迟
                 testLatency();
             }
         });
@@ -2451,7 +2312,7 @@
                     </ul>
                     <p style="color:#8a9bb5;font-size:14px;">确保已执行所有建表 SQL（posts, replies, daily_matches, debug_tests）。</p>
                     <hr style="border-color:#eee;margin:24px 0;" />
-                    <p style="font-size:13px;color:#b0c0d8;">星星の病毒论坛 · 完整版（全屏发帖）</p>
+                    <p style="font-size:13px;color:#b0c0d8;">星星の病毒论坛 · 完整版（含调试）</p>
                 </div>
             `;
             return;
@@ -2534,7 +2395,7 @@
         }
     });
 
-    console.log('⭐ 星星の病毒论坛 (完整版含全屏发帖) 已启动！');
+    console.log('⭐ 星星の病毒论坛 (完整版含调试) 已启动！');
     </script>
 </body>
 </html>
