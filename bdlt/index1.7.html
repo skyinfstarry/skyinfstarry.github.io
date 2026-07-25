@@ -6,9 +6,7 @@
     <title>星星の病毒论坛 · 完整版</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* ===== 完整样式（与上一版完全一致） ===== */
-        /* 篇幅原因，此处省略完整样式，但实际代码中会完整包含 */
-        /* 用户可直接复制下方完整代码 */
+        /* ===== 全局重置 & 变量 ===== */
         :root {
             --primary: #2c3e6b;
             --primary-dark: #1f2f50;
@@ -85,7 +83,6 @@
             flex-direction: column;
             align-items: center;
             min-width: 140px;
-            max-width: 280px;
         }
         .user-badge .avatar {
             display: inline-flex;
@@ -109,8 +106,6 @@
             margin-top: 3px;
             text-align: center;
             width: 100%;
-            word-break: break-all;
-            line-height: 1.4;
         }
         .btn {
             display: inline-block;
@@ -164,7 +159,6 @@
             transform: translateY(-1px);
         }
         .btn-message {
-            position: relative;
             background: transparent;
             border: 1.5px solid #d0d7e2;
             border-radius: 40px;
@@ -178,27 +172,7 @@
             background: #f0f4fe;
             border-color: #b0c0d8;
         }
-        .badge-dot {
-            position: absolute;
-            top: -4px;
-            right: -4px;
-            background: var(--danger);
-            color: #fff;
-            border-radius: 50%;
-            padding: 2px 6px;
-            font-size: 11px;
-            font-weight: 700;
-            min-width: 18px;
-            height: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            line-height: 1;
-            border: 2px solid #fff;
-            pointer-events: none;
-        }
-        .badge-dot.hidden { display: none; }
-
+        /* 导航 */
         .nav-tabs {
             display: flex;
             gap: 8px;
@@ -226,6 +200,7 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
 
+        /* 通用 */
         .loading-mask {
             text-align: center;
             padding: 60px 20px;
@@ -298,7 +273,7 @@
         }
         .toast .toast-close:hover { color: var(--text); }
 
-        /* 通用模态框（含自定义 UUID 显示） */
+        /* 通用模态框 */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -310,13 +285,12 @@
             display: none;
             align-items: center;
             justify-content: center;
+            z-index: 10001;
             padding: 20px;
             animation: fadeInOverlay 0.25s ease;
-            z-index: 10003; /* 最高层级 */
         }
         .modal-overlay.active { display: flex; }
         @keyframes fadeInOverlay { from { opacity:0; } to { opacity:1; } }
-
         .modal-box {
             background: #fff;
             border-radius: 28px;
@@ -367,29 +341,15 @@
         }
         .modal-box .modal-actions .btn { min-width: 80px; text-align: center; }
 
-        /* 用于显示 UUID 的模态框——展示完整 UUID 并提示复制 */
-        .uuid-display-box {
-            background: #f0f4fe;
-            border-radius: 12px;
-            padding: 16px;
-            font-family: monospace;
-            word-break: break-all;
-            font-size: 14px;
-            border: 1px solid #d4e0ff;
-            margin: 16px 0;
-            user-select: all;
-            cursor: text;
-        }
-
         /* 发帖全屏模态框 */
         #postModal {
-            z-index: 10000;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             background: #fff;
+            z-index: 10000;
             display: none;
             flex-direction: column;
             padding: 40px 50px;
@@ -474,9 +434,6 @@
             padding: 12px 36px;
             font-size: 16px;
         }
-
-        /* 私信模态框 */
-        #messageModal { z-index: 10001; }
 
         /* 病毒卡片 */
         .virus-grid {
@@ -567,7 +524,11 @@
             background: #f0f4fe;
             border-color: #b0c0d8;
         }
-        /* 注意：已移除 .comment-count 样式，因为不再显示数字 */
+        .virus-actions .comment-count {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-left: 4px;
+        }
         .comment-section {
             margin-top: 18px;
             border-top: 1.5px solid var(--border);
@@ -666,89 +627,32 @@
             transform: translateY(-1px);
         }
 
-        /* 自由论坛卡片 */
-        .post-card {
+        /* 自由论坛 */
+        .forum-post-item {
             background: #fff;
             border: 1px solid var(--border);
-            border-radius: var(--radius);
+            border-radius: 16px;
             padding: 16px 20px;
-            margin-bottom: 14px;
+            margin-bottom: 12px;
             transition: all var(--transition);
             cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
         }
-        .post-card:hover {
+        .forum-post-item:hover {
             border-color: #d0dbe8;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            transform: translateY(-1px);
         }
-        .post-card .post-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .post-card .post-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: #d4e0ff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 16px;
-            color: #1a3a7a;
-            flex-shrink: 0;
-        }
-        .post-card .post-user-info {
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-            min-width: 0;
-        }
-        .post-card .post-username {
-            font-weight: 600;
-            font-size: 15px;
-            color: var(--text);
-        }
-        .post-card .post-time {
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-        .post-card .post-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #1a2a4a;
-            margin: 4px 0 2px;
-            word-break: break-word;
-        }
-        .post-card .post-stats {
-            display: flex;
-            gap: 20px;
+        .forum-post-item .post-title { font-size: 18px; font-weight: 600; color: #1a2a4a; }
+        .forum-post-item .post-meta {
             font-size: 13px;
             color: var(--text-muted);
-            margin-top: 4px;
-        }
-        .post-card .post-stats span {
+            margin-top: 6px;
             display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .post-card .post-stats .stat-icon {
-            font-size: 16px;
-        }
-
-        .forum-toolbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
+            gap: 16px;
             flex-wrap: wrap;
-            gap: 10px;
         }
-
+        .forum-post-item .post-meta .post-author { font-weight: 500; color: var(--primary); }
+        .forum-post-item .post-meta .post-reply-count { color: var(--success); }
         .forum-detail {
             background: #fafcff;
             border-radius: 16px;
@@ -831,23 +735,26 @@
             transform: translateY(-1px);
         }
         .forum-back-btn {
-            background: transparent;
-            border: 1.5px solid #d0d7e2;
-            border-radius: 40px;
-            padding: 6px 20px;
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--text);
+            background: none;
+            border: none;
+            color: var(--primary);
+            font-weight: 600;
             cursor: pointer;
-            transition: all var(--transition);
             margin-bottom: 12px;
+            padding: 4px 0;
+            font-size: 15px;
         }
-        .forum-back-btn:hover {
-            background: #f0f4fe;
-            border-color: #b0c0d8;
+        .forum-back-btn:hover { text-decoration: underline; }
+        .forum-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
-        /* 私信联系人列表 */
+        /* 私信模态框内部 */
         .msg-container {
             display: flex;
             flex:1;
@@ -934,14 +841,9 @@
             cursor: pointer;
             transition: 0.15s;
             border-bottom: 1px solid #f0f2f5;
-            position: relative;
         }
-        .msg-left .contact-item:hover {
-            background: #eef3fa;
-        }
-        .msg-left .contact-item.active {
-            background: #d4e0ff;
-        }
+        .msg-left .contact-item:hover { background: #eef3fa; }
+        .msg-left .contact-item.active { background: #d4e0ff; }
         .msg-left .contact-item .contact-avatar {
             width: 36px;
             height: 36px;
@@ -955,31 +857,7 @@
             color: #1a3a7a;
             flex-shrink: 0;
         }
-        .msg-left .contact-item .contact-name {
-            font-size: 14px;
-            font-weight: 500;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            flex: 1;
-        }
-        .msg-left .contact-item .contact-delete {
-            background: none;
-            border: none;
-            color: #c0ccdd;
-            cursor: pointer;
-            font-size: 16px;
-            padding: 0 4px;
-            transition: 0.2s;
-            opacity: 0;
-            flex-shrink: 0;
-        }
-        .msg-left .contact-item:hover .contact-delete {
-            opacity: 1;
-        }
-        .msg-left .contact-item .contact-delete:hover {
-            color: var(--danger);
-        }
+        .msg-left .contact-item .contact-name { font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         .msg-right {
             flex:1;
             display: flex;
@@ -1116,7 +994,7 @@
             flex-wrap: wrap;
         }
 
-        /* 百宝箱 */
+        /* ===== 百宝箱样式 ===== */
         .toolbox-tabs {
             display: flex;
             gap: 12px;
@@ -1221,8 +1099,7 @@
             .user-badge { font-size: 13px; padding: 4px 12px; }
             .btn { font-size: 13px; padding: 6px 14px; }
             .virus-card { padding: 18px 16px 14px; }
-            .post-card .post-title { font-size: 16px; }
-            .post-card .post-avatar { width: 32px; height: 32px; font-size: 14px; }
+            .forum-post-item .post-title { font-size: 16px; }
         }
         .text-muted { color: var(--text-muted); }
     </style>
@@ -1231,7 +1108,7 @@
     <!-- Toast 容器 -->
     <div class="toast-container" id="toastContainer"></div>
 
-    <!-- 通用模态框（确认/提示/显示 UUID） -->
+    <!-- 通用模态框 -->
     <div class="modal-overlay" id="customModal">
         <div class="modal-box">
             <h2 id="modalTitle">标题</h2>
@@ -1270,23 +1147,20 @@
             </div>
             <div class="header-right">
                 <div class="user-badge" id="userBadge">
-                    <div style="display:flex;flex-direction:column;align-items:center;width:100%;">
+                    <div style="display:flex;flex-direction:column;align-items:center;">
                         <div style="display:flex;align-items:center;gap:6px;">
                             <span class="avatar" id="userAvatar">👤</span>
                             <span id="userDisplayName">加载中...</span>
                         </div>
-                        <div class="uuid-display" id="uuidDisplay" title="点击复制完整UUID">UUID: 加载中...</div>
+                        <div class="uuid-display" id="uuidDisplay" title="点击复制UUID">UUID: 加载中...</div>
                     </div>
                 </div>
-                <button class="btn-message" id="messageBtn" title="私信">
-                    📩
-                    <span class="badge-dot hidden" id="unreadBadge">0</span>
-                </button>
+                <button class="btn-message" id="messageBtn" title="私信">📩</button>
                 <button class="btn btn-outline btn-sm" id="refreshBtn" title="刷新数据">🔄</button>
             </div>
         </header>
 
-        <!-- 导航 -->
+        <!-- ===== 导航标签（新增百宝箱） ===== -->
         <div class="nav-tabs">
             <button class="active" data-tab="forum">💬 自由论坛</button>
             <button data-tab="viruses">🦠 病毒样本</button>
@@ -1294,14 +1168,24 @@
             <button data-tab="debug">🔧 调试</button>
         </div>
 
-        <!-- 内容 -->
-        <div class="tab-content active" id="tabForum"><div id="forumContent"></div></div>
+        <!-- ===== Tab 内容 ===== -->
+        <div class="tab-content active" id="tabForum">
+            <div id="forumContent"></div>
+        </div>
+
         <div class="tab-content" id="tabViruses">
             <main id="mainContent">
-                <div class="loading-mask" id="loadingMask"><div class="spinner"></div><div>加载病毒库中...</div></div>
-                <div id="virusGridContainer" style="display:none;"><div class="virus-grid" id="virusGrid"></div></div>
+                <div class="loading-mask" id="loadingMask">
+                    <div class="spinner"></div>
+                    <div>加载病毒库中...</div>
+                </div>
+                <div id="virusGridContainer" style="display:none;">
+                    <div class="virus-grid" id="virusGrid"></div>
+                </div>
             </main>
         </div>
+
+        <!-- ===== 百宝箱标签 ===== -->
         <div class="tab-content" id="tabToolbox">
             <div style="margin-bottom:8px;">
                 <span style="font-weight:600;font-size:18px;">🧰 百宝箱</span>
@@ -1311,8 +1195,12 @@
                 <button class="active" data-tool="comments">我的评论</button>
                 <button data-tool="posts">我的帖子</button>
             </div>
-            <div class="toolbox-content" id="toolboxContent"><div class="empty-state">请选择一个工具</div></div>
+            <div class="toolbox-content" id="toolboxContent">
+                <div class="empty-state">请选择一个工具</div>
+            </div>
         </div>
+
+        <!-- ===== 调试标签 ===== -->
         <div class="tab-content" id="tabDebug">
             <div class="debug-panel">
                 <h3 style="margin-bottom:16px;">🔧 系统调试</h3>
@@ -1342,7 +1230,7 @@
         </div>
     </div>
 
-    <!-- 私信模态框 -->
+    <!-- 私信模态框（使用通用 modal-overlay） -->
     <div class="modal-overlay" id="messageModal">
         <div class="modal-box" style="max-width:900px;padding:20px;">
             <h2 style="margin-bottom:12px;">
@@ -1359,14 +1247,18 @@
                         <button class="match-btn" id="matchBtn">🎲 随机匹配</button>
                         <div class="match-info" id="matchInfo">未匹配</div>
                     </div>
-                    <div class="contact-list" id="contactList"><div class="empty-state" style="padding:20px;">暂无联系人</div></div>
+                    <div class="contact-list" id="contactList">
+                        <div class="empty-state" style="padding:20px;">暂无联系人</div>
+                    </div>
                 </div>
                 <div class="msg-right" id="chatArea">
                     <div class="msg-header">
                         <span id="chatTargetName">选择联系人</span>
                         <span class="target-uuid" id="chatTargetUuid" title="点击复制UUID">UUID: —</span>
                     </div>
-                    <div class="msg-list" id="chatMessages"><div class="empty-state" style="padding:20px;">选择联系人开始聊天</div></div>
+                    <div class="msg-list" id="chatMessages">
+                        <div class="empty-state" style="padding:20px;">选择联系人开始聊天</div>
+                    </div>
                     <div class="msg-input-area" id="msgInputArea" style="display:none;">
                         <textarea id="msgInputText" placeholder="输入消息…" rows="1"></textarea>
                         <button class="send-btn" id="sendMsgBtn">发送</button>
@@ -1481,38 +1373,6 @@
         return null;
     }
 
-    // ===== 显示 UUID 复制失败模态框 =====
-    function showUuidCopyFail(uuid) {
-        const overlay = document.getElementById('customModal');
-        const title = document.getElementById('modalTitle');
-        const message = document.getElementById('modalMessage');
-        const inputContainer = document.getElementById('modalInputContainer');
-        const confirmBtn = document.getElementById('modalConfirmBtn');
-        const cancelBtn = document.getElementById('modalCancelBtn');
-
-        title.textContent = '⚠️ 复制失败';
-        message.innerHTML = '请手动复制以下 UUID：';
-        inputContainer.innerHTML = `
-            <div class="uuid-display-box" id="uuidDisplayBox">${uuid}</div>
-            <p style="font-size:13px;color:var(--text-muted);margin:-8px 0 12px 0;">点击上方区域可选中，右键复制</p>
-        `;
-        confirmBtn.textContent = '知道了';
-        cancelBtn.style.display = 'none';
-        overlay.classList.add('active');
-
-        const newConfirm = () => {
-            overlay.classList.remove('active');
-            confirmBtn.removeEventListener('click', newConfirm);
-        };
-        confirmBtn.addEventListener('click', newConfirm);
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                overlay.classList.remove('active');
-                confirmBtn.removeEventListener('click', newConfirm);
-            }
-        }, { once: true });
-    }
-
     // ================================================================
     //  Supabase 配置
     // ================================================================
@@ -1557,7 +1417,6 @@
     const refreshBtn = $('#refreshBtn');
     const githubInfo = $('#githubInfo');
     const messageBtn = $('#messageBtn');
-    const unreadBadge = $('#unreadBadge');
     const messageModal = $('#messageModal');
     const closeMsgModal = $('#closeMsgModal');
     const contactList = $('#contactList');
@@ -1578,6 +1437,7 @@
     const testWriteBtn = $('#testWriteBtn');
     const clearDebugBtn = $('#clearDebugBtn');
 
+    // 发帖模态框元素
     const postModal = $('#postModal');
     const closePostBtn = $('#closePostBtn');
     const cancelPostBtn = $('#cancelPostBtn');
@@ -1585,8 +1445,9 @@
     const postTitleInput = $('#postTitleInput');
     const postContentInput = $('#postContentInput');
 
+    // 百宝箱相关
     const toolboxContent = $('#toolboxContent');
-    let currentTool = 'comments';
+    let currentTool = 'comments'; // 'comments' or 'posts'
     let toolboxItems = [];
     let selectedIds = new Set();
 
@@ -1598,8 +1459,6 @@
     let tempContacts = [];
     let forumView = 'list';
     let currentPostId = null;
-    let unreadCount = 0;
-    let chatUuidTimer = null;
 
     // ================================================================
     //  工具函数
@@ -1643,74 +1502,6 @@
         bytes[8] = (bytes[8] & 0x3f) | 0x80;
         const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
         return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20,32)}`;
-    }
-
-    // ================================================================
-    //  未读消息管理
-    // ================================================================
-    async function fetchUnreadCount() {
-        if (!currentUser) return;
-        try {
-            const { count, error } = await supabaseClient
-                .from('messages')
-                .select('*', { count: 'exact', head: true })
-                .eq('to_user_id', currentUser.id)
-                .eq('read', false);
-            if (error) throw error;
-            unreadCount = count || 0;
-            updateBadge();
-        } catch (err) {
-            console.error('获取未读消息数失败:', err);
-        }
-    }
-
-    function updateBadge() {
-        if (unreadCount > 0) {
-            unreadBadge.textContent = unreadCount > 99 ? '99+' : unreadCount;
-            unreadBadge.classList.remove('hidden');
-        } else {
-            unreadBadge.classList.add('hidden');
-        }
-    }
-
-    // 订阅新消息
-    function subscribeToMessages() {
-        if (!currentUser) return;
-        const channel = supabaseClient
-            .channel('messages_unread')
-            .on('postgres_changes', {
-                event: 'INSERT',
-                schema: 'public',
-                table: 'messages',
-                filter: `to_user_id=eq.${currentUser.id}`
-            }, (payload) => {
-                unreadCount++;
-                updateBadge();
-                if (messageModal.classList.contains('active')) {
-                    showToast('📩 收到新消息', 'info');
-                    if (currentContactId) {
-                        loadChatMessages(currentContactId);
-                    }
-                }
-            })
-            .subscribe();
-        return channel;
-    }
-
-    async function markAllAsRead() {
-        if (!currentUser || unreadCount === 0) return;
-        try {
-            const { error } = await supabaseClient
-                .from('messages')
-                .update({ read: true })
-                .eq('to_user_id', currentUser.id)
-                .eq('read', false);
-            if (error) throw error;
-            unreadCount = 0;
-            updateBadge();
-        } catch (err) {
-            console.error('标记已读失败:', err);
-        }
     }
 
     // ================================================================
@@ -1794,8 +1585,8 @@
         if (currentUser && currentUser.name) {
             userDisplayName.textContent = currentUser.name;
             userAvatar.textContent = getAvatarLetter(currentUser.name);
-            uuidDisplay.textContent = `UUID: ${currentUser.id}`;
-            uuidDisplay.title = '点击复制完整UUID';
+            uuidDisplay.textContent = `UUID: ${currentUser.id.slice(0,8)}...${currentUser.id.slice(-4)}`;
+            uuidDisplay.title = `点击复制完整UUID: ${currentUser.id}`;
         } else {
             userDisplayName.textContent = '未命名';
             userAvatar.textContent = '👤';
@@ -1803,19 +1594,8 @@
         }
     }
 
-    // ===== 点击 UUID 复制（使用 Toast，失败则弹窗） =====
-    uuidDisplay.addEventListener('click', () => {
-        if (currentUser && currentUser.id) {
-            navigator.clipboard.writeText(currentUser.id).then(() => {
-                showToast('✅ UUID 已复制到剪贴板', 'success');
-            }).catch(() => {
-                showUuidCopyFail(currentUser.id);
-            });
-        }
-    });
-
     // ================================================================
-    //  私信功能（已集成未读标记 + 删除联系人 + 修复 UUID 复制定时器）
+    //  私信功能
     // ================================================================
     async function getContacts() {
         if (!currentUser) return [];
@@ -1834,9 +1614,7 @@
         });
         tempContacts.forEach(c => ids.add(c.auth_id));
 
-        const hidden = JSON.parse(localStorage.getItem('hiddenContacts') || '[]');
-
-        const idArray = Array.from(ids).filter(id => !hidden.includes(id));
+        const idArray = Array.from(ids);
         if (idArray.length === 0) return [];
         const { data: users, error: userError } = await supabaseClient
             .from('users')
@@ -1855,7 +1633,6 @@
         contacts.sort((a,b) => a.name.localeCompare(b.name));
         return contacts;
     }
-
     async function renderContactList() {
         const contacts = await getContacts();
         if (!contacts.length) {
@@ -1869,66 +1646,39 @@
                 <div class="contact-item" data-uuid="${c.auth_id}">
                     <div class="contact-avatar">${initial}</div>
                     <div class="contact-name">${escapeHtml(c.name)}</div>
-                    <button class="contact-delete" data-uuid="${c.auth_id}" title="删除联系人">✕</button>
                 </div>
             `;
         }
         contactList.innerHTML = html;
-
-        // 绑定点击事件（打开聊天）
-        contactList.querySelectorAll('.contact-item .contact-name, .contact-item .contact-avatar').forEach(el => {
-            const item = el.closest('.contact-item');
-            const uuid = item.dataset.uuid;
-            item.addEventListener('click', () => {
+        contactList.querySelectorAll('.contact-item').forEach(el => {
+            el.addEventListener('click', () => {
+                const uuid = el.dataset.uuid;
                 openChatWith(uuid);
             });
         });
-
-        // 绑定删除事件
-        contactList.querySelectorAll('.contact-delete').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                const uuid = btn.dataset.uuid;
-                const contact = contacts.find(c => c.auth_id === uuid);
-                if (!contact) return;
-                const confirmed = await showConfirm(`确定要从联系人列表中移除 ${escapeHtml(contact.name)} 吗？`, '删除联系人');
-                if (!confirmed) return;
-                tempContacts = tempContacts.filter(c => c.auth_id !== uuid);
-                let hidden = JSON.parse(localStorage.getItem('hiddenContacts') || '[]');
-                if (!hidden.includes(uuid)) hidden.push(uuid);
-                localStorage.setItem('hiddenContacts', JSON.stringify(hidden));
-                if (currentContactId === uuid) {
-                    currentContactId = null;
-                    chatTargetName.textContent = '选择联系人';
-                    chatTargetUuid.textContent = 'UUID: —';
-                    chatMessages.innerHTML = `<div class="empty-state" style="padding:20px;">选择联系人开始聊天</div>`;
-                    msgInputArea.style.display = 'none';
-                }
-                await renderContactList();
-                showToast('✅ 联系人已移除', 'success');
-            });
-        });
-
         if (currentContactId) {
-            const activeItem = contactList.querySelector(`.contact-item[data-uuid="${currentContactId}"]`);
-            if (activeItem) {
-                activeItem.classList.add('active');
+            const active = contactList.querySelector(`.contact-item[data-uuid="${currentContactId}"]`);
+            if (active) {
+                active.classList.add('active');
+                openChatWith(currentContactId);
+            } else {
+                currentContactId = null;
+                chatTargetName.textContent = '选择联系人';
+                chatTargetUuid.textContent = 'UUID: —';
+                chatMessages.innerHTML = `<div class="empty-state" style="padding:20px;">选择联系人开始聊天</div>`;
+                msgInputArea.style.display = 'none';
             }
+        } else {
+            const first = contactList.querySelector('.contact-item');
+            if (first) first.click();
         }
     }
-
     async function openChatWith(uuid) {
         if (!currentUser) return;
         currentContactId = uuid;
         contactList.querySelectorAll('.contact-item').forEach(el => el.classList.remove('active'));
         const activeItem = contactList.querySelector(`.contact-item[data-uuid="${uuid}"]`);
         if (activeItem) activeItem.classList.add('active');
-
-        // 清除之前的定时器，避免残留
-        if (chatUuidTimer) {
-            clearTimeout(chatUuidTimer);
-            chatUuidTimer = null;
-        }
 
         const { data: userData, error } = await supabaseClient
             .from('users')
@@ -1940,21 +1690,11 @@
         chatTargetName.textContent = displayName;
         chatTargetUuid.textContent = `UUID: ${uuid}`;
         chatTargetUuid.title = `点击复制完整UUID: ${uuid}`;
-        // 重新绑定点击事件，并确保定时器清除
         chatTargetUuid.onclick = () => {
-            if (chatUuidTimer) {
-                clearTimeout(chatUuidTimer);
-                chatUuidTimer = null;
-            }
             navigator.clipboard.writeText(uuid).then(() => {
                 chatTargetUuid.textContent = '✅ 已复制!';
-                chatUuidTimer = setTimeout(() => {
-                    chatTargetUuid.textContent = `UUID: ${uuid}`;
-                    chatUuidTimer = null;
-                }, 2000);
-            }).catch(() => {
-                showUuidCopyFail(uuid);
-            });
+                setTimeout(() => chatTargetUuid.textContent = `UUID: ${uuid}`, 2000);
+            }).catch(() => showToast('复制失败，请手动复制', 'error'));
         };
 
         await loadChatMessages(uuid);
@@ -1962,7 +1702,6 @@
         msgInputText.value = '';
         msgInputText.focus();
     }
-
     async function loadChatMessages(otherId) {
         if (!currentUser) return;
         const { data, error } = await supabaseClient
@@ -1992,7 +1731,6 @@
         chatMessages.innerHTML = html;
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
-
     async function sendMessage() {
         const content = msgInputText.value.trim();
         if (!content || !currentContactId) return;
@@ -2002,8 +1740,7 @@
                 .insert({
                     from_user_id: currentUser.id,
                     to_user_id: currentContactId,
-                    content: content,
-                    read: false
+                    content: content
                 });
             if (error) throw error;
             msgInputText.value = '';
@@ -2013,7 +1750,6 @@
             showToast('发送失败：' + err.message, 'error');
         }
     }
-
     async function addContact() {
         const input = addContactInput.value.trim();
         if (!input) return;
@@ -2021,10 +1757,6 @@
             showToast('请输入正确的UUID格式', 'error');
             return;
         }
-        let hidden = JSON.parse(localStorage.getItem('hiddenContacts') || '[]');
-        hidden = hidden.filter(id => id !== input);
-        localStorage.setItem('hiddenContacts', JSON.stringify(hidden));
-
         const contacts = await getContacts();
         if (contacts.some(c => c.auth_id === input)) {
             showToast('该联系人已存在', 'warning');
@@ -2046,18 +1778,12 @@
         addContactInput.value = '';
         showToast('✅ 联系人添加成功', 'success');
     }
-
-    // ===== 修复日期判断（使用本地时间） =====
-    function getTodayLocal() {
-        return new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
-    }
-
     async function handleMatch() {
         if (!currentUser) {
             showToast('请先设置昵称', 'warning');
             return;
         }
-        const today = getTodayLocal();
+        const today = new Date().toISOString().slice(0,10);
         const { data: matchData, error: matchError } = await supabaseClient
             .from('daily_matches')
             .select('matched_user_id')
@@ -2071,10 +1797,6 @@
         }
         if (matchData) {
             const matchedId = matchData.matched_user_id;
-            let hidden = JSON.parse(localStorage.getItem('hiddenContacts') || '[]');
-            hidden = hidden.filter(id => id !== matchedId);
-            localStorage.setItem('hiddenContacts', JSON.stringify(hidden));
-
             const { data: userData } = await supabaseClient
                 .from('users')
                 .select('name')
@@ -2117,19 +1839,14 @@
             showToast('匹配失败，请重试', 'error');
             return;
         }
-        let hidden = JSON.parse(localStorage.getItem('hiddenContacts') || '[]');
-        hidden = hidden.filter(id => id !== matched.auth_id);
-        localStorage.setItem('hiddenContacts', JSON.stringify(hidden));
-
         matchInfo.innerHTML = `<span class="match-name">${escapeHtml(matched.name)}</span> <span class="match-uuid">${matched.auth_id}</span>`;
         matchInfo.style.cursor = 'pointer';
         matchInfo.onclick = () => { openChatWith(matched.auth_id); };
         showToast(`🎉 今日匹配：${matched.name}，点击可发私信`, 'success');
     }
-
     async function loadMatchInfo() {
         if (!currentUser) return;
-        const today = getTodayLocal();
+        const today = new Date().toISOString().slice(0,10);
         const { data, error } = await supabaseClient
             .from('daily_matches')
             .select('matched_user_id')
@@ -2155,17 +1872,31 @@
             matchInfo.textContent = '未匹配，点击按钮匹配';
         }
     }
+    function subscribeMessages() {
+        if (messagesSubscription) {
+            supabaseClient.removeChannel(messagesSubscription);
+        }
+        const channel = supabaseClient
+            .channel('messages_channel')
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'messages',
+                filter: `or(to_user_id.eq.${currentUser.id},from_user_id.eq.${currentUser.id})`
+            }, () => {
+                if (currentContactId) {
+                    loadChatMessages(currentContactId);
+                }
+                renderContactList();
+            })
+            .subscribe();
+        messagesSubscription = channel;
+    }
 
     // ================================================================
-    //  自由论坛（含加载动画 + 新卡片样式）
+    //  自由论坛
     // ================================================================
     async function renderForumList() {
-        forumContent.innerHTML = `
-            <div class="loading-mask">
-                <div class="spinner"></div>
-                <div>加载论坛中...</div>
-            </div>
-        `;
         const { data: posts, error } = await supabaseClient
             .from('posts')
             .select('*, replies(count)')
@@ -2186,31 +1917,20 @@
         } else {
             for (const p of posts) {
                 const replyCount = p.replies ? p.replies[0]?.count || 0 : 0;
-                const likeCount = 0;
-                const initial = getAvatarLetter(p.user_name);
-                const colors = ['#e8d5f5', '#d5e8f5', '#f5e8d5', '#f5d5e8', '#d5f5e8', '#f5e8f0'];
-                const colorIndex = p.user_name ? p.user_name.length % colors.length : 0;
-                const bgColor = colors[colorIndex];
                 html += `
-                    <div class="post-card" data-post-id="${p.id}">
-                        <div class="post-header">
-                            <div class="post-avatar" style="background:${bgColor}">${initial}</div>
-                            <div class="post-user-info">
-                                <div class="post-username">${escapeHtml(p.user_name)}</div>
-                                <div class="post-time">${formatTime(p.created_at)}</div>
-                            </div>
-                        </div>
+                    <div class="forum-post-item" data-post-id="${p.id}">
                         <div class="post-title">${escapeHtml(p.title)}</div>
-                        <div class="post-stats">
-                            <span><span class="stat-icon">❤️</span> ${likeCount}</span>
-                            <span><span class="stat-icon">💬</span> ${replyCount}</span>
+                        <div class="post-meta">
+                            <span class="post-author">👤 ${escapeHtml(p.user_name)}</span>
+                            <span>🕒 ${formatTime(p.created_at)}</span>
+                            <span class="post-reply-count">💬 ${replyCount} 回复</span>
                         </div>
                     </div>
                 `;
             }
         }
         forumContent.innerHTML = html;
-        forumContent.querySelectorAll('.post-card').forEach(el => {
+        forumContent.querySelectorAll('.forum-post-item').forEach(el => {
             el.addEventListener('click', () => {
                 const postId = el.dataset.postId;
                 openPostDetail(postId);
@@ -2223,12 +1943,6 @@
     async function openPostDetail(postId) {
         currentPostId = postId;
         forumView = 'detail';
-        forumContent.innerHTML = `
-            <div class="loading-mask">
-                <div class="spinner"></div>
-                <div>加载帖子详情...</div>
-            </div>
-        `;
         const { data: post, error } = await supabaseClient
             .from('posts')
             .select('*')
@@ -2357,7 +2071,7 @@
     }
 
     // ================================================================
-    //  发帖功能
+    //  发帖功能（全屏模态框）
     // ================================================================
     function showNewPostModal() {
         postTitleInput.value = '';
@@ -2367,19 +2081,7 @@
     }
 
     function closePostModal() {
-        const title = postTitleInput.value.trim();
-        const content = postContentInput.value.trim();
-        if (title || content) {
-            showConfirm('确定要放弃当前编辑的内容吗？', '放弃发帖').then(result => {
-                if (result) {
-                    postModal.classList.remove('active');
-                    postTitleInput.value = '';
-                    postContentInput.value = '';
-                }
-            });
-        } else {
-            postModal.classList.remove('active');
-        }
+        postModal.classList.remove('active');
     }
 
     async function submitNewPost() {
@@ -2404,10 +2106,7 @@
                 });
             if (error) throw error;
             showToast('✅ 发帖成功！', 'success');
-            // 直接关闭，不触发确认
-            postModal.classList.remove('active');
-            postTitleInput.value = '';
-            postContentInput.value = '';
+            closePostModal();
             renderForumList();
         } catch (err) {
             console.error('发帖失败:', err);
@@ -2425,7 +2124,7 @@
     });
 
     // ================================================================
-    //  病毒相关（已移除评论数显示）
+    //  病毒相关
     // ================================================================
     async function loadVirusesFromGitHub() {
         try {
@@ -2482,7 +2181,7 @@
                     <div class="virus-actions">
                         <a href="${virus.download_url}" target="_blank" class="btn-download" rel="noopener">⬇ 下载</a>
                         <button class="btn-comment-toggle" data-virus-id="${virus.id}">
-                            💬 评论
+                            💬 评论 <span class="comment-count" id="count-${virus.id}">0</span>
                         </button>
                     </div>
                     <div class="comment-section" id="comments-${virus.id}">
@@ -2501,14 +2200,15 @@
         }
         virusGrid.innerHTML = html;
 
-        // 评论展开/收起（已移除计数更新）
         $$('.btn-comment-toggle').forEach(btn => {
             btn.addEventListener('click', () => {
                 const vid = btn.dataset.virusId;
                 const section = document.getElementById(`comments-${vid}`);
                 if (!section) return;
                 const isOpen = section.classList.toggle('open');
-                btn.textContent = isOpen ? '💬 收起' : '💬 评论';
+                btn.textContent = isOpen ? '💬 收起' : `💬 评论 `;
+                const countSpan = document.getElementById(`count-${vid}`);
+                if (countSpan) btn.appendChild(countSpan);
                 if (isOpen) {
                     loadCommentsForVirus(vid);
                 } else {
@@ -2519,8 +2219,6 @@
                 }
             });
         });
-
-        // 评论提交
         $$('.btn-submit-comment').forEach(btn => {
             btn.addEventListener('click', async () => {
                 const vid = btn.dataset.virusId;
@@ -2547,8 +2245,6 @@
                 }
             });
         });
-
-        // Ctrl+Enter 快捷键
         $$('.comment-input-area textarea').forEach(ta => {
             ta.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -2586,7 +2282,6 @@
         };
         refreshCommentList(virusId);
     }
-
     async function refreshCommentList(virusId) {
         const list = document.getElementById(`commentList-${virusId}`);
         if (!list) return;
@@ -2599,7 +2294,16 @@
             console.error('获取评论失败', error);
             return;
         }
-        // 不再更新评论数字，因为已移除显示
+        const countSpan = document.getElementById(`count-${virusId}`);
+        if (countSpan) {
+            countSpan.textContent = data.length;
+            const parentBtn = document.querySelector(`.btn-comment-toggle[data-virus-id="${virusId}"]`);
+            if (parentBtn) {
+                const isOpen = document.getElementById(`comments-${virusId}`)?.classList.contains('open');
+                parentBtn.innerHTML = isOpen ? `💬 收起 <span class="comment-count" id="count-${virusId}">${data.length}</span>` :
+                    `💬 评论 <span class="comment-count" id="count-${virusId}">${data.length}</span>`;
+            }
+        }
         if (!data.length) {
             list.innerHTML = `<div class="empty-state" style="padding:16px 0;font-size:14px;">
                     <span class="text-muted">暂无评论，快来抢沙发！</span>
@@ -2660,41 +2364,21 @@
         }
         toolboxContent.innerHTML = `<div class="loading-mask"><div class="spinner"></div><div>加载中...</div></div>`;
         try {
-            let items = [];
+            let data;
             if (type === 'comments') {
-                const [commentsRes, repliesRes] = await Promise.all([
-                    supabaseClient
-                        .from('comments')
-                        .select('*')
-                        .eq('user_id', currentUser.id)
-                        .order('created_at', { ascending: false }),
-                    supabaseClient
-                        .from('replies')
-                        .select('*')
-                        .eq('user_id', currentUser.id)
-                        .order('created_at', { ascending: false })
-                ]);
-                if (commentsRes.error) throw commentsRes.error;
-                if (repliesRes.error) throw repliesRes.error;
-
-                const comments = commentsRes.data.map(c => ({
+                const { data: comments, error } = await supabaseClient
+                    .from('comments')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .order('created_at', { ascending: false });
+                if (error) throw error;
+                data = comments.map(c => ({
                     id: c.id,
-                    table: 'comments',
+                    type: 'comment',
                     content: c.content,
-                    meta: `在病毒中评论 · ${formatTime(c.created_at)}`,
-                    raw: c,
-                    created_at: c.created_at
+                    meta: `在病毒 ${c.virus_id.slice(0,8)} 中评论 · ${formatTime(c.created_at)}`,
+                    raw: c
                 }));
-                const replies = repliesRes.data.map(r => ({
-                    id: r.id,
-                    table: 'replies',
-                    content: r.content,
-                    meta: `在帖子中回复 · ${formatTime(r.created_at)}`,
-                    raw: r,
-                    created_at: r.created_at
-                }));
-                items = [...comments, ...replies];
-                items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
             } else if (type === 'posts') {
                 const { data: posts, error } = await supabaseClient
                     .from('posts')
@@ -2702,16 +2386,15 @@
                     .eq('user_id', currentUser.id)
                     .order('created_at', { ascending: false });
                 if (error) throw error;
-                items = posts.map(p => ({
+                data = posts.map(p => ({
                     id: p.id,
-                    table: 'posts',
+                    type: 'post',
                     content: p.title + (p.content ? '\n' + p.content : ''),
                     meta: `发布于 ${formatTime(p.created_at)}`,
-                    raw: p,
-                    created_at: p.created_at
+                    raw: p
                 }));
             }
-            toolboxItems = items;
+            toolboxItems = data || [];
             selectedIds.clear();
             renderToolboxItems();
         } catch (err) {
@@ -2730,7 +2413,7 @@
             const checked = selectedIds.has(item.id) ? 'checked' : '';
             html += `
                 <div class="toolbox-item">
-                    <input type="checkbox" class="item-check" data-id="${item.id}" data-table="${item.table}" ${checked} />
+                    <input type="checkbox" class="item-check" data-id="${item.id}" ${checked} />
                     <div class="item-body">
                         <div class="item-content">${escapeHtml(item.content)}</div>
                         <div class="item-meta">${escapeHtml(item.meta)}</div>
@@ -2747,6 +2430,7 @@
         `;
         toolboxContent.innerHTML = html;
 
+        // 绑定事件
         document.querySelectorAll('.item-check').forEach(cb => {
             cb.addEventListener('change', (e) => {
                 const id = e.target.dataset.id;
@@ -2779,27 +2463,18 @@
             }
             const confirmed = await showConfirm(`确定要删除选中的 ${selectedIds.size} 条内容吗？此操作不可撤销。`, '批量删除');
             if (!confirmed) return;
-            const idsByTable = {};
-            for (const id of selectedIds) {
-                const item = toolboxItems.find(it => it.id === id);
-                if (item) {
-                    const table = item.table;
-                    if (!idsByTable[table]) idsByTable[table] = [];
-                    idsByTable[table].push(id);
-                }
-            }
-            let totalDeleted = 0;
+            const ids = Array.from(selectedIds);
+            const type = currentTool;
+            let table = type === 'comments' ? 'comments' : 'posts';
             try {
-                for (const [table, ids] of Object.entries(idsByTable)) {
-                    const { error } = await supabaseClient
-                        .from(table)
-                        .delete()
-                        .in('id', ids)
-                        .eq('user_id', currentUser.id);
-                    if (error) throw error;
-                    totalDeleted += ids.length;
-                }
-                showToast(`✅ 成功删除 ${totalDeleted} 条`, 'success');
+                const { error } = await supabaseClient
+                    .from(table)
+                    .delete()
+                    .in('id', ids)
+                    .eq('user_id', currentUser.id); // 确保只删除自己的
+                if (error) throw error;
+                showToast(`✅ 成功删除 ${ids.length} 条`, 'success');
+                // 重新加载
                 await loadToolboxItems(currentTool);
             } catch (err) {
                 console.error('批量删除失败:', err);
@@ -2926,6 +2601,7 @@
                 document.getElementById('tabViruses').classList.add('active');
             } else if (tab === 'toolbox') {
                 document.getElementById('tabToolbox').classList.add('active');
+                // 加载当前工具数据
                 loadToolboxItems(currentTool);
             } else if (tab === 'debug') {
                 document.getElementById('tabDebug').classList.add('active');
@@ -2945,21 +2621,19 @@
     });
 
     // ================================================================
-    //  私信面板入口（标记已读）
+    //  私信面板入口
     // ================================================================
     messageBtn.addEventListener('click', async () => {
         if (!currentUser) {
             showToast('请先设置昵称', 'warning');
             return;
         }
-        await markAllAsRead();
         messageModal.classList.add('active');
         currentContactId = null;
         await renderContactList();
         await loadMatchInfo();
         subscribeMessages();
     });
-
     closeMsgModal.addEventListener('click', () => {
         messageModal.classList.remove('active');
         if (messagesSubscription) {
@@ -2993,8 +2667,6 @@
     // ================================================================
     //  启动应用
     // ================================================================
-    let unreadChannel = null;
-
     async function initApp() {
         if (SUPABASE_ANON_KEY === '你的 anon public key' || GITHUB_OWNER === '你的GitHub用户名') {
             document.body.innerHTML = `
@@ -3056,26 +2728,18 @@
             await showNameSetup();
         }
 
-        // 获取未读消息数
-        await fetchUnreadCount();
-
-        // 订阅新消息
-        if (currentUser) {
-            unreadChannel = subscribeToMessages();
-        }
-
-        // 先渲染论坛，再加载病毒
+        // 加载病毒数据（但默认显示论坛）
         showLoading(true);
         try {
-            forumView = 'list';
-            await renderForumList();
             allViruses = await loadVirusesFromGitHub();
             renderViruses();
+            forumView = 'list';
+            renderForumList();
             showLoading(false);
         } catch (err) {
             showLoading(false);
             virusGrid.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${escapeHtml(err.message)}</p></div>`;
-            showToast('病毒加载失败：' + err.message, 'error');
+            showToast('加载病毒失败：' + err.message, 'error');
         }
     }
 
@@ -3084,7 +2748,17 @@
         showToast('启动失败：' + err.message, 'error');
     });
 
-    console.log('⭐ 星星の病毒论坛 (完整版) 已启动！');
+    // 复制 UUID
+    uuidDisplay.addEventListener('click', () => {
+        if (currentUser && currentUser.id) {
+            navigator.clipboard.writeText(currentUser.id).then(() => {
+                uuidDisplay.textContent = '✅ 已复制!';
+                setTimeout(() => updateUserUI(), 2000);
+            }).catch(() => showToast('复制失败，请手动复制', 'error'));
+        }
+    });
+
+    console.log('⭐ 星星の病毒论坛 (完整版含百宝箱) 已启动！');
     </script>
 </body>
 </html>
