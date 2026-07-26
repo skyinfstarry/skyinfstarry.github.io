@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>星星の病毒论坛 · 私信版</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* ===== 基础样式（完整保留，同之前） ===== */
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Segoe UI','PingFang SC',Roboto,sans-serif; background:#f8f9fc; color:#1e2a3a; padding:20px; min-height:100vh; }
+        .container { max-width:1100px; margin:0 auto; background:#fff; border-radius:28px; box-shadow:0 20px 60px rgba(0,0,0,0.06); padding:32px 40px 50px; }
+        .header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; padding-bottom:20px; border-bottom:2px solid #f0f2f5; margin-bottom:30px; }
+        .header-left { display:flex; align-items:center; gap:12px; }
+        .header-left h1 { font-size:28px; font-weight:700; background:linear-gradient(135deg,#f5b042,#f7a83e); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+        .header-left .star-icon { font-size:30px; }
+        .header-right { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+        .user-badge { display:flex; align-items:center; gap:8px; background:#f0f4fe; padding:6px 16px 6px 12px; border-radius:40px; font-size:14px; font-weight:500; color:#2c3e6b; border:1px solid #e2e8f0; position:relative; }
+        .user-badge .avatar { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; background:#d4e0ff; border-radius:50%; font-size:14px; font-weight:600; color:#1a3a7a; }
+        .user-badge .uuid-display { font-size:11px; color:#8a9bb5; cursor:pointer; user-select:all; border-top:1px dashed #d0d7e2; padding-top:3px; margin-top:3px; text-align:center; }
+        .btn { display:inline-block; padding:8px 20px; border-radius:40px; font-size:14px; font-weight:600; border:none; cursor:pointer; transition:all 0.2s; background:#f0f2f5; color:#1e2a3a; text-decoration:none; white-space:nowrap; }
+        .btn-primary { background:#2c3e6b; color:#fff; }
+        .btn-primary:hover { background:#1f2f50; transform:translateY(-1px); }
+        .btn-outline { background:transparent; border:1.5px solid #d0d7e2; }
+        .btn-outline:hover { background:#f0f4fe; border-color:#b0c0d8; }
+        .btn-sm { padding:4px 14px; font-size:13px; }
+        .btn-message { background:transparent; border:1.5px solid #d0d7e2; border-radius:40px; padding:6px 14px; font-size:18px; cursor:pointer; transition:0.2s; }
+        .btn-message:hover { background:#f0f4fe; border-color:#b0c0d8; }
+        .loading-mask { text-align:center; padding:60px 20px; color:#8a9bb5; font-size:16px; }
+        .loading-mask .spinner { display:inline-block; width:32px; height:32px; border:4px solid #e2e8f0; border-top-color:#2c3e6b; border-radius:50%; animation:spin 0.8s linear infinite; margin-bottom:12px; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        .virus-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:28px; margin-top:12px; }
+        .virus-card { background:#fff; border:1px solid #eef1f6; border-radius:20px; padding:24px 24px 18px; transition:all 0.2s; box-shadow:0 4px 12px rgba(0,0,0,0.02); display:flex; flex-direction:column; }
+        .virus-card:hover { border-color:#d0dbe8; box-shadow:0 8px 24px rgba(44,62,107,0.06); }
+        .virus-name { font-size:20px; font-weight:700; color:#1a2a4a; margin-bottom:6px; display:flex; align-items:center; gap:8px; }
+        .virus-name .badge { font-size:12px; font-weight:500; background:#eef3fa; color:#4a5f7a; padding:0 10px; border-radius:40px; line-height:22px; }
+        .virus-desc { font-size:14px; color:#4a5f7a; line-height:1.6; margin:6px 0 16px; flex:1; white-space:pre-wrap; }
+        .virus-actions { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:4px; }
+        .virus-actions .btn-download { background:#2a9d8f; color:#fff; padding:8px 24px; border-radius:40px; font-weight:600; font-size:14px; border:none; cursor:pointer; transition:0.2s; text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
+        .virus-actions .btn-download:hover { background:#1f7a6e; transform:translateY(-2px); }
+        .virus-actions .btn-comment-toggle { background:transparent; border:1.5px solid #d0d7e2; padding:6px 16px; border-radius:40px; font-size:13px; font-weight:500; color:#4a5f7a; cursor:pointer; transition:0.2s; }
+        .virus-actions .btn-comment-toggle:hover { background:#f0f4fe; border-color:#b0c0d8; }
+        .virus-actions .comment-count { font-size:13px; color:#8a9bb5; margin-left:4px; }
+        .comment-section { margin-top:18px; border-top:1.5px solid #f0f2f5; padding-top:18px; display:none; }
+        .comment-section.open { display:block; }
+        .comment-list { max-height:360px; overflow-y:auto; margin-bottom:14px; padding-right:4px; }
+        .comment-list::-webkit-scrollbar { width:4px; }
+        .comment-list::-webkit-scrollbar-thumb { background:#d0d7e2; border-radius:8px; }
+        .comment-item { display:flex; justify-content:space-between; align-items:flex-start; padding:10px 0; border-bottom:1px solid #f2f5fa; font-size:14px; gap:12px; }
+        .comment-item:last-child { border-bottom:none; }
+        .comment-item .comment-body { flex:1; min-width:0; }
+        .comment-item .comment-author { font-weight:600; color:#1e2a3a; font-size:13px; }
+        .comment-item .comment-author .time { font-weight:400; color:#9aabb8; font-size:12px; margin-left:10px; }
+        .comment-item .comment-content { color:#2d3f5a; margin-top:2px; word-break:break-word; line-height:1.5; }
+        .comment-item .comment-delete-btn { background:none; border:none; color:#c0ccdd; cursor:pointer; font-size:15px; padding:4px 6px; border-radius:6px; transition:0.15s; flex-shrink:0; margin-top:2px; }
+        .comment-item .comment-delete-btn:hover { color:#e74c5e; background:#fef0f2; }
+        .comment-item .comment-delete-btn.visible { color:#b0c0d8; }
+        .comment-item .comment-delete-btn.visible:hover { color:#e74c5e; background:#fef0f2; }
+        .comment-input-area { display:flex; gap:10px; margin-top:6px; align-items:flex-end; }
+        .comment-input-area textarea { flex:1; padding:10px 14px; border-radius:16px; border:1.5px solid #e2e8f0; font-size:14px; font-family:inherit; resize:vertical; min-height:52px; max-height:120px; transition:0.2s; background:#fafcff; }
+        .comment-input-area textarea:focus { outline:none; border-color:#2c3e6b; background:#fff; box-shadow:0 0 0 3px rgba(44,62,107,0.08); }
+        .comment-input-area .btn-submit-comment { background:#2c3e6b; color:#fff; border:none; padding:10px 24px; border-radius:40px; font-weight:600; font-size:14px; cursor:pointer; transition:0.2s; white-space:nowrap; height:52px; align-self:flex-end; }
+        .comment-input-area .btn-submit-comment:hover { background:#1f2f50; }
+        .comment-input-area .btn-submit-comment:disabled { opacity:0.5; cursor:not-allowed; }
+        .empty-state { text-align:center; padding:40px 20px; color:#9aabb8; font-size:15px; }
+        .empty-state .icon { font-size:44px; margin-bottom:12px; opacity:0.6; }
+        /* ===== 模态框通用 ===== */
+        .modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.25); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; z-index:999; padding:20px; animation:fadeIn 0.25s ease; }
+        .modal-overlay.hidden { display:none; }
+        @keyframes fadeIn { from { opacity:0; transform:scale(0.96); } to { opacity:1; transform:scale(1); } }
+        .modal-box { background:#fff; border-radius:32px; padding:30px 35px; max-width:900px; width:100%; max-height:90vh; box-shadow:0 40px 80px rgba(0,0,0,0.15); overflow:hidden; display:flex; flex-direction:column; }
+        .modal-box h2 { font-size:22px; font-weight:700; color:#1a2a4a; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; }
+        .modal-box h2 .close-btn { background:none; border:none; font-size:24px; cursor:pointer; color:#9aabb8; }
+        /* ===== 私信新布局：左右两栏 ===== */
+        .msg-container { display:flex; flex:1; min-height:400px; border:1px solid #eef1f6; border-radius:20px; overflow:hidden; }
+        .msg-left { width:220px; background:#f8fafd; border-right:1px solid #eef1f6; overflow-y:auto; padding:8px 0; flex-shrink:0; display:flex; flex-direction:column; }
+        .msg-left .add-contact { display:flex; padding:8px 12px; border-bottom:1px solid #eef1f6; gap:6px; flex-shrink:0; }
+        .msg-left .add-contact input { flex:1; padding:6px 10px; border-radius:20px; border:1.5px solid #dce2ec; font-size:13px; outline:none; }
+        .msg-left .add-contact input:focus { border-color:#2c3e6b; }
+        .msg-left .add-contact button { padding:4px 14px; border-radius:20px; border:none; background:#2c3e6b; color:#fff; font-weight:600; cursor:pointer; white-space:nowrap; font-size:13px; }
+        .msg-left .add-contact button:hover { background:#1f2f50; }
+        .msg-left .contact-list { flex:1; overflow-y:auto; padding:4px 0; }
+        .msg-left .contact-item { display:flex; align-items:center; gap:10px; padding:10px 16px; cursor:pointer; transition:0.15s; border-bottom:1px solid #f0f2f5; }
+        .msg-left .contact-item:hover { background:#eef3fa; }
+        .msg-left .contact-item.active { background:#d4e0ff; }
+        .msg-left .contact-item .contact-avatar { width:36px; height:36px; border-radius:50%; background:#d4e0ff; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:14px; color:#1a3a7a; flex-shrink:0; }
+        .msg-left .contact-item .contact-name { font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .msg-right { flex:1; display:flex; flex-direction:column; background:#fff; min-width:0; }
+        .msg-right .msg-header { padding:12px 20px; border-bottom:1px solid #eef1f6; display:flex; justify-content:space-between; align-items:center; background:#fafcff; }
+        .msg-right .msg-header .target-uuid { font-size:13px; color:#8a9bb5; cursor:pointer; user-select:all; }
+        .msg-right .msg-list { flex:1; overflow-y:auto; padding:12px 20px; display:flex; flex-direction:column; gap:8px; max-height:350px; }
+        .msg-right .msg-item { padding:8px 12px; border-radius:16px; max-width:80%; word-break:break-word; font-size:14px; }
+        .msg-right .msg-item.sent { align-self:flex-end; background:#2c3e6b; color:#fff; }
+        .msg-right .msg-item.received { align-self:flex-start; background:#f0f2f5; color:#1e2a3a; }
+        .msg-right .msg-item .msg-time { font-size:11px; opacity:0.7; margin-top:4px; text-align:right; }
+        .msg-right .msg-input-area { display:flex; padding:12px 20px; border-top:1px solid #eef1f6; gap:12px; align-items:center; background:#fafcff; }
+        .msg-right .msg-input-area textarea { flex:1; padding:10px 14px; border-radius:20px; border:1.5px solid #e2e8f0; font-size:14px; font-family:inherit; resize:none; min-height:44px; max-height:100px; background:#fff; }
+        .msg-right .msg-input-area textarea:focus { outline:none; border-color:#2c3e6b; }
+        .msg-right .msg-input-area .send-btn { padding:8px 24px; background:#2c3e6b; color:#fff; border:none; border-radius:40px; font-weight:600; cursor:pointer; transition:0.2s; white-space:nowrap; height:44px; }
+        .msg-right .msg-input-area .send-btn:hover { background:#1f2f50; }
+        .privacy-banner { background:#ff6b6b; color:#fff; padding:12px; text-align:center; font-weight:bold; position:sticky; top:0; z-index:999; }
+        .footer { margin-top:40px; text-align:center; font-size:13px; color:#b0c0d8; border-top:1px solid #f0f2f5; padding-top:24px; display:flex; justify-content:center; gap:24px; flex-wrap:wrap; }
+        .footer .github-info { color:#b0c0d8; font-size:12px; }
+        ::-webkit-scrollbar { width:4px; }
+        ::-webkit-scrollbar-thumb { background:#d0d7e2; border-radius:8px; }
+        @media (max-width:700px) {
+            .container { padding:18px 16px 30px; border-radius:18px; }
+            .header { flex-direction:column; align-items:stretch; gap:14px; }
+            .header-left h1 { font-size:22px; }
+            .header-right { justify-content:space-between; }
+            .virus-grid { grid-template-columns:1fr; gap:18px; }
+            .modal-box { padding:20px; max-width:95%; }
+            .msg-left { width:120px; }
+            .msg-left .contact-item .contact-name { font-size:12px; }
+            .msg-left .contact-item .contact-avatar { width:28px; height:28px; font-size:12px; }
+            .msg-left .add-contact input { font-size:12px; padding:4px 8px; }
+            .msg-left .add-contact button { font-size:12px; padding:3px 10px; }
+        }
+        @media (max-width:440px) {
+            .header-left h1 { font-size:19px; }
+            .user-badge { font-size:13px; padding:4px 12px; }
+            .btn { font-size:13px; padding:6px 14px; }
+            .virus-card { padding:18px 16px 14px; }
+        }
+        .text-muted { color:#9aabb8; }
+    </style>
+</head>
+<body>
+<div id="privacyBanner"></div>
+
+<div class="container" id="app">
+    <header class="header">
+        <div class="header-left">
+            <span class="star-icon">⭐</span>
+            <h1>星星の病毒论坛</h1>
+        </div>
+        <div class="header-right">
+            <div class="user-badge" id="userBadge">
+                <div style="display:flex;flex-direction:column;align-items:center;">
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <span class="avatar" id="userAvatar">👤</span>
+                        <span id="userDisplayName">加载中...</span>
+                    </div>
+                    <div class="uuid-display" id="uuidDisplay" title="点击复制UUID">UUID: 加载中...</div>
+                </div>
+            </div>
+            <button class="btn-message" id="messageBtn" title="私信">📩</button>
+            <button class="btn btn-outline btn-sm" id="refreshBtn" title="刷新数据">🔄</button>
+        </div>
+    </header>
+
+    <main id="mainContent">
+        <div class="loading-mask" id="loadingMask">
+            <div class="spinner"></div>
+            <div>加载病毒库中...</div>
+        </div>
+        <div id="virusGridContainer" style="display:none;">
+            <div class="virus-grid" id="virusGrid"></div>
+        </div>
+    </main>
+
+    <div class="footer">
+        <span>⭐ 星星の病毒论坛 · 仅供安全研究</span>
+        <span class="github-info" id="githubInfo">数据源：静态JSON</span>
+    </div>
+</div>
+
+<!-- 私信模态框 -->
+<div class="modal-overlay hidden" id="messageModal">
+    <div class="modal-box">
+        <h2>
+            <span>📩 私信</span>
+            <button class="close-btn" id="closeMsgModal">&times;</button>
+        </h2>
+        <div class="msg-container">
+            <div class="msg-left">
+                <div class="add-contact">
+                    <input type="text" id="addContactInput" placeholder="输入UUID添加" />
+                    <button id="addContactBtn">添加</button>
+                </div>
+                <div class="contact-list" id="contactList">
+                    <div class="empty-state" style="padding:20px;">暂无联系人</div>
+                </div>
+            </div>
+            <div class="msg-right" id="chatArea">
+                <div class="msg-header">
+                    <span id="chatTargetName">选择联系人</span>
+                    <span class="target-uuid" id="chatTargetUuid" title="点击复制UUID">UUID: —</span>
+                </div>
+                <div class="msg-list" id="chatMessages">
+                    <div class="empty-state" style="padding:20px;">选择联系人开始聊天</div>
+                </div>
+                <div class="msg-input-area" id="msgInputArea" style="display:none;">
+                    <textarea id="msgInputText" placeholder="输入消息…" rows="1"></textarea>
+                    <button class="send-btn" id="sendMsgBtn">发送</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 设置名字模态框 -->
+<div class="modal-overlay hidden" id="nameModal">
+    <div class="modal-box" style="max-width:440px;max-height:60vh;">
+        <h2>🌟 欢迎来到星星の病毒论坛</h2>
+        <p style="color:#5a6f8a;font-size:15px;margin-bottom:24px;line-height:1.5;">首次访问，请给自己取一个响亮的昵称吧！<br /><span style="color:#9aabb8;font-size:13px;">（之后会自动识别你的设备）</span></p>
+        <input type="text" id="nameInput" placeholder="输入你的昵称…" maxlength="20" autofocus style="width:100%;padding:14px 18px;border-radius:40px;border:1.5px solid #dce2ec;font-size:16px;font-weight:500;text-align:center;background:#fafcff;" />
+        <button class="btn-confirm-name" id="confirmNameBtn" style="margin-top:18px;width:100%;padding:14px;border-radius:40px;border:none;background:#2c3e6b;color:#fff;font-size:17px;font-weight:700;cursor:pointer;transition:0.2s;">✨ 确认</button>
+        <div style="margin-top:12px;font-size:13px;color:#b0c0d8;text-align:center;" id="nameError"></div>
+    </div>
+</div>
+
+<script>
+    // ================================================================
+    //  🔧 配置区域
+    // ================================================================
+    const SUPABASE_URL = 'https://xdavyegtdbrfmwkmsfns.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkYXZ5ZWd0ZGJyZm13a21zZm5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2Mjk3MDUsImV4cCI6MjEwMDIwNTcwNX0.J0MO1VcuhRXI6AwmAZ4sC7PHnVewWiSEE6llUfp1RpY';
+    const GITHUB_OWNER = 'skyinfstarry';
+    const GITHUB_REPO = 'skyinfstarry.github.io';
+    const BASE_PATH = 'bdlt';
+
+    // ================================================================
+    //  检测 localStorage 可用性
+    // ================================================================
+    function isLocalStorageAvailable() {
+        try { localStorage.setItem('_test', '1'); localStorage.removeItem('_test'); return true; } catch { return false; }
+    }
+    const storageAvailable = isLocalStorageAvailable();
+    if (!storageAvailable) {
+        document.getElementById('privacyBanner').innerHTML = `
+            <div class="privacy-banner">
+                ⚠️ 您正在使用隐私/无痕模式，每次刷新页面都会被识别为新用户，已发表的评论将无法删除。建议切换到普通模式。
+            </div>
+        `;
+    }
+
+    // ================================================================
+    //  初始化 Supabase
+    // ================================================================
+    const { createClient } = supabase;
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ================================================================
+    //  DOM 引用
+    // ================================================================
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => document.querySelectorAll(sel);
+
+    const loadingMask = $('#loadingMask');
+    const virusGridContainer = $('#virusGridContainer');
+    const virusGrid = $('#virusGrid');
+    const userDisplayName = $('#userDisplayName');
+    const userAvatar = $('#userAvatar');
+    const uuidDisplay = $('#uuidDisplay');
+
+    const nameModal = $('#nameModal');
+    const nameInput = $('#nameInput');
+    const confirmNameBtn = $('#confirmNameBtn');
+    const nameError = $('#nameError');
+
+    const refreshBtn = $('#refreshBtn');
+    const githubInfo = $('#githubInfo');
+    const messageBtn = $('#messageBtn');
+    const messageModal = $('#messageModal');
+    const closeMsgModal = $('#closeMsgModal');
+    const contactList = $('#contactList');
+    const chatArea = $('#chatArea');
+    const chatTargetName = $('#chatTargetName');
+    const chatTargetUuid = $('#chatTargetUuid');
+    const chatMessages = $('#chatMessages');
+    const msgInputArea = $('#msgInputArea');
+    const msgInputText = $('#msgInputText');
+    const sendMsgBtn = $('#sendMsgBtn');
+    const addContactInput = $('#addContactInput');
+    const addContactBtn = $('#addContactBtn');
+
+    let currentUser = null;
+    let allViruses = [];
+    const commentSubscriptions = {};
+    let messagesSubscription = null;
+    let currentContactId = null;
+    let tempContacts = [];
+
+    // ================================================================
+    //  工具函数
+    // ================================================================
+    function formatTime(isoString) {
+        if (!isoString) return '刚刚';
+        const date = new Date(isoString);
+        const now = new Date();
+        const diff = (now - date) / 1000;
+        if (diff < 60) return '刚刚';
+        if (diff < 3600) return Math.floor(diff / 60) + '分钟前';
+        if (diff < 86400) return Math.floor(diff / 3600) + '小时前';
+        if (diff < 604800) return Math.floor(diff / 86400) + '天前';
+        return date.toLocaleDateString('zh-CN');
+    }
+    function getAvatarLetter(name) {
+        if (!name) return '👤';
+        return name.trim().charAt(0);
+    }
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    function showLoading(show) {
+        loadingMask.style.display = show ? 'block' : 'none';
+        virusGridContainer.style.display = show ? 'none' : 'block';
+    }
+    async function generateUUIDv5(name) {
+        const namespace = new Uint8Array([
+            0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1,
+            0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8
+        ]);
+        const encoder = new TextEncoder();
+        const data = new Uint8Array(namespace.length + encoder.encode(name).length);
+        data.set(namespace);
+        data.set(encoder.encode(name), namespace.length);
+        const hash = await crypto.subtle.digest('SHA-1', data);
+        const bytes = new Uint8Array(hash);
+        bytes[6] = (bytes[6] & 0x0f) | 0x50;
+        bytes[8] = (bytes[8] & 0x3f) | 0x80;
+        const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+        return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20,32)}`;
+    }
+
+    // ================================================================
+    //  用户认证 & 名字管理
+    // ================================================================
+    async function fetchUserProfile(authId) {
+        try {
+            const { data, error } = await supabaseClient
+                .from('users')
+                .select('*')
+                .eq('auth_id', authId)
+                .maybeSingle();
+            if (error) {
+                console.error('获取用户信息失败:', error);
+                return null;
+            }
+            return data;
+        } catch (err) {
+            console.error('获取用户信息异常:', err);
+            return null;
+        }
+    }
+    async function saveUserProfile(authId, name) {
+        try {
+            const { data: existing, error: selectError } = await supabaseClient
+                .from('users')
+                .select('id')
+                .eq('auth_id', authId)
+                .maybeSingle();
+            if (selectError) {
+                console.error('查询用户失败:', selectError);
+                return false;
+            }
+            if (existing) {
+                const { error: updateError } = await supabaseClient
+                    .from('users')
+                    .update({ name: name.trim() })
+                    .eq('auth_id', authId);
+                if (updateError) {
+                    console.error('更新用户失败:', updateError);
+                    return false;
+                }
+            } else {
+                const { error: insertError } = await supabaseClient
+                    .from('users')
+                    .insert({ auth_id: authId, name: name.trim() });
+                if (insertError) {
+                    console.error('插入用户失败:', insertError);
+                    return false;
+                }
+            }
+            return true;
+        } catch (err) {
+            console.error('保存用户信息异常:', err);
+            return false;
+        }
+    }
+    function showNameModal() {
+        nameModal.classList.remove('hidden');
+        nameInput.value = '';
+        nameError.textContent = '';
+        nameInput.focus();
+        return new Promise((resolve) => {
+            const handler = async () => {
+                const val = nameInput.value.trim();
+                if (!val) {
+                    nameError.textContent = '请输入一个昵称～';
+                    return;
+                }
+                if (val.length > 20) {
+                    nameError.textContent = '昵称不能超过20个字符';
+                    return;
+                }
+                confirmNameBtn.disabled = true;
+                nameError.textContent = '保存中…';
+                const ok = await saveUserProfile(currentUser.id, val);
+                confirmNameBtn.disabled = false;
+                if (ok) {
+                    nameModal.classList.add('hidden');
+                    currentUser.name = val;
+                    updateUserUI();
+                    if (!storageAvailable) {
+                        alert('昵称保存成功！但请注意，由于您使用了隐私模式，关闭页面后您的身份将丢失，已发表的评论将无法删除。');
+                    }
+                    resolve(val);
+                } else {
+                    nameError.textContent = '保存失败，请重试（查看控制台错误）';
+                }
+            };
+            confirmNameBtn.onclick = handler;
+            nameInput.onkeydown = (e) => { if (e.key === 'Enter') handler(); };
+        });
+    }
+    function updateUserUI() {
+        if (currentUser && currentUser.name) {
+            userDisplayName.textContent = currentUser.name;
+            userAvatar.textContent = getAvatarLetter(currentUser.name);
+            uuidDisplay.textContent = `UUID: ${currentUser.id.slice(0,8)}...${currentUser.id.slice(-4)}`;
+            uuidDisplay.title = `点击复制完整UUID: ${currentUser.id}`;
+        } else {
+            userDisplayName.textContent = '未命名';
+            userAvatar.textContent = '👤';
+            uuidDisplay.textContent = 'UUID: 未登录';
+        }
+    }
+
+    // ================================================================
+    //  私信功能
+    // ================================================================
+    async function getContacts() {
+        if (!currentUser) return [];
+        const { data, error } = await supabaseClient
+            .from('messages')
+            .select('from_user_id, to_user_id')
+            .or(`from_user_id.eq.${currentUser.id},to_user_id.eq.${currentUser.id}`);
+        if (error) {
+            console.error('获取联系人失败:', error);
+            return [];
+        }
+        const ids = new Set();
+        data.forEach(msg => {
+            if (msg.from_user_id !== currentUser.id) ids.add(msg.from_user_id);
+            if (msg.to_user_id !== currentUser.id) ids.add(msg.to_user_id);
+        });
+        tempContacts.forEach(c => ids.add(c.auth_id));
+        const idArray = Array.from(ids);
+        if (idArray.length === 0) return [];
+        const { data: users, error: userError } = await supabaseClient
+            .from('users')
+            .select('auth_id, name')
+            .in('auth_id', idArray);
+        if (userError) {
+            console.error('获取联系人信息失败:', userError);
+            return idArray.map(id => ({ auth_id: id, name: id.slice(0,8)+'...' }));
+        }
+        const userMap = {};
+        users.forEach(u => { userMap[u.auth_id] = u.name; });
+        const contacts = idArray.map(id => ({
+            auth_id: id,
+            name: userMap[id] || id.slice(0,8)+'...'+id.slice(-4)
+        }));
+        contacts.sort((a,b) => a.name.localeCompare(b.name));
+        return contacts;
+    }
+
+    async function renderContactList() {
+        const contacts = await getContacts();
+        if (!contacts.length) {
+            contactList.innerHTML = `<div class="empty-state" style="padding:20px;">暂无联系人</div>`;
+            return;
+        }
+        let html = '';
+        for (const c of contacts) {
+            const initial = getAvatarLetter(c.name);
+            html += `
+                <div class="contact-item" data-uuid="${c.auth_id}">
+                    <div class="contact-avatar">${initial}</div>
+                    <div class="contact-name">${escapeHtml(c.name)}</div>
+                </div>
+            `;
+        }
+        contactList.innerHTML = html;
+        contactList.querySelectorAll('.contact-item').forEach(el => {
+            el.addEventListener('click', () => {
+                const uuid = el.dataset.uuid;
+                openChatWith(uuid);
+            });
+        });
+        if (currentContactId) {
+            const active = contactList.querySelector(`.contact-item[data-uuid="${currentContactId}"]`);
+            if (active) {
+                active.classList.add('active');
+                openChatWith(currentContactId);
+            } else {
+                currentContactId = null;
+                chatTargetName.textContent = '选择联系人';
+                chatTargetUuid.textContent = 'UUID: —';
+                chatMessages.innerHTML = `<div class="empty-state" style="padding:20px;">选择联系人开始聊天</div>`;
+                msgInputArea.style.display = 'none';
+            }
+        } else {
+            const first = contactList.querySelector('.contact-item');
+            if (first) first.click();
+        }
+    }
+
+    async function openChatWith(uuid) {
+        if (!currentUser) return;
+        currentContactId = uuid;
+        contactList.querySelectorAll('.contact-item').forEach(el => el.classList.remove('active'));
+        const activeItem = contactList.querySelector(`.contact-item[data-uuid="${uuid}"]`);
+        if (activeItem) activeItem.classList.add('active');
+
+        const { data: userData, error } = await supabaseClient
+            .from('users')
+            .select('name')
+            .eq('auth_id', uuid)
+            .maybeSingle();
+        let displayName = uuid.slice(0,8)+'...'+uuid.slice(-4);
+        if (userData && userData.name) displayName = userData.name;
+        chatTargetName.textContent = displayName;
+        chatTargetUuid.textContent = `UUID: ${uuid}`;
+        chatTargetUuid.title = `点击复制完整UUID: ${uuid}`;
+        chatTargetUuid.onclick = () => {
+            navigator.clipboard.writeText(uuid).then(() => {
+                chatTargetUuid.textContent = '✅ 已复制!';
+                setTimeout(() => chatTargetUuid.textContent = `UUID: ${uuid}`, 2000);
+            }).catch(() => alert('复制失败，请手动复制: ' + uuid));
+        };
+
+        await loadChatMessages(uuid);
+        msgInputArea.style.display = 'flex';
+        msgInputText.value = '';
+        msgInputText.focus();
+    }
+
+    async function loadChatMessages(otherId) {
+        if (!currentUser) return;
+        const { data, error } = await supabaseClient
+            .from('messages')
+            .select('*')
+            .or(`and(from_user_id.eq.${currentUser.id},to_user_id.eq.${otherId}),and(from_user_id.eq.${otherId},to_user_id.eq.${currentUser.id})`)
+            .order('created_at', { ascending: true });
+        if (error) {
+            console.error('加载消息失败:', error);
+            chatMessages.innerHTML = `<div class="empty-state">加载失败</div>`;
+            return;
+        }
+        if (!data.length) {
+            chatMessages.innerHTML = `<div class="empty-state" style="padding:20px;">暂无消息，发送一条吧</div>`;
+            return;
+        }
+        let html = '';
+        for (const msg of data) {
+            const isSent = msg.from_user_id === currentUser.id;
+            html += `
+                <div class="msg-item ${isSent ? 'sent' : 'received'}">
+                    ${escapeHtml(msg.content)}
+                    <div class="msg-time">${formatTime(msg.created_at)}</div>
+                </div>
+            `;
+        }
+        chatMessages.innerHTML = html;
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    async function sendMessage() {
+        const content = msgInputText.value.trim();
+        if (!content || !currentContactId) return;
+        try {
+            const { error } = await supabaseClient
+                .from('messages')
+                .insert({
+                    from_user_id: currentUser.id,
+                    to_user_id: currentContactId,
+                    content: content
+                });
+            if (error) throw error;
+            msgInputText.value = '';
+            await loadChatMessages(currentContactId);
+        } catch (err) {
+            console.error('发送失败:', err);
+            alert('发送失败：' + err.message);
+        }
+    }
+
+    async function addContact() {
+        const input = addContactInput.value.trim();
+        if (!input) return;
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input)) {
+            alert('请输入正确的UUID格式');
+            return;
+        }
+        const contacts = await getContacts();
+        if (contacts.some(c => c.auth_id === input)) {
+            alert('该联系人已存在');
+            return;
+        }
+        const { data, error } = await supabaseClient
+            .from('users')
+            .select('name')
+            .eq('auth_id', input)
+            .maybeSingle();
+        if (error || !data) {
+            alert('该用户不存在');
+            return;
+        }
+        const name = data.name || input.slice(0,8)+'...';
+        tempContacts.push({ auth_id: input, name: name });
+        await renderContactList();
+        openChatWith(input);
+        addContactInput.value = '';
+    }
+
+    function subscribeMessages() {
+        if (messagesSubscription) {
+            supabaseClient.removeChannel(messagesSubscription);
+        }
+        const channel = supabaseClient
+            .channel('messages_channel')
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'messages',
+                filter: `or(to_user_id.eq.${currentUser.id},from_user_id.eq.${currentUser.id})`
+            }, () => {
+                if (currentContactId) {
+                    loadChatMessages(currentContactId);
+                }
+                renderContactList();
+            })
+            .subscribe();
+        messagesSubscription = channel;
+    }
+
+    // ================================================================
+    //  加载病毒数据（从 viruses.json）
+    // ================================================================
+    async function loadVirusesFromGitHub() {
+        try {
+            const basePath = window.location.pathname.replace(/\/[^/]*$/, '');
+            const jsonUrl = `${window.location.origin}${basePath}/viruses.json`;
+            console.log('正在加载病毒数据:', jsonUrl);
+            const response = await fetch(jsonUrl);
+            if (!response.ok) {
+                if (response.status === 404) {
+                    throw new Error(`viruses.json 未找到，请在 ${BASE_PATH} 目录下创建该文件。`);
+                }
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            const data = await response.json();
+            if (!Array.isArray(data) || data.length === 0) {
+                throw new Error('viruses.json 格式不正确或为空，请检查。');
+            }
+            const viruses = [];
+            for (const item of data) {
+                if (!item.name) continue;
+                const virusId = await generateUUIDv5(item.name);
+                viruses.push({
+                    id: virusId,
+                    name: item.name,
+                    description: item.description || '暂无简介',
+                    download_url: item.download_url || '#'
+                });
+            }
+            return viruses;
+        } catch (err) {
+            console.error('加载病毒数据失败:', err);
+            throw err;
+        }
+    }
+
+    // ================================================================
+    //  渲染病毒卡片 & 评论绑定（改进：预加载评论计数）
+    // ================================================================
+    async function renderViruses() {
+        if (!allViruses.length) {
+            virusGrid.innerHTML = `
+                <div class="empty-state" style="grid-column:1/-1;">
+                    <div class="icon">🦠</div>
+                    <p>没有找到病毒，请确保 viruses.json 文件存在且内容正确。</p>
+                </div>
+            `;
+            return;
+        }
+
+        // 1. 批量获取所有病毒的评论数量
+        const virusIds = allViruses.map(v => v.id);
+        let commentCounts = {};
+        if (virusIds.length > 0) {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('comments')
+                    .select('virus_id', { count: 'exact', head: true })
+                    .in('virus_id', virusIds)
+                    .group('virus_id');
+                // 注意：count 在 group 下不能直接用，改用分别查询或使用聚合函数
+                // 更可靠的方式：分别查询每个病毒，但为了性能，使用 group by 和 count
+                // Supabase 不支持直接 group by 并返回 count，但可以使用 rpc 或多次查询。
+                // 为了简单，采用循环查询每个病毒（如果病毒数量不多，可以接受）
+                // 或者使用一个 raw 查询：select virus_id, count(*) from comments where virus_id = any(...) group by virus_id
+                // 这里改用更简单的方法：逐个查询（如果病毒数量小于 20 可以接受）
+                // 但为了效率，使用 in 和 group by 通过 PostgreSQL 函数，但 Supabase JS 客户端不直接支持。
+                // 改用手动循环，因为论坛病毒数量一般不多。
+                // 我们改为在循环中单独查询，但会引入异步延迟，但在渲染前一次性加载所有计数。
+                // 更好的方式：使用 Supabase 的 rpc 或直接使用 `select` 语句加 `group`。
+                // 但我们利用 Supabase 的 `select` 配合 `count` 和 `group` 的变通：使用 `select('virus_id, count()')` 但需要聚合。
+                // 实际可以使用 `from('comments').select('virus_id, count()', { count: 'exact' }).group('virus_id')` 但 JS 客户端不支持 group。
+                // 稳妥起见，我循环查询每个病毒，但并行执行。
+                const promises = allViruses.map(async (virus) => {
+                    const { count, error } = await supabaseClient
+                        .from('comments')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('virus_id', virus.id);
+                    if (!error) {
+                        commentCounts[virus.id] = count;
+                    } else {
+                        commentCounts[virus.id] = 0;
+                    }
+                });
+                await Promise.all(promises);
+            } catch (e) {
+                console.warn('获取评论计数失败，将显示为0', e);
+                commentCounts = {};
+            }
+        }
+
+        // 2. 生成 HTML
+        let html = '';
+        for (const virus of allViruses) {
+            const count = commentCounts[virus.id] || 0;
+            html += `
+                <div class="virus-card" data-virus-id="${virus.id}">
+                    <div class="virus-name">
+                        ${escapeHtml(virus.name)}
+                        <span class="badge">#${virus.id.slice(0,6)}</span>
+                    </div>
+                    <div class="virus-desc">${escapeHtml(virus.description)}</div>
+                    <div class="virus-actions">
+                        <a href="${virus.download_url}" target="_blank" class="btn-download" rel="noopener">⬇ 下载</a>
+                        <button class="btn-comment-toggle" data-virus-id="${virus.id}">
+                            💬 评论 <span class="comment-count" id="count-${virus.id}">${count}</span>
+                        </button>
+                    </div>
+                    <div class="comment-section" id="comments-${virus.id}">
+                        <div class="comment-list" id="commentList-${virus.id}">
+                            <div class="empty-state" style="padding:16px 0;font-size:14px;">
+                                <span class="text-muted">暂无评论，快来抢沙发！</span>
+                            </div>
+                        </div>
+                        <div class="comment-input-area">
+                            <textarea placeholder="写下你的评论…" id="commentInput-${virus.id}" rows="1"></textarea>
+                            <button class="btn-submit-comment" data-virus-id="${virus.id}">发布</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        virusGrid.innerHTML = html;
+
+        // 3. 绑定事件（与之前相同）
+        $$('.btn-comment-toggle').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const vid = btn.dataset.virusId;
+                const section = document.getElementById(`comments-${vid}`);
+                if (!section) return;
+                const isOpen = section.classList.toggle('open');
+                btn.textContent = isOpen ? '💬 收起' : `💬 评论 `;
+                const countSpan = document.getElementById(`count-${vid}`);
+                if (countSpan) btn.appendChild(countSpan);
+                if (isOpen) {
+                    loadCommentsForVirus(vid);
+                } else {
+                    if (commentSubscriptions[vid]) {
+                        commentSubscriptions[vid]();
+                        delete commentSubscriptions[vid];
+                    }
+                }
+            });
+        });
+        $$('.btn-submit-comment').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const vid = btn.dataset.virusId;
+                const textarea = document.getElementById(`commentInput-${vid}`);
+                if (!textarea) return;
+                const content = textarea.value.trim();
+                if (!content) { textarea.focus(); return; }
+                await submitComment(vid, content);
+                textarea.value = '';
+            });
+        });
+        $$('.comment-input-area textarea').forEach(ta => {
+            ta.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault();
+                    const vid = ta.id.replace('commentInput-', '');
+                    const btn = document.querySelector(`.btn-submit-comment[data-virus-id="${vid}"]`);
+                    if (btn) btn.click();
+                }
+            });
+            ta.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+            });
+        });
+    }
+
+    // ================================================================
+    //  评论系统（refreshCommentList 会更新计数）
+    // ================================================================
+    async function submitComment(virusId, content) {
+        if (!currentUser || !currentUser.id || !currentUser.name) {
+            alert('请先设置昵称再评论');
+            return;
+        }
+        try {
+            const { error } = await supabaseClient
+                .from('comments')
+                .insert({
+                    virus_id: virusId,
+                    user_id: currentUser.id,
+                    user_name: currentUser.name,
+                    content: content.trim()
+                });
+            if (error) throw error;
+        } catch (e) {
+            console.error('发表评论失败', e);
+            alert('评论发送失败，请重试');
+        }
+    }
+    function loadCommentsForVirus(virusId) {
+        if (commentSubscriptions[virusId]) {
+            commentSubscriptions[virusId]();
+            delete commentSubscriptions[virusId];
+        }
+        const subscription = supabaseClient
+            .channel(`comments_${virusId}`)
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'comments',
+                filter: `virus_id=eq.${virusId}`
+            }, () => {
+                refreshCommentList(virusId);
+            })
+            .subscribe();
+        commentSubscriptions[virusId] = () => {
+            supabaseClient.removeChannel(subscription);
+        };
+        refreshCommentList(virusId);
+    }
+    async function refreshCommentList(virusId) {
+        const list = document.getElementById(`commentList-${virusId}`);
+        if (!list) return;
+        const { data, error } = await supabaseClient
+            .from('comments')
+            .select('*')
+            .eq('virus_id', virusId)
+            .order('created_at', { ascending: true });
+        if (error) {
+            console.error('获取评论失败', error);
+            return;
+        }
+        const countSpan = document.getElementById(`count-${virusId}`);
+        if (countSpan) {
+            countSpan.textContent = data.length;
+            const parentBtn = document.querySelector(`.btn-comment-toggle[data-virus-id="${virusId}"]`);
+            if (parentBtn) {
+                const isOpen = document.getElementById(`comments-${virusId}`)?.classList.contains('open');
+                parentBtn.innerHTML = isOpen ? `💬 收起 <span class="comment-count" id="count-${virusId}">${data.length}</span>` :
+                    `💬 评论 <span class="comment-count" id="count-${virusId}">${data.length}</span>`;
+            }
+        }
+        if (!data.length) {
+            list.innerHTML = `<div class="empty-state" style="padding:16px 0;font-size:14px;">
+                    <span class="text-muted">暂无评论，快来抢沙发！</span>
+                </div>`;
+            return;
+        }
+        let html = '';
+        for (const c of data) {
+            const isMine = c.user_id === currentUser?.id;
+            html += `
+                <div class="comment-item" data-comment-id="${c.id}">
+                    <div class="comment-body">
+                        <div class="comment-author">
+                            ${escapeHtml(c.user_name)}
+                            <span class="time">${formatTime(c.created_at)}</span>
+                            ${isMine ? '<span style="font-weight:400;color:#7a8fa8;font-size:12px;margin-left:6px;">· 我</span>' : ''}
+                        </div>
+                        <div class="comment-content">${escapeHtml(c.content)}</div>
+                    </div>
+                    <button class="comment-delete-btn ${isMine ? 'visible' : ''}" 
+                            data-comment-id="${c.id}" 
+                            data-virus-id="${virusId}"
+                            ${!isMine ? 'disabled style="opacity:0.3;cursor:not-allowed;"' : ''}
+                            title="${isMine ? '删除我的评论' : '只能删除自己的评论'}">
+                        ✕
+                    </button>
+                </div>
+            `;
+        }
+        list.innerHTML = html;
+        list.querySelectorAll('.comment-delete-btn.visible').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const commentId = btn.dataset.commentId;
+                if (!confirm('确定要删除这条评论吗？')) return;
+                try {
+                    const { error } = await supabaseClient
+                        .from('comments')
+                        .delete()
+                        .eq('id', commentId);
+                    if (error) throw error;
+                } catch (err) {
+                    console.error('删除评论失败', err);
+                    alert('删除失败，请重试');
+                }
+            });
+        });
+    }
+
+    // ================================================================
+    //  刷新
+    // ================================================================
+    refreshBtn.addEventListener('click', async () => {
+        showLoading(true);
+        try {
+            allViruses = await loadVirusesFromGitHub();
+            await renderViruses();
+            // 重新加载已展开的评论
+            $$('.comment-section.open').forEach(section => {
+                const vid = section.id.replace('comments-', '');
+                if (commentSubscriptions[vid]) {
+                    commentSubscriptions[vid]();
+                    delete commentSubscriptions[vid];
+                }
+                loadCommentsForVirus(vid);
+            });
+        } catch (err) {
+            alert('刷新失败：' + err.message);
+        } finally {
+            showLoading(false);
+        }
+    });
+
+    // ================================================================
+    //  启动应用
+    // ================================================================
+    async function initApp() {
+        if (SUPABASE_ANON_KEY === '你的 anon public key' || GITHUB_OWNER === '你的GitHub用户名') {
+            document.body.innerHTML = `
+                <div style="max-width:700px;margin:60px auto;padding:40px;background:#fff;border-radius:24px;box-shadow:0 8px 30px rgba(0,0,0,0.08);text-align:center;font-family:sans-serif;">
+                    <h2 style="color:#c0394b;">⚠️ 请先配置</h2>
+                    <p style="color:#4a5f7a;line-height:1.7;">在 HTML 代码开头的 <code>配置区域</code> 中修改：</p>
+                    <ul style="text-align:left;max-width:400px;margin:16px auto;background:#f8fafd;padding:16px 24px;border-radius:12px;color:#1e2a3a;">
+                        <li><code>SUPABASE_URL</code> 和 <code>SUPABASE_ANON_KEY</code></li>
+                        <li><code>GITHUB_OWNER</code> 和 <code>GITHUB_REPO</code></li>
+                        <li><code>BASE_PATH</code>（部署子目录）</li>
+                    </ul>
+                    <p style="color:#8a9bb5;font-size:14px;">确保在指定目录下创建 <code>viruses.json</code> 文件。</p>
+                    <hr style="border-color:#eee;margin:24px 0;" />
+                    <p style="font-size:13px;color:#b0c0d8;">星星の病毒论坛 · 私信版</p>
+                </div>
+            `;
+            return;
+        }
+
+        githubInfo.textContent = `数据源：静态JSON (${BASE_PATH}/viruses.json)`;
+
+        let authId = null;
+        if (storageAvailable) {
+            try {
+                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+                if (sessionError) {
+                    console.warn('获取会话失败，将重新登录:', sessionError);
+                } else if (session && session.user) {
+                    authId = session.user.id;
+                    console.log('✅ 复用已有匿名会话，用户ID:', authId);
+                }
+            } catch (e) {
+                console.warn('获取会话异常:', e);
+            }
+        }
+
+        if (!authId) {
+            const { data, error } = await supabaseClient.auth.signInAnonymously();
+            if (error) {
+                console.error('匿名登录失败', error);
+                showLoading(false);
+                virusGrid.innerHTML = `<div class="empty-state"><div class="icon">🚫</div><p>登录失败：${error.message}</p></div>`;
+                return;
+            }
+            authId = data.user.id;
+            console.log('✅ 新建匿名会话，用户ID:', authId);
+        }
+
+        const profile = await fetchUserProfile(authId);
+        if (profile && profile.name) {
+            currentUser = { id: authId, name: profile.name };
+            updateUserUI();
+        } else {
+            currentUser = { id: authId, name: null };
+            updateUserUI();
+            showLoading(false);
+            virusGrid.innerHTML = `<div class="empty-state"><div class="icon">🌟</div><p>请先设置你的昵称～</p></div>`;
+            const name = await showNameModal();
+            if (!name) return;
+        }
+
+        showLoading(true);
+        try {
+            allViruses = await loadVirusesFromGitHub();
+            await renderViruses();
+            showLoading(false);
+        } catch (err) {
+            showLoading(false);
+            virusGrid.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${escapeHtml(err.message)}</p></div>`;
+        }
+    }
+
+    initApp().catch(err => console.error('启动失败', err));
+
+    // 事件绑定（私信）
+    messageBtn.addEventListener('click', async () => {
+        if (!currentUser) {
+            alert('请先设置昵称');
+            return;
+        }
+        messageModal.classList.remove('hidden');
+        currentContactId = null;
+        await renderContactList();
+        subscribeMessages();
+    });
+    closeMsgModal.addEventListener('click', () => {
+        messageModal.classList.add('hidden');
+        if (messagesSubscription) {
+            supabaseClient.removeChannel(messagesSubscription);
+            messagesSubscription = null;
+        }
+    });
+    messageModal.addEventListener('click', (e) => {
+        if (e.target === messageModal) closeMsgModal.click();
+    });
+    sendMsgBtn.addEventListener('click', sendMessage);
+    msgInputText.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+    addContactBtn.addEventListener('click', addContact);
+    addContactInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addContact();
+    });
+
+    nameModal.addEventListener('click', (e) => {
+        if (e.target === nameModal) nameInput.focus();
+    });
+    uuidDisplay.addEventListener('click', () => {
+        if (currentUser && currentUser.id) {
+            navigator.clipboard.writeText(currentUser.id).then(() => {
+                uuidDisplay.textContent = '✅ 已复制!';
+                setTimeout(() => updateUserUI(), 2000);
+            }).catch(() => {
+                alert('复制失败，请手动复制: ' + currentUser.id);
+            });
+        }
+    });
+
+    console.log('⭐ 星星の病毒论坛 (私信版·评论计数预加载) 已启动！');
+    console.log('📁 数据源:', `${BASE_PATH}/viruses.json`);
+    console.log('🔒 localStorage 可用:', storageAvailable ? '是' : '否 (隐私模式)');
+</script>
+</body>
+</html>

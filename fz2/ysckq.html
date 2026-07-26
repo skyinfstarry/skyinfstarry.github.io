@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>全色域展示：16,777,216种颜色 | RGB颜色空间浏览器</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none; /* 避免拖动滑块时误选文字，不影响输入 */
+        }
+
+        body {
+            background: linear-gradient(145deg, #f0f2f5 0%, #e6e9ef 100%);
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 24px;
+        }
+
+        /* 主卡片 */
+        .color-explorer {
+            max-width: 1000px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(2px);
+            border-radius: 2rem;
+            box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.05);
+            padding: 1.8rem 2rem 2.2rem;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        h1 {
+            font-size: 1.9rem;
+            font-weight: 700;
+            margin: 0 0 0.25rem 0;
+            background: linear-gradient(135deg, #1f2b3c, #2c3e4e);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            letter-spacing: -0.3px;
+        }
+
+        .sub {
+            color: #4a5b6e;
+            border-left: 3px solid #3b82f6;
+            padding-left: 14px;
+            margin: 8px 0 20px 0;
+            font-weight: 400;
+            font-size: 0.95rem;
+        }
+
+        /* canvas 区域 */
+        .canvas-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1.8rem;
+            background: #2d2f36;
+            border-radius: 20px;
+            padding: 12px;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1), 0 10px 20px -5px rgba(0,0,0,0.2);
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+            width: 100%;
+            max-width: 512px;
+            height: auto;
+            cursor: crosshair;
+            border-radius: 12px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+            background: #111;
+        }
+
+        /* 控制栏 */
+        .controls {
+            background: #f8fafc;
+            border-radius: 1.5rem;
+            padding: 1.2rem 1.5rem;
+            margin: 1rem 0 1.2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.8);
+        }
+
+        .slider-group {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+
+        .slider-label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #eef2f6;
+            padding: 6px 16px;
+            border-radius: 60px;
+            font-weight: 600;
+            color: #1e2a3a;
+        }
+
+        .slider-label span:first-child {
+            font-size: 1.1rem;
+        }
+
+        input[type="range"] {
+            flex: 2;
+            min-width: 200px;
+            height: 6px;
+            -webkit-appearance: none;
+            background: linear-gradient(90deg, #000000, #0000ff, #ffffff);
+            border-radius: 10px;
+            outline: none;
+        }
+
+        input[type="range"]:focus {
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            border: 2px solid #1e3a8a;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: 0.1s;
+        }
+
+        .blue-preview {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background: #ffffffcc;
+            backdrop-filter: blur(4px);
+            padding: 6px 18px;
+            border-radius: 40px;
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        .blue-swatch {
+            width: 32px;
+            height: 32px;
+            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,0.2);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        button {
+            background: #ffffff;
+            border: none;
+            padding: 8px 22px;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            border: 1px solid #cdd9ed;
+            color: #1f2f3e;
+        }
+
+        button.primary {
+            background: #1e3a8a;
+            border-color: #1e3a8a;
+            color: white;
+            box-shadow: 0 4px 8px rgba(30,58,138,0.2);
+        }
+
+        button.primary:hover {
+            background: #2563eb;
+            transform: scale(0.98);
+        }
+
+        button:hover {
+            background: #eef3ff;
+            transform: translateY(-1px);
+        }
+
+        /* 信息面板 */
+        .info-panel {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 16px;
+            background: #ffffffd9;
+            border-radius: 1.2rem;
+            padding: 1rem 1.5rem;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            backdrop-filter: blur(4px);
+        }
+
+        .color-stats {
+            font-weight: 500;
+            background: #eef2ff;
+            padding: 5px 12px;
+            border-radius: 30px;
+            color: #0c4e6e;
+        }
+
+        .pick-info {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .pick-swatch {
+            width: 28px;
+            height: 28px;
+            border-radius: 10px;
+            border: 1px solid #ffffff80;
+        }
+
+        .footer-note {
+            font-size: 0.7rem;
+            text-align: center;
+            margin-top: 1.2rem;
+            color: #5b6e8c;
+        }
+
+        @media (max-width: 650px) {
+            .color-explorer {
+                padding: 1.2rem;
+            }
+            .slider-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="color-explorer">
+    <h1>🎨 全色域 · 1677万色</h1>
+    <div class="sub">
+        RGB 颜色空间完整覆盖 – 红·绿平面 (256×256)  ×  蓝通道滑动 = 16,777,216 种颜色
+    </div>
+
+    <!-- canvas 核心展示区 -->
+    <div class="canvas-container">
+        <canvas id="rgbCanvas" width="256" height="256" style="width:100%; height:auto; max-width:512px; image-rendering: crisp-edges; image-rendering: pixelated;"></canvas>
+    </div>
+
+    <!-- 交互控制区 -->
+    <div class="controls">
+        <div class="slider-group">
+            <div class="slider-label">
+                <span>🔵 蓝色通道 B</span>
+                <input type="range" id="blueSlider" min="0" max="255" value="128" step="1">
+            </div>
+            <div class="blue-preview">
+                <div class="blue-swatch" id="blueSwatch"></div>
+                <span id="blueHexValue">#000080</span>
+                <span id="blueNumValue">(128)</span>
+            </div>
+        </div>
+        <div class="action-buttons">
+            <button id="playBtn" class="primary">▶ 自动漫游 · 展示所有蓝色层</button>
+            <button id="stopBtn">⏹️ 停止</button>
+            <button id="resetBlueBtn">🎯 重置蓝色 (128)</button>
+        </div>
+        <div style="font-size:0.75rem; margin-top: 12px; color:#3b4e66;">
+            💡 当前平面 = 所有 (R,G) 组合 (65,536色) · 滑动滑块或点击播放，蓝色从0→255遍历全部1677万颜色
+        </div>
+    </div>
+
+    <!-- 实时信息 -->
+    <div class="info-panel">
+        <div class="color-stats">
+            📊 总颜色数: <strong>16,777,216</strong> (256³)<br>
+            🧩 当前子集: <strong>65,536</strong> 色 (红×绿全组合)
+        </div>
+        <div class="pick-info" id="hoverInfo">
+            <div class="pick-swatch" id="hoverSwatch"></div>
+            <span id="hoverColorText">鼠标悬停取色</span>
+        </div>
+    </div>
+    <div class="footer-note">
+        ✅ 红(R)为横坐标 (0→255)，绿(G)为纵坐标 (0→255)，蓝(B)由滑块控制。<br>
+        鼠标移动到画布上可查看当前红/绿值 + 当前蓝色构成的完整RGB颜色。
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ---------- DOM 元素绑定 ----------
+        const canvas = document.getElementById('rgbCanvas');
+        const ctx = canvas.getContext('2d');
+        const blueSlider = document.getElementById('blueSlider');
+        const blueHexSpan = document.getElementById('blueHexValue');
+        const blueNumSpan = document.getElementById('blueNumValue');
+        const blueSwatch = document.getElementById('blueSwatch');
+        const playBtn = document.getElementById('playBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const resetBlueBtn = document.getElementById('resetBlueBtn');
+        const hoverSwatch = document.getElementById('hoverSwatch');
+        const hoverColorText = document.getElementById('hoverColorText');
+
+        // 全局状态
+        let currentBlue = 128;          // 0-255
+        let animationInterval = null;
+        let isAnimating = false;
+
+        // ---------- 核心绘图函数: 基于当前蓝色值绘制红绿平面 (R:x, G:y) ----------
+        // canvas 大小 256x256, 每个像素代表 (r, g) 值, 蓝色统一为 currentBlue
+        function drawColorPlane(blueValue) {
+            // 确保 blue 在 0-255 范围内
+            const b = Math.min(255, Math.max(0, blueValue));
+            // 获取 ImageData 对象 (256 * 256)
+            const imageData = ctx.createImageData(256, 256);
+            const data = imageData.data; // Uint8ClampedArray
+            let idx = 0;
+            // 遍历每一行 (y 代表绿色分量 G) , 每一列 (x 代表红色分量 R)
+            for (let y = 0; y < 256; y++) {
+                for (let x = 0; x < 256; x++) {
+                    // R = x (0-255), G = y (0-255), B = b (固定)
+                    data[idx] = x;         // 红色通道
+                    data[idx+1] = y;       // 绿色通道
+                    data[idx+2] = b;       // 蓝色通道
+                    data[idx+3] = 255;     // 完全不透明 alpha
+                    idx += 4;
+                }
+            }
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        // ---------- 更新所有UI (滑块, 蓝色预览, 绘图) ----------
+        function updateBlueUIAndDraw(blue) {
+            currentBlue = blue;
+            // 更新滑块值 (不触发事件循环)
+            blueSlider.value = blue;
+            // 更新数字及hex显示
+            const hexBlue = blue.toString(16).padStart(2, '0');
+            const hexColor = `#${hexBlue}${hexBlue}${hexBlue}`;  // 纯蓝色灰度预览，但也可显示全色，但我们显示蓝色块更直观
+            // 蓝色色块展示纯蓝色效果: rgb(0,0,blue)
+            blueSwatch.style.backgroundColor = `rgb(0, 0, ${blue})`;
+            blueHexSpan.innerText = `#0000${hexBlue.toUpperCase()}`;
+            blueNumSpan.innerText = `(${blue})`;
+            // 重新绘制整个平面
+            drawColorPlane(blue);
+        }
+
+        // 重置蓝色到中间值 (128)
+        function resetToDefault() {
+            if (isAnimating) stopAnimation();
+            updateBlueUIAndDraw(128);
+        }
+
+        // ---------- 动画 (自动滑动蓝色 0 → 255 循环) 展示全部颜色 ----------
+        function startAnimation() {
+            if (animationInterval) clearInterval(animationInterval);
+            isAnimating = true;
+            animationInterval = setInterval(() => {
+                // 计算下一个蓝色值: 每次 +1，如果超过255则回到0
+                let nextBlue = currentBlue + 1;
+                if (nextBlue > 255) nextBlue = 0;
+                updateBlueUIAndDraw(nextBlue);
+            }, 80);  // 80ms 变化一帧 → 256*80ms ≈ 20.48秒一个完整周期，流畅且保留观赏性
+        }
+
+        function stopAnimation() {
+            if (animationInterval) {
+                clearInterval(animationInterval);
+                animationInterval = null;
+            }
+            isAnimating = false;
+        }
+
+        // ---------- 滑块手动控制 ----------
+        function onSliderChange() {
+            if (isAnimating) stopAnimation();
+            const newBlue = parseInt(blueSlider.value, 10);
+            updateBlueUIAndDraw(newBlue);
+        }
+
+        // ---------- 鼠标取色：获取canvas坐标对应 (R,G) 结合当前蓝色展示真实颜色 ----------
+        function handleCanvasMouseMove(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;     // canvas物理宽256 / 显示宽
+            const scaleY = canvas.height / rect.height;
+            // 获取相对位置 (px)
+            let mouseX = (e.clientX - rect.left) * scaleX;
+            let mouseY = (e.clientY - rect.top) * scaleY;
+            // 边界裁剪
+            mouseX = Math.min(255, Math.max(0, mouseX));
+            mouseY = Math.min(255, Math.max(0, mouseY));
+            const r = Math.floor(mouseX);
+            const g = Math.floor(mouseY);
+            const b = currentBlue;
+            // 构建rgb与hex
+            const hexR = r.toString(16).padStart(2, '0');
+            const hexG = g.toString(16).padStart(2, '0');
+            const hexB = b.toString(16).padStart(2, '0');
+            const hexColor = `#${hexR}${hexG}${hexB}`.toUpperCase();
+            // 更新悬浮预览色块
+            hoverSwatch.style.backgroundColor = hexColor;
+            hoverColorText.innerHTML = `🎯 RGB(${r}, ${g}, ${b}) &nbsp; ${hexColor}`;
+        }
+
+        // 鼠标离开canvas恢复友好提示
+        function handleCanvasMouseLeave() {
+            hoverSwatch.style.backgroundColor = "#2d3748";
+            hoverColorText.innerHTML = `✨ 鼠标移入画布查看具体颜色`;
+        }
+
+        // ---------- 初始化与事件注册 ----------
+        function init() {
+            // 初始绘制 (蓝色=128)
+            updateBlueUIAndDraw(128);
+            // 滑块事件
+            blueSlider.addEventListener('input', onSliderChange);
+            // 按钮事件
+            playBtn.addEventListener('click', () => {
+                if (isAnimating) stopAnimation();
+                startAnimation();
+            });
+            stopBtn.addEventListener('click', () => {
+                if (isAnimating) stopAnimation();
+            });
+            resetBlueBtn.addEventListener('click', () => {
+                if (isAnimating) stopAnimation();
+                resetToDefault();
+            });
+            // 鼠标追踪颜色
+            canvas.addEventListener('mousemove', handleCanvasMouseMove);
+            canvas.addEventListener('mouseleave', handleCanvasMouseLeave);
+
+            // 额外保险：页面卸载时清除定时器
+            window.addEventListener('beforeunload', () => {
+                if (animationInterval) clearInterval(animationInterval);
+            });
+        }
+
+        // 启动一切
+        init();
+    })();
+</script>
+</body>
+</html>

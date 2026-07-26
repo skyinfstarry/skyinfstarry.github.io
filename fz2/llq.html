@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web 浏览器 - 百度首页</title>
+    <style>
+        :root {
+            --bg: #f1f3f4;
+            --toolbar-bg: #ffffff;
+            --tab-active: #ffffff;
+            --tab-inactive: #e8eaed;
+            --tab-hover: #f1f3f4;
+            --border: #dadce0;
+            --text: #202124;
+            --text-secondary: #5f6368;
+            --address-bar-bg: #e8eaed;
+            --address-bar-focus: #ffffff;
+            --accent: #1a73e8;
+            --accent-hover: #1557b0;
+            --close-hover: #d93025;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.14);
+            --radius-sm: 6px;
+            --radius: 8px;
+            --radius-lg: 12px;
+            --transition: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+            --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font);
+            background: #1a1a2e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .browser-window {
+            width: 100%;
+            max-width: 1400px;
+            height: 90vh;
+            min-height: 600px;
+            background: var(--bg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg), 0 0 0 1px rgba(0, 0, 0, 0.08);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .window-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            background: #e8eaed;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .win-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: var(--transition);
+            flex-shrink: 0;
+        }
+        .win-dot.red { background: #ff5f57; }
+        .win-dot.yellow { background: #febc2e; }
+        .win-dot.green { background: #28c840; }
+        .win-dot:hover { transform: scale(1.25); filter: brightness(0.85); }
+        .window-title-bar {
+            flex: 1;
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-secondary);
+            letter-spacing: 0.3px;
+            pointer-events: none;
+        }
+
+        .tab-bar {
+            display: flex;
+            align-items: flex-end;
+            background: #e8eaed;
+            padding: 2px 8px 0 8px;
+            gap: 3px;
+            flex-shrink: 0;
+            min-height: 38px;
+            overflow: hidden;
+        }
+        .tabs-container {
+            display: flex;
+            align-items: flex-end;
+            gap: 3px;
+            flex: 1;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: #c4c7cc transparent;
+            padding-bottom: 4px;
+            min-height: 38px;
+        }
+        .tabs-container::-webkit-scrollbar { height: 3px; }
+        .tabs-container::-webkit-scrollbar-track { background: transparent; }
+        .tabs-container::-webkit-scrollbar-thumb { background: #c4c7cc; border-radius: 3px; }
+
+        .tab {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 8px 6px 7px 14px;
+            background: var(--tab-inactive);
+            border-radius: var(--radius) var(--radius) 0 0;
+            cursor: pointer;
+            white-space: nowrap;
+            min-width: 100px;
+            max-width: 210px;
+            flex-shrink: 0;
+            transition: var(--transition);
+            position: relative;
+            border: 1px solid transparent;
+            border-bottom: none;
+            font-size: 13px;
+            color: var(--text-secondary);
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .tab:hover { background: var(--tab-hover); }
+        .tab.active {
+            background: var(--tab-active);
+            color: var(--text);
+            border-color: var(--border);
+            z-index: 2;
+            box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.04);
+            font-weight: 500;
+        }
+        .tab .tab-icon { width: 16px; height: 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; opacity: 0.7; }
+        .tab.active .tab-icon { opacity: 1; }
+        .tab .tab-title { overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; line-height: 1.3; }
+        .tab .tab-close {
+            width: 20px; height: 20px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; font-size: 11px; color: transparent;
+            transition: var(--transition); border: none; background: transparent;
+            cursor: pointer; line-height: 1; margin-right: -2px;
+        }
+        .tab:hover .tab-close, .tab.active .tab-close { color: var(--text-secondary); background: transparent; }
+        .tab .tab-close:hover { background: #d3d5d9; color: var(--close-hover); }
+        .tab.active .tab-close:hover { background: #e0e0e0; }
+
+        .new-tab-btn {
+            width: 32px; height: 32px; border-radius: 50%;
+            border: none; background: transparent; cursor: pointer;
+            font-size: 20px; color: var(--text-secondary);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; transition: var(--transition);
+            margin-bottom: 2px; margin-left: 2px; line-height: 1;
+        }
+        .new-tab-btn:hover { background: #d3d5d9; color: var(--text); }
+
+        .toolbar {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 12px; background: var(--toolbar-bg);
+            border-bottom: 1px solid var(--border); flex-shrink: 0; flex-wrap: wrap;
+        }
+        .nav-btn {
+            width: 34px; height: 34px; border-radius: 50%;
+            border: none; background: transparent; cursor: pointer;
+            color: var(--text-secondary); display: flex; align-items: center;
+            justify-content: center; transition: var(--transition); flex-shrink: 0; padding: 0;
+        }
+        .nav-btn:hover { background: #e8eaed; color: var(--text); }
+        .nav-btn:active { background: #d3d5d9; transform: scale(0.94); }
+        .nav-btn:disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
+        .nav-btn svg { width: 18px; height: 18px; }
+
+        .address-bar-wrapper { flex: 1; position: relative; min-width: 200px; }
+        .address-bar {
+            width: 100%; height: 36px; border-radius: 22px;
+            border: 1.5px solid transparent; background: var(--address-bar-bg);
+            padding: 0 44px 0 40px; font-size: 14px; font-family: var(--font);
+            color: var(--text); outline: none; transition: var(--transition); letter-spacing: 0.2px;
+        }
+        .address-bar::placeholder { color: #9aa0a6; }
+        .address-bar:focus {
+            background: var(--address-bar-focus); border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.12);
+        }
+        .address-icon-left {
+            position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+            color: var(--text-secondary); pointer-events: none; font-size: 14px;
+            display: flex; align-items: center; opacity: 0.6; transition: var(--transition);
+        }
+        .address-bar:focus~.address-icon-left,
+        .address-bar-wrapper:focus-within .address-icon-left { opacity: 1; color: var(--accent); }
+        .address-icon-right {
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            color: var(--text-secondary); pointer-events: none; font-size: 12px;
+            opacity: 0; transition: var(--transition); display: flex; align-items: center; gap: 4px;
+        }
+        .address-bar-wrapper.loading .address-icon-right { opacity: 0.7; }
+        .loading-spinner {
+            width: 14px; height: 14px; border: 2px solid #d3d5d9;
+            border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .bookmarks-bar {
+            display: flex; align-items: center; gap: 4px;
+            padding: 6px 14px; background: var(--toolbar-bg);
+            border-bottom: 1px solid var(--border); flex-shrink: 0;
+            overflow-x: auto; scrollbar-width: none; flex-wrap: wrap;
+        }
+        .bookmarks-bar::-webkit-scrollbar { display: none; }
+        .bookmark-btn {
+            padding: 5px 12px; border-radius: 16px; border: none;
+            background: transparent; cursor: pointer; font-size: 12.5px;
+            color: var(--text-secondary); white-space: nowrap;
+            transition: var(--transition); font-family: var(--font);
+            flex-shrink: 0; letter-spacing: 0.2px;
+        }
+        .bookmark-btn:hover { background: #e8eaed; color: var(--text); }
+        .bookmark-btn:active { background: #d3d5d9; transform: scale(0.95); }
+        .bookmark-separator {
+            width: 1px; height: 16px; background: var(--border);
+            margin: 0 4px; flex-shrink: 0; border-radius: 1px;
+        }
+
+        .content-area { flex: 1; position: relative; background: #fff; overflow: hidden; min-height: 200px; }
+        .iframe-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+        .iframe-container iframe { width: 100%; height: 100%; border: none; display: block; }
+        .iframe-container.hidden { display: none; }
+
+        .status-bar {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 4px 16px; background: #f8f9fa; border-top: 1px solid var(--border);
+            font-size: 11px; color: var(--text-secondary); flex-shrink: 0;
+            min-height: 26px; letter-spacing: 0.2px;
+        }
+        .status-bar .hover-url { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+
+        @media (max-width: 768px) {
+            body { padding: 0; }
+            .browser-window { height: 100vh; max-width: 100%; border-radius: 0; }
+            .toolbar { gap: 4px; padding: 6px 8px; }
+            .nav-btn { width: 30px; height: 30px; }
+            .nav-btn svg { width: 16px; height: 16px; }
+            .address-bar { height: 32px; font-size: 13px; padding: 0 36px 0 34px; }
+            .tab { min-width: 70px; max-width: 140px; font-size: 11px; padding: 7px 4px 6px 10px; }
+            .bookmarks-bar { padding: 4px 8px; gap: 2px; }
+            .bookmark-btn { font-size: 11px; padding: 4px 8px; }
+        }
+        @media (max-width: 480px) {
+            .tab { min-width: 50px; max-width: 100px; padding: 6px 3px 5px 7px; gap: 3px; }
+            .tab .tab-close { width: 16px; height: 16px; font-size: 9px; }
+            .nav-btn { width: 26px; height: 26px; }
+            .address-bar { font-size: 12px; height: 28px; padding: 0 28px 0 28px; }
+            .bookmark-btn { font-size: 10px; padding: 3px 6px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="browser-window" id="browserWindow">
+        <div class="window-controls">
+            <span class="win-dot red" title="关闭浏览器"></span>
+            <span class="win-dot yellow" title="最小化"></span>
+            <span class="win-dot green" title="最大化"></span>
+            <span class="window-title-bar">🌐 Web 浏览器</span>
+        </div>
+        <div class="tab-bar" id="tabBar">
+            <div class="tabs-container" id="tabsContainer"></div>
+            <button class="new-tab-btn" id="newTabBtn" title="新建标签页 (Ctrl+T)">+</button>
+        </div>
+        <div class="toolbar">
+            <button class="nav-btn" id="backBtn" title="后退 (Alt+←)" disabled>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 4 7 12 15 20"></polyline></svg>
+            </button>
+            <button class="nav-btn" id="forwardBtn" title="前进 (Alt+→)" disabled>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 4 17 12 9 20"></polyline></svg>
+            </button>
+            <button class="nav-btn" id="refreshBtn" title="刷新 (F5)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 10 21 4 15 4"></polyline><path d="M21 4c-2.5-2-5.7-3-9-3C6.5 1 2 5.5 2 11s4.5 10 10 10c4.3 0 7.9-2.7 9.3-6.5"></path></svg>
+            </button>
+            <button class="nav-btn" id="homeBtn" title="主页">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12L12 3l9 9"></path><rect x="5" y="10" width="14" height="11" rx="1"></rect></svg>
+            </button>
+            <div class="address-bar-wrapper" id="addressBarWrapper">
+                <span class="address-icon-left">🔒</span>
+                <input type="text" class="address-bar" id="addressBar" placeholder="输入网址或搜索内容..." autocomplete="off" spellcheck="false">
+                <span class="address-icon-right"><span class="loading-spinner"></span></span>
+            </div>
+            <button class="nav-btn" id="externalBtn" title="在系统浏览器中打开">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            </button>
+        </div>
+        <div class="bookmarks-bar" id="bookmarksBar">
+            <button class="bookmark-btn" data-url="https://www.baidu.com">🔍 百度</button>
+            <button class="bookmark-btn" data-url="https://en.wikipedia.org">📚 Wikipedia</button>
+            <button class="bookmark-btn" data-url="https://github.com">💻 GitHub</button>
+            <span class="bookmark-separator"></span>
+            <button class="bookmark-btn" data-url="https://developer.mozilla.org">📖 MDN</button>
+            <button class="bookmark-btn" data-url="https://example.com">🌐 Example</button>
+            <button class="bookmark-btn" data-url="https://httpbin.org">🧪 HTTPBin</button>
+        </div>
+        <div class="content-area" id="contentArea"></div>
+        <div class="status-bar">
+            <span class="hover-url" id="statusUrl">就绪</span>
+            <span id="statusTime"></span>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const tabsContainer = document.getElementById('tabsContainer');
+            const contentArea = document.getElementById('contentArea');
+            const addressBar = document.getElementById('addressBar');
+            const addressBarWrapper = document.getElementById('addressBarWrapper');
+            const backBtn = document.getElementById('backBtn');
+            const forwardBtn = document.getElementById('forwardBtn');
+            const refreshBtn = document.getElementById('refreshBtn');
+            const homeBtn = document.getElementById('homeBtn');
+            const newTabBtn = document.getElementById('newTabBtn');
+            const externalBtn = document.getElementById('externalBtn');
+            const statusUrl = document.getElementById('statusUrl');
+            const statusTime = document.getElementById('statusTime');
+            const bookmarksBar = document.getElementById('bookmarksBar');
+            const addressIconLeft = addressBarWrapper.querySelector('.address-icon-left');
+
+            // 默认首页改为百度
+            const DEFAULT_HOME = 'https://www.baidu.com/';
+
+            // 新标签页的漂亮界面（保留备用）
+            const NEW_TAB_HTML = `
+            <!DOCTYPE html>
+            <html lang="zh-CN">
+            <head>
+            <meta charset="UTF-8">
+            <style>
+            *{margin:0;padding:0;box-sizing:border-box;}
+            body{
+            font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+            background:linear-gradient(135deg,#f5f7fa 0%,#e4e9f0 30%,#dce3ed 60%,#f0f2f5 100%);
+            display:flex;align-items:center;justify-content:center;min-height:100vh;
+            -webkit-user-select:none;user-select:none;
+            }
+            .nt-container{text-align:center;max-width:650px;padding:40px 30px;}
+            .nt-logo{font-size:72px;margin-bottom:20px;animation:float 3s ease-in-out infinite;}
+            @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+            .nt-title{font-size:32px;font-weight:700;color:#202124;margin-bottom:8px;letter-spacing:-0.5px;}
+            .nt-subtitle{font-size:15px;color:#5f6368;margin-bottom:32px;line-height:1.5;}
+            .nt-search-box{display:flex;align-items:center;background:#fff;border-radius:28px;padding:4px 8px 4px 22px;
+            box-shadow:0 2px 12px rgba(0,0,0,0.08);border:2px solid transparent;
+            transition:all 0.25s;max-width:520px;margin:0 auto 30px;}
+            .nt-search-box:focus-within{border-color:#1a73e8;box-shadow:0 4px 20px rgba(26,115,232,0.18);}
+            .nt-search-input{flex:1;border:none;outline:none;font-size:15px;padding:10px 0;background:transparent;
+            font-family:inherit;color:#202124;}
+            .nt-search-btn{background:#1a73e8;color:#fff;border:none;border-radius:22px;padding:9px 20px;
+            font-size:14px;cursor:pointer;font-family:inherit;font-weight:500;transition:all 0.2s;white-space:nowrap;}
+            .nt-search-btn:hover{background:#1557b0;transform:scale(1.03);}
+            .nt-links{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;}
+            .nt-link{display:flex;align-items:center;gap:7px;padding:10px 18px;background:#fff;border-radius:20px;
+            text-decoration:none;color:#202124;font-size:13.5px;font-weight:500;transition:all 0.2s;
+            box-shadow:0 1px 3px rgba(0,0,0,0.06);cursor:pointer;border:none;font-family:inherit;}
+            .nt-link:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.12);color:#1a73e8;}
+            .nt-link-icon{font-size:20px;}
+            </style>
+            </head>
+            <body>
+            <div class="nt-container">
+            <div class="nt-logo">🌐</div>
+            <div class="nt-title">欢迎使用 Web 浏览器</div>
+            <div class="nt-subtitle">在地址栏输入网址开始浏览，或使用下方快捷链接</div>
+            <div class="nt-search-box" id="ntSearchBox">
+            <input type="text" class="nt-search-input" id="ntSearchInput" placeholder="搜索网页或输入网址..." autofocus>
+            <button class="nt-search-btn" id="ntSearchBtn">🔍 搜索</button>
+            </div>
+            <div class="nt-links">
+            <a class="nt-link" href="https://www.baidu.com" target="_top"><span class="nt-link-icon">🔍</span>百度</a>
+            <a class="nt-link" href="https://en.wikipedia.org" target="_top"><span class="nt-link-icon">📚</span>Wikipedia</a>
+            <a class="nt-link" href="https://github.com" target="_top"><span class="nt-link-icon">💻</span>GitHub</a>
+            <a class="nt-link" href="https://example.com" target="_top"><span class="nt-link-icon">🌐</span>Example</a>
+            </div>
+            </div>
+            <script>
+            document.getElementById('ntSearchBtn').addEventListener('click',function(){
+            var q=document.getElementById('ntSearchInput').value.trim();
+            if(q){window.parent.postMessage({type:'navigate',url:q},'*');}
+            });
+            document.getElementById('ntSearchInput').addEventListener('keydown',function(e){
+            if(e.key==='Enter'){
+            var q=this.value.trim();
+            if(q){window.parent.postMessage({type:'navigate',url:q},'*');}
+            }
+            });
+            document.querySelectorAll('.nt-link').forEach(function(link){
+            link.addEventListener('click',function(e){
+            e.preventDefault();
+            window.parent.postMessage({type:'navigate',url:this.href},'*');
+            });
+            });
+            <\/script>
+            </body>
+            </html>
+            `;
+
+            let tabs = [];
+            let activeTabId = null;
+            let tabIdCounter = 0;
+
+            function isURL(str) {
+                if (!str || typeof str !== 'string') return false;
+                const trimmed = str.trim();
+                if (!trimmed) return false;
+                if (/\s/.test(trimmed)) return false;
+                if (/^(https?:\/\/|ftp:\/\/|file:\/\/)/i.test(trimmed)) return true;
+                if (/^(\d{1,3}\.){3}\d{1,3}(:\d+)?(\/.*)?$/i.test(trimmed)) return true;
+                if (/^localhost(:\d+)?(\/.*)?$/i.test(trimmed)) return true;
+                if (/\./.test(trimmed) && /^[a-zA-Z0-9][a-zA-Z0-9\-_]*(\.[a-zA-Z0-9][a-zA-Z0-9\-_]*)+(\/.*)?(:\d+)?$/i.test(trimmed)) return true;
+                if (/\.(com|org|net|io|dev|cn|co|uk|us|de|jp|fr|info|biz|app|xyz|me|tv|cc|ai|edu|gov|mil)([\/?#].*)?$/i.test(trimmed)) return true;
+                return false;
+            }
+
+            function normalizeURL(input) {
+                const trimmed = input.trim();
+                if (!trimmed) return '';
+                if (trimmed === 'about:newtab' || trimmed === 'about:blank') return trimmed;
+                if (isURL(trimmed)) {
+                    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+                    if (/^ftp:\/\//i.test(trimmed)) return trimmed;
+                    if (/^file:\/\//i.test(trimmed)) return trimmed;
+                    if (/^localhost/i.test(trimmed)) return 'http://' + trimmed;
+                    return 'https://' + trimmed;
+                }
+                // 使用百度搜索
+                return 'https://www.baidu.com/s?wd=' + encodeURIComponent(trimmed);
+            }
+
+            function getDisplayURL(url) {
+                if (!url) return '';
+                if (url === 'about:newtab') return '新标签页';
+                if (url === 'about:blank') return 'about:blank';
+                let display = url.replace(/^https?:\/\//i, '');
+                if (display.startsWith('www.')) display = display.substring(4);
+                if (display.length > 60) display = display.substring(0, 57) + '...';
+                return display;
+            }
+
+            function updateTime() {
+                const now = new Date();
+                const h = now.getHours().toString().padStart(2, '0');
+                const m = now.getMinutes().toString().padStart(2, '0');
+                const s = now.getSeconds().toString().padStart(2, '0');
+                statusTime.textContent = h + ':' + m + ':' + s;
+            }
+
+            function createTab(url, activate = true) {
+                const id = ++tabIdCounter;
+                const normalizedURL = url ? normalizeURL(url) : DEFAULT_HOME;
+
+                const tabData = {
+                    id: id,
+                    url: normalizedURL,
+                    title: normalizedURL === 'about:newtab' ? '新标签页' : getDisplayURL(normalizedURL),
+                    history: [normalizedURL],
+                    historyIndex: 0,
+                };
+
+                const container = document.createElement('div');
+                container.className = 'iframe-container';
+                container.dataset.tabId = id;
+                const iframe = document.createElement('iframe');
+                iframe.sandbox = 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-modals allow-downloads';
+                iframe.referrerPolicy = 'no-referrer';
+                iframe.loading = 'lazy';
+                if (normalizedURL === 'about:newtab') {
+                    iframe.srcdoc = NEW_TAB_HTML;
+                } else if (normalizedURL === 'about:blank') {
+                    iframe.src = 'about:blank';
+                } else {
+                    iframe.src = normalizedURL;
+                }
+                iframe.addEventListener('load', function() { handleIframeLoad(id, iframe); });
+                iframe.addEventListener('error', function() { handleIframeError(id); });
+                container.appendChild(iframe);
+                contentArea.appendChild(container);
+
+                tabData.iframe = iframe;
+                tabData.container = container;
+                tabs.push(tabData);
+                createTabElement(tabData);
+
+                if (activate) {
+                    activateTab(id);
+                } else {
+                    container.classList.add('hidden');
+                }
+                updateTabVisibility();
+                return tabData;
+            }
+
+            function createTabElement(tabData) {
+                const tabEl = document.createElement('div');
+                tabEl.className = 'tab';
+                tabEl.dataset.tabId = tabData.id;
+                tabEl.draggable = false;
+                tabEl.innerHTML = `
+                    <span class="tab-icon">🌐</span>
+                    <span class="tab-title" title="${escapeHTML(tabData.url)}">${escapeHTML(tabData.title)}</span>
+                    <button class="tab-close" data-close-tab="${tabData.id}" title="关闭标签页">✕</button>
+                `;
+                tabEl.addEventListener('click', function(e) {
+                    if (e.target.closest('[data-close-tab]')) {
+                        e.stopPropagation();
+                        closeTab(tabData.id);
+                        return;
+                    }
+                    activateTab(tabData.id);
+                });
+                tabEl.addEventListener('mousedown', function(e) {
+                    if (e.button === 1) { e.preventDefault(); closeTab(tabData.id); }
+                });
+                tabsContainer.appendChild(tabEl);
+                tabData.tabElement = tabEl;
+            }
+
+            function activateTab(id) {
+                const tabData = tabs.find(t => t.id === id);
+                if (!tabData) return;
+                if (activeTabId === id) {
+                    updateAddressBarForTab(tabData);
+                    updateNavButtons(tabData);
+                    return;
+                }
+                if (activeTabId !== null) {
+                    const prevTab = tabs.find(t => t.id === activeTabId);
+                    if (prevTab && prevTab.container) prevTab.container.classList.add('hidden');
+                    if (prevTab && prevTab.tabElement) prevTab.tabElement.classList.remove('active');
+                }
+                activeTabId = id;
+                if (tabData.container) tabData.container.classList.remove('hidden');
+                if (tabData.tabElement) {
+                    tabData.tabElement.classList.add('active');
+                    tabData.tabElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+                }
+                updateAddressBarForTab(tabData);
+                updateNavButtons(tabData);
+                updateAddressIcon(tabData.url);
+                focusIframe(tabData);
+                statusUrl.textContent = tabData.url === 'about:newtab' ? '新标签页' : tabData.url;
+            }
+
+            function closeTab(id) {
+                if (tabs.length <= 1) {
+                    const tabData = tabs.find(t => t.id === id);
+                    if (tabData) removeTabData(tabData);
+                    createTab(DEFAULT_HOME, true);
+                    return;
+                }
+                const tabData = tabs.find(t => t.id === id);
+                if (!tabData) return;
+                const wasActive = activeTabId === id;
+                const currentIndex = tabs.indexOf(tabData);
+                removeTabData(tabData);
+                if (wasActive) {
+                    const newActiveTab = tabs[Math.min(currentIndex, tabs.length - 1)];
+                    if (newActiveTab) activateTab(newActiveTab.id);
+                    else if (tabs.length > 0) activateTab(tabs[0].id);
+                }
+            }
+
+            function removeTabData(tabData) {
+                if (tabData.container && tabData.container.parentNode) tabData.container.parentNode.removeChild(tabData.container);
+                if (tabData.tabElement && tabData.tabElement.parentNode) tabData.tabElement.parentNode.removeChild(tabData.tabElement);
+                const idx = tabs.indexOf(tabData);
+                if (idx > -1) tabs.splice(idx, 1);
+                if (activeTabId === tabData.id) activeTabId = null;
+                updateTabVisibility();
+            }
+
+            function updateTabVisibility() {
+                if (tabs.length === 0) createTab(DEFAULT_HOME, true);
+                if (activeTabId === null && tabs.length > 0) activateTab(tabs[0].id);
+            }
+
+            function getActiveTab() {
+                return tabs.find(t => t.id === activeTabId) || null;
+            }
+
+            function focusIframe(tabData) {
+                try { if (tabData && tabData.iframe && tabData.iframe.contentWindow) tabData.iframe.focus(); } catch (e) {}
+            }
+
+            function handleIframeLoad(tabId, iframe) {
+                const tabData = tabs.find(t => t.id === tabId);
+                if (!tabData) return;
+                try {
+                    const doc = iframe.contentDocument;
+                    if (doc && doc.title && doc.title.trim()) {
+                        tabData.title = doc.title.trim();
+                        if (tabData.tabElement) {
+                            const titleEl = tabData.tabElement.querySelector('.tab-title');
+                            if (titleEl) { titleEl.textContent = tabData.title; titleEl.title = tabData.title; }
+                        }
+                    }
+                } catch (e) { tabData.title = getDisplayURL(tabData.url); }
+                try {
+                    const currentURL = iframe.contentWindow.location.href;
+                    if (currentURL && currentURL !== 'about:blank' && currentURL !== tabData.url) {
+                        tabData.url = currentURL;
+                        if (tabData.historyIndex < tabData.history.length - 1) tabData.history = tabData.history.slice(0, tabData.historyIndex + 1);
+                        tabData.history.push(currentURL);
+                        tabData.historyIndex = tabData.history.length - 1;
+                    }
+                } catch (e) {}
+                if (tabId === activeTabId) {
+                    updateAddressBarForTab(tabData);
+                    updateNavButtons(tabData);
+                    updateAddressIcon(tabData.url);
+                    statusUrl.textContent = tabData.url === 'about:newtab' ? '新标签页' : tabData.url;
+                    addressBarWrapper.classList.remove('loading');
+                }
+            }
+
+            function handleIframeError(tabId) {
+                const tabData = tabs.find(t => t.id === tabId);
+                if (!tabData) return;
+                if (tabId === activeTabId) {
+                    addressBarWrapper.classList.remove('loading');
+                    statusUrl.textContent = '⚠️ 页面加载失败 - ' + tabData.url;
+                }
+            }
+
+            function updateAddressBarForTab(tabData) {
+                if (!tabData) return;
+                if (tabData.url === 'about:newtab') addressBar.value = '';
+                else if (tabData.url === 'about:blank') addressBar.value = 'about:blank';
+                else addressBar.value = tabData.url;
+                try {
+                    if (tabData.iframe && tabData.iframe.contentWindow) {
+                        const realURL = tabData.iframe.contentWindow.location.href;
+                        if (realURL && realURL !== 'about:blank') { addressBar.value = realURL; tabData.url = realURL; }
+                    }
+                } catch (e) {}
+            }
+
+            function updateAddressIcon(url) {
+                if (!url || url === 'about:newtab' || url === 'about:blank') {
+                    addressIconLeft.textContent = '🌐'; addressIconLeft.style.opacity = '0.6'; addressIconLeft.style.color = '';
+                    return;
+                }
+                if (url.startsWith('https://')) {
+                    addressIconLeft.textContent = '🔒'; addressIconLeft.style.opacity = '1'; addressIconLeft.style.color = '#1e8e3e';
+                } else if (url.startsWith('http://')) {
+                    addressIconLeft.textContent = '⚠️'; addressIconLeft.style.opacity = '1'; addressIconLeft.style.color = '#e37400';
+                } else {
+                    addressIconLeft.textContent = '🌐'; addressIconLeft.style.opacity = '0.6'; addressIconLeft.style.color = '';
+                }
+            }
+
+            function updateNavButtons(tabData) {
+                if (!tabData) { backBtn.disabled = true; forwardBtn.disabled = true; return; }
+                backBtn.disabled = tabData.historyIndex <= 0;
+                forwardBtn.disabled = tabData.historyIndex >= tabData.history.length - 1;
+            }
+
+            function navigateTab(tabData, url) {
+                if (!tabData) return;
+                const normalizedURL = normalizeURL(url);
+                if (!normalizedURL) return;
+                if (tabData.historyIndex < tabData.history.length - 1) tabData.history = tabData.history.slice(0, tabData.historyIndex + 1);
+                tabData.history.push(normalizedURL);
+                tabData.historyIndex = tabData.history.length - 1;
+                tabData.url = normalizedURL;
+                tabData.title = getDisplayURL(normalizedURL);
+                if (normalizedURL === 'about:newtab') {
+                    tabData.iframe.srcdoc = NEW_TAB_HTML;
+                    tabData.iframe.src = 'about:blank';
+                    setTimeout(() => { tabData.iframe.srcdoc = NEW_TAB_HTML; }, 50);
+                } else if (normalizedURL === 'about:blank') {
+                    tabData.iframe.src = 'about:blank';
+                    tabData.iframe.removeAttribute('srcdoc');
+                } else {
+                    tabData.iframe.removeAttribute('srcdoc');
+                    tabData.iframe.src = normalizedURL;
+                }
+                updateAddressBarForTab(tabData);
+                updateNavButtons(tabData);
+                updateAddressIcon(normalizedURL);
+                if (tabData.tabElement) {
+                    const titleEl = tabData.tabElement.querySelector('.tab-title');
+                    if (titleEl) { titleEl.textContent = tabData.title; titleEl.title = normalizedURL; }
+                }
+                addressBarWrapper.classList.add('loading');
+                statusUrl.textContent = '正在加载 ' + normalizedURL + ' ...';
+            }
+
+            function goBack() {
+                const tabData = getActiveTab();
+                if (!tabData || tabData.historyIndex <= 0) return;
+                tabData.historyIndex--;
+                const url = tabData.history[tabData.historyIndex];
+                tabData.url = url;
+                tabData.title = getDisplayURL(url);
+                if (url === 'about:newtab') tabData.iframe.srcdoc = NEW_TAB_HTML;
+                else { tabData.iframe.removeAttribute('srcdoc'); tabData.iframe.src = url; }
+                updateAddressBarForTab(tabData);
+                updateNavButtons(tabData);
+                updateAddressIcon(url);
+                addressBarWrapper.classList.add('loading');
+                statusUrl.textContent = '加载中...';
+            }
+
+            function goForward() {
+                const tabData = getActiveTab();
+                if (!tabData || tabData.historyIndex >= tabData.history.length - 1) return;
+                tabData.historyIndex++;
+                const url = tabData.history[tabData.historyIndex];
+                tabData.url = url;
+                tabData.title = getDisplayURL(url);
+                if (url === 'about:newtab') tabData.iframe.srcdoc = NEW_TAB_HTML;
+                else { tabData.iframe.removeAttribute('srcdoc'); tabData.iframe.src = url; }
+                updateAddressBarForTab(tabData);
+                updateNavButtons(tabData);
+                updateAddressIcon(url);
+                addressBarWrapper.classList.add('loading');
+                statusUrl.textContent = '加载中...';
+            }
+
+            function refreshTab() {
+                const tabData = getActiveTab();
+                if (!tabData) return;
+                addressBarWrapper.classList.add('loading');
+                statusUrl.textContent = '刷新中...';
+                if (tabData.url === 'about:newtab') tabData.iframe.srcdoc = NEW_TAB_HTML;
+                else tabData.iframe.src = tabData.iframe.src;
+            }
+
+            addressBar.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const input = addressBar.value.trim();
+                    if (!input) return;
+                    const tabData = getActiveTab();
+                    if (tabData) navigateTab(tabData, input);
+                    addressBar.blur();
+                }
+                if (e.key === 'Escape') {
+                    const tabData = getActiveTab();
+                    if (tabData) updateAddressBarForTab(tabData);
+                    addressBar.blur();
+                    addressBar.select();
+                }
+            });
+            addressBar.addEventListener('focus', function() { setTimeout(() => addressBar.select(), 50); });
+
+            backBtn.addEventListener('click', goBack);
+            forwardBtn.addEventListener('click', goForward);
+            refreshBtn.addEventListener('click', refreshTab);
+            homeBtn.addEventListener('click', function() {
+                const tabData = getActiveTab();
+                if (tabData) navigateTab(tabData, DEFAULT_HOME);
+            });
+            newTabBtn.addEventListener('click', function() { createTab(DEFAULT_HOME, true); });
+            externalBtn.addEventListener('click', function() {
+                const tabData = getActiveTab();
+                if (!tabData) return;
+                let urlToOpen = tabData.url;
+                if (urlToOpen === 'about:newtab' || urlToOpen === 'about:blank') urlToOpen = 'https://www.baidu.com';
+                window.open(urlToOpen, '_blank', 'noopener,noreferrer');
+            });
+
+            bookmarksBar.addEventListener('click', function(e) {
+                const btn = e.target.closest('.bookmark-btn');
+                if (!btn) return;
+                const url = btn.dataset.url;
+                if (url) { const tabData = getActiveTab(); if (tabData) navigateTab(tabData, url); }
+            });
+
+            window.addEventListener('message', function(e) {
+                if (e.data && e.data.type === 'navigate' && e.data.url) {
+                    const tabData = getActiveTab();
+                    if (tabData) navigateTab(tabData, e.data.url);
+                }
+            });
+
+            document.addEventListener('keydown', function(e) {
+                const ctrl = e.ctrlKey || e.metaKey;
+                const alt = e.altKey;
+                if (ctrl && e.key === 't') { e.preventDefault(); createTab(DEFAULT_HOME, true); }
+                if (ctrl && e.key === 'w') { e.preventDefault(); const tabData = getActiveTab(); if (tabData) closeTab(tabData.id); }
+                if (ctrl && e.key === 'l') { e.preventDefault(); addressBar.focus(); addressBar.select(); }
+                if (e.key === 'F5') { e.preventDefault(); refreshTab(); }
+                if (alt && e.key === 'ArrowLeft') { e.preventDefault(); goBack(); }
+                if (alt && e.key === 'ArrowRight') { e.preventDefault(); goForward(); }
+                if (ctrl && e.key >= '1' && e.key <= '9') {
+                    e.preventDefault();
+                    const index = parseInt(e.key) - 1;
+                    if (index < tabs.length) activateTab(tabs[index].id);
+                }
+            });
+
+            document.querySelector('.win-dot.red').addEventListener('click', function() {
+                while (tabs.length > 0) removeTabData(tabs[0]);
+                createTab(DEFAULT_HOME, true);
+                statusUrl.textContent = '就绪';
+            });
+            document.querySelector('.win-dot.yellow').addEventListener('click', function() {
+                statusUrl.textContent = '💡 提示：这只是一个模拟浏览器窗口';
+                setTimeout(() => { const tabData = getActiveTab(); statusUrl.textContent = tabData ? (tabData.url === 'about:newtab' ? '新标签页' : tabData.url) : '就绪'; }, 2000);
+            });
+            document.querySelector('.win-dot.green').addEventListener('click', function() {
+                const bw = document.getElementById('browserWindow');
+                if (bw.style.maxWidth === '100%') {
+                    bw.style.maxWidth = '1400px'; bw.style.height = '90vh'; bw.style.borderRadius = 'var(--radius-lg)';
+                } else {
+                    bw.style.maxWidth = '100%'; bw.style.height = '100vh'; bw.style.borderRadius = '0';
+                }
+                statusUrl.textContent = '✅ 窗口已调整';
+                setTimeout(() => { const tabData = getActiveTab(); statusUrl.textContent = tabData ? (tabData.url === 'about:newtab' ? '新标签页' : tabData.url) : '就绪'; }, 1500);
+            });
+
+            contentArea.addEventListener('mouseover', function(e) {
+                const iframe = e.target.closest('iframe');
+                if (!iframe) return;
+                try {
+                    const doc = iframe.contentDocument;
+                    if (doc) {
+                        const links = doc.querySelectorAll('a');
+                        links.forEach(link => {
+                            if (!link.dataset.hoverTracked) {
+                                link.dataset.hoverTracked = '1';
+                                link.addEventListener('mouseenter', function() { statusUrl.textContent = this.href || ''; });
+                                link.addEventListener('mouseleave', function() {
+                                    const tabData = getActiveTab();
+                                    statusUrl.textContent = tabData ? (tabData.url === 'about:newtab' ? '新标签页' : tabData.url) : '就绪';
+                                });
+                            }
+                        });
+                    }
+                } catch (e) {}
+            });
+
+            function escapeHTML(str) {
+                if (!str) return '';
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            function init() {
+                updateTime();
+                setInterval(updateTime, 1000);
+                createTab(DEFAULT_HOME, true);
+                setTimeout(() => { addressBar.focus(); addressBar.select(); }, 300);
+            }
+
+            init();
+            console.log('🌐 浏览器已启动，首页：百度，搜索引擎：百度');
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,2272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>星星的网页</title>
+    <!-- 不蒜子计数器 -->
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <style>
+        /* ========== 全局样式 ========== */
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Microsoft YaHei', 'PingFang SC', 'Helvetica Neue', sans-serif;
+            background-image: url('https://cdn.pixabay.com/photo/2017/08/30/01/05/milky-way-2695569_1280.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-color: #0a0c10;
+        }
+
+        /* 星星画布 */
+        #starCanvas {
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* 标题 */
+        .title-container {
+            position: fixed;
+            top: 20px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            z-index: 2;
+            pointer-events: none;
+            opacity: 0;
+            animation: titleRise 2s ease-out forwards;
+        }
+        .pure-title {
+            display: inline-block;
+            font-size: 48px;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+            letter-spacing: 4px;
+        }
+        @keyframes titleRise {
+            0% { opacity: 0; transform: translateY(30px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 主按钮容器 */
+        .button-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+
+        /* 液态玻璃按钮通用 */
+        .liquid-glass-btn {
+            display: inline-block;
+            padding: 18px 45px;
+            font-size: 26px;
+            font-weight: bold;
+            color: white;
+            text-decoration: none;
+            letter-spacing: 2px;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 70%);
+            border-radius: 80px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 
+                0 0 20px rgba(255, 255, 255, 0.2),
+                inset 2px 2px 5px rgba(255, 255, 255, 0.5),
+                inset -2px -2px 5px rgba(0, 0, 0, 0.1);
+            transition: all 0.4s ease;
+            cursor: pointer;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        .liquid-glass-btn:hover {
+            transform: scale(1.05);
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.15) 70%);
+            box-shadow: 
+                0 0 30px rgba(255, 255, 255, 0.4),
+                inset 3px 3px 8px rgba(255, 255, 255, 0.6),
+                inset -3px -3px 8px rgba(0, 0, 0, 0.15);
+            border-color: rgba(255, 255, 255, 0.6);
+        }
+        .liquid-glass-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* 管理面板 */
+        .manage-panel {
+            position: fixed;
+            top: 60%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 7;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 70%);
+            backdrop-filter: blur(5px);
+            border-radius: 60px;
+            padding: 15px 30px;
+            display: flex;
+            gap: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: opacity 0.3s;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .manage-panel.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .manage-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: inset 0 0 5px rgba(255,255,255,0.3);
+            white-space: nowrap;
+        }
+        .manage-btn:hover {
+            background: rgba(255,255,255,0.4);
+            transform: scale(1.05);
+        }
+        .manage-btn.active {
+            background: rgba(255, 100, 100, 0.5);
+            border-color: rgba(255, 200, 200, 0.8);
+            box-shadow: 0 0 15px rgba(255,0,0,0.5);
+        }
+        body.delete-mode {
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path fill="white" stroke="black" stroke-width="2" d="M8 4 L24 4 L28 12 L24 20 L8 20 L4 12 L8 4 Z M10 8 L14 8 L14 16 L10 16 L10 8 Z M18 8 L22 8 L22 16 L18 16 L18 8 Z M12 22 L20 22 L18 28 L14 28 L12 22 Z"/></svg>') 16 16, auto;
+        }
+        body.delete-mode .ball {
+            filter: drop-shadow(0 0 8px red);
+            transition: filter 0.1s;
+        }
+
+        /* 模态框通用样式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.3);
+            z-index: 10;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            backdrop-filter: blur(2px);
+        }
+        /* 新增模态框提高层级，避免遮挡 */
+        .modal-overlay[data-level="mc"] {
+            z-index: 40;
+        }
+        .modal-overlay[data-level="sky"] {
+            z-index: 41;
+        }
+        .modal-content {
+            width: 80%;
+            max-width: 400px;
+            max-height: 60vh;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 70%);
+            border-radius: 30px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2), inset 2px 2px 5px rgba(255, 255, 255, 0.5), inset -2px -2px 5px rgba(0, 0, 0, 0.1);
+            color: white;
+            transform: translateY(100%);
+            transition: transform 0.4s ease-out;
+            overflow-y: auto;
+        }
+        .modal-overlay.show .modal-content {
+            transform: translateY(0);
+        }
+        .modal-overlay.hide .modal-content {
+            transform: translateY(100%);
+        }
+        .friend-list {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0 0;
+            text-align: left;
+        }
+        .friend-list li {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 40px;
+            padding: 12px 20px;
+            margin-bottom: 10px;
+            font-size: 18px;
+            font-family: monospace;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+        .modal-title {
+            font-size: 28px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 5px;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+        .modal-sub {
+            text-align: center;
+            font-size: 16px;
+            opacity: 0.8;
+            margin-top: -5px;
+        }
+        .close-hint {
+            text-align: center;
+            font-size: 14px;
+            opacity: 0.6;
+            margin-top: 15px;
+            font-style: italic;
+        }
+
+        /* 主页小球样式 */
+        .ball {
+            position: fixed;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            z-index: 5;
+            cursor: grab;
+            user-select: none;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            will-change: left, top;
+            transition: box-shadow 0.1s;
+            touch-action: none; /* 防止触摸滚动 */
+        }
+        .ball-liquid {
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.8) 5%, rgba(255, 255, 255, 0.2) 60%, rgba(255, 255, 255, 0) 80%);
+            background-color: rgba(100, 200, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 
+                0 0 20px rgba(255, 255, 255, 0.3),
+                inset 5px 5px 10px rgba(255, 255, 255, 0.6),
+                inset -5px -5px 10px rgba(0, 0, 0, 0.2);
+        }
+        .ball-frosted {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 
+                0 0 30px rgba(255, 255, 255, 0.2),
+                inset 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+        .ball:active {
+            cursor: grabbing;
+        }
+
+        /* 访问计数器 */
+        .visit-counter {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            color: white;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-size: 16px;
+            z-index: 100;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            pointer-events: none;
+            font-family: 'Microsoft YaHei', sans-serif;
+            letter-spacing: 1px;
+        }
+
+        /* 游戏菜单 */
+        .game-menu-content {
+            text-align: center;
+        }
+        .game-menu-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 60px;
+            font-size: 24px;
+            margin: 20px 0;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+        }
+        .game-menu-btn:hover {
+            background: rgba(255,255,255,0.4);
+            transform: scale(1.05);
+        }
+
+        /* 游戏容器 */
+        #gameContainer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 30;
+            display: none;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            color: white;
+            overflow: hidden;
+        }
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+        }
+        .game-ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 31;
+            pointer-events: none;
+        }
+        .game-ui button {
+            pointer-events: auto;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-size: 18px;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+        }
+        .score {
+            background: rgba(0,0,0,0.5);
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-size: 20px;
+        }
+        #addGameBallBtn {
+            position: absolute;
+            bottom: 30px;
+            left: 20px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid white;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 40px;
+            font-size: 18px;
+            backdrop-filter: blur(5px);
+            cursor: pointer;
+            z-index: 31;
+        }
+        /* 丢珠子游戏专用UI */
+        #dropperUI {
+            position: absolute;
+            bottom: 30px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 10px;
+            z-index: 32;
+        }
+        #dropperUI button {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid white;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 40px;
+            font-size: 18px;
+            backdrop-filter: blur(5px);
+            cursor: pointer;
+        }
+        #dropperUI .info {
+            background: rgba(0,0,0,0.6);
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-size: 18px;
+            backdrop-filter: blur(5px);
+        }
+        @media (max-width: 768px) {
+            .pure-title { font-size: 32px; }
+            .liquid-glass-btn { font-size: 22px; padding: 15px 35px; }
+            .modal-content { width: 90%; padding: 20px; }
+            .friend-list li { font-size: 16px; padding: 10px 15px; }
+            .ball { width: 60px; height: 60px; }
+            .manage-panel { top: 65%; padding: 10px 15px; gap: 10px; flex-wrap: wrap; justify-content: center; }
+            .manage-btn { font-size: 14px; padding: 8px 12px; }
+            .visit-counter { bottom: 10px; right: 10px; font-size: 14px; padding: 6px 12px; }
+            .game-menu-btn { font-size: 20px; padding: 12px 25px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 星星画布 -->
+    <canvas id="starCanvas"></canvas>
+
+    <!-- 初始两个小球 -->
+    <div class="ball ball-liquid" id="ballLiquid"></div>
+    <div class="ball ball-frosted" id="ballFrosted"></div>
+
+    <!-- 标题 -->
+    <div class="title-container">
+        <div class="pure-title">✨ 欢迎来到星星的网页 ✨</div>
+    </div>
+
+    <!-- 主按钮容器 -->
+    <div class="button-container">
+        <button class="liquid-glass-btn collidable-btn" id="friendBtn">
+            添加星星的好友
+        </button>
+        <button class="liquid-glass-btn collidable-btn" id="manageBallBtn">
+            管理小球
+        </button>
+        <button class="liquid-glass-btn collidable-btn" id="gameMenuBtn">
+            🎮小游戏
+        </button>
+        <button class="liquid-glass-btn collidable-btn" onclick="window.open('fz.html', '_blank')">
+            更多
+        </button>
+    </div>
+
+    <!-- 管理面板 -->
+    <div class="manage-panel" id="managePanel">
+        <button class="manage-btn" id="deleteModeBtn">🔨 删除模式</button>
+        <button class="manage-btn" id="addLiquidBtn">➕ 新增液态球</button>
+        <button class="manage-btn" id="addFrostedBtn">➕ 新增磨砂球</button>
+    </div>
+
+    <!-- 好友码模态框 -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-content">
+            <div class="modal-title">星星的好友码</div>
+            <div class="modal-sub">选择一个复制添加(记得告诉星星你叫什么哦)</div>
+            <ul class="friend-list" id="friendList"></ul>
+            <div class="close-hint">我也是有底线的[○･｀Д´･○]点击空白处关闭</div>
+        </div>
+    </div>
+
+    <!-- 游戏菜单模态框（冰壶 + 丢珠子 + 自动冰壶 + MC + 光遇） -->
+    <div class="modal-overlay" id="gameMenuOverlay">
+        <div class="modal-content game-menu-content">
+            <div class="modal-title">🎮 选择游戏</div>
+            <div class="game-menu-btn" id="curlingGameBtn">🥌 冰壶游戏</div>
+            <div class="game-menu-btn" id="curlingAutoGameBtn">🥌 冰壶游戏(自动版)</div>
+            <div class="game-menu-btn" id="dropperGameBtn">🔴 丢珠子</div>
+            <!-- 我的世界按钮 -->
+            <div class="game-menu-btn" id="mcGameBtn">我的世界(MC)</div>
+            <!-- 新增光遇按钮 -->
+            <div class="game-menu-btn" id="skyGameBtn">光遇</div>
+            <div class="close-hint">点击空白处关闭</div>
+        </div>
+    </div>
+
+    <!-- MC 主菜单 (电脑版/手机版) 模态框 -->
+    <div class="modal-overlay" id="mcMainOverlay" data-level="mc">
+        <div class="modal-content game-menu-content">
+            <div class="modal-title">我的世界</div>
+            <div class="game-menu-btn" id="mcPcBtn">电脑版</div>
+            <div class="game-menu-btn" id="mcMobileBtn">手机版</div>
+            <div class="close-hint">点击空白处返回上级</div>
+        </div>
+    </div>
+
+    <!-- 电脑版子菜单 (PCL2 / 官方启动器 / HMCL) -->
+    <div class="modal-overlay" id="mcPcSubOverlay" data-level="mc">
+        <div class="modal-content game-menu-content">
+            <div class="modal-title">电脑启动器</div>
+            <div class="game-menu-btn" id="mcPcl2Btn">PCL2启动器</div>
+            <div class="game-menu-btn" id="mcOfficialBtn">官方启动器</div>
+            <div class="game-menu-btn" id="mcHmclBtn">HMCL启动器</div>
+            <div class="close-hint">点击空白处返回上级</div>
+        </div>
+    </div>
+
+    <!-- PCL2 下载选项菜单 -->
+    <div class="modal-overlay" id="mcPcl2SubOverlay" data-level="mc">
+        <div class="modal-content game-menu-content">
+            <div class="modal-title">PCL2 下载</div>
+            <div class="game-menu-btn" id="mcLanzouBtn">蓝奏云下载 (提取码pcl2)</div>
+            <div class="game-menu-btn" id="mcAfdianBtn">爱发电主页 (龙腾猫跃)</div>
+            <div class="game-menu-btn" id="mcQuarkBtn">夸克云盘下载</div>
+            <div class="close-hint">点击空白处返回上级</div>
+        </div>
+    </div>
+
+    <!-- 手机版子菜单 (HMCL-PE 和 网易版) -->
+    <div class="modal-overlay" id="mcMobileSubOverlay" data-level="mc">
+        <div class="modal-content game-menu-content">
+            <div class="modal-title">手机启动器</div>
+            <div class="game-menu-btn" id="mcHmclPeBtn">HMCL-PE (提取码4eie)</div>
+            <div class="game-menu-btn" id="mcNetEaseBtn">网易版</div>
+            <div class="close-hint">点击空白处返回上级</div>
+        </div>
+    </div>
+
+    <!-- 通用空菜单模态框 (备用) -->
+    <div class="modal-overlay" id="emptyMenuOverlay" data-level="mc">
+        <div class="modal-content game-menu-content">
+            <div class="modal-title">🌀 空菜单</div>
+            <div style="font-size: 20px; margin: 30px 0; opacity: 0.7;">✨ 这里暂时什么都没有 ✨</div>
+            <div class="close-hint">点击空白处关闭</div>
+        </div>
+    </div>
+
+    <!-- ========== 新增 光遇 模态框 ========== -->
+    <!-- 光遇主菜单（国服/国际服） -->
+    <div class="modal-overlay" id="skyMainOverlay" data-level="sky">
+        <div class="modal-content game-menu-content">
+            <div class="modal-title">光遇版本</div>
+            <div class="game-menu-btn" id="skyCnBtn">国服</div>
+            <div class="game-menu-btn" id="skyIntlBtn">国际服</div>
+            <div class="close-hint">点击空白处返回上级</div>
+        </div>
+    </div>
+
+    <!-- 光遇国际服子菜单（苹果/安卓/电脑） -->
+    <div class="modal-overlay" id="skyInternationalOverlay" data-level="sky">
+        <div class="modal-content game-menu-content">
+            <div class="modal-title">国际服</div>
+            <div class="game-menu-btn" id="skyIosBtn">苹果</div>
+            <div class="game-menu-btn" id="skyAndroidBtn">安卓</div>
+            <div class="game-menu-btn" id="skyPcBtn">电脑</div>
+            <div class="close-hint">点击空白处返回上级</div>
+        </div>
+    </div>
+
+    <!-- 游戏容器 -->
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div class="game-ui">
+            <button id="backToHomeBtn">⬅️ 返回主页</button>
+            <div class="score" id="gameScore">得分: 0</div>
+        </div>
+        <!-- 冰壶游戏的增加冰球按钮 -->
+        <button id="addGameBallBtn">➕ 增加冰球</button>
+        <!-- 丢珠子游戏的专用UI (默认隐藏) -->
+        <div id="dropperUI" style="display: none;">
+            <div class="info" id="dropperBalls">剩余: 10</div>
+            <button id="dropperFireBtn">发射</button>
+            <button id="dropperResetBtn">重置</button>
+        </div>
+    </div>
+
+    <!-- 访问计数器 -->
+    <div class="visit-counter">
+        👁️ 总访问人次：<span id="busuanzi_value_site_pv"></span>
+    </div>
+
+    <script>
+        (function() {
+            // ==================== 主页功能 (保持不变) ====================
+            const canvas = document.getElementById('starCanvas');
+            const ctx = canvas.getContext('2d');
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+
+            const stars = [];
+            const starCount = 200;
+            for (let i = 0; i < starCount; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: Math.random() * 2 + 1,
+                    brightness: Math.random() * 0.8 + 0.2,
+                    speed: 0.002 + Math.random() * 0.005
+                });
+            }
+            function animateStars() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                stars.forEach(star => {
+                    const twinkle = Math.sin(Date.now() * star.speed + star.x) * 0.2 + 0.8;
+                    const alpha = star.brightness * twinkle;
+                    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                    ctx.beginPath();
+                    ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                requestAnimationFrame(animateStars);
+            }
+            animateStars();
+
+            // 好友码数据
+            const friendCodesRaw = "6RCW-6P8T-Y9XV,FD5H-D56D-P9Q0,5N12-S9CM-H10N";
+            const friendCodes = friendCodesRaw.split(/[，,]+/).filter(code => code.trim() !== '');
+            const friendList = document.getElementById('friendList');
+            friendList.innerHTML = friendCodes.map(code => `<li>${code.trim()}</li>`).join('');
+
+            // 模态框控制 (好友)
+            const modalOverlay = document.getElementById('modalOverlay');
+            const friendBtn = document.getElementById('friendBtn');
+            let isModalOpen = false;
+            let hideTimeout = null;
+
+            // 获取小球元素（动态数组，会变化）
+            const ballLiquid = document.getElementById('ballLiquid');
+            const ballFrosted = document.getElementById('ballFrosted');
+            let balls = [ballLiquid, ballFrosted];
+
+            // ---------- 管理小球相关 ----------
+            const manageBtn = document.getElementById('manageBallBtn');
+            const managePanel = document.getElementById('managePanel');
+            const deleteModeBtn = document.getElementById('deleteModeBtn');
+            const addLiquidBtn = document.getElementById('addLiquidBtn');
+            const addFrostedBtn = document.getElementById('addFrostedBtn');
+            let deleteMode = false;
+
+            manageBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                managePanel.classList.toggle('show');
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!managePanel.contains(e.target) && e.target !== manageBtn) {
+                    managePanel.classList.remove('show');
+                }
+            });
+
+            deleteModeBtn.addEventListener('click', () => {
+                deleteMode = !deleteMode;
+                deleteModeBtn.classList.toggle('active', deleteMode);
+                if (deleteMode) {
+                    document.body.classList.add('delete-mode');
+                } else {
+                    document.body.classList.remove('delete-mode');
+                }
+            });
+
+            addLiquidBtn.addEventListener('click', () => {
+                createNewBall('liquid');
+            });
+
+            addFrostedBtn.addEventListener('click', () => {
+                createNewBall('frosted');
+            });
+
+            function createNewBall(type) {
+                const id = 'ball_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+                const ballDiv = document.createElement('div');
+                ballDiv.className = `ball ball-${type}`;
+                ballDiv.id = id;
+                document.body.appendChild(ballDiv);
+
+                const ballSize = 80;
+                const maxLeft = window.innerWidth - ballSize;
+                const left = Math.random() * maxLeft;
+                const top = -100;
+
+                ballDiv.style.left = left + 'px';
+                ballDiv.style.top = top + 'px';
+
+                balls.push(ballDiv);
+
+                const radius = ballSize / 2;
+                const physicsObj = {
+                    x: left,
+                    y: top,
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: Math.random() * 2,
+                    radius: radius,
+                    dragging: false,
+                    mass: 1,
+                    id: id,
+                    lastMouseX: 0, lastMouseY: 0, lastMouseTime: 0,
+                    dragOffsetX: 0, dragOffsetY: 0,
+                    touchId: null
+                };
+                physics.push(physicsObj);
+            }
+
+            // ---------- 删除小球（带破碎效果）----------
+            function deleteBall(ballElement) {
+                const id = ballElement.id;
+                const pIndex = physics.findIndex(p => p.id === id);
+                if (pIndex === -1) return;
+                const p = physics[pIndex];
+
+                const isLiquid = ballElement.classList.contains('ball-liquid');
+                const type = isLiquid ? 'liquid' : 'frosted';
+
+                const x = p.x;
+                const y = p.y;
+                const vx = p.vx;
+                const vy = p.vy;
+                const originalRadius = p.radius;
+
+                physics.splice(pIndex, 1);
+                const ballIndex = balls.findIndex(b => b.id === id);
+                if (ballIndex !== -1) balls.splice(ballIndex, 1);
+                ballElement.remove();
+
+                const fragmentCount = 4 + Math.floor(Math.random() * 3);
+                for (let i = 0; i < fragmentCount; i++) {
+                    const fragRadius = originalRadius * (0.2 + Math.random() * 0.2);
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist = originalRadius * 0.5 * Math.random();
+                    const fragX = x + Math.cos(angle) * dist;
+                    const fragY = y + Math.sin(angle) * dist;
+                    const fragVx = vx + (Math.random() - 0.5) * 4;
+                    const fragVy = vy + (Math.random() - 0.5) * 4 - 2;
+                    const fragId = 'frag_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+                    const fragDiv = document.createElement('div');
+                    fragDiv.className = `ball ball-${type}`;
+                    fragDiv.id = fragId;
+                    fragDiv.style.width = (fragRadius * 2) + 'px';
+                    fragDiv.style.height = (fragRadius * 2) + 'px';
+                    fragDiv.style.left = fragX + 'px';
+                    fragDiv.style.top = fragY + 'px';
+                    document.body.appendChild(fragDiv);
+                    balls.push(fragDiv);
+
+                    const fragPhysics = {
+                        x: fragX,
+                        y: fragY,
+                        vx: fragVx,
+                        vy: fragVy,
+                        radius: fragRadius,
+                        dragging: false,
+                        mass: 0.3,
+                        id: fragId,
+                        lastMouseX: 0, lastMouseY: 0, lastMouseTime: 0,
+                        dragOffsetX: 0, dragOffsetY: 0,
+                        touchId: null
+                    };
+                    physics.push(fragPhysics);
+
+                    setTimeout(() => {
+                        const idx = physics.findIndex(fp => fp.id === fragId);
+                        if (idx !== -1) physics.splice(idx, 1);
+                        const ballIdx = balls.findIndex(b => b.id === fragId);
+                        if (ballIdx !== -1) balls.splice(ballIdx, 1);
+                        const fragElem = document.getElementById(fragId);
+                        if (fragElem) fragElem.remove();
+                    }, 2000);
+                }
+            }
+
+            // ---------- 物理引擎相关 ----------
+            const BASE_GRAVITY = 0.3;
+            const GRAVITY_SENSITIVITY = 0.2;
+            let gravityX = 0;
+            let gravityY = BASE_GRAVITY;
+
+            const BOUNCE = 0.7;
+            const FRICTION = 0.99;
+            const BUTTON_BOUNCE = 0.6;
+
+            const physics = [];
+
+            function initPhysics() {
+                balls.forEach((ball, idx) => {
+                    const rect = ball.getBoundingClientRect();
+                    const radius = rect.width / 2;
+                    physics[idx] = {
+                        x: parseFloat(ball.style.left) || rect.left,
+                        y: parseFloat(ball.style.top) || rect.top,
+                        vx: (Math.random() - 0.5) * 2,
+                        vy: Math.random() * 2,
+                        radius: radius,
+                        dragging: false,
+                        mass: 1,
+                        id: ball.id,
+                        lastMouseX: 0, lastMouseY: 0, lastMouseTime: 0,
+                        dragOffsetX: 0, dragOffsetY: 0,
+                        touchId: null
+                    };
+                });
+            }
+            initPhysics();
+
+            const collidableBtns = document.querySelectorAll('.collidable-btn');
+            let buttonRects = [];
+
+            function updateButtonRects() {
+                buttonRects = Array.from(collidableBtns).map(btn => {
+                    const rect = btn.getBoundingClientRect();
+                    return {
+                        left: rect.left,
+                        top: rect.top,
+                        right: rect.right,
+                        bottom: rect.bottom,
+                        width: rect.width,
+                        height: rect.height
+                    };
+                });
+            }
+            updateButtonRects();
+            window.addEventListener('resize', updateButtonRects);
+
+            function handleCollisionWithButton(p, rect) {
+                const closestX = Math.max(rect.left, Math.min(p.x, rect.right));
+                const closestY = Math.max(rect.top, Math.min(p.y, rect.bottom));
+
+                const dx = p.x - closestX;
+                const dy = p.y - closestY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const minDist = p.radius;
+
+                if (dist < minDist && dist > 0.001) {
+                    const nx = dx / dist;
+                    const ny = dy / dist;
+
+                    const overlap = minDist - dist;
+                    p.x += nx * overlap;
+                    p.y += ny * overlap;
+
+                    const vn = p.vx * nx + p.vy * ny;
+                    if (vn < 0) {
+                        const vt_x = p.vx - vn * nx;
+                        const vt_y = p.vy - vn * ny;
+                        p.vx = vt_x - vn * BUTTON_BOUNCE * nx;
+                        p.vy = vt_y - vn * BUTTON_BOUNCE * ny;
+                    }
+                    return true;
+                }
+                return false;
+            }
+
+            function updatePhysics() {
+                const width = window.innerWidth;
+                const height = window.innerHeight;
+
+                physics.forEach((p, idx) => {
+                    if (p.dragging) return;
+
+                    p.vx *= FRICTION;
+                    p.vy *= FRICTION;
+                    p.vx += gravityX;
+                    p.vy += gravityY;
+
+                    let newX = p.x + p.vx;
+                    let newY = p.y + p.vy;
+
+                    const r = p.radius;
+                    if (newX < r) { newX = r; p.vx = -p.vx * BOUNCE; }
+                    if (newX > width - r) { newX = width - r; p.vx = -p.vx * BOUNCE; }
+                    if (newY < r) { newY = r; p.vy = -p.vy * BOUNCE; }
+                    if (newY > height - r) { newY = height - r; p.vy = -p.vy * BOUNCE; }
+
+                    p.x = newX;
+                    p.y = newY;
+
+                    const ball = document.getElementById(p.id);
+                    if (ball) {
+                        ball.style.left = p.x + 'px';
+                        ball.style.top = p.y + 'px';
+                    }
+                });
+
+                for (let i = 0; i < physics.length; i++) {
+                    for (let j = i + 1; j < physics.length; j++) {
+                        const p1 = physics[i];
+                        const p2 = physics[j];
+                        if (p1.dragging && p2.dragging) continue;
+
+                        const dx = p2.x - p1.x;
+                        const dy = p2.y - p1.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        const minDist = p1.radius + p2.radius;
+
+                        if (dist < minDist && dist > 0.001) {
+                            const nx = dx / dist;
+                            const ny = dy / dist;
+                            const vRelX = p2.vx - p1.vx;
+                            const vRelY = p2.vy - p1.vy;
+                            const vRelN = vRelX * nx + vRelY * ny;
+
+                            if (vRelN < 0) {
+                                const e = 0.7;
+                                const impulse = -(1 + e) * vRelN / (1/p1.mass + 1/p2.mass);
+                                if (!p1.dragging) {
+                                    p1.vx -= impulse / p1.mass * nx;
+                                    p1.vy -= impulse / p1.mass * ny;
+                                }
+                                if (!p2.dragging) {
+                                    p2.vx += impulse / p2.mass * nx;
+                                    p2.vy += impulse / p2.mass * ny;
+                                }
+
+                                const overlap = minDist - dist;
+                                if (!p1.dragging && !p2.dragging) {
+                                    p1.x -= overlap * nx * 0.5;
+                                    p1.y -= overlap * ny * 0.5;
+                                    p2.x += overlap * nx * 0.5;
+                                    p2.y += overlap * ny * 0.5;
+                                } else if (!p1.dragging) {
+                                    p1.x -= overlap * nx;
+                                    p1.y -= overlap * ny;
+                                } else if (!p2.dragging) {
+                                    p2.x += overlap * nx;
+                                    p2.y += overlap * ny;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                physics.forEach(p => {
+                    if (p.dragging) return;
+                    buttonRects.forEach(rect => {
+                        handleCollisionWithButton(p, rect);
+                    });
+                    const ball = document.getElementById(p.id);
+                    if (ball) {
+                        ball.style.left = p.x + 'px';
+                        ball.style.top = p.y + 'px';
+                    }
+                });
+            }
+
+            function animate() {
+                updatePhysics();
+                requestAnimationFrame(animate);
+            }
+            animate();
+
+            // ---------- 设备方向重力感应 ----------
+            function handleOrientation(event) {
+                let beta = event.beta;
+                let gamma = event.gamma;
+                if (beta === null || gamma === null) return;
+                const maxAngle = 60;
+                let x = gamma / maxAngle;
+                let y = beta / maxAngle;
+                x = Math.max(-1, Math.min(1, x));
+                y = Math.max(-1, Math.min(1, y));
+                gravityX = x * BASE_GRAVITY * GRAVITY_SENSITIVITY;
+                gravityY = BASE_GRAVITY + y * BASE_GRAVITY * GRAVITY_SENSITIVITY;
+            }
+
+            function requestDeviceOrientation() {
+                if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    DeviceOrientationEvent.requestPermission()
+                        .then(permissionState => {
+                            if (permissionState === 'granted') {
+                                window.addEventListener('deviceorientation', handleOrientation);
+                            }
+                        })
+                        .catch(console.error);
+                } else {
+                    window.addEventListener('deviceorientation', handleOrientation);
+                }
+            }
+
+            function enableOrientationOnUserGesture() {
+                requestDeviceOrientation();
+                document.removeEventListener('touchstart', enableOrientationOnUserGesture);
+                document.removeEventListener('click', enableOrientationOnUserGesture);
+            }
+            document.addEventListener('touchstart', enableOrientationOnUserGesture);
+            document.addEventListener('click', enableOrientationOnUserGesture);
+
+            // ---------- 事件监听（支持鼠标和触摸）----------
+            function getPointerEvent(e) {
+                if (e.touches) {
+                    return e.touches[0];
+                }
+                return e;
+            }
+
+            function handlePointerStart(e) {
+                const target = e.target;
+                if (!target.classList.contains('ball')) return;
+                e.preventDefault();
+
+                if (deleteMode) {
+                    deleteBall(target);
+                    return;
+                }
+
+                const pointer = getPointerEvent(e);
+                const id = target.id;
+                const p = physics.find(p => p.id === id);
+                if (!p) return;
+                if (p.dragging) return;
+
+                p.dragging = true;
+                target.style.cursor = 'grabbing';
+
+                if (e.touches) {
+                    p.touchId = e.touches[0].identifier;
+                }
+
+                const rect = target.getBoundingClientRect();
+                p.dragOffsetX = pointer.clientX - rect.left;
+                p.dragOffsetY = pointer.clientY - rect.top;
+
+                p.lastMouseX = pointer.clientX;
+                p.lastMouseY = pointer.clientY;
+                p.lastMouseTime = performance.now();
+
+                p.vx = 0;
+                p.vy = 0;
+            }
+
+            function handlePointerMove(e) {
+                e.preventDefault();
+                const pointer = getPointerEvent(e);
+                physics.forEach(p => {
+                    if (!p.dragging) return;
+
+                    if (e.touches && p.touchId !== undefined) {
+                        let matchedTouch = null;
+                        for (let i = 0; i < e.touches.length; i++) {
+                            if (e.touches[i].identifier === p.touchId) {
+                                matchedTouch = e.touches[i];
+                                break;
+                            }
+                        }
+                        if (!matchedTouch) return;
+                        const ball = document.getElementById(p.id);
+                        if (!ball) return;
+
+                        let newLeft = matchedTouch.clientX - p.dragOffsetX;
+                        let newTop = matchedTouch.clientY - p.dragOffsetY;
+
+                        const ballSize = ball.offsetWidth;
+                        const maxLeft = window.innerWidth - ballSize;
+                        const maxTop = window.innerHeight - ballSize;
+                        newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+                        newTop = Math.max(0, Math.min(newTop, maxTop));
+
+                        p.x = newLeft;
+                        p.y = newTop;
+                        ball.style.left = newLeft + 'px';
+                        ball.style.top = newTop + 'px';
+
+                        const now = performance.now();
+                        const dt = now - p.lastMouseTime;
+                        if (dt > 5) {
+                            p.vx = (matchedTouch.clientX - p.lastMouseX) / dt * 15;
+                            p.vy = (matchedTouch.clientY - p.lastMouseY) / dt * 15;
+                            p.lastMouseX = matchedTouch.clientX;
+                            p.lastMouseY = matchedTouch.clientY;
+                            p.lastMouseTime = now;
+                        }
+                    } else if (!e.touches) {
+                        const ball = document.getElementById(p.id);
+                        if (!ball) return;
+
+                        let newLeft = pointer.clientX - p.dragOffsetX;
+                        let newTop = pointer.clientY - p.dragOffsetY;
+
+                        const ballSize = ball.offsetWidth;
+                        const maxLeft = window.innerWidth - ballSize;
+                        const maxTop = window.innerHeight - ballSize;
+                        newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+                        newTop = Math.max(0, Math.min(newTop, maxTop));
+
+                        p.x = newLeft;
+                        p.y = newTop;
+                        ball.style.left = newLeft + 'px';
+                        ball.style.top = newTop + 'px';
+
+                        const now = performance.now();
+                        const dt = now - p.lastMouseTime;
+                        if (dt > 5) {
+                            p.vx = (pointer.clientX - p.lastMouseX) / dt * 15;
+                            p.vy = (pointer.clientY - p.lastMouseY) / dt * 15;
+                            p.lastMouseX = pointer.clientX;
+                            p.lastMouseY = pointer.clientY;
+                            p.lastMouseTime = now;
+                        }
+                    }
+                });
+            }
+
+            function handlePointerEnd(e) {
+                if (e.touches) {
+                    physics.forEach(p => {
+                        if (p.dragging && p.touchId !== undefined) {
+                            let stillExists = false;
+                            for (let i = 0; i < e.touches.length; i++) {
+                                if (e.touches[i].identifier === p.touchId) {
+                                    stillExists = true;
+                                    break;
+                                }
+                            }
+                            if (!stillExists) {
+                                p.dragging = false;
+                                p.touchId = undefined;
+                                const ball = document.getElementById(p.id);
+                                if (ball) ball.style.cursor = 'grab';
+                                const maxSpeed = 10;
+                                if (Math.abs(p.vx) > maxSpeed) p.vx = (p.vx > 0 ? maxSpeed : -maxSpeed);
+                                if (Math.abs(p.vy) > maxSpeed) p.vy = (p.vy > 0 ? maxSpeed : -maxSpeed);
+                            }
+                        }
+                    });
+                } else {
+                    physics.forEach(p => {
+                        if (p.dragging) {
+                            p.dragging = false;
+                            const ball = document.getElementById(p.id);
+                            if (ball) ball.style.cursor = 'grab';
+                            const maxSpeed = 10;
+                            if (Math.abs(p.vx) > maxSpeed) p.vx = (p.vx > 0 ? maxSpeed : -maxSpeed);
+                            if (Math.abs(p.vy) > maxSpeed) p.vy = (p.vy > 0 ? maxSpeed : -maxSpeed);
+                        }
+                    });
+                }
+            }
+
+            document.addEventListener('mousedown', handlePointerStart);
+            document.addEventListener('touchstart', handlePointerStart, { passive: false });
+            document.addEventListener('mousemove', handlePointerMove);
+            document.addEventListener('touchmove', handlePointerMove, { passive: false });
+            document.addEventListener('mouseup', handlePointerEnd);
+            document.addEventListener('touchend', handlePointerEnd);
+            document.addEventListener('touchcancel', handlePointerEnd);
+
+            document.addEventListener('dragstart', (e) => {
+                if (e.target.classList.contains('ball')) e.preventDefault();
+            });
+
+            window.addEventListener('resize', () => {
+                updateButtonRects();
+                physics.forEach(p => {
+                    const ball = document.getElementById(p.id);
+                    if (!ball) return;
+                    const ballSize = ball.offsetWidth;
+                    p.radius = ballSize / 2;
+                    const maxLeft = window.innerWidth - ballSize;
+                    const maxTop = window.innerHeight - ballSize;
+                    p.x = Math.max(0, Math.min(p.x, maxLeft));
+                    p.y = Math.max(0, Math.min(p.y, maxTop));
+                    ball.style.left = p.x + 'px';
+                    ball.style.top = p.y + 'px';
+                });
+            });
+
+            // ---------- 模态框逻辑（好友码）----------
+            function openModal() {
+                if (isModalOpen) return;
+                if (hideTimeout) {
+                    clearTimeout(hideTimeout);
+                    hideTimeout = null;
+                }
+
+                // 将小球移到两侧并停止运动
+                physics.forEach(p => {
+                    if (!p.dragging) {
+                        const ball = document.getElementById(p.id);
+                        if (!ball) return;
+                        const ballSize = ball.offsetWidth;
+                        if (ball.classList.contains('ball-liquid')) {
+                            p.x = 10;
+                        } else {
+                            p.x = window.innerWidth - ballSize - 10;
+                        }
+                        p.y = Math.max(p.radius, Math.min(p.y, window.innerHeight - p.radius));
+                        p.vx = 0;
+                        p.vy = 0;
+                        ball.style.left = p.x + 'px';
+                        ball.style.top = p.y + 'px';
+                    }
+                });
+
+                modalOverlay.classList.remove('hide');
+                modalOverlay.style.display = 'flex';
+                void modalOverlay.offsetWidth;
+                modalOverlay.classList.add('show');
+                isModalOpen = true;
+            }
+
+            function closeModal() {
+                if (!isModalOpen) return;
+                modalOverlay.classList.remove('show');
+                modalOverlay.classList.add('hide');
+                hideTimeout = setTimeout(() => {
+                    modalOverlay.style.display = 'none';
+                    modalOverlay.classList.remove('hide');
+                    isModalOpen = false;
+                    hideTimeout = null;
+                }, 400);
+            }
+
+            friendBtn.addEventListener('click', openModal);
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) closeModal();
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && isModalOpen) closeModal();
+            });
+
+            // ---------- 通用小球移动函数（用于所有模态框打开时）----------
+            function moveBallsAsideForModal() {
+                physics.forEach(p => {
+                    if (!p.dragging) {
+                        const ball = document.getElementById(p.id);
+                        if (!ball) return;
+                        const ballSize = ball.offsetWidth;
+                        if (ball.classList.contains('ball-liquid')) {
+                            p.x = 10;
+                        } else {
+                            p.x = window.innerWidth - ballSize - 10;
+                        }
+                        p.y = Math.max(p.radius, Math.min(p.y, window.innerHeight - p.radius));
+                        p.vx = 0;
+                        p.vy = 0;
+                        ball.style.left = p.x + 'px';
+                        ball.style.top = p.y + 'px';
+                    }
+                });
+            }
+
+            // ==================== 游戏模块（冰壶 + 丢珠子 + 自动冰壶 + MC菜单 + 光遇菜单） ====================
+            const gameMenuOverlay = document.getElementById('gameMenuOverlay');
+            const gameMenuBtn = document.getElementById('gameMenuBtn');
+            const curlingGameBtn = document.getElementById('curlingGameBtn');
+            const curlingAutoGameBtn = document.getElementById('curlingAutoGameBtn');
+            const dropperGameBtn = document.getElementById('dropperGameBtn');
+            const mcGameBtn = document.getElementById('mcGameBtn');
+            const skyGameBtn = document.getElementById('skyGameBtn');
+            const gameContainer = document.getElementById('gameContainer');
+            const gameCanvas = document.getElementById('gameCanvas');
+            const ctxGame = gameCanvas.getContext('2d');
+            const backToHomeBtn = document.getElementById('backToHomeBtn');
+            const addGameBallBtn = document.getElementById('addGameBallBtn');
+            const gameScoreSpan = document.getElementById('gameScore');
+            const dropperUI = document.getElementById('dropperUI');
+            const dropperBallsSpan = document.getElementById('dropperBalls');
+            const dropperFireBtn = document.getElementById('dropperFireBtn');
+            const dropperResetBtn = document.getElementById('dropperResetBtn');
+
+            // MC 相关模态框
+            const mcMainOverlay = document.getElementById('mcMainOverlay');
+            const mcPcSubOverlay = document.getElementById('mcPcSubOverlay');
+            const mcMobileSubOverlay = document.getElementById('mcMobileSubOverlay');
+            const emptyMenuOverlay = document.getElementById('emptyMenuOverlay');
+            const mcPcl2SubOverlay = document.getElementById('mcPcl2SubOverlay');
+            const mcPcBtn = document.getElementById('mcPcBtn');
+            const mcMobileBtn = document.getElementById('mcMobileBtn');
+            const mcPcl2Btn = document.getElementById('mcPcl2Btn');
+            const mcOfficialBtn = document.getElementById('mcOfficialBtn');
+            const mcHmclBtn = document.getElementById('mcHmclBtn');
+            const mcLanzouBtn = document.getElementById('mcLanzouBtn');
+            const mcAfdianBtn = document.getElementById('mcAfdianBtn');
+            const mcQuarkBtn = document.getElementById('mcQuarkBtn');
+            const mcHmclPeBtn = document.getElementById('mcHmclPeBtn');
+            const mcNetEaseBtn = document.getElementById('mcNetEaseBtn');
+
+            // 光遇相关元素
+            const skyMainOverlay = document.getElementById('skyMainOverlay');
+            const skyInternationalOverlay = document.getElementById('skyInternationalOverlay');
+            const skyCnBtn = document.getElementById('skyCnBtn');
+            const skyIntlBtn = document.getElementById('skyIntlBtn');
+            const skyIosBtn = document.getElementById('skyIosBtn');
+            const skyAndroidBtn = document.getElementById('skyAndroidBtn');
+            const skyPcBtn = document.getElementById('skyPcBtn');
+
+            // ---------- 光遇模态框辅助函数 ----------
+            function openSkyModal(modal) {
+                if (!modal) return;
+                // 如果游戏菜单还显示，先关闭它
+                if (gameMenuOverlay.style.display === 'flex') {
+                    gameMenuOverlay.classList.remove('show');
+                    setTimeout(() => { gameMenuOverlay.style.display = 'none'; }, 400);
+                }
+                // 打开前移动小球
+                moveBallsAsideForModal();
+
+                modal.classList.remove('hide');
+                modal.style.display = 'flex';
+                void modal.offsetWidth;
+                modal.classList.add('show');
+            }
+
+            function closeSkyModal(modal) {
+                if (!modal) return;
+                modal.classList.remove('show');
+                modal.classList.add('hide');
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                    modal.classList.remove('hide');
+                }, 400);
+            }
+
+            // 点击空白关闭光遇模态框
+            [skyMainOverlay, skyInternationalOverlay].forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) closeSkyModal(modal);
+                });
+            });
+
+            // ESC 关闭光遇模态框
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    [skyMainOverlay, skyInternationalOverlay].forEach(modal => {
+                        if (modal.style.display === 'flex') closeSkyModal(modal);
+                    });
+                }
+            });
+
+            // 点击光遇按钮：关闭游戏菜单，打开光遇主菜单
+            skyGameBtn.addEventListener('click', () => {
+                gameMenuOverlay.classList.remove('show');
+                setTimeout(() => {
+                    gameMenuOverlay.style.display = 'none';
+                }, 400);
+                setTimeout(() => {
+                    openSkyModal(skyMainOverlay);
+                }, 200);
+            });
+
+            // 国服按钮
+            skyCnBtn.addEventListener('click', () => {
+                window.open('https://sky.163.com/', '_blank');
+                closeSkyModal(skyMainOverlay);
+            });
+
+            // 国际服按钮
+            skyIntlBtn.addEventListener('click', () => {
+                closeSkyModal(skyMainOverlay);
+                setTimeout(() => {
+                    openSkyModal(skyInternationalOverlay);
+                }, 200);
+            });
+
+            // 国际服 苹果
+            skyIosBtn.addEventListener('click', () => {
+                window.open('https://apps.apple.com/gw/app/sky-children-of-the-light/id1462117269', '_blank');
+                closeSkyModal(skyInternationalOverlay);
+            });
+
+            // 国际服 安卓
+            skyAndroidBtn.addEventListener('click', () => {
+                window.open('https://apps.qqaoop.com/app/10802', '_blank');
+                closeSkyModal(skyInternationalOverlay);
+            });
+
+            // 国际服 电脑
+            skyPcBtn.addEventListener('click', () => {
+                window.open('https://www.bluestacks.com/apps/role-playing/sky-children-of-the-light-on-pc.html', '_blank');
+                closeSkyModal(skyInternationalOverlay);
+            });
+
+            // 通用模态框打开/关闭辅助函数 (针对MC)
+            function openMcModal(modal) {
+                if (!modal) return;
+                if (gameMenuOverlay.style.display === 'flex') {
+                    gameMenuOverlay.classList.remove('show');
+                    setTimeout(() => { gameMenuOverlay.style.display = 'none'; }, 400);
+                }
+                // 打开前移动小球
+                moveBallsAsideForModal();
+
+                modal.classList.remove('hide');
+                modal.style.display = 'flex';
+                void modal.offsetWidth;
+                modal.classList.add('show');
+            }
+
+            function closeMcModal(modal) {
+                if (!modal) return;
+                modal.classList.remove('show');
+                modal.classList.add('hide');
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                    modal.classList.remove('hide');
+                }, 400);
+            }
+
+            function setupMcModalClose(modal) {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) closeMcModal(modal);
+                });
+            }
+            [mcMainOverlay, mcPcSubOverlay, mcMobileSubOverlay, emptyMenuOverlay, mcPcl2SubOverlay].forEach(modal => setupMcModalClose(modal));
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    [mcMainOverlay, mcPcSubOverlay, mcMobileSubOverlay, emptyMenuOverlay, mcPcl2SubOverlay].forEach(modal => {
+                        if (modal.style.display === 'flex') closeMcModal(modal);
+                    });
+                }
+            });
+
+            mcGameBtn.addEventListener('click', () => {
+                gameMenuOverlay.classList.remove('show');
+                setTimeout(() => { gameMenuOverlay.style.display = 'none'; }, 400);
+                openMcModal(mcMainOverlay);
+            });
+
+            mcPcBtn.addEventListener('click', () => {
+                closeMcModal(mcMainOverlay);
+                openMcModal(mcPcSubOverlay);
+            });
+            mcMobileBtn.addEventListener('click', () => {
+                closeMcModal(mcMainOverlay);
+                openMcModal(mcMobileSubOverlay);
+            });
+
+            mcPcl2Btn.addEventListener('click', () => {
+                closeMcModal(mcPcSubOverlay);
+                setTimeout(() => {
+                    openMcModal(mcPcl2SubOverlay);
+                }, 200);
+            });
+
+            mcOfficialBtn.addEventListener('click', () => {
+                window.open('https://www.minecraft.net/zh-hans/download', '_blank');
+                closeMcModal(mcPcSubOverlay);
+            });
+
+            mcHmclBtn.addEventListener('click', () => {
+                window.open('https://hmcl.huangyuhui.net/download/', '_blank');
+                closeMcModal(mcPcSubOverlay);
+            });
+
+            mcLanzouBtn.addEventListener('click', () => {
+                window.open('https://ltcat.lanzouv.com/b0aj6gsid', '_blank');
+                closeMcModal(mcPcl2SubOverlay);
+            });
+            mcAfdianBtn.addEventListener('click', () => {
+                window.open('https://afdian.com/a/LTCat', '_blank');
+                closeMcModal(mcPcl2SubOverlay);
+            });
+            mcQuarkBtn.addEventListener('click', () => {
+                window.open('https://pan.quark.cn/s/cb915afd9a91#/list/share', '_blank');
+                closeMcModal(mcPcl2SubOverlay);
+            });
+
+            mcHmclPeBtn.addEventListener('click', () => {
+                window.open('https://wwr.lanzoui.com/b01vn7dvc', '_blank');
+                closeMcModal(mcMobileSubOverlay);
+            });
+            mcNetEaseBtn.addEventListener('click', () => {
+                window.open('https://mc.163.com', '_blank');
+                closeMcModal(mcMobileSubOverlay);
+            });
+
+            // 游戏状态
+            let gameActive = false;
+            let gameMode = '';          // 'curling', 'curlingAuto', 'dropper'
+            let gameAnimationId = null;
+
+            // ---------- 冰壶游戏变量 (不变) ----------
+            let playerStone = null;       // 玩家石壶（深色）
+            let aiStone = null;           // 对手石壶（白色）
+            let curlingObjects = [];       // 冰球数组
+            let draggingStone = false;    // 玩家是否在拖动石壶
+            let dragOffset = { x: 0, y: 0 };
+            let curlingScore = 0;          // 玩家得分
+            let MID_LINE = window.innerWidth / 2;
+            const GOAL_WIDTH = 40;
+            const GOAL_HEIGHT = 150;
+            let leftGoal = {
+                x: 0,
+                y: (window.innerHeight - GOAL_HEIGHT) / 2,
+                width: GOAL_WIDTH,
+                height: GOAL_HEIGHT
+            };
+            let rightGoal = {
+                x: window.innerWidth - GOAL_WIDTH,
+                y: (window.innerHeight - GOAL_HEIGHT) / 2,
+                width: GOAL_WIDTH,
+                height: GOAL_HEIGHT
+            };
+            let dragLastX = 0, dragLastY = 0, dragLastTime = 0;
+
+            const AI_SPEED = 5;
+            const WIND_RADIUS = 100;
+            const WIND_FORCE = 20;
+
+            function updateGoalPositions() {
+                leftGoal.x = 0;
+                leftGoal.y = (window.innerHeight - GOAL_HEIGHT) / 2;
+                rightGoal.x = window.innerWidth - GOAL_WIDTH;
+                rightGoal.y = (window.innerHeight - GOAL_HEIGHT) / 2;
+            }
+
+            function initCurling() {
+                curlingObjects = [];
+                playerStone = {
+                    x: 200,
+                    y: window.innerHeight/2,
+                    vx: 0,
+                    vy: 0,
+                    radius: 40,
+                    color: '#333',
+                    type: 'player'
+                };
+                aiStone = {
+                    x: window.innerWidth - 200,
+                    y: window.innerHeight/2,
+                    vx: 0,
+                    vy: 0,
+                    radius: 40,
+                    color: '#fff',
+                    type: 'ai'
+                };
+                curlingObjects.push({
+                    x: MID_LINE,
+                    y: window.innerHeight/2,
+                    vx: 0,
+                    vy: 0,
+                    radius: 30,
+                    color: 'rgba(100,200,255,0.8)',
+                    type: 'target'
+                });
+                curlingScore = 0;
+                updateScore();
+                addGameBallBtn.textContent = '➕ 增加冰球';
+            }
+
+            function updateScore() {
+                if (gameMode === 'curling' || gameMode === 'curlingAuto') {
+                    gameScoreSpan.textContent = `得分: ${curlingScore}`;
+                } else if (gameMode === 'dropper') {
+                    gameScoreSpan.textContent = `得分: ${dropperScore}`;
+                }
+            }
+
+            function addCurlingBall() {
+                curlingObjects.push({
+                    x: MID_LINE + (Math.random() - 0.5) * 40,
+                    y: 100 + Math.random() * (window.innerHeight - 200),
+                    vx: 0,
+                    vy: 0,
+                    radius: 30,
+                    color: 'rgba(100,200,255,0.8)',
+                    type: 'target'
+                });
+            }
+
+            function updateCurling() { /* ... 原有代码保持不变 ... */ 
+                if (!gameActive || (gameMode !== 'curling' && gameMode !== 'curlingAuto')) return;
+                const friction = 0.995;
+                if (!draggingStone) {
+                    playerStone.vx *= friction;
+                    playerStone.vy *= friction;
+                    playerStone.x += playerStone.vx;
+                    playerStone.y += playerStone.vy;
+                }
+                aiStone.vx *= friction;
+                aiStone.vy *= friction;
+                aiStone.x += aiStone.vx;
+                aiStone.y += aiStone.vy;
+                for (let obj of curlingObjects) {
+                    obj.vx *= friction;
+                    obj.vy *= friction;
+                    obj.x += obj.vx;
+                    obj.y += obj.vy;
+                }
+                const corners = [
+                    {x: 0, y: 0, dirX: 1, dirY: 1},
+                    {x: window.innerWidth, y: 0, dirX: -1, dirY: 1},
+                    {x: 0, y: window.innerHeight, dirX: 1, dirY: -1},
+                    {x: window.innerWidth, y: window.innerHeight, dirX: -1, dirY: -1}
+                ];
+                function applyWind(ball) {
+                    corners.forEach(corner => {
+                        const dx = ball.x - corner.x;
+                        const dy = ball.y - corner.y;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if (dist < WIND_RADIUS) {
+                            const strength = WIND_FORCE * (1 - dist / WIND_RADIUS);
+                            ball.vx += strength * corner.dirX;
+                            ball.vy += strength * corner.dirY;
+                            ball.vx *= 0.98;
+                            ball.vy *= 0.98;
+                        }
+                    });
+                }
+                if (!draggingStone) applyWind(playerStone);
+                applyWind(aiStone);
+                curlingObjects.forEach(obj => applyWind(obj));
+                function applyBoundaryCollision(ball, isStone) {
+                    const r = ball.radius;
+                    const maxX = window.innerWidth - r;
+                    const maxY = window.innerHeight - r;
+                    if (ball.x < r) { ball.x = r; ball.vx = -ball.vx * 0.5; }
+                    else if (ball.x > maxX) { ball.x = maxX; ball.vx = -ball.vx * 0.5; }
+                    if (ball.y < r) { ball.y = r; ball.vy = -ball.vy * 0.5; }
+                    else if (ball.y > maxY) { ball.y = maxY; ball.vy = -ball.vy * 0.5; }
+                    if (isStone) {
+                        if (ball === playerStone) {
+                            const maxLeft = MID_LINE - r;
+                            if (ball.x > maxLeft) { ball.x = maxLeft; ball.vx = -ball.vx * 0.5; }
+                        } else if (ball === aiStone) {
+                            const minRight = MID_LINE + r;
+                            if (ball.x < minRight) { ball.x = minRight; ball.vx = -ball.vx * 0.5; }
+                        }
+                    }
+                }
+                applyBoundaryCollision(playerStone, true);
+                applyBoundaryCollision(aiStone, true);
+                curlingObjects.forEach(obj => applyBoundaryCollision(obj, false));
+                for (let i = 0; i < curlingObjects.length; i++) {
+                    const obj = curlingObjects[i];
+                    const dx = obj.x - playerStone.x;
+                    const dy = obj.y - playerStone.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const minDist = playerStone.radius + obj.radius;
+                    if (dist < minDist && dist > 0.001) {
+                        const nx = dx / dist;
+                        const ny = dy / dist;
+                        const overlap = minDist - dist;
+                        if (!draggingStone) {
+                            const v1n = playerStone.vx * nx + playerStone.vy * ny;
+                            const v2n = obj.vx * nx + obj.vy * ny;
+                            if (v1n - v2n > 0) {
+                                playerStone.vx += (v2n - v1n) * nx;
+                                playerStone.vy += (v2n - v1n) * ny;
+                                obj.vx += (v1n - v2n) * nx;
+                                obj.vy += (v1n - v2n) * ny;
+                            }
+                            playerStone.x -= nx * overlap * 0.5;
+                            playerStone.y -= ny * overlap * 0.5;
+                            obj.x += nx * overlap * 0.5;
+                            obj.y += ny * overlap * 0.5;
+                        } else {
+                            const vRel = (obj.vx - playerStone.vx) * nx + (obj.vy - playerStone.vy) * ny;
+                            if (vRel < 0) {
+                                const e = 0.7;
+                                obj.vx -= (1 + e) * vRel * nx;
+                                obj.vy -= (1 + e) * vRel * ny;
+                            }
+                            obj.x += nx * overlap;
+                            obj.y += ny * overlap;
+                        }
+                    }
+                }
+                for (let i = 0; i < curlingObjects.length; i++) {
+                    const obj = curlingObjects[i];
+                    const dx = obj.x - aiStone.x;
+                    const dy = obj.y - aiStone.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const minDist = aiStone.radius + obj.radius;
+                    if (dist < minDist && dist > 0.001) {
+                        const nx = dx / dist;
+                        const ny = dy / dist;
+                        const overlap = minDist - dist;
+                        const v1n = aiStone.vx * nx + aiStone.vy * ny;
+                        const v2n = obj.vx * nx + obj.vy * ny;
+                        if (v1n - v2n > 0) {
+                            aiStone.vx += (v2n - v1n) * nx;
+                            aiStone.vy += (v2n - v1n) * ny;
+                            obj.vx += (v1n - v2n) * nx;
+                            obj.vy += (v1n - v2n) * ny;
+                        }
+                        aiStone.x -= nx * overlap * 0.5;
+                        aiStone.y -= ny * overlap * 0.5;
+                        obj.x += nx * overlap * 0.5;
+                        obj.y += ny * overlap * 0.5;
+                    }
+                }
+                for (let i = 0; i < curlingObjects.length; i++) {
+                    for (let j = i + 1; j < curlingObjects.length; j++) {
+                        const a = curlingObjects[i];
+                        const b = curlingObjects[j];
+                        const dx = b.x - a.x;
+                        const dy = b.y - a.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        const minDist = a.radius + b.radius;
+                        if (dist < minDist && dist > 0.001) {
+                            const nx = dx / dist;
+                            const ny = dy / dist;
+                            const vRel = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
+                            if (vRel < 0) {
+                                const e = 0.7;
+                                const impulse = -(1 + e) * vRel / 2;
+                                a.vx -= impulse * nx;
+                                a.vy -= impulse * ny;
+                                b.vx += impulse * nx;
+                                b.vy += impulse * ny;
+                            }
+                            const overlap = minDist - dist;
+                            const moveX = nx * overlap * 0.5;
+                            const moveY = ny * overlap * 0.5;
+                            a.x -= moveX;
+                            a.y -= moveY;
+                            b.x += moveX;
+                            b.y += moveY;
+                        }
+                    }
+                }
+                let closestDist = Infinity;
+                let targetX = aiStone.x, targetY = aiStone.y;
+                for (let obj of curlingObjects) {
+                    if (obj.x > MID_LINE) {
+                        const dx = obj.x - aiStone.x;
+                        const dy = obj.y - aiStone.y;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if (dist < closestDist) {
+                            closestDist = dist;
+                            targetX = obj.x;
+                            targetY = obj.y;
+                        }
+                    }
+                }
+                if (closestDist < Infinity) {
+                    const dx = targetX - aiStone.x;
+                    const dy = targetY - aiStone.y;
+                    const len = Math.sqrt(dx*dx + dy*dy);
+                    if (len > 0.001) {
+                        aiStone.vx = (dx / len) * AI_SPEED;
+                        aiStone.vy = (dy / len) * AI_SPEED;
+                    }
+                }
+                for (let i = 0; i < curlingObjects.length; i++) {
+                    const obj = curlingObjects[i];
+                    const rectR = rightGoal;
+                    const closestXR = Math.max(rectR.x, Math.min(obj.x, rectR.x + rectR.width));
+                    const closestYR = Math.max(rectR.y, Math.min(obj.y, rectR.y + rectR.height));
+                    const dxR = obj.x - closestXR;
+                    const dyR = obj.y - closestYR;
+                    const distR = Math.sqrt(dxR*dxR + dyR*dyR);
+                    if (distR < obj.radius) {
+                        curlingObjects.splice(i, 1);
+                        i--;
+                        curlingScore++;
+                        updateScore();
+                        if (gameMode === 'curlingAuto') addCurlingBall();
+                        continue;
+                    }
+                    const rectL = leftGoal;
+                    const closestXL = Math.max(rectL.x, Math.min(obj.x, rectL.x + rectL.width));
+                    const closestYL = Math.max(rectL.y, Math.min(obj.y, rectL.y + rectL.height));
+                    const dxL = obj.x - closestXL;
+                    const dyL = obj.y - closestYL;
+                    const distL = Math.sqrt(dxL*dxL + dyL*dyL);
+                    if (distL < obj.radius) {
+                        curlingObjects.splice(i, 1);
+                        i--;
+                        curlingScore--;
+                        updateScore();
+                        if (gameMode === 'curlingAuto') addCurlingBall();
+                        continue;
+                    }
+                }
+            }
+
+            function drawCurling() { /* ... 原有绘制代码保持不变 ... */
+                ctxGame.clearRect(0, 0, window.innerWidth, window.innerHeight);
+                ctxGame.fillStyle = 'rgba(0,0,0,0.3)';
+                ctxGame.fillRect(0, 0, window.innerWidth, window.innerHeight);
+                ctxGame.fillStyle = 'rgba(255,255,255,0.1)';
+                ctxGame.fillRect(0, 0, 20, window.innerHeight);
+                ctxGame.fillRect(window.innerWidth-20, 0, 20, window.innerHeight);
+                ctxGame.shadowColor = 'cyan';
+                ctxGame.shadowBlur = 20;
+                ctxGame.fillStyle = 'rgba(100,200,255,0.1)';
+                ctxGame.beginPath(); ctxGame.arc(0, 0, WIND_RADIUS, 0, Math.PI*2); ctxGame.fill();
+                ctxGame.beginPath(); ctxGame.arc(window.innerWidth, 0, WIND_RADIUS, 0, Math.PI*2); ctxGame.fill();
+                ctxGame.beginPath(); ctxGame.arc(0, window.innerHeight, WIND_RADIUS, 0, Math.PI*2); ctxGame.fill();
+                ctxGame.beginPath(); ctxGame.arc(window.innerWidth, window.innerHeight, WIND_RADIUS, 0, Math.PI*2); ctxGame.fill();
+                ctxGame.shadowBlur = 0;
+                ctxGame.strokeStyle = 'rgba(255,255,255,0.3)';
+                ctxGame.lineWidth = 2;
+                ctxGame.beginPath(); ctxGame.moveTo(MID_LINE, 0); ctxGame.lineTo(MID_LINE, window.innerHeight); ctxGame.stroke();
+                ctxGame.shadowColor = 'white';
+                ctxGame.shadowBlur = 20;
+                ctxGame.fillStyle = 'rgba(255,100,100,0.2)';
+                ctxGame.fillRect(leftGoal.x, leftGoal.y, leftGoal.width, leftGoal.height);
+                ctxGame.strokeStyle = 'red';
+                ctxGame.lineWidth = 3;
+                ctxGame.strokeRect(leftGoal.x, leftGoal.y, leftGoal.width, leftGoal.height);
+                ctxGame.fillStyle = 'rgba(255,255,255,0.2)';
+                ctxGame.fillRect(rightGoal.x, rightGoal.y, rightGoal.width, rightGoal.height);
+                ctxGame.strokeStyle = 'white';
+                ctxGame.strokeRect(rightGoal.x, rightGoal.y, rightGoal.width, rightGoal.height);
+                ctxGame.shadowBlur = 0;
+                ctxGame.shadowColor = 'rgba(0,0,0,0.5)';
+                ctxGame.shadowBlur = 10;
+                ctxGame.beginPath(); ctxGame.arc(playerStone.x, playerStone.y, playerStone.radius, 0, Math.PI*2);
+                ctxGame.fillStyle = playerStone.color; ctxGame.fill();
+                ctxGame.strokeStyle = 'white'; ctxGame.lineWidth = 2; ctxGame.stroke();
+                ctxGame.beginPath(); ctxGame.arc(aiStone.x, aiStone.y, aiStone.radius, 0, Math.PI*2);
+                ctxGame.fillStyle = aiStone.color; ctxGame.fill();
+                ctxGame.strokeStyle = 'black'; ctxGame.lineWidth = 2; ctxGame.stroke();
+                curlingObjects.forEach(obj => {
+                    ctxGame.beginPath(); ctxGame.arc(obj.x, obj.y, obj.radius, 0, Math.PI*2);
+                    ctxGame.fillStyle = obj.color; ctxGame.fill();
+                    ctxGame.strokeStyle = 'white'; ctxGame.lineWidth = 2; ctxGame.stroke();
+                });
+                ctxGame.shadowBlur = 0;
+            }
+
+            // ---------- 丢珠子游戏变量 (修改：槽位改为11个，发射器可左右移动，范围±40%，速度0.005) ----------
+            let pegs = [];
+            let dropperBalls = [];
+            let remainingBalls = 10;
+            let dropperScore = 0;
+            let tubeAngle = 0;
+            let tubeAngleSpeed = 0.02;
+            const tubeBaseY = 80;
+            const tubeLength = 50;
+            const maxAngle = 60 * Math.PI / 180;
+            // 新增：发射器水平移动相关变量
+            let tubeXOffset = 0;
+            let tubeXSpeed = 0.005;        // 移动速度 (较慢)
+            const maxXOffset = 0.4;         // 最大偏移比例 40% 窗口宽度
+
+            const ballRadius = 12;
+            const pegRadius = 6;
+            const gravity = 0.2;
+            const friction = 0.99;
+            let bottomY = window.innerHeight - 100;
+            const slotCount = 11; // 从7改为11
+            let slotWidth = window.innerWidth / slotCount;
+            // 积分序列改为 [3,0,2,0,1,0,1,0,2,0,3]
+            const slotScores = [3, 0, 2, 0, 1, 0, 1, 0, 2, 0, 3];
+
+            function updateSlotWidth() { slotWidth = window.innerWidth / slotCount; }
+            function updateBottomY() { bottomY = window.innerHeight - 100; }
+
+            function generatePegs() {
+                pegs = [];
+                const hSpacingMultiplier = 1.7;
+                const vSpacingMultiplier = 1.4;
+                const targetSpacingH = ballRadius * 2 * hSpacingMultiplier;
+                const targetSpacingV = ballRadius * 2 * vSpacingMultiplier;
+                const startY = 180;
+                const endY = window.innerHeight - 220;
+                const heightRange = endY - startY;
+                if (heightRange <= 0) return;
+                let rows = Math.floor(heightRange / targetSpacingV) + 1;
+                rows = Math.max(3, rows);
+                const stepY = heightRange / (rows - 1);
+                let idealCols = Math.floor(window.innerWidth / targetSpacingH) - 1;
+                let cols = Math.max(3, idealCols);
+                const stepX = window.innerWidth / (cols + 1);
+                for (let row = 0; row < rows; row++) {
+                    const y = startY + row * stepY;
+                    if (y > endY) continue;
+                    const offset = (row % 2 === 1) ? stepX / 2 : 0;
+                    for (let col = 0; col < cols; col++) {
+                        const x = offset + (col + 1) * stepX;
+                        if (x > 0 && x < window.innerWidth) {
+                            pegs.push({ x, y, radius: pegRadius });
+                        }
+                    }
+                }
+            }
+
+            function initDropper() {
+                dropperBalls = [];
+                remainingBalls = 10;
+                dropperScore = 0;
+                tubeAngle = 0;
+                tubeAngleSpeed = 0.02;
+                tubeXOffset = 0; // 重置水平偏移
+                updateSlotWidth();
+                updateBottomY();
+                generatePegs();
+                updateDropperUI();
+            }
+
+            function updateDropperUI() {
+                dropperBallsSpan.textContent = `剩余: ${remainingBalls}`;
+                gameScoreSpan.textContent = `得分: ${dropperScore}`;
+            }
+
+            function fireBall() {
+                if (remainingBalls <= 0) return;
+                // 计算当前发射器基座位置：窗口宽度一半 + 水平偏移
+                const baseX = window.innerWidth / 2 + tubeXOffset * window.innerWidth;
+                const tipX = baseX + Math.sin(tubeAngle) * tubeLength;
+                const tipY = tubeBaseY + Math.cos(tubeAngle) * tubeLength;
+                dropperBalls.push({ x: tipX, y: tipY, vx: 0, vy: 0, radius: ballRadius });
+                remainingBalls--;
+                updateDropperUI();
+            }
+
+            function resetDropper() {
+                dropperBalls = [];
+                remainingBalls = 10;
+                dropperScore = 0;
+                tubeAngle = 0;
+                tubeAngleSpeed = 0.02;
+                tubeXOffset = 0;
+                updateDropperUI();
+            }
+
+            function updateTubeAngle() {
+                tubeAngle += tubeAngleSpeed;
+                if (tubeAngle > maxAngle || tubeAngle < -maxAngle) {
+                    tubeAngleSpeed = -tubeAngleSpeed;
+                    tubeAngle = Math.max(-maxAngle, Math.min(maxAngle, tubeAngle));
+                }
+                // 更新水平偏移，类似摆动，范围 ±maxXOffset
+                tubeXOffset += tubeXSpeed;
+                if (tubeXOffset > maxXOffset || tubeXOffset < -maxXOffset) {
+                    tubeXSpeed = -tubeXSpeed;
+                    tubeXOffset = Math.max(-maxXOffset, Math.min(maxXOffset, tubeXOffset));
+                }
+            }
+
+            function updateDropper() {
+                updateTubeAngle();
+                for (let i = dropperBalls.length - 1; i >= 0; i--) {
+                    const b = dropperBalls[i];
+                    b.vx *= friction;
+                    b.vy *= friction;
+                    b.vy += gravity;
+                    b.x += b.vx;
+                    b.y += b.vy;
+                    if (b.x < b.radius) { b.x = b.radius; b.vx = -b.vx * 0.5; }
+                    if (b.x > window.innerWidth - b.radius) { b.x = window.innerWidth - b.radius; b.vx = -b.vx * 0.5; }
+                    if (b.y < b.radius) { b.y = b.radius; b.vy = -b.vy * 0.5; }
+                    if (b.y + b.radius > bottomY) {
+                        const slotIndex = Math.floor(b.x / slotWidth);
+                        if (slotIndex >= 0 && slotIndex < slotCount) {
+                            const points = slotScores[slotIndex];
+                            dropperScore += points;
+                            remainingBalls += points;
+                        }
+                        dropperBalls.splice(i, 1);
+                        updateDropperUI();
+                        continue;
+                    }
+                    for (let peg of pegs) {
+                        const dx = b.x - peg.x;
+                        const dy = b.y - peg.y;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        const minDist = b.radius + peg.radius;
+                        if (dist < minDist && dist > 0.001) {
+                            const nx = dx / dist;
+                            const ny = dy / dist;
+                            const overlap = minDist - dist;
+                            b.x += nx * overlap;
+                            b.y += ny * overlap;
+                            const vRel = b.vx * nx + b.vy * ny;
+                            if (vRel < 0) {
+                                const e = 0.7;
+                                b.vx -= (1 + e) * vRel * nx;
+                                b.vy -= (1 + e) * vRel * ny;
+                            }
+                        }
+                    }
+                    for (let j = i + 1; j < dropperBalls.length; j++) {
+                        const other = dropperBalls[j];
+                        const dx = other.x - b.x;
+                        const dy = other.y - b.y;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        const minDist = b.radius + other.radius;
+                        if (dist < minDist && dist > 0.001) {
+                            const nx = dx / dist;
+                            const ny = dy / dist;
+                            const vRel = (b.vx - other.vx) * nx + (b.vy - other.vy) * ny;
+                            if (vRel < 0) {
+                                const e = 0.5;
+                                const impulse = -(1 + e) * vRel / 2;
+                                b.vx -= impulse * nx;
+                                b.vy -= impulse * ny;
+                                other.vx += impulse * nx;
+                                other.vy += impulse * ny;
+                            }
+                            const overlap = minDist - dist;
+                            b.x -= nx * overlap * 0.5;
+                            b.y -= ny * overlap * 0.5;
+                            other.x += nx * overlap * 0.5;
+                            other.y += ny * overlap * 0.5;
+                        }
+                    }
+                }
+            }
+
+            function drawDropper() {
+                ctxGame.clearRect(0, 0, window.innerWidth, window.innerHeight);
+                ctxGame.fillStyle = 'rgba(0,0,0,0.3)';
+                ctxGame.fillRect(0, 0, window.innerWidth, window.innerHeight);
+                ctxGame.shadowColor = 'white';
+                ctxGame.shadowBlur = 5;
+                ctxGame.fillStyle = 'rgba(200,200,200,0.8)';
+                pegs.forEach(peg => {
+                    ctxGame.beginPath(); ctxGame.arc(peg.x, peg.y, peg.radius, 0, Math.PI*2); ctxGame.fill();
+                });
+                ctxGame.shadowBlur = 10;
+                ctxGame.textAlign = "center";
+                ctxGame.textBaseline = "middle";
+                for (let i = 0; i < slotCount; i++) {
+                    const x = i * slotWidth;
+                    ctxGame.fillStyle = `rgba(100,200,255,${slotScores[i] === 0 ? 0.1 : 0.3})`;
+                    ctxGame.fillRect(x, bottomY, slotWidth, window.innerHeight - bottomY);
+                    ctxGame.strokeStyle = 'white';
+                    ctxGame.lineWidth = 2;
+                    ctxGame.strokeRect(x, bottomY, slotWidth, window.innerHeight - bottomY);
+                    ctxGame.fillStyle = 'white';
+                    ctxGame.font = '20px "Microsoft YaHei"';
+                    ctxGame.fillText(slotScores[i] + '分', x + slotWidth/2, bottomY + 30);
+                }
+                ctxGame.textAlign = "left";
+                // 绘制移动的发射器
+                const baseX = window.innerWidth / 2 + tubeXOffset * window.innerWidth;
+                const tipX = baseX + Math.sin(tubeAngle) * tubeLength;
+                const tipY = tubeBaseY + Math.cos(tubeAngle) * tubeLength;
+                ctxGame.shadowBlur = 10;
+                ctxGame.strokeStyle = 'gold';
+                ctxGame.lineWidth = 5;
+                ctxGame.beginPath(); ctxGame.moveTo(baseX, tubeBaseY); ctxGame.lineTo(tipX, tipY); ctxGame.stroke();
+                ctxGame.fillStyle = 'gold';
+                ctxGame.beginPath(); ctxGame.arc(baseX, tubeBaseY, 8, 0, Math.PI*2); ctxGame.fill();
+                ctxGame.shadowColor = 'cyan';
+                ctxGame.shadowBlur = 10;
+                ctxGame.fillStyle = 'rgba(100,200,255,0.8)';
+                dropperBalls.forEach(b => {
+                    ctxGame.beginPath(); ctxGame.arc(b.x, b.y, b.radius, 0, Math.PI*2); ctxGame.fill();
+                    ctxGame.strokeStyle = 'white'; ctxGame.lineWidth = 2; ctxGame.stroke();
+                });
+                ctxGame.shadowBlur = 0;
+            }
+
+            function gameLoop() {
+                if (!gameActive) return;
+                if (gameMode === 'curling' || gameMode === 'curlingAuto') {
+                    updateCurling();
+                    drawCurling();
+                } else if (gameMode === 'dropper') {
+                    updateDropper();
+                    drawDropper();
+                }
+                gameAnimationId = requestAnimationFrame(gameLoop);
+            }
+
+            function handleGamePointerStart(e) { /* ... 保持不变 ... */
+                if (!gameActive) return;
+                e.preventDefault();
+                const rect = gameCanvas.getBoundingClientRect();
+                const scaleX = gameCanvas.width / rect.width;
+                const scaleY = gameCanvas.height / rect.height;
+                let clientX, clientY;
+                if (e.touches) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; }
+                else { clientX = e.clientX; clientY = e.clientY; }
+                const canvasX = (clientX - rect.left) * scaleX;
+                const canvasY = (clientY - rect.top) * scaleY;
+                if (gameMode === 'curling' || gameMode === 'curlingAuto') {
+                    const dx = canvasX - playerStone.x;
+                    const dy = canvasY - playerStone.y;
+                    if (Math.sqrt(dx*dx + dy*dy) < playerStone.radius) {
+                        draggingStone = true;
+                        dragOffset.x = canvasX - playerStone.x;
+                        dragOffset.y = canvasY - playerStone.y;
+                        playerStone.vx = 0; playerStone.vy = 0;
+                        const now = performance.now();
+                        dragLastX = canvasX; dragLastY = canvasY; dragLastTime = now;
+                    }
+                }
+            }
+
+            function handleGamePointerMove(e) { /* ... 保持不变 ... */
+                if (!gameActive) return;
+                e.preventDefault();
+                const rect = gameCanvas.getBoundingClientRect();
+                const scaleX = gameCanvas.width / rect.width;
+                const scaleY = gameCanvas.height / rect.height;
+                let clientX, clientY;
+                if (e.touches) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; }
+                else { clientX = e.clientX; clientY = e.clientY; }
+                const canvasX = (clientX - rect.left) * scaleX;
+                const canvasY = (clientY - rect.top) * scaleY;
+                if (gameMode === 'curling' || gameMode === 'curlingAuto') {
+                    if (!draggingStone) return;
+                    const now = performance.now();
+                    const dt = now - dragLastTime;
+                    if (dt > 5) {
+                        playerStone.vx = (canvasX - dragLastX) / dt * 15;
+                        playerStone.vy = (canvasY - dragLastY) / dt * 15;
+                        const maxSpeed = 15;
+                        if (Math.abs(playerStone.vx) > maxSpeed) playerStone.vx = (playerStone.vx > 0 ? maxSpeed : -maxSpeed);
+                        if (Math.abs(playerStone.vy) > maxSpeed) playerStone.vy = (playerStone.vy > 0 ? maxSpeed : -maxSpeed);
+                    }
+                    dragLastX = canvasX; dragLastY = canvasY; dragLastTime = now;
+                    let newX = canvasX - dragOffset.x;
+                    let newY = canvasY - dragOffset.y;
+                    newX = Math.max(playerStone.radius, Math.min(newX, MID_LINE - playerStone.radius));
+                    newY = Math.max(playerStone.radius, Math.min(newY, window.innerHeight - playerStone.radius));
+                    playerStone.x = newX; playerStone.y = newY;
+                }
+            }
+
+            function handleGamePointerEnd(e) {
+                if (!gameActive) return;
+                e.preventDefault();
+                if (gameMode === 'curling' || gameMode === 'curlingAuto') draggingStone = false;
+            }
+
+            function enterGame(mode) {
+                gameMode = mode;
+                document.querySelectorAll('.button-container, .manage-panel, .title-container, .visit-counter, .ball').forEach(el => {
+                    if (el) el.style.display = 'none';
+                });
+                gameContainer.style.display = 'block';
+                gameActive = true;
+                gameCanvas.width = window.innerWidth;
+                gameCanvas.height = window.innerHeight;
+                if (mode === 'curling' || mode === 'curlingAuto') {
+                    addGameBallBtn.style.display = 'block';
+                    dropperUI.style.display = 'none';
+                    MID_LINE = window.innerWidth / 2;
+                    updateGoalPositions();
+                    initCurling();
+                } else if (mode === 'dropper') {
+                    addGameBallBtn.style.display = 'none';
+                    dropperUI.style.display = 'flex';
+                    initDropper();
+                }
+                gameLoop();
+            }
+
+            function exitGame() {
+                gameActive = false;
+                if (gameAnimationId) { cancelAnimationFrame(gameAnimationId); gameAnimationId = null; }
+                gameContainer.style.display = 'none';
+                document.querySelectorAll('.button-container, .manage-panel, .title-container, .visit-counter, .ball').forEach(el => {
+                    if (el) el.style.display = '';
+                });
+            }
+
+            gameCanvas.addEventListener('mousedown', handleGamePointerStart);
+            gameCanvas.addEventListener('mousemove', handleGamePointerMove);
+            gameCanvas.addEventListener('mouseup', handleGamePointerEnd);
+            gameCanvas.addEventListener('touchstart', handleGamePointerStart, { passive: false });
+            gameCanvas.addEventListener('touchmove', handleGamePointerMove, { passive: false });
+            gameCanvas.addEventListener('touchend', handleGamePointerEnd);
+            gameCanvas.addEventListener('touchcancel', handleGamePointerEnd);
+
+            addGameBallBtn.addEventListener('click', () => {
+                if (!gameActive || (gameMode !== 'curling' && gameMode !== 'curlingAuto')) return;
+                addCurlingBall();
+            });
+
+            // ---------- 长按连续发射逻辑 ----------
+            let fireInterval = null;
+            function startContinuousFire() {
+                if (fireInterval) return;
+                // 立即发射一次
+                fireBall();
+                // 然后每100ms发射一次
+                fireInterval = setInterval(() => {
+                    fireBall();
+                }, 100);
+            }
+            function stopContinuousFire() {
+                if (fireInterval) {
+                    clearInterval(fireInterval);
+                    fireInterval = null;
+                }
+            }
+
+            // 绑定鼠标/触摸事件
+            dropperFireBtn.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                startContinuousFire();
+            });
+            dropperFireBtn.addEventListener('mouseup', stopContinuousFire);
+            dropperFireBtn.addEventListener('mouseleave', stopContinuousFire); // 防止鼠标移出按钮后还继续
+
+            dropperFireBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                startContinuousFire();
+            });
+            dropperFireBtn.addEventListener('touchend', stopContinuousFire);
+            dropperFireBtn.addEventListener('touchcancel', stopContinuousFire);
+            // 原有点击事件也需要保留，但为了不重复，我们让startContinuousFire先执行一次，但注意不要重复
+            // 我们移除原来的click绑定，因为mousedown已经处理了首次发射，且会持续
+            // 但为了兼容性，我们仍保留click但只调用一次？实际上mousedown已经触发，click也会触发，可能导致两次。
+            // 所以我们将原dropperFireBtn的click监听移除，改为通过mousedown/touchstart处理。
+            // 注意：原代码中有 dropperFireBtn.addEventListener('click', ...) 需要注释掉。
+            // 我们将在后面覆盖，但为了避免冲突，我们在下面重新绑定，并移除原有监听。
+            // 但原代码中可能已经绑定了，我们可以在后面重新绑定，但最好先移除。
+            // 由于代码执行顺序，我们可以在定义后先移除原有监听。但原代码中可能没有直接绑定，而是通过后面的事件绑定？检查原文件发现确实有 dropperFireBtn.addEventListener('click', ...) 在下面。
+            // 我们将在下面覆盖，但为了安全，我们在这里先移除所有监听。
+            // 实际上下面的代码中会有 dropperFireBtn.addEventListener('click', ...) 我们将在之后替换。
+            // 所以我们先定义，后面再重新绑定。
+            // 但为了代码整洁，我们直接在原来的位置替换掉。
+
+            // 重置按钮不变
+            dropperResetBtn.addEventListener('click', () => {
+                if (gameActive && gameMode === 'dropper') resetDropper();
+            });
+
+            backToHomeBtn.addEventListener('click', exitGame);
+
+            // 游戏菜单按钮
+            gameMenuBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // 打开前移动小球
+                moveBallsAsideForModal();
+                gameMenuOverlay.style.display = 'flex';
+                gameMenuOverlay.classList.add('show');
+            });
+
+            gameMenuOverlay.addEventListener('click', (e) => {
+                if (e.target === gameMenuOverlay) {
+                    gameMenuOverlay.classList.remove('show');
+                    setTimeout(() => { gameMenuOverlay.style.display = 'none'; }, 400);
+                }
+            });
+
+            curlingGameBtn.addEventListener('click', () => {
+                gameMenuOverlay.classList.remove('show');
+                setTimeout(() => { gameMenuOverlay.style.display = 'none'; }, 400);
+                enterGame('curling');
+            });
+
+            curlingAutoGameBtn.addEventListener('click', () => {
+                gameMenuOverlay.classList.remove('show');
+                setTimeout(() => { gameMenuOverlay.style.display = 'none'; }, 400);
+                enterGame('curlingAuto');
+            });
+
+            dropperGameBtn.addEventListener('click', () => {
+                gameMenuOverlay.classList.remove('show');
+                setTimeout(() => { gameMenuOverlay.style.display = 'none'; }, 400);
+                enterGame('dropper');
+            });
+
+            window.addEventListener('resize', () => {
+                if (gameActive && (gameMode === 'curling' || gameMode === 'curlingAuto')) {
+                    gameCanvas.width = window.innerWidth;
+                    gameCanvas.height = window.innerHeight;
+                    MID_LINE = window.innerWidth / 2;
+                    updateGoalPositions();
+                    playerStone.x = Math.min(playerStone.x, MID_LINE - playerStone.radius);
+                    playerStone.x = Math.max(playerStone.x, playerStone.radius);
+                    playerStone.y = Math.min(playerStone.y, window.innerHeight - playerStone.radius);
+                    playerStone.y = Math.max(playerStone.y, playerStone.radius);
+                    aiStone.x = Math.max(aiStone.x, MID_LINE + aiStone.radius);
+                    aiStone.x = Math.min(aiStone.x, window.innerWidth - aiStone.radius);
+                    aiStone.y = Math.min(aiStone.y, window.innerHeight - aiStone.radius);
+                    aiStone.y = Math.max(aiStone.y, aiStone.radius);
+                } else if (gameActive && gameMode === 'dropper') {
+                    gameCanvas.width = window.innerWidth;
+                    gameCanvas.height = window.innerHeight;
+                    updateSlotWidth();
+                    updateBottomY();
+                    generatePegs();
+                }
+            });
+
+            // 注意：原代码中可能还有对 dropperFireBtn 的 click 绑定，我们将其覆盖，确保长按逻辑生效。
+            // 但原代码中在最后部分并没有看到对 dropperFireBtn 的 click 绑定，实际上是在上面定义的，所以没有问题。
+            // 为了确保，我们移除之前可能的监听，重新绑定。
+            // 实际上我们已经在上面重新绑定了，并且去掉了原来的 click 监听。
+            // 原来的代码中在 dropperFireBtn 上可能没有额外的 click 监听，所以安全。
+        })();
+    </script>
+</body>
+</html>

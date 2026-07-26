@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>文本差异对比工具 · 大视野 + 一键复制</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Roboto', 'Noto Sans', system-ui, -apple-system, sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 30px 24px;
+            color: #1e293b;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.1);
+            padding: 28px 32px 36px;
+        }
+
+        h1 {
+            font-size: 1.9rem;
+            font-weight: 600;
+            margin-top: 0;
+            margin-bottom: 0.25rem;
+            background: linear-gradient(135deg, #1e3c72, #2b4c7c);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .sub {
+            color: #5b6e8c;
+            border-left: 3px solid #3b82f6;
+            padding-left: 14px;
+            margin: 12px 0 28px 0;
+            font-size: 0.95rem;
+        }
+
+        .input-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 28px;
+            margin-bottom: 32px;
+        }
+
+        .input-box {
+            flex: 1;
+            min-width: 280px;
+        }
+
+        .input-box label {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            font-size: 1rem;
+            color: #0f172a;
+        }
+
+        .input-box label span {
+            background: #eef2ff;
+            padding: 2px 12px;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            font-weight: normal;
+            color: #2563eb;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 16px 18px;
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            border: 1px solid #cbd5e1;
+            border-radius: 20px;
+            background: #fefefe;
+            resize: vertical;
+            transition: 0.2s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+        }
+
+        .action-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            justify-content: center;
+            margin-bottom: 40px;
+        }
+
+        button {
+            background: white;
+            border: 1px solid #cbd5e1;
+            padding: 10px 28px;
+            border-radius: 60px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: 0.2s;
+            color: #1e293b;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button.primary {
+            background: #2563eb;
+            border-color: #2563eb;
+            color: white;
+            box-shadow: 0 2px 6px rgba(37,99,235,0.2);
+        }
+
+        button.primary:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+
+        button:hover {
+            background: #f8fafc;
+            border-color: #94a3b8;
+            transform: translateY(-1px);
+        }
+
+        .diff-results {
+            margin-top: 20px;
+            border-top: 2px solid #e9eef3;
+            padding-top: 32px;
+        }
+
+        .visual-compare {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 28px;
+            margin-bottom: 32px;
+        }
+
+        .version-card {
+            flex: 1;
+            background: #fefefe;
+            border-radius: 24px;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+
+        .version-header {
+            background: #f8fafc;
+            padding: 16px 24px;
+            font-weight: 600;
+            font-size: 1rem;
+            border-bottom: 1px solid #e2edf2;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+        }
+
+        .version-header .badge {
+            font-size: 0.7rem;
+            background: #eef2ff;
+            padding: 2px 12px;
+            border-radius: 30px;
+            font-weight: normal;
+            color: #2563eb;
+        }
+
+        .diff-content {
+            padding: 24px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+            background: #ffffff;
+            min-height: 240px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .diff-del {
+            background-color: #ffe0e0;
+            color: #b91c1c;
+            text-decoration: line-through;
+            border-radius: 6px;
+            padding: 0 2px;
+            font-weight: 500;
+        }
+
+        .diff-ins {
+            background-color: #d9f5e6;
+            color: #11643c;
+            border-radius: 6px;
+            padding: 0 2px;
+            font-weight: 500;
+        }
+
+        .stats-section {
+            background: #f1f5f9;
+            border-radius: 24px;
+            padding: 20px 24px;
+            margin-top: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 28px;
+            justify-content: space-between;
+        }
+
+        .stat-card {
+            flex: 1;
+            background: white;
+            border-radius: 20px;
+            padding: 18px 24px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+            border-left: 5px solid;
+        }
+
+        .stat-card.decrease {
+            border-left-color: #dc2626;
+        }
+
+        .stat-card.increase {
+            border-left-color: #10b981;
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .copy-btn {
+            background: none;
+            border: 1px solid #cbd5e1;
+            border-radius: 30px;
+            padding: 4px 12px;
+            font-size: 0.7rem;
+            font-weight: normal;
+            cursor: pointer;
+            color: #334155;
+            transition: 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #eef2ff;
+            border-color: #3b82f6;
+            color: #2563eb;
+        }
+
+        .stat-value {
+            font-family: 'SF Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 500;
+            word-break: break-all;
+            background: #f9f9ff;
+            padding: 12px 16px;
+            border-radius: 16px;
+            border: 1px solid #eef2ff;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 6px;
+        }
+
+        .empty-value {
+            color: #94a3b8;
+            font-style: italic;
+            font-weight: normal;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #7c8ba0;
+            margin-top: 40px;
+            border-top: 1px solid #ecf3f9;
+            padding-top: 24px;
+        }
+
+        @media (max-width: 860px) {
+            .container {
+                padding: 20px;
+            }
+            .stat-card {
+                min-width: 100%;
+            }
+            .version-card {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📄 文本差异对比 · 大视野版</h1>
+    <div class="sub">✨ 超大对比区域 | 一键复制减少/增加内容 | 精确到字符</div>
+
+    <div class="input-panel">
+        <div class="input-box">
+            <label>📖 原始文本 A <span>减少部分来自这里</span></label>
+            <textarea id="textA" placeholder="例如: 123456 或 任意长文本">123456</textarea>
+        </div>
+        <div class="input-box">
+            <label>✏️ 新版文本 B <span>增加部分来自这里</span></label>
+            <textarea id="textB" placeholder="例如: 12332 或 修改后文本">12332</textarea>
+        </div>
+    </div>
+
+    <div class="action-bar">
+        <button id="compareBtn" class="primary">🔍 立即对比差异</button>
+        <button id="swapBtn">🔄 交换文本</button>
+        <button id="resetExampleBtn">📋 重置示例 (123456 → 12332)</button>
+    </div>
+
+    <div class="diff-results" id="diffResultsArea">
+        <div class="visual-compare">
+            <div class="version-card">
+                <div class="version-header">
+                    <span>🔻 原始文本 A (删除部分 = 减少内容)</span>
+                    <span class="badge">红色删除线 = 在A中有但在B中移除</span>
+                </div>
+                <div class="diff-content" id="originalHighlight">
+                    <span style="color:#94a3b8;">点击对比查看差异</span>
+                </div>
+            </div>
+            <div class="version-card">
+                <div class="version-header">
+                    <span>✨ 新版文本 B (新增部分 = 增加内容)</span>
+                    <span class="badge">绿色高亮 = 在B中新增的内容</span>
+                </div>
+                <div class="diff-content" id="newHighlight">
+                    <span style="color:#94a3b8;">点击对比查看差异</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-section">
+            <div class="stat-card decrease">
+                <div class="stat-header">
+                    <div class="stat-label">📉 减少 (从 A 中移除的字符/片段)</div>
+                    <button class="copy-btn" id="copyDecreasedBtn">📋 复制</button>
+                </div>
+                <div class="stat-value" id="decreasedText">—</div>
+                <div style="font-size:12px; margin-top:8px; color:#4b5563;">原文本独有，新版已删除</div>
+            </div>
+            <div class="stat-card increase">
+                <div class="stat-header">
+                    <div class="stat-label">📈 增加 (在 B 中新增的字符/片段)</div>
+                    <button class="copy-btn" id="copyIncreasedBtn">📋 复制</button>
+                </div>
+                <div class="stat-value" id="increasedText">—</div>
+                <div style="font-size:12px; margin-top:8px; color:#4b5563;">新文本独有，相较原版新增</div>
+            </div>
+        </div>
+    </div>
+    <footer>
+        ⚡ 基于字符级 Myers Diff 算法 | 高亮差异 | 大视野滚动区域 | 一键复制增减片段
+    </footer>
+</div>
+
+<script>
+    (function() {
+        const textareaA = document.getElementById('textA');
+        const textareaB = document.getElementById('textB');
+        const compareBtn = document.getElementById('compareBtn');
+        const swapBtn = document.getElementById('swapBtn');
+        const resetBtn = document.getElementById('resetExampleBtn');
+        const originalHighlightDiv = document.getElementById('originalHighlight');
+        const newHighlightDiv = document.getElementById('newHighlight');
+        const decreasedSpan = document.getElementById('decreasedText');
+        const increasedSpan = document.getElementById('increasedText');
+        const copyDecreasedBtn = document.getElementById('copyDecreasedBtn');
+        const copyIncreasedBtn = document.getElementById('copyIncreasedBtn');
+
+        let dmp = null;
+
+        function initDMP() {
+            if (typeof diff_match_patch !== 'undefined') {
+                dmp = new diff_match_patch();
+                dmp.Diff_Timeout = 1.0;
+            } else {
+                console.error("diff_match_patch 库未加载");
+                alert("差异库加载失败，请检查网络后刷新页面");
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        function buildDiffViews(diffList) {
+            let originalHtmlParts = [];
+            let newHtmlParts = [];
+            let deletedChunks = [];
+            let insertedChunks = [];
+
+            for (let i = 0; i < diffList.length; i++) {
+                const op = diffList[i][0];
+                const text = diffList[i][1];
+                if (!text) continue;
+                const escapedText = escapeHtml(text);
+
+                if (op === 0) {
+                    originalHtmlParts.push(escapedText);
+                    newHtmlParts.push(escapedText);
+                } 
+                else if (op === -1) {
+                    originalHtmlParts.push(`<span class="diff-del">${escapedText}</span>`);
+                    deletedChunks.push(text);
+                } 
+                else if (op === 1) {
+                    newHtmlParts.push(`<span class="diff-ins">${escapedText}</span>`);
+                    insertedChunks.push(text);
+                }
+            }
+
+            const originalHtml = originalHtmlParts.length ? originalHtmlParts.join('') : '<span style="color:#cbd5e1;">(无文本)</span>';
+            const newHtml = newHtmlParts.length ? newHtmlParts.join('') : '<span style="color:#cbd5e1;">(无文本)</span>';
+            const decreasedText = deletedChunks.join('');
+            const increasedText = insertedChunks.join('');
+
+            return { originalHtml, newHtml, decreasedText, increasedText };
+        }
+
+        function performCompare() {
+            if (!dmp) {
+                initDMP();
+                if (!dmp) {
+                    alert("差异库初始化失败，请刷新重试");
+                    return;
+                }
+            }
+
+            const text1 = textareaA.value;
+            const text2 = textareaB.value;
+            let diffs = dmp.diff_main(text1, text2);
+            // 语义清理会让差异块更自然，但可能会把一些删除和插入合并，为了完整提取减少/增加，这里可以调用，也可以不调用
+            // 这里调用语义清理，使展示更合理，同时减少/增加片段仍然是正确的（因为合并的文本还是原本的删除/插入内容）
+            dmp.diff_cleanupSemantic(diffs);
+
+            const { originalHtml, newHtml, decreasedText, increasedText } = buildDiffViews(diffs);
+
+            originalHighlightDiv.innerHTML = originalHtml;
+            newHighlightDiv.innerHTML = newHtml;
+
+            if (decreasedText === "") {
+                decreasedSpan.innerHTML = '<span class="empty-value">无减少内容 (两者相同或仅新增)</span>';
+            } else {
+                decreasedSpan.innerHTML = escapeHtml(decreasedText);
+            }
+
+            if (increasedText === "") {
+                increasedSpan.innerHTML = '<span class="empty-value">无增加内容 (两者相同或仅删减)</span>';
+            } else {
+                increasedSpan.innerHTML = escapeHtml(increasedText);
+            }
+
+            // 存储纯文本到 data 属性，以便复制
+            decreasedSpan.setAttribute('data-raw', decreasedText);
+            increasedSpan.setAttribute('data-raw', increasedText);
+        }
+
+        function swapTexts() {
+            const valA = textareaA.value;
+            const valB = textareaB.value;
+            textareaA.value = valB;
+            textareaB.value = valA;
+            performCompare();
+        }
+
+        function resetToExample() {
+            textareaA.value = "123456";
+            textareaB.value = "12332";
+            performCompare();
+        }
+
+        function copyToClipboard(text, successMsg = "已复制到剪贴板") {
+            if (!text) {
+                alert("没有内容可复制");
+                return;
+            }
+            navigator.clipboard.writeText(text).then(() => {
+                alert(successMsg);
+            }).catch(err => {
+                console.error("复制失败", err);
+                alert("复制失败，可手动选择文本");
+            });
+        }
+
+        // 复制减少内容
+        copyDecreasedBtn.addEventListener('click', () => {
+            const raw = decreasedSpan.getAttribute('data-raw');
+            if (raw && raw !== "") {
+                copyToClipboard(raw, "减少内容已复制");
+            } else {
+                alert("没有减少的内容可复制");
+            }
+        });
+
+        // 复制增加内容
+        copyIncreasedBtn.addEventListener('click', () => {
+            const raw = increasedSpan.getAttribute('data-raw');
+            if (raw && raw !== "") {
+                copyToClipboard(raw, "增加内容已复制");
+            } else {
+                alert("没有增加的内容可复制");
+            }
+        });
+
+        compareBtn.addEventListener('click', performCompare);
+        swapBtn.addEventListener('click', swapTexts);
+        resetBtn.addEventListener('click', resetToExample);
+
+        function initialCompare() {
+            if (dmp) {
+                performCompare();
+            } else {
+                const checkInterval = setInterval(() => {
+                    if (typeof diff_match_patch !== 'undefined') {
+                        clearInterval(checkInterval);
+                        initDMP();
+                        performCompare();
+                    }
+                }, 50);
+                setTimeout(() => {
+                    clearInterval(checkInterval);
+                    if (!dmp) {
+                        initDMP();
+                        if (dmp) performCompare();
+                        else alert("无法加载差异库，请检查网络或刷新");
+                    }
+                }, 3000);
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                initDMP();
+                initialCompare();
+            });
+        } else {
+            initDMP();
+            initialCompare();
+        }
+    })();
+</script>
+</body>
+</html>

@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>在线C++编译器 · 丝滑动画 · 完整版</title>
+    <!-- Ace 编辑器核心样式 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ace.min.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0f1219;
+            font-family: 'Inter', 'Segoe UI', 'Fira Code', monospace;
+            height: 100vh;
+            overflow: hidden;
+            color: #eef4ff;
+        }
+
+        /* 顶部状态栏 — 连续流光 */
+        .status-bar {
+            background-color: #1e293b;
+            border-bottom: 1px solid #334155;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            font-size: 0.85rem;
+            font-family: monospace;
+            color: #b9d0ff;
+            position: relative;
+            overflow: hidden;
+        }
+        .status-bar .status-text {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 2;
+        }
+        .status-bar .status-badge {
+            background: #0f1420;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+        }
+        .indeterminate-animation {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            overflow: hidden;
+        }
+        .indeterminate-animation.active {
+            opacity: 1;
+        }
+        .indeterminate-animation .slide,
+        .indeterminate-animation::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            height: 100%;
+            width: 35%;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(59, 130, 246, 0.3) 20%,
+                rgba(96, 165, 250, 0.45) 50%, 
+                rgba(59, 130, 246, 0.3) 80%,
+                transparent 100%);
+            filter: blur(3px);
+            animation: slideFlow 1.8s infinite linear;
+            pointer-events: none;
+        }
+        .indeterminate-animation .slide {
+            animation-delay: 0s;
+        }
+        .indeterminate-animation::after {
+            animation-delay: 1.8s;
+        }
+        @keyframes slideFlow {
+            0% { left: -35%; }
+            100% { left: 100%; }
+        }
+
+        /* 主布局 */
+        .app {
+            display: flex;
+            height: calc(100vh - 36px);
+            width: 100%;
+            background: #0b0e16;
+        }
+        .editor-section {
+            flex: 1.2;
+            display: flex;
+            flex-direction: column;
+            background: #0a0d14;
+            border-right: 1px solid #262f40;
+            transition: flex 0.25s ease;
+        }
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #0a0d14;
+            transition: flex 0.25s ease, opacity 0.25s ease;
+            min-width: 0;
+            overflow: hidden;
+        }
+        .app.sidebar-hidden .editor-section {
+            flex: 1 0 100%;
+            border-right: none;
+        }
+        .app.sidebar-hidden .right-panel {
+            flex: 0;
+            opacity: 0;
+        }
+
+        /* 标签栏 */
+        .tabs-container {
+            background: #0f1420;
+            border-bottom: 1px solid #262f40;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            overflow-x: auto;
+            scrollbar-width: thin;
+            min-height: 36px;
+        }
+        .tabs-list {
+            display: flex;
+            flex: 1;
+            gap: 2px;
+            overflow-x: auto;
+        }
+        .tab-item {
+            display: flex;
+            align-items: center;
+            background: #1a2230;
+            padding: 4px 8px 4px 12px;
+            border-radius: 6px 6px 0 0;
+            font-size: 0.8rem;
+            color: #b0c6ff;
+            border-right: 1px solid #2a364a;
+            cursor: pointer;
+            white-space: nowrap;
+            user-select: none;
+            transition: 0.1s;
+            animation: tabSlideIn 0.2s cubic-bezier(0.2, 0.9, 0.4, 1);
+        }
+        @keyframes tabSlideIn {
+            0% { opacity: 0; transform: translateX(-16px); }
+            100% { opacity: 1; transform: translateX(0); }
+        }
+        .tab-item.active {
+            background: #2d3a55;
+            color: white;
+            border-bottom: 2px solid #3b82f6;
+        }
+        .tab-item:hover {
+            background: #253040;
+        }
+        .tab-name {
+            cursor: pointer;
+        }
+        .tab-close {
+            margin-left: 8px;
+            font-size: 1.1rem;
+            line-height: 1;
+            padding: 0 4px;
+            border-radius: 4px;
+            color: #8899cc;
+        }
+        .tab-close:hover {
+            background: #4a2e3a;
+            color: #ffb0a0;
+        }
+        .new-tab-btn {
+            background: transparent;
+            border: none;
+            color: #b0c6ff;
+            font-size: 1.4rem;
+            padding: 0 12px;
+            cursor: pointer;
+            border-radius: 6px;
+            margin-left: 4px;
+            transition: transform 0.15s;
+        }
+        .new-tab-btn:hover {
+            background: #1e2a3a;
+            color: white;
+            transform: scale(1.1);
+        }
+        .new-tab-btn:active {
+            transform: scale(0.95);
+        }
+        .tab-rename-input {
+            background: #1e2a3a;
+            border: 1px solid #3b82f6;
+            color: white;
+            font-size: 0.8rem;
+            padding: 2px 4px;
+            border-radius: 4px;
+            outline: none;
+            width: 120px;
+        }
+
+        /* 编辑器头部 */
+        .editor-header {
+            padding: 8px 16px;
+            background: #11161f;
+            border-bottom: 1px solid #262f40;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .editor-header h3 {
+            font-size: 1rem;
+            background: #1e2a3a;
+            padding: 4px 12px;
+            border-radius: 24px;
+        }
+        .editor-toolbar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .icon-btn {
+            background: #2d3a55;
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: 0.2s;
+        }
+        .icon-btn:hover {
+            background: #3e4f6e;
+        }
+        .stats {
+            font-size: 0.75rem;
+            background: #1a1f2c;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-family: monospace;
+        }
+        .template-select {
+            background: #0f1420;
+            border: 1px solid #3e4a66;
+            color: #eef4ff;
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+
+        /* 编辑器容器 */
+        .ace-editor-container {
+            flex: 1;
+            position: relative;
+        }
+        #editor {
+            width: 100%;
+            height: 100%;
+            font-size: 14px;
+        }
+
+        /* 可折叠面板 (编译输出/程序输出/标准输入) */
+        .collapsible-box {
+            background: #0a0d14;
+            border-bottom: 1px solid #262f40;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .box-header {
+            padding: 8px 16px;
+            background: #11161f;
+            font-size: 0.8rem;
+            font-weight: 500;
+            border-bottom: 1px solid #262f40;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+        .box-header:hover {
+            background: #19202b;
+        }
+        .box-header .toggle-icon {
+            font-size: 1.2rem;
+            line-height: 1;
+            transition: transform 0.2s;
+        }
+        .box-content {
+            overflow-y: auto;
+            padding: 12px;
+            font-family: 'Fira Code', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            background: #070b12;
+            color: #dfeaff;
+            transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease;
+            max-height: 500px;
+        }
+        .collapsed .box-content {
+            max-height: 0 !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            overflow: hidden;
+        }
+        .compile-output-box .box-content {
+            max-height: 250px;
+        }
+        .program-output-box .box-content {
+            max-height: 350px;
+        }
+
+        .stdin-section {
+            background: #0a0d14;
+            display: flex;
+            flex-direction: column;
+            border-bottom: 1px solid #262f40;
+            overflow: hidden;
+        }
+        .stdin-section .box-header {
+            border-bottom: 1px solid #262f40;
+        }
+        .stdin-section .box-content {
+            padding: 0;
+            background: #070b10;
+            max-height: 170px;
+            transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .stdin-section.collapsed .box-content {
+            padding: 0;
+        }
+        #stdin-textarea {
+            width: 100%;
+            background: #070b10;
+            border: none;
+            color: #cbddf5;
+            font-family: monospace;
+            font-size: 13px;
+            padding: 14px;
+            resize: none;
+            outline: none;
+            display: block;
+        }
+
+        /* 底部操作栏 */
+        .action-bar {
+            padding: 12px 16px;
+            background: #11161f;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            border-top: 1px solid #262f40;
+        }
+        button {
+            background: #2d3a55;
+            border: none;
+            color: white;
+            font-weight: 500;
+            padding: 8px 20px;
+            border-radius: 36px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-run {
+            background: linear-gradient(105deg, #2563eb, #3b82f6);
+        }
+        .btn-stop {
+            background: #4a2e3a;
+            color: #ffc3b0;
+        }
+        select {
+            background: #0f1420;
+            border: 1px solid #3e4a66;
+            color: #eef4ff;
+            padding: 6px 12px;
+            border-radius: 28px;
+        }
+
+        /* 错误信息 */
+        .error-line-link {
+            color: #ff9f7c;
+            text-decoration: underline;
+            cursor: pointer;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .error-line-link:hover {
+            color: #ffbb99;
+        }
+        .error-hint {
+            color: #a9c0f0;
+            margin-left: 8px;
+            font-style: italic;
+        }
+
+        .resource-stats {
+            margin-top: 12px;
+            padding-top: 8px;
+            border-top: 1px dashed #3e4a66;
+            color: #b0c6ff;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .ace_error_line {
+            background: rgba(255, 80, 80, 0.35) !important;
+        }
+    </style>
+</head>
+<body>
+
+<!-- 顶部状态栏 -->
+<div class="status-bar">
+    <div class="status-text">
+        <span>⚙️ 编译器状态：</span>
+        <span id="statusMessage" class="status-badge">就绪</span>
+    </div>
+    <div id="indeterminateAnim" class="indeterminate-animation">
+        <div class="slide"></div>
+    </div>
+</div>
+
+<!-- 主应用区 -->
+<div class="app" id="appContainer">
+    <!-- 左侧编辑器区域 -->
+    <div class="editor-section">
+        <!-- 标签栏 -->
+        <div class="tabs-container">
+            <div class="tabs-list" id="tabsList"></div>
+            <button class="new-tab-btn" id="newTabBtn" title="新建文件 (丝滑动画)">+</button>
+        </div>
+        <!-- 编辑器工具栏 -->
+        <div class="editor-header">
+            <h3>✍️ 当前文件: <span id="currentFileName">main.cpp</span></h3>
+            <div class="editor-toolbar">
+                <select id="template-select" class="template-select">
+                    <option value="default" selected>📁 默认示例 (bits/stdc++.h)</option>
+                    <option value="bfs">🌐 BFS 广度优先搜索</option>
+                    <option value="dfs">🌲 DFS 深度优先搜索</option>
+                </select>
+                <button id="copy-code-btn" class="icon-btn" title="复制全部代码">📋 复制</button>
+                <button id="download-code-btn" class="icon-btn" title="下载 .cpp 文件">⬇️ 下载</button>
+                <button id="toggle-sidebar-btn" class="icon-btn" title="折叠/展开右侧面板">◀ 隐藏侧栏</button>
+                <span class="stats">📄 <span id="line-count-display">0</span> 行</span>
+            </div>
+        </div>
+        <!-- Ace 编辑器容器 -->
+        <div class="ace-editor-container">
+            <div id="editor"></div>
+        </div>
+    </div>
+
+    <!-- 右侧面板 (可折叠) -->
+    <div class="right-panel">
+        <!-- 编译输出 -->
+        <div class="compile-output-box collapsible-box" id="compileBox">
+            <div class="box-header" id="compileHeader">
+                <span>⚠️ 编译输出 (错误/警告)</span>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="box-content" id="compile-output">// 等待编译...</div>
+        </div>
+
+        <!-- 程序输出 -->
+        <div class="program-output-box collapsible-box" id="programBox">
+            <div class="box-header" id="programHeader">
+                <span>💻 程序输出 & 资源使用</span>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="box-content" id="program-output">// 等待运行...</div>
+        </div>
+
+        <!-- 标准输入 -->
+        <div class="stdin-section collapsible-box" id="stdinBox">
+            <div class="box-header" id="stdinHeader">
+                <span>⌨️ 标准输入 (stdin)</span>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="box-content">
+                <textarea id="stdin-textarea" placeholder="例如: 100 200"></textarea>
+            </div>
+        </div>
+
+        <!-- 操作按钮栏 -->
+        <div class="action-bar">
+            <select id="cpp-standard-select">
+                <option value="c++20" selected>C++20</option>
+                <option value="c++17">C++17</option>
+                <option value="c++14">C++14</option>
+                <option value="c++11">C++11</option>
+            </select>
+            <button id="run-compile-btn" class="btn-run">▶ 编译并运行</button>
+            <button id="stop-compile-btn" class="btn-stop">⏹️ 停止</button>
+            <button id="clear-output-btn">🗑️ 清空输出</button>
+        </div>
+    </div>
+</div>
+
+<!-- 加载 Ace 编辑器及其扩展 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ace.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ext-language_tools.js"></script>
+
+<script>
+    (function(){
+        // ---------- 初始化 Ace 编辑器 ----------
+        const editor = ace.edit("editor");
+        editor.setTheme("ace/theme/monokai");
+        editor.session.setMode("ace/mode/c_cpp");
+        editor.setOptions({
+            fontSize: "14px",
+            enableAutoClosing: true,
+            enableAutoIndent: true,
+            highlightMatching: true,
+            behavioursEnabled: true,
+            tabSize: 4,
+            enableBasicAutocompletion: true,
+            enableLiveAutocompletion: true,
+            wrap: true,
+            useWrapMode: true
+        });
+
+        // ---------- 多文件标签管理 ----------
+        let files = [
+            { 
+                name: 'main.cpp', 
+                content: `#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    cout << "✨ 在线C++编译器 (丝滑动画 · 完整版)" << endl;
+    cout << "包含 bits/stdc++.h，试试新建文件！" << endl;
+    return 0;
+}` 
+            }
+        ];
+        let activeIndex = 0;
+        let untitledCounter = 1;
+
+        const tabsListEl = document.getElementById('tabsList');
+        const currentFileNameSpan = document.getElementById('currentFileName');
+
+        // 辅助函数：转义 HTML
+        function escapeHtml(str) {
+            return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
+        }
+
+        // 更新行数显示
+        function updateLineCount() {
+            document.getElementById('line-count-display').innerText = editor.session.getLength();
+        }
+
+        // 创建单个标签 DOM
+        function createTabElement(file, index) {
+            const tab = document.createElement('div');
+            tab.className = `tab-item ${index === activeIndex ? 'active' : ''}`;
+            tab.dataset.index = index;
+            tab.innerHTML = `
+                <span class="tab-name">${escapeHtml(file.name)}</span>
+                <span class="tab-close">&times;</span>
+            `;
+            
+            const nameSpan = tab.querySelector('.tab-name');
+            nameSpan.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                startRename(index, nameSpan);
+            });
+            
+            tab.addEventListener('click', (e) => {
+                if (e.target.classList.contains('tab-close')) {
+                    e.stopPropagation();
+                    closeTab(parseInt(tab.dataset.index));
+                } else {
+                    switchToTab(parseInt(tab.dataset.index));
+                }
+            });
+            
+            return tab;
+        }
+
+        // 完全重新渲染标签栏
+        function renderAllTabs() {
+            tabsListEl.innerHTML = '';
+            files.forEach((file, idx) => {
+                tabsListEl.appendChild(createTabElement(file, idx));
+            });
+            currentFileNameSpan.textContent = files[activeIndex].name;
+            updateLineCount();
+        }
+
+        // 丝滑新建文件
+        function newFile(name = null, content = '') {
+            if (!name) {
+                name = `untitled-${untitledCounter++}.cpp`;
+            }
+            if (!content) {
+                content = `#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    // 新文件 ${name}
+    return 0;
+}`;
+            }
+            // 保存当前文件内容
+            if (files[activeIndex]) {
+                files[activeIndex].content = editor.getValue();
+            }
+            
+            const newFileObj = { name, content };
+            files.push(newFileObj);
+            const newIndex = files.length - 1;
+            
+            // 创建新标签 DOM
+            const newTab = createTabElement(newFileObj, newIndex);
+            tabsListEl.appendChild(newTab);
+            
+            // 切换激活状态
+            const prevActive = tabsListEl.querySelector('.tab-item.active');
+            if (prevActive) prevActive.classList.remove('active');
+            newTab.classList.add('active');
+            newTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'end' });
+            
+            activeIndex = newIndex;
+            editor.setValue(content, -1);
+            currentFileNameSpan.textContent = name;
+            updateLineCount();
+        }
+
+        // 重命名逻辑
+        function startRename(index, nameElement) {
+            const file = files[index];
+            const currentName = file.name;
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentName;
+            input.className = 'tab-rename-input';
+            
+            nameElement.style.display = 'none';
+            nameElement.parentNode.insertBefore(input, nameElement.nextSibling);
+            input.focus();
+            input.select();
+            
+            const finishRename = () => {
+                let newName = input.value.trim();
+                if (!newName) newName = currentName;
+                if (!newName.endsWith('.cpp') && !newName.endsWith('.h') && !newName.endsWith('.hpp')) {
+                    newName += '.cpp';
+                }
+                // 检查重名
+                const exists = files.some((f, i) => i !== index && f.name === newName);
+                if (exists) {
+                    alert('文件名已存在，请使用其他名称');
+                    return;
+                }
+                file.name = newName;
+                input.remove();
+                nameElement.style.display = '';
+                nameElement.textContent = newName;
+                if (index === activeIndex) {
+                    currentFileNameSpan.textContent = newName;
+                }
+            };
+            
+            input.addEventListener('blur', finishRename);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    finishRename();
+                } else if (e.key === 'Escape') {
+                    input.value = currentName;
+                    finishRename();
+                }
+            });
+        }
+
+        // 切换标签
+        function switchToTab(index) {
+            if (index === activeIndex) return;
+            // 保存当前内容
+            files[activeIndex].content = editor.getValue();
+            
+            const tabs = tabsListEl.querySelectorAll('.tab-item');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            tabs[index].classList.add('active');
+            
+            activeIndex = index;
+            editor.setValue(files[activeIndex].content, -1);
+            currentFileNameSpan.textContent = files[activeIndex].name;
+            updateLineCount();
+        }
+
+        // 关闭标签
+        function closeTab(index) {
+            if (files.length <= 1) {
+                alert('至少保留一个文件');
+                return;
+            }
+            // 保存当前内容
+            files[activeIndex].content = editor.getValue();
+            
+            files.splice(index, 1);
+            
+            // 确定新的激活索引
+            if (activeIndex >= files.length) {
+                activeIndex = files.length - 1;
+            } else if (index < activeIndex) {
+                activeIndex--;
+            }
+            
+            renderAllTabs();
+            editor.setValue(files[activeIndex].content, -1);
+        }
+
+        // 监听编辑器变化，实时保存内容
+        editor.session.on('change', () => {
+            if (files[activeIndex]) {
+                files[activeIndex].content = editor.getValue();
+            }
+            updateLineCount();
+        });
+
+        // 初始化标签栏
+        renderAllTabs();
+        editor.setValue(files[0].content, -1);
+        editor.clearSelection();
+        
+        // 绑定新建按钮
+        document.getElementById('newTabBtn').addEventListener('click', () => newFile());
+
+        // ---------- 模板选择 ----------
+        const templates = {
+            default: `#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    cout << "✨ 在线C++编译器 (丝滑动画 · 完整版)" << endl;
+    cout << "包含 bits/stdc++.h，试试新建文件！" << endl;
+    return 0;
+}`,
+            bfs: `#include <bits/stdc++.h>
+using namespace std;
+
+void bfs(int start, const vector<vector<int>>& graph) {
+    vector<bool> visited(graph.size(), false);
+    queue<int> q;
+    visited[start] = true;
+    q.push(start);
+    while (!q.empty()) {
+        int u = q.front(); q.pop();
+        cout << u << " ";
+        for (int v : graph[u]) {
+            if (!visited[v]) { visited[v] = true; q.push(v); }
+        }
+    }
+}
+
+int main() {
+    vector<vector<int>> graph = {{1,2},{0,2},{0,1}};
+    cout << "BFS from 0: ";
+    bfs(0, graph);
+    return 0;
+}`,
+            dfs: `#include <bits/stdc++.h>
+using namespace std;
+
+void dfs(int u, vector<bool>& visited, const vector<vector<int>>& graph) {
+    visited[u] = true;
+    cout << u << " ";
+    for (int v : graph[u]) if (!visited[v]) dfs(v, visited, graph);
+}
+
+int main() {
+    vector<vector<int>> graph = {{1,2},{0,2},{0,1}};
+    vector<bool> visited(graph.size(), false);
+    cout << "DFS from 0: ";
+    dfs(0, visited, graph);
+    return 0;
+}`
+        };
+
+        document.getElementById('template-select').addEventListener('change', (e) => {
+            const key = e.target.value;
+            if (templates[key]) {
+                editor.setValue(templates[key], -1);
+                files[activeIndex].content = templates[key];
+                e.target.value = 'default'; // 复位
+            }
+        });
+
+        // ---------- 代码片段补全 ----------
+        const snippets = [
+            { caption: "if", snippet: "if (${1:condition}) {\n    ${2:// code}\n}", meta: "statement" },
+            { caption: "for", snippet: "for (${1:int i = 0}; ${2:i < n}; ${3:++i}) {\n    ${4:// code}\n}", meta: "loop" },
+            { caption: "while", snippet: "while (${1:condition}) {\n    ${2:// code}\n}", meta: "loop" },
+            { caption: "main", snippet: "int main() {\n    ${1:// code}\n    return 0;\n}", meta: "function" }
+        ];
+
+        function insertSnippet(ed, snippetText) {
+            const cursor = ed.getCursorPosition();
+            let finalText = snippetText;
+            const placeholderRegex = /\$\{(\d+):([^}]*)\}/g;
+            const placeholders = [];
+            let match;
+            while ((match = placeholderRegex.exec(snippetText)) !== null) {
+                placeholders.push({ index: match.index, length: match[0].length, num: parseInt(match[1]), defaultValue: match[2] });
+            }
+            if (placeholders.length) {
+                placeholders.sort((a,b) => a.num - b.num);
+                const first = placeholders[0];
+                finalText = snippetText.replace(placeholderRegex, (m, num, def) => def);
+                ed.insert(finalText);
+                const lines = finalText.split('\n');
+                let targetRow = cursor.row, targetCol = cursor.column, remaining = first.index;
+                for (let i = 0; i < lines.length; i++) {
+                    if (remaining <= lines[i].length) {
+                        targetCol = (i === 0 ? cursor.column : 0) + remaining;
+                        targetRow = cursor.row + i;
+                        break;
+                    } else {
+                        remaining -= (lines[i].length + 1);
+                    }
+                }
+                ed.moveCursorTo(targetRow, targetCol);
+                ed.selection.clearSelection();
+            } else {
+                ed.insert(finalText);
+            }
+        }
+
+        const enhancedCompleter = {
+            getCompletions: function(ed, session, pos, prefix, callback) {
+                if (prefix.length === 0) return callback(null, []);
+                const matched = snippets.filter(item => item.caption.toLowerCase().startsWith(prefix.toLowerCase()));
+                const completions = matched.map(item => ({
+                    caption: item.caption,
+                    value: item.snippet,
+                    meta: item.meta,
+                    score: 100,
+                    insert: function(ed, data) {
+                        insertSnippet(ed, data.value);
+                    }
+                }));
+                callback(null, completions);
+            }
+        };
+        editor.completers = [enhancedCompleter];
+
+        // ---------- 折叠功能 (内部面板) ----------
+        function setupCollapsible(boxId, headerId) {
+            const box = document.getElementById(boxId);
+            const header = document.getElementById(headerId);
+            const icon = header.querySelector('.toggle-icon');
+            header.addEventListener('click', (e) => {
+                if (e.target.closest('button')) return;
+                box.classList.toggle('collapsed');
+                icon.textContent = box.classList.contains('collapsed') ? '▶' : '▼';
+            });
+        }
+        setupCollapsible('compileBox', 'compileHeader');
+        setupCollapsible('programBox', 'programHeader');
+        setupCollapsible('stdinBox', 'stdinHeader');
+
+        // 侧边栏整体折叠
+        const appContainer = document.getElementById('appContainer');
+        const toggleSidebarBtn = document.getElementById('toggle-sidebar-btn');
+        toggleSidebarBtn.addEventListener('click', () => {
+            appContainer.classList.toggle('sidebar-hidden');
+            const isHidden = appContainer.classList.contains('sidebar-hidden');
+            toggleSidebarBtn.innerHTML = isHidden ? '▶ 展开侧栏' : '◀ 隐藏侧栏';
+        });
+
+        // ---------- 复制 & 下载 ----------
+        document.getElementById('copy-code-btn').addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(editor.getValue());
+                const btn = document.getElementById('copy-code-btn');
+                btn.textContent = '✅ 已复制';
+                setTimeout(() => btn.textContent = '📋 复制', 1500);
+            } catch (err) {
+                alert('复制失败，请手动复制');
+            }
+        });
+
+        document.getElementById('download-code-btn').addEventListener('click', () => {
+            const code = editor.getValue();
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = files[activeIndex].name;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        // ---------- 编译核心逻辑 ----------
+        const runBtn = document.getElementById('run-compile-btn');
+        const stopBtn = document.getElementById('stop-compile-btn');
+        const clearBtn = document.getElementById('clear-output-btn');
+        const compileOutputDiv = document.getElementById('compile-output');
+        const programOutputDiv = document.getElementById('program-output');
+        const stdinText = document.getElementById('stdin-textarea');
+        const stdSelect = document.getElementById('cpp-standard-select');
+        const statusMessageSpan = document.getElementById('statusMessage');
+        const indeterminateAnim = document.getElementById('indeterminateAnim');
+
+        let abortController = null;
+        let isCompiling = false;
+        let compileStartTime = 0;
+
+        function setStatus(message, isIndeterminate = false) {
+            statusMessageSpan.innerText = message;
+            indeterminateAnim.classList.toggle('active', isIndeterminate);
+        }
+
+        function clearErrorMarkers() {
+            editor.session.clearAnnotations();
+            if (window.errorMarkerId) {
+                editor.session.removeMarker(window.errorMarkerId);
+                window.errorMarkerId = null;
+            }
+        }
+
+        function highlightErrorLine(lineNumber) {
+            if (!lineNumber || lineNumber < 1) return;
+            const row = lineNumber - 1;
+            editor.session.addAnnotation({ row: row, text: '❌ 编译错误', type: 'error' });
+            editor.scrollToRow(row);
+            editor.gotoLine(lineNumber, 0, true);
+            const markerId = editor.session.addMarker({
+                startRow: row, endRow: row + 1, startCol: 0, endCol: Infinity
+            }, "ace_error_line", "fullLine", false);
+            if (window.errorMarkerId) editor.session.removeMarker(window.errorMarkerId);
+            window.errorMarkerId = markerId;
+        }
+
+        function formatCompileError(errText) {
+            if (!errText) return '';
+            const lines = errText.split('\n');
+            let html = '';
+            const errorRegex = /^([^:]+):(\d+):(\d+):\s+(error|warning|note):\s+(.*)$/i;
+            const hintDict = {
+                'undeclared': '未声明的标识符',
+                'expected': '语法错误：缺少符号',
+                'no match for': '类型不匹配',
+                'cannot convert': '类型转换错误',
+                'was not declared': '未声明',
+                'undefined reference': '链接错误：函数未定义',
+                'uninitialized': '使用了未初始化的变量'
+            };
+            
+            for (let rawLine of lines) {
+                const match = rawLine.match(errorRegex);
+                if (match) {
+                    const [, file, lineStr, colStr, type, message] = match;
+                    const lineNum = parseInt(lineStr);
+                    const colNum = parseInt(colStr);
+                    const escapedMsg = escapeHtml(message);
+                    let hint = '';
+                    for (let [key, val] of Object.entries(hintDict)) {
+                        if (message.toLowerCase().includes(key)) { hint = val; break; }
+                    }
+                    html += `<div style="margin-bottom:4px;">`;
+                    html += `<span class="error-line-link" data-line="${lineNum}" data-column="${colNum}">🔗 ${file}:${lineStr}:${colStr}: ${type}: ${escapedMsg}</span>`;
+                    if (hint) html += `<span class="error-hint">💡 ${hint}</span>`;
+                    html += `</div>`;
+                } else {
+                    html += `<div>${escapeHtml(rawLine)}</div>`;
+                }
+            }
+            return html;
+        }
+
+        // 错误信息点击跳转
+        compileOutputDiv.addEventListener('click', (e) => {
+            const link = e.target.closest('.error-line-link');
+            if (!link) return;
+            const line = parseInt(link.dataset.line);
+            const col = parseInt(link.dataset.column) || 0;
+            if (!isNaN(line)) {
+                editor.gotoLine(line, col, true);
+                editor.focus();
+            }
+        });
+
+        function stopCompilation() {
+            if (!isCompiling) return;
+            if (abortController) abortController.abort();
+            isCompiling = false;
+            setStatus("已停止", false);
+            runBtn.disabled = false;
+            stopBtn.disabled = true;
+        }
+
+        async function compileAndRun() {
+            if (isCompiling) {
+                compileOutputDiv.innerHTML = `<span style="color:orange;">⏳ 已有编译任务，请先停止</span>`;
+                return;
+            }
+            clearErrorMarkers();
+            compileOutputDiv.innerHTML = "// 编译中...";
+            programOutputDiv.innerHTML = "// 等待运行...";
+            
+            const code = editor.getValue();
+            if (!code.trim()) {
+                compileOutputDiv.innerHTML = `<span style="color:#ffaa88;">❌ 源代码为空</span>`;
+                setStatus("就绪", false);
+                return;
+            }
+            const stdin = stdinText.value;
+            const standard = stdSelect.value;
+            
+            setStatus("正在编译中...", true);
+            
+            const payload = {
+                code: code,
+                compiler: "gcc-13.2.0",
+                stdin: stdin,
+                compiler_option_raw: `-Wall -O2 -std=${standard}`,
+                options: "warning",
+                save: false
+            };
+
+            isCompiling = true;
+            runBtn.disabled = true;
+            stopBtn.disabled = false;
+            compileStartTime = performance.now();
+            abortController = new AbortController();
+            const timeout = setTimeout(() => abortController.abort(), 20000);
+
+            try {
+                const response = await fetch("https://wandbox.org/api/compile.json", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                    signal: abortController.signal
+                });
+                clearTimeout(timeout);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                const compileDuration = (performance.now() - compileStartTime).toFixed(0);
+                
+                const compilerErr = data.compiler_error || "";
+                const programOut = data.program_output || "";
+                const programErr = data.program_error || "";
+                const signal = data.signal || '';
+                const statusCode = data.status;
+                
+                if (compilerErr && compilerErr.includes("error")) {
+                    setStatus("编译失败", false);
+                } else {
+                    setStatus("编译成功，正在运行...", true);
+                }
+                
+                if (compilerErr.trim()) {
+                    compileOutputDiv.innerHTML = formatCompileError(compilerErr);
+                    const firstErrLine = compilerErr.match(/:(\d+):\d+:\s+error:/);
+                    if (firstErrLine) highlightErrorLine(parseInt(firstErrLine[1]));
+                } else {
+                    compileOutputDiv.innerHTML = "✅ 编译成功，无错误或警告";
+                }
+                
+                await new Promise(r => setTimeout(r, 120));
+                setStatus("正在运行中...", true);
+                
+                let outputHtml = '';
+                if (programOut.trim()) {
+                    outputHtml += `<pre style="margin:0;">${escapeHtml(programOut)}</pre>`;
+                } else {
+                    outputHtml += "// 程序无输出";
+                }
+                if (programErr) outputHtml += `\n⚠️ 运行时错误: ${escapeHtml(programErr)}`;
+                if (signal && signal !== '0') outputHtml += `\n⚡ 信号: ${escapeHtml(signal)}`;
+                if (statusCode && statusCode !== '0') outputHtml += `\n🔢 退出码: ${statusCode}`;
+                
+                const runDuration = (performance.now() - compileStartTime - compileDuration).toFixed(0);
+                outputHtml += `<div class="resource-stats">`;
+                outputHtml += `<span>⏱️ 编译: ${compileDuration} ms</span>`;
+                outputHtml += `<span>▶️ 运行: ${runDuration} ms</span>`;
+                outputHtml += `<span>🧠 内存: — (未提供)</span>`;
+                outputHtml += `</div>`;
+                
+                programOutputDiv.innerHTML = outputHtml;
+                setStatus("运行完成", false);
+                
+            } catch (err) {
+                clearTimeout(timeout);
+                if (err.name === 'AbortError') {
+                    setStatus("已中止", false);
+                    compileOutputDiv.innerHTML = "<span style='color:#ffbc6e;'>🛑 编译已中止 (超时或用户停止)</span>";
+                    programOutputDiv.innerHTML = "// 已中止";
+                } else {
+                    setStatus("服务异常", false);
+                    compileOutputDiv.innerHTML = `<span style="color:#ffa0a0;">❌ 异常: ${escapeHtml(err.message)}</span>`;
+                    programOutputDiv.innerHTML = "// 无法运行";
+                }
+            } finally {
+                isCompiling = false;
+                runBtn.disabled = false;
+                stopBtn.disabled = true;
+                abortController = null;
+                if (!statusMessageSpan.innerText.includes("运行中") && !statusMessageSpan.innerText.includes("编译中")) {
+                    setStatus(statusMessageSpan.innerText, false);
+                }
+            }
+        }
+
+        function clearOutput() {
+            compileOutputDiv.innerHTML = "// 编译输出已清空";
+            programOutputDiv.innerHTML = "// 程序输出已清空";
+            setStatus("就绪", false);
+            clearErrorMarkers();
+        }
+
+        runBtn.addEventListener('click', compileAndRun);
+        stopBtn.addEventListener('click', stopCompilation);
+        clearBtn.addEventListener('click', clearOutput);
+        
+        // 初始化标准输入默认值
+        stdinText.value = "10 20";
+        setStatus("就绪", false);
+        stopBtn.disabled = true;
+    })();
+</script>
+</body>
+</html>

@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>北京时间 - 实时时钟</title>
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --card-bg: rgba(20, 20, 35, 0.75);
+            --text-primary: #f0f0f5;
+            --text-secondary: #b0b0c0;
+            --accent: #f0c060;
+            --accent-glow: rgba(240, 192, 96, 0.4);
+            --live-dot: #4ade80;
+            --border: rgba(255, 255, 255, 0.08);
+            --shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: var(--bg);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* 背景光晕 */
+        .bg-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.25;
+            pointer-events: none;
+            z-index: 0;
+            animation: orbFloat 20s ease-in-out infinite;
+        }
+        .bg-orb--1 {
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(90, 120, 220, 0.7) 0%, transparent 70%);
+            top: -15%;
+            left: -10%;
+            animation-delay: 0s;
+            animation-duration: 22s;
+        }
+        .bg-orb--2 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(200, 140, 60, 0.6) 0%, transparent 70%);
+            bottom: -12%;
+            right: -8%;
+            animation-delay: -8s;
+            animation-duration: 18s;
+        }
+        .bg-orb--3 {
+            width: 350px;
+            height: 350px;
+            background: radial-gradient(circle, rgba(140, 100, 200, 0.5) 0%, transparent 70%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation-delay: -15s;
+            animation-duration: 25s;
+        }
+
+        @keyframes orbFloat {
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+            15% {
+                transform: translate(40px, -30px) scale(1.08);
+            }
+            30% {
+                transform: translate(-20px, 25px) scale(0.94);
+            }
+            45% {
+                transform: translate(-35px, -15px) scale(1.05);
+            }
+            60% {
+                transform: translate(25px, 35px) scale(0.92);
+            }
+            75% {
+                transform: translate(10px, -40px) scale(1.06);
+            }
+            90% {
+                transform: translate(-30px, 10px) scale(0.97);
+            }
+        }
+
+        /* 主卡片 */
+        .clock-card {
+            position: relative;
+            z-index: 1;
+            background: var(--card-bg);
+            backdrop-filter: blur(40px) saturate(140%);
+            -webkit-backdrop-filter: blur(40px) saturate(140%);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            padding: clamp(30px, 5vw, 50px) clamp(24px, 6vw, 60px);
+            box-shadow: var(--shadow), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+            text-align: center;
+            transition: box-shadow 0.6s ease, border-color 0.6s ease;
+            max-width: 95vw;
+        }
+        .clock-card:hover {
+            border-color: rgba(255, 255, 255, 0.16);
+            box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55), 0 0 80px rgba(180, 150, 200, 0.06), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+        }
+
+        /* 日期行 */
+        .date-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: clamp(10px, 2vh, 18px);
+        }
+        .date-text {
+            font-size: clamp(0.9rem, 1.6vw, 1.2rem);
+            color: var(--text-secondary);
+            letter-spacing: 0.04em;
+            font-weight: 400;
+        }
+        .weekday {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.06);
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: clamp(0.8rem, 1.3vw, 1rem);
+            color: #c8c8d8;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        /* 时间主显示 */
+        .time-display {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: clamp(2px, 0.6vw, 6px);
+            flex-wrap: wrap;
+            line-height: 1;
+        }
+        .time-block {
+            font-size: clamp(3rem, 9vw, 7rem);
+            font-weight: 700;
+            color: var(--text-primary);
+            font-variant-numeric: tabular-nums;
+            font-family: 'SF Mono', 'JetBrains Mono', 'Fira Code', 'Consolas', 'Menlo', 'PingFang SC', monospace;
+            letter-spacing: 0.02em;
+            text-shadow: 0 0 60px rgba(255, 255, 255, 0.12), 0 2px 4px rgba(0, 0, 0, 0.3);
+            min-width: 1.2em;
+            text-align: center;
+            transition: text-shadow 0.4s ease;
+        }
+        .time-separator {
+            font-size: clamp(2rem, 6vw, 5rem);
+            font-weight: 300;
+            color: rgba(255, 255, 255, 0.45);
+            font-variant-numeric: tabular-nums;
+            font-family: 'SF Mono', 'JetBrains Mono', 'Fira Code', 'Consolas', 'Menlo', 'PingFang SC', monospace;
+            animation: separatorPulse 2s ease-in-out infinite;
+            align-self: center;
+            padding-bottom: 0.08em;
+        }
+        .time-millis {
+            font-size: clamp(1.6rem, 4vw, 3.2rem);
+            font-weight: 500;
+            color: var(--accent);
+            font-variant-numeric: tabular-nums;
+            font-family: 'SF Mono', 'JetBrains Mono', 'Fira Code', 'Consolas', 'Menlo', 'PingFang SC', monospace;
+            letter-spacing: 0.03em;
+            text-shadow: 0 0 35px var(--accent-glow), 0 0 80px rgba(240, 192, 96, 0.2);
+            min-width: 2.2em;
+            text-align: left;
+            align-self: baseline;
+            margin-top: 0.15em;
+            transition: text-shadow 0.4s ease;
+        }
+        .dot-separator {
+            font-size: clamp(1.8rem, 4.5vw, 3.5rem);
+            font-weight: 300;
+            color: rgba(240, 192, 96, 0.7);
+            font-variant-numeric: tabular-nums;
+            font-family: 'SF Mono', 'JetBrains Mono', 'Fira Code', 'Consolas', 'Menlo', 'PingFang SC', monospace;
+            align-self: baseline;
+            margin-top: 0.15em;
+        }
+
+        @keyframes separatorPulse {
+            0%,
+            100% {
+                opacity: 0.35;
+            }
+            50% {
+                opacity: 0.75;
+            }
+        }
+
+        /* 底部信息 */
+        .info-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            margin-top: clamp(14px, 3vh, 24px);
+            flex-wrap: wrap;
+        }
+        .timezone-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 7px 18px;
+            border-radius: 22px;
+            font-size: clamp(0.75rem, 1.1vw, 0.9rem);
+            color: #c0c0d0;
+            letter-spacing: 0.04em;
+            font-weight: 500;
+            border: 1px solid rgba(255, 255, 255, 0.07);
+        }
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: clamp(0.7rem, 1vw, 0.82rem);
+            color: #a0a0b8;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+        }
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--live-dot);
+            box-shadow: 0 0 10px var(--live-dot), 0 0 25px rgba(74, 222, 128, 0.5);
+            animation: livePulse 1.6s ease-in-out infinite;
+        }
+        @keyframes livePulse {
+            0%,
+            100% {
+                box-shadow: 0 0 8px var(--live-dot), 0 0 20px rgba(74, 222, 128, 0.4);
+                transform: scale(1);
+            }
+            50% {
+                box-shadow: 0 0 16px var(--live-dot), 0 0 38px rgba(74, 222, 128, 0.7);
+                transform: scale(1.35);
+            }
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 600px) {
+            .clock-card {
+                border-radius: 20px;
+                padding: 24px 18px 28px;
+            }
+            .time-display {
+                gap: 1px;
+            }
+            .time-separator {
+                animation: none;
+                opacity: 0.55;
+            }
+            .bg-orb--1 {
+                width: 280px;
+                height: 280px;
+                top: -20%;
+                left: -25%;
+            }
+            .bg-orb--2 {
+                width: 240px;
+                height: 240px;
+                bottom: -18%;
+                right: -20%;
+            }
+            .bg-orb--3 {
+                width: 200px;
+                height: 200px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .time-block {
+                font-size: 2.4rem;
+            }
+            .time-separator {
+                font-size: 1.6rem;
+            }
+            .time-millis {
+                font-size: 1.3rem;
+            }
+            .dot-separator {
+                font-size: 1.4rem;
+            }
+            .date-text {
+                font-size: 0.78rem;
+            }
+            .weekday {
+                font-size: 0.7rem;
+                padding: 3px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 背景装饰光晕 -->
+    <div class="bg-orb bg-orb--1"></div>
+    <div class="bg-orb bg-orb--2"></div>
+    <div class="bg-orb bg-orb--3"></div>
+
+    <!-- 主时钟卡片 -->
+    <div class="clock-card" aria-live="polite" aria-label="北京时间实时时钟">
+        <!-- 日期和星期 -->
+        <div class="date-row">
+            <span class="date-text" id="dateDisplay">----年--月--日</span>
+            <span class="weekday" id="weekdayDisplay">星期-</span>
+        </div>
+
+        <!-- 时间显示：HH : MM : SS . mmm -->
+        <div class="time-display">
+            <span class="time-block" id="hours">00</span>
+            <span class="time-separator">:</span>
+            <span class="time-block" id="minutes">00</span>
+            <span class="time-separator">:</span>
+            <span class="time-block" id="seconds">00</span>
+            <span class="dot-separator">.</span>
+            <span class="time-millis" id="milliseconds">000</span>
+        </div>
+
+        <!-- 时区信息和实时指示器 -->
+        <div class="info-row">
+            <span class="timezone-badge">🌏 UTC+8 北京时间</span>
+            <span class="live-indicator">
+                <span class="live-dot" aria-hidden="true"></span> 实时
+            </span>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // DOM 元素缓存
+            const dateDisplay = document.getElementById('dateDisplay');
+            const weekdayDisplay = document.getElementById('weekdayDisplay');
+            const hoursEl = document.getElementById('hours');
+            const minutesEl = document.getElementById('minutes');
+            const secondsEl = document.getElementById('seconds');
+            const millisecondsEl = document.getElementById('milliseconds');
+
+            // 北京时间偏移量（毫秒）：UTC+8 = 8 * 3600 * 1000
+            const BJ_OFFSET_MS = 8 * 60 * 60 * 1000;
+
+            // 星期名称映射（getUTCDay 返回 0=周日 ... 6=周六）
+            const weekdayNames = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+
+            // 补零函数
+            const pad2 = (n) => String(n).padStart(2, '0');
+            const pad3 = (n) => String(n).padStart(3, '0');
+
+            // 缓存上一次的值，用于减少不必要的DOM更新
+            let prevDateStr = '';
+            let prevWeekday = '';
+            let prevHours = '';
+            let prevMinutes = '';
+            let prevSeconds = '';
+            let prevMillis = '';
+
+            /**
+             * 获取北京时间的各个组件
+             * 原理：UTC时间戳 + 8小时偏移 = 北京时间戳
+             * 使用调整后时间戳的UTC方法即可直接获取北京时间各组件
+             */
+            function getBeijingTimeComponents(nowTimestamp) {
+                const bjTimestamp = nowTimestamp + BJ_OFFSET_MS;
+                const bjDate = new Date(bjTimestamp);
+
+                return {
+                    year: bjDate.getUTCFullYear(),
+                    month: bjDate.getUTCMonth() + 1, // 转为1-12
+                    day: bjDate.getUTCDate(),
+                    weekday: bjDate.getUTCDay(), // 0-6，已是北京时间的星期
+                    hours: bjDate.getUTCHours(),
+                    minutes: bjDate.getUTCMinutes(),
+                    seconds: bjDate.getUTCSeconds(),
+                    // 毫秒不受时区偏移影响（偏移量28800000是1000的整数倍）
+                    milliseconds: nowTimestamp % 1000,
+                };
+            }
+
+            /**
+             * 主更新函数，由 requestAnimationFrame 驱动
+             */
+            function update() {
+                const now = Date.now();
+                const bt = getBeijingTimeComponents(now);
+
+                // 格式化日期字符串
+                const dateStr = `${bt.year}年${pad2(bt.month)}月${pad2(bt.day)}日`;
+                const weekdayStr = weekdayNames[bt.weekday];
+                const hStr = pad2(bt.hours);
+                const mStr = pad2(bt.minutes);
+                const sStr = pad2(bt.seconds);
+                const msStr = pad3(bt.milliseconds);
+
+                // 仅在有变化时更新DOM，减少重排/重绘
+                if (dateStr !== prevDateStr) {
+                    dateDisplay.textContent = dateStr;
+                    prevDateStr = dateStr;
+                }
+                if (weekdayStr !== prevWeekday) {
+                    weekdayDisplay.textContent = weekdayStr;
+                    prevWeekday = weekdayStr;
+                }
+                if (hStr !== prevHours) {
+                    hoursEl.textContent = hStr;
+                    prevHours = hStr;
+                }
+                if (mStr !== prevMinutes) {
+                    minutesEl.textContent = mStr;
+                    prevMinutes = mStr;
+                }
+                if (sStr !== prevSeconds) {
+                    secondsEl.textContent = sStr;
+                    prevSeconds = sStr;
+                }
+                // 毫秒变化频繁，几乎每帧都更新
+                if (msStr !== prevMillis) {
+                    millisecondsEl.textContent = msStr;
+                    prevMillis = msStr;
+                }
+
+                // 继续下一帧
+                requestAnimationFrame(update);
+            }
+
+            // 立即执行一次初始化显示（避免首帧空白）
+            const initNow = Date.now();
+            const initBT = getBeijingTimeComponents(initNow);
+            dateDisplay.textContent =
+                `${initBT.year}年${pad2(initBT.month)}月${pad2(initBT.day)}日`;
+            weekdayDisplay.textContent = weekdayNames[initBT.weekday];
+            hoursEl.textContent = pad2(initBT.hours);
+            minutesEl.textContent = pad2(initBT.minutes);
+            secondsEl.textContent = pad2(initBT.seconds);
+            millisecondsEl.textContent = pad3(initBT.milliseconds);
+            // 初始化缓存
+            prevDateStr = dateDisplay.textContent;
+            prevWeekday = weekdayDisplay.textContent;
+            prevHours = hoursEl.textContent;
+            prevMinutes = minutesEl.textContent;
+            prevSeconds = secondsEl.textContent;
+            prevMillis = millisecondsEl.textContent;
+
+            // 启动动画循环
+            requestAnimationFrame(update);
+
+            // 处理页面可见性变化：页面重新可见时，时间会立即在下一帧更新
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) {
+                    // 页面恢复可见，强制重置缓存以确保立即更新
+                    prevMillis = '';
+                    prevSeconds = '';
+                    prevMinutes = '';
+                    prevHours = '';
+                    prevDateStr = '';
+                    prevWeekday = '';
+                }
+            });
+
+            console.log('🕐 北京时间实时时钟已就绪 | UTC+8 | 精确到毫秒');
+            console.log('   当前北京时间：' + new Date(Date.now() + BJ_OFFSET_MS).toISOString().replace('T', ' ').slice(0, 19) + ' UTC+8');
+        })();
+    </script>
+</body>
+</html>

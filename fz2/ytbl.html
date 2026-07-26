@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>液态玻璃风格 · 评审展示版</title>
+    <style>
+        :root {
+            --bg-deep: #08081c;
+            --bg-card: rgba(255, 255, 255, 0.03);
+            --text-primary: #f0f0f8;
+            --text-secondary: #c0c0d8;
+            --border-color: rgba(255, 255, 255, 0.12);
+            --shadow-color: rgba(0, 0, 0, 0.25);
+            --btn-bg: rgba(255, 255, 255, 0.12);
+            --accent-1: #a78bfa;
+            --accent-2: #60a5fa;
+            --accent-3: #34d399;
+            --accent-4: #f472b6;
+            --blur-strong: 45px;
+            --blur-medium: 22px;
+            --ease-smooth: cubic-bezier(0.22, 0.61, 0.36, 1);
+            --radius-lg: 20px;
+            --radius-md: 14px;
+            --glow-color: rgba(140, 120, 255, 0.4);
+        }
+        body.light-theme {
+            --bg-deep: #e8ecf4;
+            --bg-card: rgba(0, 0, 0, 0.03);
+            --text-primary: #1a1a2e;
+            --text-secondary: #4a4a6a;
+            --border-color: rgba(0, 0, 0, 0.1);
+            --shadow-color: rgba(0, 0, 0, 0.08);
+            --btn-bg: rgba(0, 0, 0, 0.06);
+            --glow-color: rgba(100, 80, 200, 0.25);
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+            -webkit-font-smoothing: antialiased;
+            line-height: 1.6;
+            transition: background 0.6s, color 0.6s;
+        }
+
+        #theme-overlay {
+            position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:960;
+            clip-path: circle(0% at 50% 50%); transition: clip-path 0.7s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease;
+            opacity:0; backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%);
+        }
+        #scroll-progress { position:fixed; top:0; left:0; height:3px; background: linear-gradient(90deg, #a78bfa, #60a5fa, #34d399); z-index:9999; transition: width 0.1s linear; border-radius:0 2px 2px 0; }
+        #cursor-glow { position:fixed; pointer-events:none; z-index:9998; width:180px; height:180px; border-radius:50%; background: radial-gradient(circle, rgba(160,140,255,0.15) 0%, transparent 70%); transform: translate(-50%,-50%); transition: opacity 0.3s; opacity:0; }
+        #particles-canvas { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:0; opacity:0.4; transition: opacity 0.6s; }
+        body.light-theme #particles-canvas { opacity:0.25; }
+        .bg-orbs { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:0; background: radial-gradient(ellipse at 25% 20%, #141440 0%, var(--bg-deep) 45%, #060618 100%); transition: background 0.6s; }
+        .bg-orb { position:absolute; border-radius:50%; filter:blur(85px); opacity:0.45; will-change:transform; animation-timing-function:ease-in-out; animation-iteration-count:infinite; transition: opacity 0.6s; }
+        body.light-theme .bg-orb { opacity:0.3; }
+        .bg-orb--1 { width:460px; height:460px; background:radial-gradient(circle, rgba(130,80,255,0.7) 0%, transparent 70%); top:-14%; left:-10%; animation:floatOrb1 16s infinite alternate; }
+        .bg-orb--2 { width:380px; height:380px; background:radial-gradient(circle, rgba(60,155,255,0.65) 0%, transparent 70%); top:50%; right:-8%; animation:floatOrb2 18s infinite alternate; }
+        .bg-orb--3 { width:320px; height:320px; background:radial-gradient(circle, rgba(240,105,175,0.55) 0%, transparent 70%); bottom:-16%; left:25%; animation:floatOrb3 20s infinite alternate; }
+        .bg-orb--4 { width:280px; height:280px; background:radial-gradient(circle, rgba(75,215,155,0.5) 0%, transparent 70%); top:30%; left:56%; animation:floatOrb4 17s infinite alternate; }
+        @keyframes floatOrb1 { 0% { transform:translate(0,0) scale(1); } 100% { transform:translate(60px,80px) scale(1.15); } }
+        @keyframes floatOrb2 { 0% { transform:translate(0,0) scale(1.05); } 100% { transform:translate(-50px,-70px) scale(1.18); } }
+        @keyframes floatOrb3 { 0% { transform:translate(0,0) scale(1); } 100% { transform:translate(-70px,50px) scale(1.22); } }
+        @keyframes floatOrb4 { 0% { transform:translate(0,0) scale(0.9); } 100% { transform:translate(40px,-45px) scale(1.12); } }
+
+        .main-container { position:relative; z-index:1; max-width:1200px; margin:0 auto; padding:0 28px; }
+        .anim-section { opacity:0; transform:translateY(35px); transition: opacity 0.8s var(--ease-smooth), transform 0.8s var(--ease-smooth); }
+        .anim-section.visible { opacity:1; transform:translateY(0); }
+
+        .hero { text-align:center; padding:80px 20px 50px; }
+        .hero__badge { display:inline-block; padding:7px 18px; border-radius:50px; background:var(--bg-card); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border:1px solid var(--border-color); font-size:0.82rem; letter-spacing:0.07em; color:var(--text-secondary); margin-bottom:26px; transition:all 0.6s; }
+        .hero__title { font-size:clamp(2.6rem,6.5vw,4.4rem); font-weight:800; letter-spacing:-0.03em; margin-bottom:18px; }
+        .hero__title-gradient { background:linear-gradient(155deg, #e8e8ff, #c0ccff, #d0c0fe, #b0dcff); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+        .hero__subtitle { font-size:1.15rem; color:var(--text-secondary); max-width:600px; margin:0 auto 36px; }
+        .hero__actions { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+
+        .btn { padding:14px 30px; border-radius:50px; font-weight:600; font-size:0.95rem; cursor:pointer; transition: all 0.3s ease, background 0.6s, border-color 0.6s; border:1px solid rgba(255,255,255,0.3); color:#fff; background:var(--btn-bg); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); box-shadow: 0 6px 20px var(--shadow-color), inset 0 2px 0 rgba(255,255,255,0.4), inset 0 -2px 0 rgba(0,0,0,0.15), inset 2px 0 0 rgba(255,255,255,0.15), inset -2px 0 0 rgba(0,0,0,0.08); display:inline-flex; align-items:center; gap:8px; position:relative; overflow:hidden; user-select:none; -webkit-tap-highlight-color:transparent; }
+        .btn:hover { background:rgba(255,255,255,0.2); border-color:rgba(255,255,255,0.5); box-shadow:0 10px 30px rgba(0,0,0,0.35), inset 0 2px 0 rgba(255,255,255,0.55), inset 0 -2px 0 rgba(0,0,0,0.2), inset 2px 0 0 rgba(255,255,255,0.25), inset -2px 0 0 rgba(0,0,0,0.1); transform:translateY(-2px); }
+        .btn:active { transform:translateY(2px); box-shadow:0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -1px 0 rgba(0,0,0,0.2); transition:0.1s ease; }
+        .btn::after { content:''; position:absolute; top:50%; left:50%; width:0; height:0; border-radius:50%; background:rgba(255,255,255,0.3); transition:all 0.5s ease-out; transform:translate(-50%,-50%); pointer-events:none; z-index:0; }
+        .btn:active::after { width:300px; height:300px; opacity:0; transition:0s; }
+        .btn>span { position:relative; z-index:1; }
+        .btn--secondary { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.2); color:#e0e0f0; box-shadow:0 4px 14px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.2); }
+
+        .section-title { text-align:center; font-size:2rem; font-weight:700; margin:60px 0 10px; }
+        .section-subtitle { text-align:center; color:var(--text-secondary); margin-bottom:40px; font-size:0.95rem; }
+        .cards-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap:22px; margin-bottom:60px; perspective:1200px; }
+        .glass-card { background:var(--bg-card); backdrop-filter:blur(var(--blur-medium)) saturate(150%); -webkit-backdrop-filter:blur(var(--blur-medium)) saturate(150%); border:1px solid var(--border-color); border-radius:var(--radius-lg); padding:32px 28px; transition:0.5s var(--ease-smooth), opacity 0.5s, transform 0.6s ease, background 0.6s, border-color 0.6s; box-shadow:0 4px 20px var(--shadow-color); opacity:0; transform:translateY(40px) scale(0.95); position:relative; cursor:pointer; transform-style:preserve-3d; min-height:200px; }
+        .glass-card.visible { opacity:1; transform:translateY(0) scale(1); }
+        .glass-card.flipped { transform:rotateY(180deg); }
+        .glass-card__front, .glass-card__back { backface-visibility:hidden; -webkit-backface-visibility:hidden; }
+        .glass-card__back { position:absolute; top:0; left:0; width:100%; height:100%; border-radius:var(--radius-lg); background:linear-gradient(135deg, rgba(120,80,240,0.25), rgba(60,150,255,0.2)); backdrop-filter:blur(var(--blur-medium)) saturate(150%); -webkit-backdrop-filter:blur(var(--blur-medium)) saturate(150%); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; text-align:center; transform:rotateY(180deg); border:1px solid rgba(255,255,255,0.2); }
+        .glass-card::before { content:''; position:absolute; top:0; left:0; width:100%; height:100%; background:radial-gradient(circle at var(--mouse-x,50%) var(--mouse-y,50%), rgba(255,255,255,0.12) 0%, transparent 70%); opacity:0; transition:opacity 0.4s; pointer-events:none; z-index:2; border-radius:var(--radius-lg); }
+        .glass-card:hover::before { opacity:1; }
+        .glass-card:hover { box-shadow:0 14px 40px rgba(0,0,0,0.35); transform:translateY(-6px) scale(1.02); }
+        .glass-card.flipped:hover { transform:rotateY(180deg) translateY(-6px) scale(1.02); }
+        .glass-card__icon { width:48px; height:48px; border-radius:12px; background:rgba(255,255,255,0.08); backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:1.5rem; margin-bottom:18px; transition:0.4s; }
+        .glass-card:hover .glass-card__icon { background:rgba(255,255,255,0.16); border-color:rgba(255,255,255,0.35); box-shadow:0 0 20px rgba(160,140,255,0.3); transform:scale(1.08); }
+        .glass-card h3 { font-size:1.18rem; font-weight:650; margin-bottom:8px; }
+        .glass-card p { color:var(--text-secondary); font-size:0.9rem; }
+
+        .liquid-showcase { display:grid; grid-template-columns:1fr 1fr; gap:32px; margin-bottom:60px; align-items:center; }
+        .liquid-blob-wrapper { position:relative; display:flex; align-items:center; justify-content:center; height:420px; }
+        .liquid-blob { width:260px; height:260px; border-radius:60% 40% 55% 45% / 50% 55% 45% 50%; background:linear-gradient(135deg, rgba(160,120,255,0.45), rgba(100,160,255,0.4), rgba(200,140,220,0.35), rgba(80,200,180,0.3)); backdrop-filter:blur(24px); border:1.5px solid rgba(255,255,255,0.3); box-shadow:0 20px 60px rgba(120,80,240,0.4); animation:liquidMorph 8s ease-in-out infinite; transition: filter 0.8s cubic-bezier(0.4,0,0.2,1), box-shadow 0.8s cubic-bezier(0.4,0,0.2,1), transform 0.4s var(--ease-smooth); cursor:pointer; user-select:none; z-index:2; }
+        .liquid-blob:hover { filter:brightness(1.4) drop-shadow(0 0 45px #a78bfa); box-shadow:0 30px 70px rgba(120,80,240,0.6); transform:scale(1.05); }
+        .liquid-blob.glow-intensify { filter:brightness(1.5) drop-shadow(0 0 55px #a78bfa); box-shadow:0 35px 80px rgba(120,80,240,0.7); }
+        .orbit-ring { position:absolute; width:320px; height:320px; border-radius:50%; border:1px dashed rgba(255,255,255,0.12); animation:orbitSpin 20s linear infinite; pointer-events:none; z-index:1; }
+        .orbit-ring:nth-child(2) { width:380px; height:380px; animation-duration:28s; animation-direction:reverse; border-color:rgba(255,255,255,0.06); }
+        .orbit-dot { position:absolute; width:8px; height:8px; border-radius:50%; background:#a78bfa; box-shadow:0 0 10px #a78bfa; top:-4px; left:50%; transform:translateX(-50%); }
+        .orbit-ring:nth-child(2) .orbit-dot { background:#60a5fa; box-shadow:0 0 10px #60a5fa; }
+        @keyframes orbitSpin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+        @keyframes liquidMorph { 0%,100% { border-radius:60% 40% 55% 45% / 50% 55% 45% 50%; transform:rotate(0deg); } 25% { border-radius:45% 55% 50% 50% / 55% 45% 55% 45%; transform:rotate(3deg); } 50% { border-radius:55% 45% 40% 60% / 45% 60% 40% 55%; transform:rotate(-2deg); } 75% { border-radius:50% 50% 55% 45% / 60% 40% 50% 50%; transform:rotate(4deg); } }
+
+        .tab-container { margin-bottom:60px; }
+        .tab-nav { display:flex; gap:8px; justify-content:center; margin-bottom:30px; flex-wrap:wrap; }
+        .tab-btn { padding:10px 22px; border-radius:50px; background:var(--bg-card); backdrop-filter:blur(10px); border:1px solid var(--border-color); color:var(--text-secondary); cursor:pointer; font-size:0.9rem; font-weight:500; transition: all 0.3s ease; white-space:nowrap; }
+        .tab-btn.active { background:rgba(160,130,255,0.25); border-color:rgba(160,130,255,0.5); color:#fff; box-shadow:0 0 20px rgba(140,120,255,0.2); }
+        .tab-btn:hover { border-color:rgba(255,255,255,0.35); color:#fff; }
+        .tab-viewport { overflow:hidden; border-radius:var(--radius-lg); }
+        .tab-track { display:flex; transition: transform 0.45s cubic-bezier(0.22,0.61,0.36,1); will-change:transform; }
+        .tab-panel { flex:0 0 100%; width:100%; padding:10px 0; }
+
+        .quick-actions-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:18px; margin-bottom:60px; }
+        .quick-action-card { background:var(--bg-card); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:28px 20px; text-align:center; cursor:pointer; transition: all 0.4s var(--ease-smooth); position:relative; overflow:hidden; }
+        .quick-action-card:hover { border-color:rgba(160,130,255,0.5); box-shadow:0 12px 36px rgba(0,0,0,0.3), 0 0 25px rgba(140,120,255,0.2); transform:translateY(-5px); }
+        .quick-action-card:active { transform:translateY(-2px); transition:0.1s ease; }
+        .quick-action-card__icon { font-size:2rem; margin-bottom:12px; transition: transform 0.4s var(--ease-smooth); }
+        .quick-action-card:hover .quick-action-card__icon { transform:scale(1.2); }
+        .quick-action-card h4 { font-size:0.95rem; font-weight:650; margin-bottom:4px; }
+        .quick-action-card p { font-size:0.78rem; color:var(--text-secondary); }
+
+        .timeline { position:relative; max-width:700px; margin:0 auto 60px; padding-left:30px; }
+        .timeline::before { content:''; position:absolute; left:10px; top:0; bottom:0; width:2px; background:linear-gradient(180deg, rgba(160,130,255,0.6), rgba(96,165,250,0.3), rgba(52,211,153,0.1)); border-radius:1px; }
+        .timeline-item { position:relative; margin-bottom:28px; padding-left:30px; opacity:0; transform:translateX(-20px); transition: all 0.6s var(--ease-smooth); }
+        .timeline-item.visible { opacity:1; transform:translateX(0); }
+        .timeline-item::before { content:''; position:absolute; left:-24px; top:8px; width:12px; height:12px; border-radius:50%; border:2px solid #a78bfa; background:var(--bg-deep); box-shadow:0 0 10px rgba(160,130,255,0.5); transition: background 0.6s; }
+        .timeline-item h4 { font-size:1rem; font-weight:650; margin-bottom:4px; }
+        .timeline-item p { color:var(--text-secondary); font-size:0.85rem; }
+
+        .stats-row { display:flex; gap:16px; flex-wrap:wrap; justify-content:center; margin-bottom:60px; }
+        .stat-card { flex:1 1 150px; text-align:center; padding:24px 16px; border-radius:var(--radius-md); background:var(--bg-card); backdrop-filter:blur(12px); border:1px solid var(--border-color); transition:all 0.4s; cursor:pointer; }
+        .stat-card:hover { background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.25); transform:translateY(-5px); }
+        .stat-card__number { font-size:2.4rem; font-weight:800; background:linear-gradient(180deg, #ffffff, #b4bce4); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; transition:transform 0.3s; }
+        .stat-card:hover .stat-card__number { transform:scale(1.1); }
+        .stat-card__label { font-size:0.85rem; color:var(--text-secondary); margin-top:4px; }
+
+        .footer { text-align:center; padding:40px 20px; border-top:1px solid rgba(255,255,255,0.07); color:var(--text-secondary); font-size:0.85rem; transition:all 0.6s; }
+
+        .design-explorer-overlay { position:fixed; inset:0; z-index:999; display:flex; align-items:center; justify-content:center; pointer-events:none; opacity:0; transition:opacity 0.35s; }
+        .design-explorer-overlay.active { pointer-events:auto; opacity:1; }
+        .explorer-bg { position:absolute; inset:0; background:rgba(0,0,0,0.65); backdrop-filter:blur(10px); cursor:pointer; }
+        .explorer-card { position:relative; z-index:1; background:rgba(30,30,55,0.8); backdrop-filter:blur(40px) saturate(180%); border:1px solid rgba(255,255,255,0.2); border-radius:24px; padding:35px 30px; max-width:700px; width:94%; box-shadow:0 24px 60px rgba(0,0,0,0.5); transform:translateY(20px) scale(0.92); transition:transform 0.45s var(--ease-smooth); }
+        .design-explorer-overlay.active .explorer-card { transform:translateY(0) scale(1); }
+        .explorer-close { position:absolute; top:14px; right:18px; width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2); color:#ccc; cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center; }
+        .control-group { margin-bottom:16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+        .control-group label { width:100px; font-size:0.85rem; color:var(--text-secondary); }
+        .control-group input[type=range] { flex:1; min-width:140px; accent-color:#a78bfa; }
+        .control-group span { width:55px; text-align:right; font-size:0.8rem; }
+        .preview-glass { margin-top:20px; padding:30px 20px; width:280px; height:180px; border-radius:20px; background:rgba(255,255,255,0.06); backdrop-filter:blur(20px) saturate(150%); border:1px solid rgba(255,255,255,0.25); box-shadow:0 10px 40px rgba(0,0,0,0.3), inset 0 2px 0 rgba(255,255,255,0.4), inset 0 -2px 0 rgba(0,0,0,0.15); transition:all 0.3s ease; text-align:center; color:#fff; margin:0 auto; display:flex; flex-direction:column; justify-content:center; cursor:pointer; }
+        .preview-glass h3 { font-size:1.1rem; margin-bottom:6px; }
+        .preview-glass p { color:rgba(255,255,255,0.65); font-size:0.8rem; }
+
+        #back-to-top { position:fixed; bottom:30px; right:30px; z-index:998; width:48px; height:48px; border-radius:50%; background:rgba(255,255,255,0.1); backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,0.25); color:#fff; cursor:pointer; font-size:1.2rem; display:flex; align-items:center; justify-content:center; transition:all 0.4s; opacity:0; pointer-events:none; box-shadow:0 4px 20px rgba(0,0,0,0.2); }
+        #back-to-top.show { opacity:1; pointer-events:auto; }
+        #back-to-top:hover { background:rgba(255,255,255,0.22); border-color:rgba(255,255,255,0.45); transform:translateY(-4px); }
+        .control-panel { position:fixed; bottom:90px; right:30px; z-index:997; display:flex; flex-direction:column; gap:8px; }
+        .control-panel__btn { width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,0.08); backdrop-filter:blur(14px); border:1px solid rgba(255,255,255,0.2); color:#fff; cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center; transition:all 0.3s; box-shadow:0 4px 16px rgba(0,0,0,0.15); }
+        .control-panel__btn:hover { background:rgba(255,255,255,0.18); border-color:rgba(255,255,255,0.4); transform:scale(1.1); }
+        .control-panel__btn.active { background:rgba(160,130,255,0.3); border-color:rgba(160,130,255,0.6); box-shadow:0 0 18px var(--glow-color); }
+        .control-panel__slider { display:none; background:rgba(20,20,45,0.85); backdrop-filter:blur(20px); border-radius:14px; padding:12px 16px; border:1px solid rgba(255,255,255,0.18); flex-direction:column; gap:6px; min-width:160px; box-shadow:0 8px 30px rgba(0,0,0,0.4); }
+        .control-panel__slider.show { display:flex; }
+        .control-panel__slider label { font-size:0.78rem; color:#ccc; }
+        .control-panel__slider input[type=range] { width:100%; accent-color:#a78bfa; }
+        .control-panel__slider span { font-size:0.75rem; color:#aaa; }
+
+        @media (max-width:768px) {
+            .liquid-showcase { grid-template-columns:1fr; text-align:center; }
+            .liquid-blob-wrapper { height:320px; }
+            .liquid-blob { width:200px; height:200px; }
+            .orbit-ring { width:260px; height:260px; }
+            .cards-grid { grid-template-columns:1fr; }
+            .quick-actions-grid { grid-template-columns: repeat(2, 1fr); }
+            .control-panel { bottom:70px; right:16px; }
+            #back-to-top { bottom:20px; right:16px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="theme-overlay"></div>
+    <div id="scroll-progress"></div>
+    <div id="cursor-glow"></div>
+    <canvas id="particles-canvas"></canvas>
+    <div class="bg-orbs" aria-hidden="true">
+        <div class="bg-orb bg-orb--1"></div><div class="bg-orb bg-orb--2"></div><div class="bg-orb bg-orb--3"></div><div class="bg-orb bg-orb--4"></div>
+    </div>
+
+    <div class="main-container">
+        <section id="hero" class="hero anim-section">
+            <div class="hero__badge">💡 液态玻璃设计系统 · 年度考核评审版</div>
+            <h1 class="hero__title"><span class="hero__title-gradient">液态玻璃</span><br>流动的视觉美学</h1>
+            <p class="hero__subtitle">粒子背景 · 3D翻转卡片 · 悬停增亮球体 · 液态扩散主题切换 · 滑动标签页 · 时间线 · 快捷入口 · 设计参数实时探索</p>
+            <div class="hero__actions">
+                <button class="btn btn--primary" id="heroExploreBtn"><span>🔮 探索设计</span></button>
+                <button class="btn btn--secondary" id="heroDocsBtn"><span>📖 查看文档</span></button>
+            </div>
+        </section>
+
+        <section id="showcase" class="liquid-showcase anim-section">
+            <div class="liquid-blob-wrapper">
+                <div class="orbit-ring"><div class="orbit-dot"></div></div>
+                <div class="orbit-ring"><div class="orbit-dot"></div></div>
+                <div class="liquid-blob" id="liquidBlob" title="悬停自动变亮 | 空格键演示增亮"></div>
+            </div>
+            <div class="liquid-showcase__content">
+                <h2>流动形态<br>持续演化</h2>
+                <p><strong>鼠标悬停</strong>球体自动平滑增亮 · 环绕粒子轨道持续旋转 · 点击按钮或按<kbd>Space</kbd>键触发强烈增亮效果。</p>
+                <button class="btn btn--primary" id="demoBtn"><span>🎬 观看演示</span></button>
+            </div>
+        </section>
+
+        <section id="features" class="anim-section">
+            <h2 class="section-title">核心设计特性</h2>
+            <p class="section-subtitle">点击卡片翻转查看技术细节</p>
+            <div class="cards-grid" id="cardsGrid">
+                <div class="glass-card" data-flip><div class="glass-card__front"><div class="glass-card__icon">🫧</div><h3>深度模糊背景</h3><p>backdrop-filter 实现真实玻璃质感。</p></div><div class="glass-card__back"><h3>🫧 实现细节</h3><p>blur(22px) + saturate(150%)，层次分明。</p></div></div>
+                <div class="glass-card" data-flip><div class="glass-card__front"><div class="glass-card__icon">✨</div><h3>3D按钮边缘</h3><p>多层内阴影模拟立体厚度。</p></div><div class="glass-card__back"><h3>✨ 阴影层次</h3><p>5层box-shadow模拟高光与暗边。</p></div></div>
+                <div class="glass-card" data-flip><div class="glass-card__front"><div class="glass-card__icon">🌊</div><h3>液态扩散切换</h3><p>主题切换毛玻璃圆形扩散。</p></div><div class="glass-card__back"><h3>🌊 扩散原理</h3><p>clip-path:circle() + blur() 液态流动。</p></div></div>
+                <div class="glass-card" data-flip><div class="glass-card__front"><div class="glass-card__icon">🖱️</div><h3>鼠标跟踪光影</h3><p>径向渐变跟踪鼠标位置。</p></div><div class="glass-card__back"><h3>🖱️ 技术实现</h3><p>CSS变量 + mousemove更新圆心。</p></div></div>
+                <div class="glass-card" data-flip><div class="glass-card__front"><div class="glass-card__icon">🎨</div><h3>亮暗主题切换</h3><p>CSS变量驱动全局颜色。</p></div><div class="glass-card__back"><h3>🎨 变量体系</h3><p>body class切换，0.6s过渡。</p></div></div>
+                <div class="glass-card" data-flip><div class="glass-card__front"><div class="glass-card__icon">💎</div><h3>粒子背景系统</h3><p>Canvas动态粒子网络，可调密度。</p></div><div class="glass-card__back"><h3>💎 粒子特性</h3><p>默认85粒子，右下角✨可调节密度20-150。</p></div></div>
+            </div>
+        </section>
+
+        <section class="tab-container anim-section" id="tabs">
+            <h2 class="section-title">设计系统详情</h2>
+            <p class="section-subtitle">点击标签，卡牌横向滑动切换</p>
+            <div class="tab-nav" id="tabNav">
+                <button class="tab-btn active" data-index="0">🎨 色彩系统</button>
+                <button class="tab-btn" data-index="1">🌊 动画规范</button>
+                <button class="tab-btn" data-index="2">🫧 玻璃参数</button>
+                <button class="tab-btn" data-index="3">📐 布局栅格</button>
+            </div>
+            <div class="tab-viewport">
+                <div class="tab-track" id="tabTrack">
+                    <div class="tab-panel" id="tab-colors">
+                        <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;">
+                            <div class="quick-action-card" style="text-align:center;flex:1;min-width:120px;"><div style="width:50px;height:50px;border-radius:50%;background:#a78bfa;margin:0 auto 10px;box-shadow:0 0 20px rgba(167,139,250,0.5);"></div><p style="font-size:0.85rem;">主色紫罗兰<br><code>#a78bfa</code></p></div>
+                            <div class="quick-action-card" style="text-align:center;flex:1;min-width:120px;"><div style="width:50px;height:50px;border-radius:50%;background:#60a5fa;margin:0 auto 10px;box-shadow:0 0 20px rgba(96,165,250,0.5);"></div><p style="font-size:0.85rem;">辅色天蓝<br><code>#60a5fa</code></p></div>
+                            <div class="quick-action-card" style="text-align:center;flex:1;min-width:120px;"><div style="width:50px;height:50px;border-radius:50%;background:#34d399;margin:0 auto 10px;box-shadow:0 0 20px rgba(52,211,153,0.5);"></div><p style="font-size:0.85rem;">点缀翡翠绿<br><code>#34d399</code></p></div>
+                            <div class="quick-action-card" style="text-align:center;flex:1;min-width:120px;"><div style="width:50px;height:50px;border-radius:50%;background:#f472b6;margin:0 auto 10px;box-shadow:0 0 20px rgba(244,114,182,0.5);"></div><p style="font-size:0.85rem;">点缀粉<br><code>#f472b6</code></p></div>
+                        </div>
+                    </div>
+                    <div class="tab-panel" id="tab-motion">
+                        <div class="quick-actions-grid" style="grid-template-columns:1fr 1fr;">
+                            <div class="quick-action-card"><h4>卡片入场延迟 <span style="color:var(--accent-1);">0.06s×n</span></h4><p style="font-size:0.8rem;">序列式入场</p></div>
+                            <div class="quick-action-card"><h4>液态球体变形 <span style="color:var(--accent-1);">8s循环</span></h4><p style="font-size:0.8rem;">border-radius动画</p></div>
+                            <div class="quick-action-card"><h4>主题扩散 <span style="color:var(--accent-1);">0.7s</span></h4><p style="font-size:0.8rem;">clip-path circle</p></div>
+                            <div class="quick-action-card"><h4>悬停增亮 <span style="color:var(--accent-1);">0.8s</span></h4><p style="font-size:0.8rem;">filter brightness过渡</p></div>
+                        </div>
+                    </div>
+                    <div class="tab-panel" id="tab-glass">
+                        <div class="quick-actions-grid" style="grid-template-columns:1fr 1fr;">
+                            <div class="quick-action-card"><h4>默认模糊 <span style="color:var(--accent-1);">22px</span></h4><p style="font-size:0.8rem;">blur(22px) saturate(150%)</p></div>
+                            <div class="quick-action-card"><h4>背景透明度 <span style="color:var(--accent-1);">0.03-0.06</span></h4><p style="font-size:0.8rem;">rgba半透基底</p></div>
+                            <div class="quick-action-card"><h4>边框颜色 <span style="color:var(--accent-1);">rgba(255,255,255,0.12)</span></h4><p style="font-size:0.8rem;">半透明白色边框</p></div>
+                            <div class="quick-action-card"><h4>强模糊 <span style="color:var(--accent-1);">45px</span></h4><p style="font-size:0.8rem;">导航栏深度雾化</p></div>
+                        </div>
+                    </div>
+                    <div class="tab-panel" id="tab-layout">
+                        <div class="quick-actions-grid" style="grid-template-columns:1fr 1fr;">
+                            <div class="quick-action-card"><h4>最大宽度 <span style="color:var(--accent-1);">1200px</span></h4><p style="font-size:0.8rem;">主容器max-width</p></div>
+                            <div class="quick-action-card"><h4>卡片最小宽度 <span style="color:var(--accent-1);">270px</span></h4><p style="font-size:0.8rem;">auto-fit响应式</p></div>
+                            <div class="quick-action-card"><h4>圆角 <span style="color:var(--accent-1);">20px</span></h4><p style="font-size:0.8rem;">--radius-lg统一</p></div>
+                            <div class="quick-action-card"><h4>间距 <span style="color:var(--accent-1);">22px</span></h4><p style="font-size:0.8rem;">卡片网格gap</p></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="anim-section" id="quick-actions">
+            <h2 class="section-title">核心交互入口</h2>
+            <p class="section-subtitle">点击卡片直接触发对应功能</p>
+            <div class="quick-actions-grid">
+                <div class="quick-action-card" id="quickThemeToggle">
+                    <div class="quick-action-card__icon">🌓</div>
+                    <h4>切换主题</h4>
+                    <p>液态玻璃扩散动画</p>
+                </div>
+                <div class="quick-action-card" id="quickParticlePanel">
+                    <div class="quick-action-card__icon">✨</div>
+                    <h4>粒子密度</h4>
+                    <p>调节背景粒子数量</p>
+                </div>
+                <div class="quick-action-card" id="quickDemoTrigger">
+                    <div class="quick-action-card__icon">💡</div>
+                    <h4>球体增亮演示</h4>
+                    <p>触发液态球体高亮</p>
+                </div>
+                <div class="quick-action-card" id="quickScrollTop">
+                    <div class="quick-action-card__icon">⬆️</div>
+                    <h4>回到顶部</h4>
+                    <p>平滑滚动至页首</p>
+                </div>
+                <div class="quick-action-card" id="quickOpenExplorer">
+                    <div class="quick-action-card__icon">🔍</div>
+                    <h4>设计参数探索</h4>
+                    <p>实时调节玻璃材质</p>
+                </div>
+                <div class="quick-action-card" id="quickTabSwitch">
+                    <div class="quick-action-card__icon">📑</div>
+                    <h4>切换详情标签</h4>
+                    <p>跳转至上方的标签页</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="anim-section" id="timeline">
+            <h2 class="section-title">开发迭代历程</h2>
+            <p class="section-subtitle">液态玻璃设计系统的演进时间线</p>
+            <div class="timeline" id="timelineContainer">
+                <div class="timeline-item"><h4>第一阶段 · 基础玻璃态</h4><p>实现 backdrop-filter 毛玻璃效果，建立CSS变量体系。</p></div>
+                <div class="timeline-item"><h4>第二阶段 · 流体动画</h4><p>动态光球背景、液态球体变形动画、粒子Canvas系统。</p></div>
+                <div class="timeline-item"><h4>第三阶段 · 3D交互</h4><p>卡片翻转、3D按钮边缘、鼠标跟踪光影。</p></div>
+                <div class="timeline-item"><h4>第四阶段 · 主题系统</h4><p>亮暗主题切换、液态玻璃扩散动画。</p></div>
+                <div class="timeline-item"><h4>第五阶段 · 设计探索</h4><p>交互式参数调节弹窗、实时预览。</p></div>
+            </div>
+        </section>
+
+        <section id="stats" class="anim-section">
+            <h2 class="section-title">数据一览</h2>
+            <p class="section-subtitle">悬停数字查看动态缩放效果</p>
+            <div class="stats-row">
+                <div class="stat-card"><div class="stat-card__number count-up" data-target="98" data-suffix="%">0%</div><div class="stat-card__label">用户满意度</div></div>
+                <div class="stat-card"><div class="stat-card__number count-up" data-target="2.4" data-suffix="x" data-decimals="1">0x</div><div class="stat-card__label">视觉停留时长</div></div>
+                <div class="stat-card"><div class="stat-card__number count-up" data-target="60" data-suffix="fps">0fps</div><div class="stat-card__label">流畅动画帧率</div></div>
+                <div class="stat-card"><div class="stat-card__number count-up" data-target="100" data-suffix="+">0+</div><div class="stat-card__label">设计组件</div></div>
+            </div>
+        </section>
+
+        <footer class="footer anim-section">
+            <p>© 2026 <strong>Liquid Glass Design</strong> · 年度考核评审版 · 按 <kbd>Space</kbd> 触发演示 · <kbd>ESC</kbd> 关闭弹窗 · 右下角 🌓 切换主题 · ✨ 调节粒子密度</p>
+        </footer>
+    </div>
+
+    <div class="design-explorer-overlay" id="explorerOverlay">
+        <div class="explorer-bg" id="explorerBg"></div>
+        <div class="explorer-card">
+            <button class="explorer-close" id="explorerCloseBtn">✕</button>
+            <div class="explorer-title">🔍 交互式设计探索</div>
+            <div class="explorer-subtitle">动态调节参数 · 点击预览卡片切换圆角预设</div>
+            <div class="control-group"><label>宽度</label><input type="range" id="widthSlider" min="150" max="500" value="280" step="10"><span id="widthValue">280px</span></div>
+            <div class="control-group"><label>高度</label><input type="range" id="heightSlider" min="100" max="400" value="180" step="10"><span id="heightValue">180px</span></div>
+            <div class="control-group"><label>圆角大小</label><input type="range" id="radiusSlider" min="0" max="40" value="20" step="1"><span id="radiusValue">20px</span></div>
+            <div class="control-group"><label>背景模糊</label><input type="range" id="blurSlider" min="0" max="40" value="20" step="1"><span id="blurValue">20px</span></div>
+            <div class="control-group"><label>边框不透明度</label><input type="range" id="borderSlider" min="0" max="100" value="25" step="1"><span id="borderValue">0.25</span></div>
+            <div class="control-group"><label>阴影深度</label><input type="range" id="shadowSlider" min="0" max="80" value="30" step="1"><span id="shadowValue">0.3</span></div>
+            <div class="control-group"><label>背景不透明度</label><input type="range" id="bgOpacitySlider" min="0" max="30" value="6" step="1"><span id="bgOpacityValue">0.06</span></div>
+            <div class="preview-glass" id="previewGlass" title="点击切换圆角预设"><h3>实时预览卡片</h3><p>点击切换圆角预设</p></div>
+        </div>
+    </div>
+
+    <button id="back-to-top" title="回到顶部" aria-label="回到顶部">↑</button>
+    <div class="control-panel" id="controlPanel">
+        <button class="control-panel__btn" id="themeToggleBtn" title="切换主题（液态玻璃扩散）">🌓</button>
+        <button class="control-panel__btn" id="particleBtn" title="粒子密度">✨</button>
+        <div class="control-panel__slider" id="particleSlider">
+            <label>粒子密度</label>
+            <input type="range" id="densitySlider" min="20" max="150" value="85" step="5">
+            <span id="densityValue">85</span>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const progressBar = document.getElementById('scroll-progress');
+            window.addEventListener('scroll', () => { const p = window.scrollY / (document.documentElement.scrollHeight - window.innerHeight) * 100; progressBar.style.width = (p > 0 ? p : 0) + '%'; });
+
+            const cursorGlow = document.getElementById('cursor-glow'); let gv = false;
+            document.addEventListener('mousemove', e => { cursorGlow.style.left = e.clientX + 'px'; cursorGlow.style.top = e.clientY + 'px'; if(!gv){ cursorGlow.style.opacity='1'; gv=true; } });
+            document.addEventListener('mouseleave', () => { cursorGlow.style.opacity='0'; gv=false; });
+
+            const canvas = document.getElementById('particles-canvas'); const ctx = canvas.getContext('2d');
+            let pw, ph, particles = [], pc = 85, cd = 130; const ds = document.getElementById('densitySlider');
+            function rc() { pw = window.innerWidth; ph = window.innerHeight; canvas.width = pw; canvas.height = ph; } window.addEventListener('resize', rc); rc();
+            class Pt { constructor() { this.rst(); } rst() { this.x = Math.random()*pw; this.y = Math.random()*ph; this.vx = (Math.random()-0.5)*0.45; this.vy = (Math.random()-0.5)*0.45; this.r = Math.random()*1.8+0.8; this.o = Math.random()*0.5+0.2; } upd() { this.x += this.vx; this.y += this.vy; if(this.x<-10) this.x=pw+10; if(this.x>pw+10) this.x=-10; if(this.y<-10) this.y=ph+10; if(this.y>ph+10) this.y=-10; } draw(c) { c.beginPath(); c.arc(this.x,this.y,this.r,0,Math.PI*2); c.fillStyle = `rgba(180,190,255,${this.o})`; c.shadowColor='rgba(140,150,255,0.5)'; c.shadowBlur=6; c.fill(); c.shadowBlur=0; } }
+            function ip(c) { particles = []; for(let i=0;i<c;i++) particles.push(new Pt()); } ip(pc);
+            function dcon() { for(let i=0;i<particles.length;i++) { for(let j=i+1;j<particles.length;j++) { const p1=particles[i],p2=particles[j]; const dx=p1.x-p2.x,dy=p1.y-p2.y,d=Math.sqrt(dx*dx+dy*dy); if(d<cd) { const o=1-d/cd; ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.strokeStyle=`rgba(160,170,255,${o*0.18})`; ctx.lineWidth=0.7; ctx.stroke(); } } } }
+            function ap() { ctx.clearRect(0,0,pw,ph); particles.forEach(p=>{p.upd();p.draw(ctx);}); dcon(); requestAnimationFrame(ap); } ap();
+            ds.addEventListener('input', () => { pc = parseInt(ds.value); document.getElementById('densityValue').textContent = pc; ip(pc); });
+
+            document.querySelectorAll('.glass-card[data-flip]').forEach(card => { card.addEventListener('click', function() { this.classList.toggle('flipped'); }); card.addEventListener('mousemove', function(e) { const r = card.getBoundingClientRect(); card.style.setProperty('--mouse-x', (e.clientX-r.left)/r.width*100+'%'); card.style.setProperty('--mouse-y', (e.clientY-r.top)/r.height*100+'%'); }); card.addEventListener('mouseleave', () => { card.style.setProperty('--mouse-x','50%'); card.style.setProperty('--mouse-y','50%'); }); });
+
+            const liquidBlob = document.getElementById('liquidBlob');
+            const so = new IntersectionObserver((entries) => { entries.forEach(en => { if(en.isIntersecting) en.target.classList.add('visible'); else en.target.classList.remove('visible'); }); }, { threshold: 0.15 });
+            document.querySelectorAll('.anim-section').forEach(s => so.observe(s));
+            const co = new IntersectionObserver((entries) => { entries.forEach(en => { const c = en.target; if(en.isIntersecting) { const i = Array.from(c.parentNode.children).indexOf(c); c.style.transitionDelay = i*0.06+'s'; c.classList.add('visible'); } else { c.classList.remove('visible'); c.style.transitionDelay = '0s'; } }); }, { threshold: 0.2 });
+            document.querySelectorAll('.glass-card').forEach(c => co.observe(c));
+
+            const cel = document.querySelectorAll('.count-up'); const cob = new IntersectionObserver((entries) => { entries.forEach(en => { const el = en.target; if(en.isIntersecting && el.dataset.animating !== 'true') { el.dataset.animating = 'true'; const t = parseFloat(el.dataset.target), s = el.dataset.suffix||'', d = parseInt(el.dataset.decimals)||0, dur = 1800, st = performance.now(); function upd(now) { const p = Math.min((now-st)/dur,1), v = (t*(1-Math.pow(1-p,3))).toFixed(d)+s; el.textContent = v; if(p<1) requestAnimationFrame(upd); else { el.textContent = t.toFixed(d)+s; el.dataset.animating = 'false'; } } requestAnimationFrame(upd); } else if(!en.isIntersecting) { el.textContent = '0'+(el.dataset.suffix||''); el.dataset.animating = 'false'; } }); }, { threshold: 0.6 }); cel.forEach(el => cob.observe(el));
+            const tlo = new IntersectionObserver((entries) => { entries.forEach(en => { if(en.isIntersecting) en.target.classList.add('visible'); else en.target.classList.remove('visible'); }); }, { threshold: 0.3 }); document.querySelectorAll('.timeline-item').forEach(ti => tlo.observe(ti));
+
+            const btt = document.getElementById('back-to-top'); window.addEventListener('scroll', () => { if(window.scrollY > 500) btt.classList.add('show'); else btt.classList.remove('show'); }); btt.addEventListener('click', () => { window.scrollTo({ top:0, behavior:'smooth' }); });
+
+            const tov = document.getElementById('theme-overlay'), ttb = document.getElementById('themeToggleBtn'); let tti = false;
+            function triggerTheme(ox, oy) { if(tti) return; tti = true; const il = document.body.classList.contains('light-theme'); const oc = il ? 'rgba(8,8,28,0.5)' : 'rgba(232,236,244,0.5)'; const diag = Math.sqrt(window.innerWidth**2 + window.innerHeight**2); const es = (diag / Math.min(window.innerWidth, window.innerHeight)) * 110; tov.style.background = oc; tov.style.transition = 'none'; tov.style.clipPath = `circle(0% at ${ox}px ${oy}px)`; tov.style.opacity = '1'; void tov.offsetWidth; tov.style.transition = 'clip-path 0.7s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease'; tov.style.clipPath = `circle(${es}% at ${ox}px ${oy}px)`; setTimeout(() => { document.body.classList.toggle('light-theme'); ttb.classList.toggle('active'); tov.style.opacity = '0'; }, 400); setTimeout(() => { tov.style.transition = 'none'; tov.style.clipPath = 'circle(0% at 50% 50%)'; tov.style.opacity = '0'; tov.style.background = ''; tti = false; }, 800); }
+            ttb.addEventListener('click', function(e) { const r = ttb.getBoundingClientRect(); triggerTheme(r.left + r.width/2, r.top + r.height/2); });
+
+            const tabTrack = document.getElementById('tabTrack'); const tabBtns = document.querySelectorAll('.tab-btn'); let currentIndex = 0;
+            tabBtns.forEach(btn => { btn.addEventListener('click', function() { const index = parseInt(this.dataset.index); if(index === currentIndex) return; currentIndex = index; tabTrack.style.transform = `translateX(-${index * 100}%)`; tabBtns.forEach(b => b.classList.remove('active')); this.classList.add('active'); }); });
+
+            const pbtn = document.getElementById('particleBtn'), psp = document.getElementById('particleSlider'); pbtn.addEventListener('click', () => { psp.classList.toggle('show'); pbtn.classList.toggle('active'); });
+
+            const eov = document.getElementById('explorerOverlay'), ebg = document.getElementById('explorerBg'), ecl = document.getElementById('explorerCloseBtn');
+            const bs = document.getElementById('blurSlider'), brs = document.getElementById('borderSlider'), ss = document.getElementById('shadowSlider'), bos = document.getElementById('bgOpacitySlider'), rs = document.getElementById('radiusSlider'), ws = document.getElementById('widthSlider'), hs = document.getElementById('heightSlider'), pg = document.getElementById('previewGlass');
+            function oe() { eov.classList.add('active'); document.body.style.overflow = 'hidden'; } function ce() { eov.classList.remove('active'); document.body.style.overflow = ''; } ebg.addEventListener('click', ce); ecl.addEventListener('click', ce);
+            function up() { const b = bs.value+'px', bo = (brs.value/100).toFixed(2), sh = (ss.value/100).toFixed(2), bg = (bos.value/100).toFixed(2), r = rs.value+'px', w = ws.value+'px', h = hs.value+'px'; document.getElementById('blurValue').textContent = b; document.getElementById('borderValue').textContent = bo; document.getElementById('shadowValue').textContent = sh; document.getElementById('bgOpacityValue').textContent = bg; document.getElementById('radiusValue').textContent = r; document.getElementById('widthValue').textContent = w; document.getElementById('heightValue').textContent = h; pg.style.background = `rgba(255,255,255,${bg})`; pg.style.backdropFilter = `blur(${b}) saturate(150%)`; pg.style.border = `1px solid rgba(255,255,255,${bo})`; pg.style.boxShadow = `0 10px 40px rgba(0,0,0,${sh}), inset 0 2px 0 rgba(255,255,255,0.4), inset 0 -2px 0 rgba(0,0,0,0.15)`; pg.style.borderRadius = r; pg.style.width = w; pg.style.height = h; }
+            [bs,brs,ss,bos,rs,ws,hs].forEach(s => s.addEventListener('input', up)); up();
+            const rps = ['0px','8px','16px','24px','32px','40px']; let rpi = 2; pg.addEventListener('click', () => { rpi = (rpi+1) % rps.length; rs.value = parseInt(rps[rpi]); up(); });
+
+            document.getElementById('heroExploreBtn').addEventListener('click', oe);
+            document.getElementById('heroDocsBtn').addEventListener('click', () => { oe(); setTimeout(() => { rs.value = 30; bs.value = 30; up(); }, 100); });
+            document.getElementById('demoBtn').addEventListener('click', () => { liquidBlob.classList.remove('glow-intensify'); void liquidBlob.offsetWidth; liquidBlob.classList.add('glow-intensify'); setTimeout(() => liquidBlob.classList.remove('glow-intensify'), 2500); });
+
+            document.getElementById('quickThemeToggle').addEventListener('click', () => { const r = ttb.getBoundingClientRect(); triggerTheme(r.left + r.width/2, r.top + r.height/2); });
+            document.getElementById('quickParticlePanel').addEventListener('click', () => { psp.classList.toggle('show'); pbtn.classList.toggle('active'); });
+            document.getElementById('quickDemoTrigger').addEventListener('click', () => { liquidBlob.classList.remove('glow-intensify'); void liquidBlob.offsetWidth; liquidBlob.classList.add('glow-intensify'); setTimeout(() => liquidBlob.classList.remove('glow-intensify'), 2500); });
+            document.getElementById('quickScrollTop').addEventListener('click', () => { window.scrollTo({ top:0, behavior:'smooth' }); });
+            document.getElementById('quickOpenExplorer').addEventListener('click', oe);
+            document.getElementById('quickTabSwitch').addEventListener('click', () => { document.getElementById('tabs').scrollIntoView({ behavior:'smooth' }); });
+
+            document.addEventListener('keydown', function(e) { if(e.key === 'Escape') { if(eov.classList.contains('active')) ce(); if(psp.classList.contains('show')) { psp.classList.remove('show'); pbtn.classList.remove('active'); } } if(e.key === ' ' && e.target === document.body) { e.preventDefault(); liquidBlob.classList.remove('glow-intensify'); void liquidBlob.offsetWidth; liquidBlob.classList.add('glow-intensify'); setTimeout(() => liquidBlob.classList.remove('glow-intensify'), 2500); } });
+        })();
+    </script>
+</body>
+</html>

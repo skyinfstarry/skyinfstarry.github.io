@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>流式输出 · 导出增强版</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+            max-width: 880px;
+            margin: 30px auto;
+            padding: 0 20px;
+            background: #f5f7fb;
+        }
+        .card {
+            background: rgba(255,255,255,0.9);
+            backdrop-filter: blur(4px);
+            border-radius: 28px;
+            padding: 26px 28px 30px;
+            box-shadow: 0 15px 30px -10px rgba(0,0,0,0.1);
+            border: 1px solid #e9eef4;
+        }
+        h2 {
+            margin: 0 0 10px 0;
+            font-weight: 500;
+            color: #0b1e33;
+        }
+        .output-box {
+            background: #0b1120;
+            border-radius: 18px;
+            padding: 22px 24px;
+            margin: 18px 0;
+            box-shadow: inset 0 6px 8px rgba(0,0,0,0.5);
+        }
+        #output {
+            color: #e3e9f5;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            min-height: 180px;
+            max-height: 360px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin: 0;
+        }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px 20px;
+            margin: 12px 0 8px;
+        }
+        button {
+            background: #1e293b;
+            border: 1px solid #3a4a5e;
+            color: white;
+            padding: 9px 20px;
+            border-radius: 36px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: 0.1s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        button.primary {
+            background: #2563eb;
+            border-color: #3b82f6;
+        }
+        button.export {
+            background: #0d9488;
+            border-color: #14b8a6;
+        }
+        button:active { transform: translateY(1px); }
+        button:disabled {
+            opacity: 0.45;
+            pointer-events: none;
+        }
+        .speed-panel {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #e6edf8;
+            padding: 5px 16px;
+            border-radius: 40px;
+        }
+        #speedValue { font-weight: 600; min-width: 60px; color: #075985; }
+        .stats {
+            margin-left: auto;
+            background: #dee6f0;
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+        }
+        .text-editor {
+            margin-top: 22px;
+            border-top: 1px dashed #b9c8dd;
+            padding-top: 18px;
+        }
+        textarea {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 18px;
+            border: 1px solid #cbd5e1;
+            background: #fbfdff;
+            font-family: inherit;
+            font-size: 0.95rem;
+            resize: vertical;
+            min-height: 110px;
+        }
+        .flex-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin: 12px 0 0;
+            flex-wrap: wrap;
+        }
+        #statusBadge {
+            font-size: 0.8rem;
+            background: #d1d5db;
+            padding: 2px 12px;
+            border-radius: 20px;
+        }
+        .note {
+            color: #4b5563;
+            font-size: 0.85rem;
+            margin-top: 18px;
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div style="display: flex; justify-content: space-between;">
+        <h2>✧ 流式输出 · 导出增强</h2>
+        <span id="statusBadge">⚪ 就绪</span>
+    </div>
+
+    <!-- 输出区域 -->
+    <div class="output-box">
+        <div id="output">✨ 点击「开始」体验流式打字</div>
+    </div>
+
+    <!-- 控制栏 -->
+    <div class="toolbar">
+        <button class="primary" id="startBtn">▶ 开始</button>
+        <button id="pauseBtn" disabled>⏸️ 暂停</button>
+        <button id="resetBtn">↻ 重置</button>
+        <button class="export" id="exportBtn">⬇ 导出 HTML</button>
+        
+        <div class="speed-panel">
+            <span>🐢</span>
+            <input type="range" id="speedSlider" min="6" max="70" value="24" step="1" style="width:140px;">
+            <span>🐇</span>
+            <span id="speedValue">24 ms</span>
+        </div>
+        <div class="stats" id="statsDisplay">0 字符</div>
+    </div>
+
+    <!-- 自定义文本区 -->
+    <div class="text-editor">
+        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 10px;">
+            <span style="font-weight:500;">📝 自定义文本</span>
+            <button id="applyTextBtn" style="padding:4px 16px; background:#4b5563;">应用并重置</button>
+            <button id="resetDefaultBtn" style="padding:4px 16px; background:transparent; border:1px solid #9ca3af; color:#1f2937;">恢复默认</button>
+        </div>
+        <textarea id="textInput" placeholder="输入任意文字……">《流式输出的艺术》
+真正的流式体验，应当是字词如流水般自然呈现。
+我们通过更小的分块粒度、更低的延迟，以及 requestAnimationFrame 对齐渲染，让你感受到行云流水的打字效果。
+
+你可以自由调节速度滑块，从 6ms 到 70ms 每块。
+✨ 现在，文字都是逐词/逐字推送的。</textarea>
+        <div class="flex-row">
+            <span id="charCount">0 字符</span>
+            <span style="color:#2563eb; font-size:0.8rem;">⏵ 点击「应用」后新文本生效</span>
+        </div>
+    </div>
+    <div class="note">
+        ✅ 点击「导出 HTML」可下载一个独立文件，打开即自动播放当前文本与速度。
+    </div>
+</div>
+
+<script>
+    (function(){
+        "use strict";
+
+        // ---------- DOM 元素 ----------
+        const outputEl = document.getElementById('output');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const speedSlider = document.getElementById('speedSlider');
+        const speedSpan = document.getElementById('speedValue');
+        const statsEl = document.getElementById('statsDisplay');
+        const statusBadge = document.getElementById('statusBadge');
+        
+        const textInput = document.getElementById('textInput');
+        const applyTextBtn = document.getElementById('applyTextBtn');
+        const resetDefaultBtn = document.getElementById('resetDefaultBtn');
+        const charCountSpan = document.getElementById('charCount');
+
+        // ---------- 默认文本 ----------
+        const DEFAULT_TEXT = textInput.value;
+
+        // ---------- 状态 ----------
+        let currentText = DEFAULT_TEXT;
+        let chunks = [];
+        let accumulated = '';
+        
+        let isStreaming = false;
+        let isPaused = false;
+        let timerId = null;
+        let currentChunkIndex = 0;
+        let delayMs = 24;
+
+        // ---------- 分块函数 ----------
+        function tokenizeText(text) {
+            const tokens = [];
+            const regex = /[\u4e00-\u9fa5]|[a-zA-Z0-9]+|[^\s\w\u4e00-\u9fa5]+|\n/g;
+            let m;
+            while ((m = regex.exec(text)) !== null) tokens.push(m[0]);
+            return tokens;
+        }
+
+        function updateChunks(newText) {
+            currentText = newText;
+            chunks = tokenizeText(newText);
+            charCountSpan.textContent = `${newText.length} 字符 · ${chunks.length} 块`;
+            return chunks;
+        }
+
+        updateChunks(currentText);
+
+        function updateStats() {
+            statsEl.textContent = `${accumulated.length} 字符`;
+        }
+
+        function setStatus(text, isActive = false) {
+            statusBadge.textContent = text;
+            statusBadge.style.background = isActive ? '#bbf7d0' : '#e5e7eb';
+        }
+
+        function resetOutput(keepTextSource = true) {
+            if (timerId) {
+                clearTimeout(timerId);
+                timerId = null;
+            }
+            isStreaming = false;
+            isPaused = false;
+            pauseBtn.textContent = '⏸️ 暂停';
+            pauseBtn.disabled = true;
+            startBtn.disabled = false;
+            
+            accumulated = '';
+            currentChunkIndex = 0;
+            outputEl.textContent = '✨ 准备就绪';
+            updateStats();
+            setStatus('⚪ 就绪');
+        }
+
+        function fullReset() {
+            resetOutput();
+            outputEl.textContent = '✨ 点击「开始」流式输出';
+        }
+
+        function pushNextChunk() {
+            if (!isStreaming) return;
+            if (isPaused) return;
+
+            if (currentChunkIndex >= chunks.length) {
+                isStreaming = false;
+                startBtn.disabled = false;
+                pauseBtn.disabled = true;
+                setStatus('✅ 完成');
+                updateStats();
+                timerId = null;
+                return;
+            }
+
+            const chunk = chunks[currentChunkIndex];
+            accumulated += chunk;
+            outputEl.textContent = accumulated;
+            outputEl.scrollTop = outputEl.scrollHeight;
+            updateStats();
+            
+            currentChunkIndex++;
+
+            timerId = setTimeout(() => {
+                requestAnimationFrame(() => pushNextChunk());
+            }, delayMs);
+        }
+
+        function startStreaming() {
+            if (isStreaming) return;
+            if (chunks.length === 0) {
+                alert('当前文本为空，请先输入内容。');
+                return;
+            }
+
+            accumulated = '';
+            currentChunkIndex = 0;
+            outputEl.textContent = '';
+            updateStats();
+
+            isStreaming = true;
+            isPaused = false;
+            startBtn.disabled = true;
+            pauseBtn.disabled = false;
+            pauseBtn.textContent = '⏸️ 暂停';
+            setStatus('📡 流式传输中', true);
+
+            if (timerId) clearTimeout(timerId);
+            pushNextChunk();
+        }
+
+        function pauseOrResume() {
+            if (!isStreaming) return;
+            
+            isPaused = !isPaused;
+            pauseBtn.textContent = isPaused ? '▶ 继续' : '⏸️ 暂停';
+            setStatus(isPaused ? '⏸︎ 已暂停' : '📡 传输中', !isPaused);
+
+            if (!isPaused) {
+                if (timerId) {
+                    clearTimeout(timerId);
+                    timerId = null;
+                }
+                pushNextChunk();
+            } else {
+                if (timerId) {
+                    clearTimeout(timerId);
+                    timerId = null;
+                }
+            }
+        }
+
+        function handleReset() {
+            if (isStreaming) {
+                isStreaming = false;
+                isPaused = false;
+                if (timerId) {
+                    clearTimeout(timerId);
+                    timerId = null;
+                }
+            }
+            fullReset();
+        }
+
+        function applyNewText() {
+            const newText = textInput.value;
+            if (isStreaming) {
+                alert('请先点击「重置」或等待流式完成再更换文本。');
+                return;
+            }
+            updateChunks(newText);
+            fullReset();
+            charCountSpan.textContent = `${newText.length} 字符 · ${chunks.length} 块`;
+            setStatus('📄 文本已更新');
+        }
+
+        function restoreDefault() {
+            if (isStreaming) {
+                alert('请先重置');
+                return;
+            }
+            textInput.value = DEFAULT_TEXT;
+            updateChunks(DEFAULT_TEXT);
+            fullReset();
+            charCountSpan.textContent = `${DEFAULT_TEXT.length} 字符 · ${chunks.length} 块`;
+            setStatus('📄 已恢复默认');
+        }
+
+        function onTextInput() {
+            const len = textInput.value.length;
+            const tempChunks = tokenizeText(textInput.value);
+            charCountSpan.textContent = `${len} 字符 · ${tempChunks.length} 块 (未应用)`;
+        }
+
+        function updateSpeed() {
+            delayMs = parseInt(speedSlider.value, 10);
+            speedSpan.textContent = delayMs + ' ms';
+        }
+
+        // ---------- 🆕 导出 HTML 功能 ----------
+        function generateExportHTML() {
+            const text = currentText;
+            const speed = delayMs;
+            const chunksArray = tokenizeText(text);
+            
+            // 构建独立 HTML 字符串
+            return `<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>流式输出 · 自动播放</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #0f172a;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+        .player-card {
+            background: #1e293b;
+            border-radius: 32px;
+            padding: 32px 30px;
+            box-shadow: 0 25px 40px -10px #00000060;
+            width: 100%;
+        }
+        h3 {
+            margin: 0 0 8px 0;
+            color: #94a3b8;
+            font-weight: 400;
+            font-size: 1rem;
+            letter-spacing: 1px;
+        }
+        .output-screen {
+            background: #0b1120;
+            border-radius: 22px;
+            padding: 28px 30px;
+            margin: 18px 0 10px;
+            border: 1px solid #334155;
+            box-shadow: inset 0 8px 12px #00000040;
+        }
+        #streamOutput {
+            color: #e2e8f0;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 1.2rem;
+            line-height: 1.6;
+            min-height: 240px;
+            max-height: 460px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin: 0;
+            text-shadow: 0 1px 2px black;
+        }
+        .meta-bar {
+            display: flex;
+            justify-content: space-between;
+            color: #7c8ba0;
+            margin-top: 20px;
+            font-size: 0.9rem;
+        }
+        .badge {
+            background: #2d3b4f;
+            padding: 6px 16px;
+            border-radius: 30px;
+            color: #b9c7da;
+        }
+        button {
+            background: #334155;
+            border: none;
+            color: #e0e7ff;
+            padding: 8px 22px;
+            border-radius: 40px;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid #475569;
+            transition: 0.1s;
+        }
+        button:hover {
+            background: #3f4e65;
+        }
+        .footer-note {
+            margin-top: 24px;
+            color: #6b7c93;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="player-card">
+    <div style="display: flex; align-items: center; gap: 16px;">
+        <h3>🌊 自动流式播放</h3>
+        <span class="badge" id="speedBadge">${speed} ms/块</span>
+        <span class="badge" id="progressBadge">0/${chunksArray.length} 块</span>
+        <button id="replayBtn" style="margin-left: auto;">↻ 重播</button>
+    </div>
+
+    <div class="output-screen">
+        <div id="streamOutput"></div>
+    </div>
+
+    <div class="meta-bar">
+        <span>📄 文本长度: ${text.length} 字符</span>
+        <span>✨ 逐词流式 · 自动开始</span>
+    </div>
+    <div class="footer-note">
+        ⚡ 导出时间: ${new Date().toLocaleString()}
+    </div>
+</div>
+
+<script>
+    (function(){
+        const TEXT = ${JSON.stringify(text)};
+        const CHUNKS = ${JSON.stringify(chunksArray)};
+        const DELAY_MS = ${speed};
+        
+        const outputEl = document.getElementById('streamOutput');
+        const speedBadge = document.getElementById('speedBadge');
+        const progressBadge = document.getElementById('progressBadge');
+        const replayBtn = document.getElementById('replayBtn');
+        
+        let isActive = false;
+        let timer = null;
+        let index = 0;
+        let accumulated = '';
+        
+        function updateProgress() {
+            progressBadge.textContent = index + '/' + CHUNKS.length + ' 块';
+        }
+        
+        function pushChunk() {
+            if (!isActive) return;
+            if (index >= CHUNKS.length) {
+                isActive = false;
+                progressBadge.textContent = '✅ 完成';
+                return;
+            }
+            const chunk = CHUNKS[index];
+            accumulated += chunk;
+            outputEl.textContent = accumulated;
+            outputEl.scrollTop = outputEl.scrollHeight;
+            index++;
+            updateProgress();
+            
+            timer = setTimeout(() => {
+                requestAnimationFrame(pushChunk);
+            }, DELAY_MS);
+        }
+        
+        function startStream() {
+            if (isActive) return;
+            // 重置
+            if (timer) clearTimeout(timer);
+            accumulated = '';
+            index = 0;
+            outputEl.textContent = '';
+            updateProgress();
+            isActive = true;
+            pushChunk();
+        }
+        
+        function replay() {
+            if (timer) {
+                clearTimeout(timer);
+                timer = null;
+            }
+            isActive = false;
+            startStream();
+        }
+        
+        // 自动开始
+        window.addEventListener('load', () => {
+            speedBadge.textContent = DELAY_MS + ' ms/块';
+            startStream();
+        });
+        
+        replayBtn.addEventListener('click', replay);
+        
+        // 清理定时器（虽然不是必须）
+        window.addEventListener('beforeunload', () => {
+            if (timer) clearTimeout(timer);
+        });
+    })();
+<\/script>
+</body>
+</html>`;
+        }
+
+        function downloadExportedHTML() {
+            const htmlContent = generateExportHTML();
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `stream_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.html`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            setStatus('📦 已导出', true);
+            setTimeout(() => setStatus('⚪ 就绪'), 1500);
+        }
+
+        // ---------- 绑定事件 ----------
+        function bindEvents() {
+            startBtn.addEventListener('click', startStreaming);
+            pauseBtn.addEventListener('click', pauseOrResume);
+            resetBtn.addEventListener('click', handleReset);
+            exportBtn.addEventListener('click', downloadExportedHTML);
+            
+            speedSlider.addEventListener('input', updateSpeed);
+            
+            applyTextBtn.addEventListener('click', applyNewText);
+            resetDefaultBtn.addEventListener('click', restoreDefault);
+            textInput.addEventListener('input', onTextInput);
+            
+            updateSpeed();
+            onTextInput();
+        }
+
+        if (document.readyState === 'loading') {
+            window.addEventListener('DOMContentLoaded', () => {
+                bindEvents();
+                fullReset();
+            });
+        } else {
+            bindEvents();
+            fullReset();
+        }
+    })();
+</script>
+</body>
+</html>

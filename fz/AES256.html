@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AES-256-GCM 安全加密工具 | 通用版</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            background: #f0f2f5;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding: 24px;
+            position: relative;
+        }
+        h1 {
+            font-size: 1.6rem;
+            margin-bottom: 20px;
+            color: #1a2c3e;
+            text-align: center;
+        }
+        .top-status {
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+            padding: 8px 16px;
+            margin: -12px -12px 20px -12px;
+            border-radius: 40px;
+            text-align: center;
+            font-weight: 500;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+        .top-status.processing {
+            background: #e6f7ff;
+            color: #0050b3;
+            border-left: 4px solid #1890ff;
+        }
+        .top-status.success {
+            background: #e6f9e6;
+            color: #237804;
+            border-left: 4px solid #52c41a;
+        }
+        .top-status.error {
+            background: #fff1f0;
+            color: #a8071a;
+            border-left: 4px solid #ff4d4f;
+        }
+        .top-status .message {
+            display: inline-block;
+        }
+        .top-status .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #1890ff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .indeterminate-progress {
+            width: 100%;
+            height: 3px;
+            background-color: #e6f7ff;
+            margin-top: 8px;
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+        .indeterminate-progress::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 30%;
+            height: 100%;
+            background: #1890ff;
+            border-radius: 3px;
+            animation: progress 1.2s infinite ease-in-out;
+        }
+        @keyframes progress {
+            0% { left: -30%; width: 30%; }
+            50% { left: 35%; width: 30%; }
+            100% { left: 100%; width: 30%; }
+        }
+        textarea {
+            width: 100%;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 12px;
+            resize: vertical;
+            margin-bottom: 16px;
+        }
+        .password-wrapper {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .password-wrapper input {
+            flex: 1;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 12px;
+        }
+        .password-actions {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .password-actions button {
+            flex: 1;
+            padding: 6px;
+            background: #e9ecef;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+            align-items: center;
+        }
+        .iter-group {
+            flex: 2;
+            min-width: 180px;
+        }
+        .iter-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 30px;
+            border: 1px solid #ccc;
+            background: white;
+        }
+        .strength-area {
+            flex: 3;
+        }
+        .strength-bar {
+            height: 6px;
+            background-color: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+        .strength-fill {
+            width: 0%;
+            height: 100%;
+            transition: width 0.2s;
+        }
+        .strength-text {
+            font-size: 0.7rem;
+            margin-top: 4px;
+            color: #4a627a;
+        }
+        .strength-advice {
+            font-size: 0.7rem;
+            color: #e67e22;
+            margin-top: 2px;
+        }
+        .buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 40px;
+            cursor: pointer;
+            background: #1a2c3e;
+            color: white;
+            transition: 0.2s;
+        }
+        button:hover:not(:disabled) {
+            background: #2c4c6e;
+            transform: translateY(-1px);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .secondary {
+            background: #e9ecef;
+            color: #1a2c3e;
+        }
+        .cancel-btn {
+            background: #ff4d4f;
+            color: white;
+            margin-left: 8px;
+        }
+        .download-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 20px 0 10px;
+        }
+        .temp-pwd {
+            background: #eef2ff;
+            border: 1px solid #c7d2fe;
+            border-radius: 12px;
+            padding: 8px 12px;
+            margin-bottom: 16px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            word-break: break-all;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .temp-pwd span {
+            flex: 1;
+        }
+        .temp-pwd button {
+            background: #1a2c3e;
+            padding: 4px 12px;
+            font-size: 0.7rem;
+            margin-left: 8px;
+        }
+        hr {
+            margin: 20px 0;
+        }
+        .note {
+            font-size: 0.7rem;
+            color: #6c757d;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .warning-text {
+            color: #e67e22;
+        }
+        .cancel-wrapper {
+            text-align: center;
+            margin: 10px 0;
+        }
+        .env-warning {
+            background: #fff3e0;
+            border-left: 4px solid #faad14;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 0.8rem;
+            color: #ad6800;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🔐 AES-256-GCM 安全加密工具</h1>
+
+    <div id="envWarning" class="env-warning" style="display: none;"></div>
+    <div id="topStatus" class="top-status" style="display: none;"></div>
+
+    <textarea id="plaintext" rows="4" placeholder="明文（要加密的内容）"></textarea>
+    <textarea id="ciphertext" rows="4" placeholder="密文（Base64格式）"></textarea>
+
+    <div class="password-wrapper">
+        <input type="password" id="password" placeholder="加密/解密口令" autocomplete="off">
+        <button id="togglePasswordBtn" class="secondary" style="width: 70px;">👁️ 显示</button>
+    </div>
+    <div class="password-actions">
+        <button id="genPwdBtn">✨ 生成强密码</button>
+        <button id="clearPwdBtn">🗑️ 清空密码</button>
+    </div>
+    <div id="tempPwdContainer" style="display: none;"></div>
+
+    <div class="row">
+        <div class="iter-group">
+            <label>⚙️ PBKDF2 迭代次数</label>
+            <select id="iterSelect">
+                <option value="100000">10万次</option>
+                <option value="500000">50万次</option>
+                <option value="1000000">100万次</option>
+                <option value="2000000" selected>200万次 (推荐)</option>
+                <option value="5000000">500万次</option>
+                <option value="10000000">1000万次</option>
+                <option value="50000000">5000万次</option>
+                <option value="100000000">1亿次</option>
+            </select>
+        </div>
+        <div class="strength-area">
+            <div class="strength-bar"><div id="strengthFill" class="strength-fill"></div></div>
+            <div id="strengthText" class="strength-text">密码强度: 未输入</div>
+            <div id="strengthAdvice" class="strength-advice"></div>
+        </div>
+    </div>
+
+    <div class="buttons">
+        <button id="encryptBtn">🔒 加密 → 生成密文</button>
+        <button id="decryptBtn">🔓 解密 → 恢复明文</button>
+    </div>
+    <div class="cancel-wrapper" id="cancelWrapper" style="display: none;">
+        <button id="cancelOpBtn" class="cancel-btn">❌ 取消当前操作</button>
+    </div>
+
+    <div class="download-group">
+        <button id="downloadKeyBtn" class="secondary">📥 下载密钥 (密码.txt)</button>
+        <button id="downloadCipherBtn" class="secondary">📥 下载密文 (密文.txt)</button>
+        <button id="clearAllBtn" class="secondary">🗑️ 清空所有</button>
+    </div>
+
+    <div class="note">
+        ⚠️ 安全提示：<br>
+        • 本工具使用 AES-256-GCM 认证加密，头部 AAD 防篡改。<br>
+        • 密码强度必须达到“中等”以上才能加密（可强制确认）。<br>
+        • 解密时若检测到迭代次数低于 10000，将拒绝并提示密文可能被篡改。<br>
+        • 最大处理文本限制为 50MB，超出将拒绝操作，避免浏览器崩溃。<br>
+        • 生成的密码提示框不再自动消失，请手动关闭。<br>
+        • 下载的密钥文件为明文，请妥善保管，避免同步到云盘或共享文件夹。
+    </div>
+</div>
+
+<script>
+    (function() {
+        // DOM 元素
+        const plaintextEl = document.getElementById('plaintext');
+        const ciphertextEl = document.getElementById('ciphertext');
+        const passwordEl = document.getElementById('password');
+        const togglePwdBtn = document.getElementById('togglePasswordBtn');
+        const genPwdBtn = document.getElementById('genPwdBtn');
+        const clearPwdBtn = document.getElementById('clearPwdBtn');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        const iterSelect = document.getElementById('iterSelect');
+        const encryptBtn = document.getElementById('encryptBtn');
+        const decryptBtn = document.getElementById('decryptBtn');
+        const downloadKeyBtn = document.getElementById('downloadKeyBtn');
+        const downloadCipherBtn = document.getElementById('downloadCipherBtn');
+        const strengthFill = document.getElementById('strengthFill');
+        const strengthText = document.getElementById('strengthText');
+        const strengthAdvice = document.getElementById('strengthAdvice');
+        const tempPwdContainer = document.getElementById('tempPwdContainer');
+        const topStatusDiv = document.getElementById('topStatus');
+        const cancelWrapper = document.getElementById('cancelWrapper');
+        const cancelOpBtn = document.getElementById('cancelOpBtn');
+        const envWarningDiv = document.getElementById('envWarning');
+
+        let statusTimeout = null;
+        let processing = false;
+        let currentOperationAborted = false;
+        let useWorker = false;      // 是否使用 Worker（file:// 下不可用）
+        let currentWorker = null;
+
+        // 最大处理字节数 (50MB)
+        const MAX_BYTES = 50 * 1024 * 1024;
+
+        // 检测 Web Crypto API
+        if (!window.crypto || !window.crypto.subtle) {
+            showTopStatus('❌ 您的浏览器不支持 Web Crypto API，无法使用本工具。', 'error', true, 0);
+            encryptBtn.disabled = true;
+            decryptBtn.disabled = true;
+        }
+
+        // 检测 Worker 是否可用（file:// 下 Blob Worker 会被阻止）
+        function checkWorkerSupport() {
+            try {
+                const blob = new Blob(['self.postMessage("test")'], { type: 'application/javascript' });
+                const url = URL.createObjectURL(blob);
+                const worker = new Worker(url);
+                worker.terminate();
+                URL.revokeObjectURL(url);
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        const workerSupported = checkWorkerSupport();
+        const isFileProtocol = location.protocol === 'file:';
+        if (isFileProtocol || !workerSupported) {
+            useWorker = false;
+            envWarningDiv.style.display = 'block';
+            envWarningDiv.innerHTML = '⚠️ 当前环境不支持后台计算（Web Worker），高迭代次数时界面可能暂时卡顿，但加密解密功能正常。建议将文件放置于本地服务器（如 http://localhost）以获得更好体验。';
+        } else {
+            useWorker = true;
+        }
+
+        // 顶部状态显示
+        function showTopStatus(message, type = 'info', autoHide = true, timeout = 4000) {
+            if (statusTimeout) clearTimeout(statusTimeout);
+            topStatusDiv.style.display = 'block';
+            topStatusDiv.className = `top-status ${type}`;
+            if (type === 'processing') {
+                topStatusDiv.innerHTML = `
+                    <div class="message">
+                        <span class="spinner"></span>
+                        <span>${escapeHtml(message)}</span>
+                    </div>
+                    <div class="indeterminate-progress"></div>
+                `;
+            } else {
+                topStatusDiv.innerHTML = `<div class="message">${escapeHtml(message)}</div>`;
+            }
+            if (autoHide && type !== 'processing') {
+                statusTimeout = setTimeout(() => {
+                    topStatusDiv.style.display = 'none';
+                    statusTimeout = null;
+                }, timeout);
+            }
+        }
+
+        function hideTopStatus() {
+            if (statusTimeout) clearTimeout(statusTimeout);
+            topStatusDiv.style.display = 'none';
+            statusTimeout = null;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            }).replace(/["']/g, function(m) {
+                if (m === '"') return '&quot;';
+                if (m === "'") return '&#39;';
+                return m;
+            });
+        }
+
+        // 密码强度评估
+        function evaluateStrength(pwd) {
+            if (!pwd) return { score: 0, level: '未输入', color: '#e2e8f0', percent: 0, advice: '请输入密码' };
+            let score = 0;
+            let advice = [];
+            if (pwd.length >= 12) score++;
+            else advice.push('长度至少12位');
+            if (pwd.length >= 16) score++;
+            else advice.push('长度≥16更安全');
+            if (/[a-z]/.test(pwd)) score++;
+            else advice.push('包含小写字母');
+            if (/[A-Z]/.test(pwd)) score++;
+            else advice.push('包含大写字母');
+            if (/[0-9]/.test(pwd)) score++;
+            else advice.push('包含数字');
+            if (/[^a-zA-Z0-9]/.test(pwd)) score++;
+            else advice.push('包含特殊符号');
+            let level = '', color = '';
+            if (score <= 2) { level = '极弱'; color = '#e53e3e'; }
+            else if (score <= 3) { level = '弱'; color = '#ed8936'; }
+            else if (score <= 4) { level = '中等'; color = '#ecc94b'; }
+            else if (score <= 5) { level = '强'; color = '#48bb78'; }
+            else { level = '极强'; color = '#38a169'; }
+            return { score, level, color, percent: (score / 6) * 100, advice: advice.join('、') };
+        }
+        function updateStrength() {
+            const res = evaluateStrength(passwordEl.value);
+            strengthFill.style.width = res.percent + '%';
+            strengthFill.style.backgroundColor = res.color;
+            strengthText.textContent = `密码强度: ${res.level}`;
+            strengthAdvice.textContent = res.advice ? `建议：${res.advice}` : '';
+        }
+        passwordEl.addEventListener('input', updateStrength);
+
+        // 生成强密码
+        function generateStrongPassword() {
+            const length = 18;
+            const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+            const lower = "abcdefghijkmnopqrstuvwxyz";
+            const digits = "23456789";
+            const special = "!@#$%^&*";
+            const all = upper + lower + digits + special;
+            let pwd = '';
+            pwd += upper[Math.floor(Math.random() * upper.length)];
+            pwd += lower[Math.floor(Math.random() * lower.length)];
+            pwd += digits[Math.floor(Math.random() * digits.length)];
+            pwd += special[Math.floor(Math.random() * special.length)];
+            for (let i = pwd.length; i < length; i++) {
+                pwd += all[Math.floor(Math.random() * all.length)];
+            }
+            const arr = pwd.split('');
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            pwd = arr.join('');
+            passwordEl.value = pwd;
+            updateStrength();
+
+            const tempDiv = document.createElement('div');
+            tempDiv.className = 'temp-pwd';
+            tempDiv.innerHTML = `<span>🔑 生成的密码：<strong>${escapeHtml(pwd)}</strong></span>
+                                 <button class="copy-temp">复制</button>
+                                 <button class="close-temp">✖️ 关闭</button>`;
+            tempPwdContainer.innerHTML = '';
+            tempPwdContainer.appendChild(tempDiv);
+            tempPwdContainer.style.display = 'block';
+            const copyBtn = tempDiv.querySelector('.copy-temp');
+            const closeBtn = tempDiv.querySelector('.close-temp');
+            copyBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(pwd).then(() => {
+                    showTopStatus('密码已复制到剪贴板', 'success');
+                }).catch(() => showTopStatus('复制失败，请手动复制', 'error'));
+            });
+            closeBtn.addEventListener('click', () => {
+                tempDiv.remove();
+                if (tempPwdContainer.children.length === 0) tempPwdContainer.style.display = 'none';
+            });
+            showTopStatus('强密码已生成，可复制或记住', 'success');
+        }
+
+        function clearPassword() {
+            passwordEl.value = '';
+            updateStrength();
+        }
+
+        function clearAll() {
+            if (processing) {
+                cancelCurrentOperation();
+            }
+            plaintextEl.value = '';
+            ciphertextEl.value = '';
+            clearPassword();
+            tempPwdContainer.innerHTML = '';
+            tempPwdContainer.style.display = 'none';
+            hideTopStatus();
+            showTopStatus('所有数据已清空', 'success');
+        }
+
+        function downloadFile(content, filename, isKey = false) {
+            if (isKey) {
+                if (!confirm('⚠️ 密码将以明文形式保存为 .txt 文件。请务必存放于加密存储或离线设备，切勿同步至云盘/共享文件夹。\n\n确定要下载吗？')) return;
+            }
+            const blob = new Blob([content], { type: 'text/plain' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        // 高效 Base64 转换
+        function arrayBufferToBase64(buffer) {
+            const bytes = new Uint8Array(buffer);
+            const chunkSize = 8192;
+            let binary = '';
+            for (let i = 0; i < bytes.length; i += chunkSize) {
+                const chunk = bytes.subarray(i, i + chunkSize);
+                let chunkStr = '';
+                for (let j = 0; j < chunk.length; j++) {
+                    chunkStr += String.fromCharCode(chunk[j]);
+                }
+                binary += chunkStr;
+            }
+            return btoa(binary);
+        }
+
+        function base64ToArrayBuffer(base64) {
+            const binary = atob(base64);
+            const len = binary.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+            return bytes.buffer;
+        }
+
+        // 派生密钥 (主线程版本)
+        async function deriveKeyMain(password, salt, iterations) {
+            const encoder = new TextEncoder();
+            const passwordBuffer = encoder.encode(password);
+            const baseKey = await crypto.subtle.importKey(
+                'raw', passwordBuffer, { name: 'PBKDF2' }, false, ['deriveKey']
+            );
+            return crypto.subtle.deriveKey(
+                { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+                baseKey,
+                { name: 'AES-GCM', length: 256 },
+                true,   // 可导出，以便后续 import 为 raw
+                ['encrypt', 'decrypt']
+            );
+        }
+
+        // Worker 版本 (仅当 useWorker 为 true)
+        function createDeriveKeyWorker() {
+            const workerCode = `
+                self.onmessage = async function(e) {
+                    const { password, salt, iterations, taskId } = e.data;
+                    try {
+                        const encoder = new TextEncoder();
+                        const passwordBuffer = encoder.encode(password);
+                        const baseKey = await crypto.subtle.importKey(
+                            'raw', passwordBuffer, { name: 'PBKDF2' }, false, ['deriveKey']
+                        );
+                        const key = await crypto.subtle.deriveKey(
+                            { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+                            baseKey,
+                            { name: 'AES-GCM', length: 256 },
+                            true,
+                            ['encrypt', 'decrypt']
+                        );
+                        const rawKey = await crypto.subtle.exportKey('raw', key);
+                        self.postMessage({ taskId, success: true, rawKey });
+                    } catch (err) {
+                        self.postMessage({ taskId, success: false, error: err.message });
+                    }
+                };
+            `;
+            const blob = new Blob([workerCode], { type: 'application/javascript' });
+            const url = URL.createObjectURL(blob);
+            const worker = new Worker(url);
+            URL.revokeObjectURL(url);
+            return worker;
+        }
+
+        function deriveKeyInWorker(password, salt, iterations) {
+            return new Promise((resolve, reject) => {
+                const worker = createDeriveKeyWorker();
+                currentWorker = worker;
+                const taskId = Date.now() + Math.random();
+                const handler = (e) => {
+                    const { taskId: respId, success, rawKey, error } = e.data;
+                    if (respId !== taskId) return;
+                    worker.removeEventListener('message', handler);
+                    worker.terminate();
+                    if (currentWorker === worker) currentWorker = null;
+                    if (success) {
+                        resolve(rawKey);
+                    } else {
+                        reject(new Error(error || '密钥派生失败'));
+                    }
+                };
+                worker.addEventListener('message', handler);
+                worker.postMessage({ password, salt, iterations, taskId });
+
+                // 取消监听
+                const cancelHandler = () => {
+                    if (currentWorker === worker) {
+                        worker.terminate();
+                        worker.removeEventListener('message', handler);
+                        if (currentWorker === worker) currentWorker = null;
+                        reject(new Error('操作已取消'));
+                    }
+                };
+                if (currentOperationAborted) {
+                    cancelHandler();
+                }
+                window.__abortCurrent = cancelHandler;
+            });
+        }
+
+        // 统一密钥派生接口
+        async function deriveKey(password, salt, iterations) {
+            if (useWorker) {
+                const rawKey = await deriveKeyInWorker(password, salt, iterations);
+                return await crypto.subtle.importKey('raw', rawKey, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+            } else {
+                return await deriveKeyMain(password, salt, iterations);
+            }
+        }
+
+        // 加密
+        async function encrypt(plaintext, password, iterations) {
+            const encoder = new TextEncoder();
+            const plainBuffer = encoder.encode(plaintext);
+            const salt = crypto.getRandomValues(new Uint8Array(16));
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+
+            const version = new Uint8Array([0x01]);
+            const iterBytes = new Uint8Array(4);
+            new DataView(iterBytes.buffer).setUint32(0, iterations, false);
+            const aadBuffer = new Uint8Array(version.length + iterBytes.length + salt.length + iv.length);
+            let offset = 0;
+            aadBuffer.set(version, offset); offset += version.length;
+            aadBuffer.set(iterBytes, offset); offset += iterBytes.length;
+            aadBuffer.set(salt, offset); offset += salt.length;
+            aadBuffer.set(iv, offset);
+
+            const key = await deriveKey(password, salt, iterations);
+            const encrypted = await crypto.subtle.encrypt(
+                { name: 'AES-GCM', iv, tagLength: 128, additionalData: aadBuffer },
+                key,
+                plainBuffer
+            );
+            const encryptedArray = new Uint8Array(encrypted);
+            const combined = new Uint8Array(aadBuffer.length + encryptedArray.length);
+            combined.set(aadBuffer, 0);
+            combined.set(encryptedArray, aadBuffer.length);
+            return arrayBufferToBase64(combined.buffer);
+        }
+
+        // 解密
+        async function decrypt(ciphertextBase64, password) {
+            let combinedBuffer;
+            try {
+                combinedBuffer = base64ToArrayBuffer(ciphertextBase64);
+            } catch (e) {
+                throw new Error('密文不是有效的Base64格式');
+            }
+            const combinedArray = new Uint8Array(combinedBuffer);
+            if (combinedArray.length < 49) throw new Error('密文格式错误：数据长度不足');
+            if (combinedArray[0] !== 0x01) throw new Error('不支持的旧版密文格式，请使用本工具重新加密（新版密文以0x01开头）');
+
+            const iterations = new DataView(combinedArray.buffer).getUint32(1, false);
+            if (iterations < 10000) {
+                throw new Error('密文头部迭代次数过小，可能被篡改，拒绝解密以保证安全');
+            }
+            const offsetHeader = 1 + 4;
+            const salt = combinedArray.slice(offsetHeader, offsetHeader + 16);
+            const iv = combinedArray.slice(offsetHeader + 16, offsetHeader + 28);
+            const aadBuffer = combinedArray.slice(0, offsetHeader + 28);
+            const cipherWithTag = combinedArray.slice(offsetHeader + 28);
+            if (cipherWithTag.length < 16) throw new Error('密文格式错误：认证标签缺失');
+
+            const key = await deriveKey(password, salt, iterations);
+            try {
+                const decrypted = await crypto.subtle.decrypt(
+                    { name: 'AES-GCM', iv, tagLength: 128, additionalData: aadBuffer },
+                    key,
+                    cipherWithTag
+                );
+                return new TextDecoder().decode(decrypted);
+            } catch (err) {
+                throw new Error('解密失败：密码错误或密文已损坏');
+            }
+        }
+
+        // 检查文本大小
+        function checkSize(data, type) {
+            const bytes = new TextEncoder().encode(data).length;
+            if (bytes > MAX_BYTES) {
+                throw new Error(`${type} 大小超过限制 (${(bytes / (1024*1024)).toFixed(1)}MB > 50MB)，请分割后处理或使用专业本地工具。`);
+            }
+            return bytes;
+        }
+
+        // 取消操作
+        function cancelCurrentOperation() {
+            if (useWorker && currentWorker) {
+                currentWorker.terminate();
+                currentWorker = null;
+            }
+            if (window.__abortCurrent) {
+                window.__abortCurrent();
+                window.__abortCurrent = null;
+            }
+            currentOperationAborted = true;
+            processing = false;
+            setButtonsDisabled(false);
+            cancelWrapper.style.display = 'none';
+            hideTopStatus();
+            showTopStatus('操作已取消', 'error', true, 2000);
+        }
+
+        function setButtonsDisabled(disabled) {
+            const btns = [encryptBtn, decryptBtn, genPwdBtn, clearPwdBtn, clearAllBtn, downloadKeyBtn, downloadCipherBtn];
+            btns.forEach(btn => btn.disabled = disabled);
+        }
+
+        async function runOperation(operationFn, operationName) {
+            if (processing) {
+                showTopStatus('已有操作进行中，请稍后再试或点击取消', 'error');
+                return;
+            }
+            processing = true;
+            currentOperationAborted = false;
+            setButtonsDisabled(true);
+            cancelWrapper.style.display = 'block';
+            if (!useWorker) {
+                showTopStatus(`${operationName} 处理中 (可能耗时较长，请耐心等待)...`, 'processing', false);
+            } else {
+                showTopStatus(`${operationName} 处理中...`, 'processing', false);
+            }
+
+            try {
+                const result = await operationFn();
+                showTopStatus(`${operationName} 成功`, 'success');
+                return result;
+            } catch (err) {
+                if (err.message === '操作已取消') {
+                    showTopStatus('操作已取消', 'error', true, 2000);
+                } else {
+                    showTopStatus(`${operationName} 失败: ${err.message}`, 'error');
+                }
+                throw err;
+            } finally {
+                processing = false;
+                setButtonsDisabled(false);
+                cancelWrapper.style.display = 'none';
+                if (currentWorker) {
+                    currentWorker.terminate();
+                    currentWorker = null;
+                }
+                window.__abortCurrent = null;
+                if (topStatusDiv.className.includes('processing')) {
+                    hideTopStatus();
+                }
+            }
+        }
+
+        // 加密按钮
+        encryptBtn.addEventListener('click', async () => {
+            const plain = plaintextEl.value;
+            const pwd = passwordEl.value;
+            const iter = parseInt(iterSelect.value, 10);
+            if (!plain.trim()) { showTopStatus('请输入明文', 'error'); return; }
+            if (!pwd) { showTopStatus('请输入密码', 'error'); return; }
+            try {
+                checkSize(plain, '明文');
+            } catch (e) {
+                showTopStatus(e.message, 'error');
+                return;
+            }
+            const strength = evaluateStrength(pwd);
+            if (strength.score <= 3) {
+                if (!confirm(`当前密码强度为“${strength.level}”，建议使用更强密码（长度≥12，包含大小写、数字、符号）。\n是否仍要继续加密？`)) {
+                    return;
+                }
+            }
+            if (iter >= 10000000 && !useWorker) {
+                if (!confirm(`当前迭代次数为 ${iter.toLocaleString()} 次，由于环境限制，界面可能卡顿数秒。是否继续？`)) {
+                    return;
+                }
+            } else if (iter >= 10000000) {
+                if (!confirm(`当前迭代次数为 ${iter.toLocaleString()} 次，可能耗时数秒，但不会阻塞界面。是否继续？`)) {
+                    return;
+                }
+            }
+            await runOperation(async () => {
+                const cipher = await encrypt(plain, pwd, iter);
+                ciphertextEl.value = cipher;
+                return cipher;
+            }, '加密');
+        });
+
+        // 解密按钮
+        decryptBtn.addEventListener('click', async () => {
+            const cipher = ciphertextEl.value;
+            const pwd = passwordEl.value;
+            if (!cipher.trim()) { showTopStatus('请输入密文', 'error'); return; }
+            if (!pwd) { showTopStatus('请输入密码', 'error'); return; }
+            const cipherSizeMB = cipher.length / (1024 * 1024);
+            if (cipherSizeMB > 60) {
+                if (!confirm(`密文Base64大小约 ${cipherSizeMB.toFixed(1)} MB，解密可能消耗较多内存，是否继续？`)) {
+                    return;
+                }
+            }
+            await runOperation(async () => {
+                const plain = await decrypt(cipher, pwd);
+                plaintextEl.value = plain;
+                return plain;
+            }, '解密');
+        });
+
+        // 取消按钮
+        cancelOpBtn.addEventListener('click', () => {
+            if (processing) {
+                cancelCurrentOperation();
+            }
+        });
+
+        // 其他按钮
+        genPwdBtn.addEventListener('click', generateStrongPassword);
+        clearPwdBtn.addEventListener('click', clearPassword);
+        clearAllBtn.addEventListener('click', clearAll);
+        downloadKeyBtn.addEventListener('click', () => {
+            const pwd = passwordEl.value;
+            if (!pwd) { showTopStatus('没有密码可下载', 'error'); return; }
+            const ts = new Date().toISOString().slice(0,19).replace(/:/g, '-');
+            downloadFile(pwd, `aes_key_${ts}.txt`, true);
+            showTopStatus('密码已下载', 'success');
+        });
+        downloadCipherBtn.addEventListener('click', () => {
+            const cipher = ciphertextEl.value;
+            if (!cipher) { showTopStatus('没有密文可下载', 'error'); return; }
+            const ts = new Date().toISOString().slice(0,19).replace(/:/g, '-');
+            downloadFile(cipher, `aes_cipher_${ts}.txt`);
+            showTopStatus('密文已下载', 'success');
+        });
+        togglePwdBtn.addEventListener('click', () => {
+            const visible = passwordEl.type === 'password';
+            passwordEl.type = visible ? 'text' : 'password';
+            togglePwdBtn.textContent = visible ? '🙈 隐藏' : '👁️ 显示';
+        });
+
+        updateStrength();
+        showTopStatus('就绪', 'success', true, 2000);
+    })();
+</script>
+</body>
+</html>

@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>星空导航 | 液态玻璃按钮集</title>
+    <style>
+        /* ========== 全局重置 ========== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none; /* 避免拖动文字影响视觉，但不影响按钮点击 */
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', 'Helvetica Neue', sans-serif;
+            background: #03050b;
+            color: #fff;
+        }
+
+        /* 星空画布 - 动态闪烁背景层 */
+        #starCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            z-index: 0;
+            pointer-events: none;  /* 保证按钮可穿透点击 */
+        }
+
+        /* 主容器：内容浮层 */
+        .main-container {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 1.5rem;
+            backdrop-filter: blur(2px);
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        /* 标题区域 - 优雅上升动画 */
+        .title-section {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: floatUp 1s cubic-bezier(0.2, 0.9, 0.4, 1.1) forwards;
+        }
+        .main-title {
+            font-size: clamp(2rem, 8vw, 4rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, #FFFFFF, #C0E0FF, #AAD0FF);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 20px rgba(170, 208, 255, 0.5);
+            letter-spacing: 2px;
+        }
+        .subtitle {
+            font-size: clamp(0.9rem, 3vw, 1.2rem);
+            opacity: 0.8;
+            margin-top: 0.6rem;
+            letter-spacing: 1px;
+            font-weight: 300;
+            backdrop-filter: blur(4px);
+            display: inline-block;
+            padding: 0 1rem;
+        }
+
+        /* 按钮网格布局 - 液态玻璃集合 */
+        .buttons-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 2rem 2.2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        /* 液态玻璃按钮核心样式 - 参考原风格 + 增强质感 */
+        .liquid-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 1rem 2.4rem;
+            min-width: 180px;
+            font-size: 1.35rem;
+            font-weight: 600;
+            color: white;
+            text-decoration: none;
+            letter-spacing: 2px;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.08) 80%);
+            background-color: rgba(20, 30, 55, 0.25);
+            border-radius: 80px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(8px);
+            box-shadow: 
+                0 8px 20px rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(255, 255, 255, 0.2) inset,
+                0 2px 4px rgba(255, 255, 255, 0.3) inset;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            white-space: nowrap;
+        }
+
+        /* 按钮悬浮效果：强化光泽 + 微微放大 */
+        .liquid-btn:hover {
+            transform: translateY(-3px) scale(1.02);
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.15) 90%);
+            background-color: rgba(40, 60, 100, 0.35);
+            box-shadow: 
+                0 15px 30px rgba(0, 0, 0, 0.4),
+                0 0 0 1.5px rgba(255, 255, 255, 0.6) inset,
+                0 4px 12px rgba(255, 255, 245, 0.5);
+            border-color: rgba(255, 255, 255, 0.8);
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+        }
+
+        /* 点击按压感 */
+        .liquid-btn:active {
+            transform: scale(0.97) translateY(1px);
+            transition: 0.05s;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 针对触摸屏优化 */
+        @media (max-width: 680px) {
+            .buttons-grid {
+                gap: 1.2rem;
+            }
+            .liquid-btn {
+                padding: 0.75rem 1.6rem;
+                min-width: 150px;
+                font-size: 1rem;
+                white-space: nowrap;
+            }
+            .main-container {
+                justify-content: flex-start;
+                padding-top: 2rem;
+            }
+            .title-section {
+                margin-bottom: 2rem;
+            }
+        }
+
+        /* 自定义滚动条 (优雅) */
+        .main-container::-webkit-scrollbar {
+            width: 5px;
+        }
+        .main-container::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+        .main-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 10px;
+        }
+
+        /* 底部微光装饰 */
+        .footer-note {
+            margin-top: 3rem;
+            font-size: 0.8rem;
+            text-align: center;
+            opacity: 0.6;
+            backdrop-filter: blur(5px);
+            background: rgba(0,0,0,0.2);
+            padding: 0.5rem 1.2rem;
+            border-radius: 40px;
+            display: inline-block;
+            pointer-events: none;
+        }
+
+        /* 上升动画 */
+        @keyframes floatUp {
+            0% {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 按钮出现渐现效果 */
+        .liquid-btn {
+            animation: fadeIn 0.5s ease backwards;
+            animation-delay: calc(var(--order, 0) * 0.08s);
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 闪烁星空画布 (动态星星) -->
+    <canvas id="starCanvas"></canvas>
+
+    <!-- 主内容区：按钮导航 -->
+    <div class="main-container">
+        <div class="title-section">
+            <div class="main-title">✨ 星际导航站 ✨</div>
+            <div class="subtitle">液态银河 · 一键穿梭</div>
+        </div>
+
+        <!-- 按钮网格容器：由js动态生成，便于后期添加修改 -->
+        <div class="buttons-grid" id="buttonGrid"></div>
+        
+        <div class="footer-note">
+            🌟 点击发光按钮，开启旅程 | 更多精彩即将降临
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ============================================================
+            // 按钮数据配置区 (方便后期无限扩展)
+            // 每个按钮对象包含:
+            //   text: 按钮上显示的文字 (支持emoji)
+            //   url: 跳转链接 (如果为空或null则触发提示)
+            //   tip: 自定义提示 (可选，用于占位按钮)
+            //   active: 是否有效跳转 (若url有效则直接跳转，否则用tip)
+            // 使用方法：直接修改下面的数组，增加/删除/修改按钮即可，样式自动适配
+            // ============================================================
+            const buttonsConfig = [
+                {
+                    text: "英文手写体转换",
+                    url: "fz/ztzh.html",
+                    tip: "",
+                    active: true
+                },
+                {
+                    text: "AES-256加密",
+                    url: "fz/AES256.html",
+                    tip: "",
+                    active: true
+                },
+                {
+                    text: "忘记密码",
+                    url: "fz/PJAES256.html",
+                    tip: "",
+                    active: true
+                },
+                {
+                    text: "文本差异对比",
+                    url: "fz/wb.html",
+                    tip: "",
+                    active: true
+                },
+                {
+                    text: "Unicode字符查找",
+                    url: "fz/Unicode.html",
+                    tip: "",
+                    active: true
+                },
+                {
+                    text: "炒股模拟器",
+                    url: "fz/gp.html",
+                    tip: "",
+                    active: true
+                },
+                {
+                    text: "文本流式输出转换",
+                    url: "fz/lssc.html",
+                    tip: "",
+                    active: true
+                },
+                {
+                    text: "css动画展示",
+                    url: "fz/css.html",
+                    tip: "",
+                    active: true
+                },
+                {
+                    text: "c++在线编译器",
+                    url: "fz/c.html",
+                    tip: "",
+                    active: true
+                },
+                {
+                    text: "下一页",
+                    url: "fz2.html",
+                    tip: "",
+                    active: true
+                },
+                {
+                    text: "上一页",
+                    url: "index.html",
+                    tip: "",
+                    active: true
+                }
+            ];
+
+            // 获取按钮容器
+            const gridContainer = document.getElementById('buttonGrid');
+            
+            // 清空容器，动态构建所有按钮
+            function buildButtons() {
+                if (!gridContainer) return;
+                gridContainer.innerHTML = ''; // 清空原有占位
+                
+                buttonsConfig.forEach((btn, idx) => {
+                    const button = document.createElement('button');
+                    button.className = 'liquid-btn';
+                    // 添加自定义属性，方便调试
+                    button.setAttribute('data-index', idx);
+                    button.innerHTML = btn.text;
+                    
+                    // 添加微光顺序动画延迟
+                    button.style.setProperty('--order', idx);
+                    
+                    // 绑定点击事件
+                    button.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // 有效链接处理
+                        if (btn.url && btn.url.trim() !== '') {
+                            // 打开新标签页跳转
+                            window.open(btn.url, '_blank', 'noopener,noreferrer');
+                            // 可选触感反馈（不影响体验）
+                        } 
+                        else {
+                            // 没有链接时，显示提示信息 (占位或后期完善)
+                            const msg = btn.tip && btn.tip.trim() !== '' ? btn.tip : "✨ 这个按钮正在吸收宇宙能量，稍后就会开启 ✨";
+                            // 优雅弹框样式 - 不使用原生alert，而是创建轻提示浮动层 (更美观)
+                            showFloatingTip(msg, button);
+                        }
+                    });
+                    
+                    // 添加一点涟漪特效辅助 (可选，增强交互)
+                    button.addEventListener('mousedown', createRipple);
+                    gridContainer.appendChild(button);
+                });
+            }
+            
+            // 优雅的浮动提示 (替代alert)
+            let activeTip = null;
+            function showFloatingTip(message, targetBtn) {
+                // 移除已存在的提示
+                if (activeTip) {
+                    activeTip.remove();
+                    activeTip = null;
+                }
+                
+                const tipDiv = document.createElement('div');
+                tipDiv.className = 'floating-tip';
+                tipDiv.textContent = message;
+                // 样式内嵌，避免全局污染? 直接动态style
+                tipDiv.style.position = 'fixed';
+                tipDiv.style.bottom = '20%';
+                tipDiv.style.left = '50%';
+                tipDiv.style.transform = 'translateX(-50%)';
+                tipDiv.style.backgroundColor = 'rgba(10, 20, 35, 0.85)';
+                tipDiv.style.backdropFilter = 'blur(12px)';
+                tipDiv.style.border = '1px solid rgba(255,255,255,0.5)';
+                tipDiv.style.borderRadius = '60px';
+                tipDiv.style.padding = '12px 28px';
+                tipDiv.style.fontSize = '1rem';
+                tipDiv.style.fontWeight = '500';
+                tipDiv.style.color = '#fff';
+                tipDiv.style.boxShadow = '0 10px 30px rgba(0,0,0,0.4), 0 0 15px rgba(255,255,200,0.3)';
+                tipDiv.style.zIndex = '9999';
+                tipDiv.style.textAlign = 'center';
+                tipDiv.style.whiteSpace = 'nowrap';
+                tipDiv.style.fontFamily = 'inherit';
+                tipDiv.style.letterSpacing = '1px';
+                tipDiv.style.pointerEvents = 'none';
+                tipDiv.style.animation = 'tipFade 0.3s ease forwards';
+                
+                // 自适应手机换行
+                if (window.innerWidth < 600) {
+                    tipDiv.style.whiteSpace = 'normal';
+                    tipDiv.style.maxWidth = '80%';
+                    tipDiv.style.fontSize = '0.85rem';
+                    tipDiv.style.padding = '10px 20px';
+                }
+                
+                document.body.appendChild(tipDiv);
+                activeTip = tipDiv;
+                
+                // 2.2秒后消失
+                setTimeout(() => {
+                    if (activeTip) {
+                        activeTip.style.opacity = '0';
+                        activeTip.style.transform = 'translateX(-50%) translateY(10px)';
+                        activeTip.style.transition = 'all 0.2s ease';
+                        setTimeout(() => {
+                            if (activeTip && activeTip.parentNode) activeTip.remove();
+                            if (activeTip === tipDiv) activeTip = null;
+                        }, 200);
+                    }
+                }, 2000);
+            }
+            
+            // 简单涟漪效果（装饰）
+            function createRipple(e) {
+                const btn = e.currentTarget;
+                const ripple = document.createElement('span');
+                ripple.classList.add('ripple-effect');
+                const diameter = Math.max(btn.clientWidth, btn.clientHeight);
+                const radius = diameter / 2;
+                const rect = btn.getBoundingClientRect();
+                const x = e.clientX - rect.left - radius;
+                const y = e.clientY - rect.top - radius;
+                ripple.style.width = ripple.style.height = `${diameter}px`;
+                ripple.style.left = `${x}px`;
+                ripple.style.top = `${y}px`;
+                ripple.style.position = 'absolute';
+                ripple.style.borderRadius = '50%';
+                ripple.style.backgroundColor = 'rgba(255,255,255,0.5)';
+                ripple.style.transform = 'scale(0)';
+                ripple.style.transition = 'transform 0.4s ease-out, opacity 0.6s';
+                ripple.style.opacity = '1';
+                ripple.style.pointerEvents = 'none';
+                btn.style.position = 'relative';
+                btn.style.overflow = 'hidden';
+                btn.appendChild(ripple);
+                
+                setTimeout(() => {
+                    ripple.style.transform = 'scale(2)';
+                    ripple.style.opacity = '0';
+                }, 10);
+                
+                setTimeout(() => {
+                    if (ripple.parentNode) ripple.remove();
+                }, 500);
+            }
+            
+            // 添加全局动画关键帧 (因为动态tip动画)
+            const styleSheet = document.createElement("style");
+            styleSheet.textContent = `
+                @keyframes tipFade {
+                    0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+                    100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+                }
+                .ripple-effect {
+                    position: absolute;
+                    border-radius: 50%;
+                    pointer-events: none;
+                    background: radial-gradient(circle, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 80%);
+                    transform: scale(0);
+                    animation: rippleAnim 0.5s linear forwards;
+                }
+                @keyframes rippleAnim {
+                    to {
+                        transform: scale(3);
+                        opacity: 0;
+                    }
+                }
+            `;
+            document.head.appendChild(styleSheet);
+            
+            // ==================== 星空背景canvas实现 (纯粹动态闪烁星辰) ====================
+            const canvas = document.getElementById('starCanvas');
+            const ctx = canvas.getContext('2d');
+            let stars = [];
+            const STAR_COUNT = 220;
+            let width, height;
+            
+            function initStars() {
+                stars = [];
+                for (let i = 0; i < STAR_COUNT; i++) {
+                    stars.push({
+                        x: Math.random() * width,
+                        y: Math.random() * height,
+                        radius: Math.random() * 2.2 + 0.8,
+                        alpha: Math.random() * 0.5 + 0.3,
+                        speed: 0.002 + Math.random() * 0.008,
+                        offset: Math.random() * Math.PI * 2
+                    });
+                }
+            }
+            
+            function resizeCanvas() {
+                width = window.innerWidth;
+                height = window.innerHeight;
+                canvas.width = width;
+                canvas.height = height;
+                initStars(); // 重置星星布局
+            }
+            
+            function drawStars() {
+                if (!ctx) return;
+                ctx.clearRect(0, 0, width, height);
+                // 极深空底色（保留一些星云质感）
+                ctx.fillStyle = '#03050b';
+                ctx.fillRect(0, 0, width, height);
+                
+                const now = Date.now() / 1000;
+                stars.forEach(star => {
+                    // 根据正弦波闪烁，更生动
+                    const twinkle = 0.5 + 0.5 * Math.sin(now * star.speed * 2.5 + star.offset);
+                    const alpha = Math.min(star.alpha * (0.6 + twinkle * 0.5), 0.95);
+                    ctx.beginPath();
+                    ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(255, 240, 210, ${alpha})`;
+                    ctx.fill();
+                    // 偶尔增加微光晕大星星
+                    if (star.radius > 1.5 && twinkle > 0.7) {
+                        ctx.beginPath();
+                        ctx.arc(star.x, star.y, star.radius * 1.5, 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(255, 200, 150, ${alpha * 0.2})`;
+                        ctx.fill();
+                    }
+                });
+                
+                // 增加极少数流星效果或银河薄雾 (可选)
+                requestAnimationFrame(drawStars);
+            }
+            
+            window.addEventListener('resize', () => {
+                resizeCanvas();
+            });
+            resizeCanvas();
+            drawStars();
+            
+            // 添加一点鼠标跟随的星尘粒子（极简氛围）
+            let mouseX = 0, mouseY = 0;
+            let particles = [];
+            const PARTICLE_COUNT = 30;
+            
+            function initParticles() {
+                for (let i = 0; i < PARTICLE_COUNT; i++) {
+                    particles.push({
+                        x: Math.random() * width,
+                        y: Math.random() * height,
+                        size: Math.random() * 2 + 1,
+                        alpha: 0.2,
+                        vx: (Math.random() - 0.5) * 0.2,
+                        vy: (Math.random() - 0.5) * 0.1,
+                    });
+                }
+            }
+            
+            // 动态微小粒子背景层（提升灵动感）
+            let particleCtx, particleCanvas;
+            function initParticleLayer() {
+                particleCanvas = document.createElement('canvas');
+                particleCanvas.style.position = 'fixed';
+                particleCanvas.style.top = '0';
+                particleCanvas.style.left = '0';
+                particleCanvas.style.width = '100%';
+                particleCanvas.style.height = '100%';
+                particleCanvas.style.pointerEvents = 'none';
+                particleCanvas.style.zIndex = '1';
+                particleCanvas.id = 'particleCanvas';
+                document.body.appendChild(particleCanvas);
+                particleCtx = particleCanvas.getContext('2d');
+                resizeParticleCanvas();
+                window.addEventListener('resize', resizeParticleCanvas);
+                animateParticles();
+            }
+            
+            function resizeParticleCanvas() {
+                if (particleCanvas) {
+                    particleCanvas.width = window.innerWidth;
+                    particleCanvas.height = window.innerHeight;
+                    initParticles();
+                }
+            }
+            
+            function animateParticles() {
+                if (!particleCtx) return;
+                particleCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+                particles.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    if (p.x < 0) p.x = particleCanvas.width;
+                    if (p.x > particleCanvas.width) p.x = 0;
+                    if (p.y < 0) p.y = particleCanvas.height;
+                    if (p.y > particleCanvas.height) p.y = 0;
+                    
+                    particleCtx.beginPath();
+                    particleCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    particleCtx.fillStyle = `rgba(180, 200, 255, ${p.alpha * 0.5})`;
+                    particleCtx.fill();
+                });
+                requestAnimationFrame(animateParticles);
+            }
+            
+            // 鼠标移动产生跟随效果(极轻微)
+            document.addEventListener('mousemove', (e) => {
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+                // 略微让粒子流偏移, 营造微交互(可选)
+                for (let i = 0; i < particles.length; i++) {
+                    let dx = mouseX - particles[i].x;
+                    let dy = mouseY - particles[i].y;
+                    let dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 120) {
+                        let angle = Math.atan2(dy, dx);
+                        let force = (120 - dist) / 800;
+                        particles[i].vx -= Math.cos(angle) * force;
+                        particles[i].vy -= Math.sin(angle) * force;
+                        // 限制最大速度
+                        let maxSpeed = 1.2;
+                        if (Math.abs(particles[i].vx) > maxSpeed) particles[i].vx = particles[i].vx > 0 ? maxSpeed : -maxSpeed;
+                        if (Math.abs(particles[i].vy) > maxSpeed) particles[i].vy = particles[i].vy > 0 ? maxSpeed : -maxSpeed;
+                    }
+                }
+            });
+            
+            initParticleLayer();
+            
+            // 动态构建按钮 (确保所有按钮优雅出现)
+            buildButtons();
+            
+            // 添加简单提示 : 如果用户需要后期自己加按钮，可以直接修改 buttonsConfig 数组
+            // 在控制台输出使用说明 (方便调试)
+            console.log('✨ 星空导航已启动 | 按钮配置在 buttonsConfig 数组中，轻松增删改跳转链接 ✨');
+            console.log('💡 使用提示：修改 buttonsConfig 即可添加新按钮，支持任意url，占位按钮会显示优雅提示');
+            
+            // 对手机触摸优化，防止300ms延迟（无伤大雅）
+            if ('ontouchstart' in window) {
+                const btns = document.querySelectorAll('.liquid-btn');
+                btns.forEach(btn => {
+                    btn.addEventListener('touchstart', (e) => {
+                        // 只是为了优化响应，不做额外处理
+                    }, { passive: true });
+                });
+            }
+            
+            // 添加背景光晕鼠标动态(让标题跟随鼠标光效，提升高级感)
+            const titleElement = document.querySelector('.main-title');
+            if (titleElement) {
+                document.addEventListener('mousemove', (e) => {
+                    const x = e.clientX / window.innerWidth;
+                    const y = e.clientY / window.innerHeight;
+                    const glowX = (x * 30) - 15;
+                    const glowY = (y * 20) - 10;
+                    titleElement.style.textShadow = `${glowX * 0.3}px ${glowY * 0.2}px 25px rgba(100, 180, 255, 0.6)`;
+                });
+            }
+            
+            // 额外添加滚动流畅处理 (移动端滚动时避免背景抖动)
+            const mainContainer = document.querySelector('.main-container');
+            let startY = 0;
+            mainContainer.addEventListener('touchstart', (e) => {
+                startY = e.touches[0].clientY;
+            }, { passive: true });
+            
+            // 完善功能: 新增按钮管理提示浮层不与其他元素冲突
+            // 自适应安全区
+            const styleSafe = document.createElement('style');
+            styleSafe.textContent = `body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }`;
+            document.head.appendChild(styleSafe);
+        })();
+    </script>
+</body>
+</html>

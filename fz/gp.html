@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>📈 无限杠杆 · Worker加密存档</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(145deg, #f6f9fc 0%, #e9f2f9 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', 'Roboto', system-ui, sans-serif;
+            padding: 16px;
+            transition: background 0.3s;
+        }
+        .card {
+            max-width: 1300px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 32px;
+            box-shadow: 0 20px 40px rgba(0, 15, 30, 0.12), 0 6px 12px rgba(0, 0, 0, 0.05);
+            padding: 24px 28px 32px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            transition: box-shadow 0.2s, border-color 0.2s;
+            position: relative;
+        }
+        .card.expert-mode {
+            border-color: #e6a020;
+            box-shadow: 0 0 30px #e6a02040;
+        }
+
+        h1 {
+            margin: 0 0 6px;
+            font-weight: 500;
+            font-size: 2.2rem;
+            color: #1a3e60;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .subtitle {
+            margin: 0 0 20px;
+            color: #3a5e7a;
+            border-left: 4px solid #4f9da6;
+            padding-left: 16px;
+            font-weight: 400;
+        }
+        .canvas-container {
+            background: #ffffffd6;
+            border-radius: 24px;
+            padding: 12px;
+            box-shadow: inset 0 1px 4px rgba(0,0,0,0.02), 0 8px 18px -6px rgba(30, 60, 80, 0.12);
+            margin-bottom: 20px;
+            border: 1px solid #ffffff;
+            position: relative;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            border-radius: 12px;
+            touch-action: none;
+            cursor: default;
+        }
+        .view-hint {
+            position: absolute;
+            bottom: 8px;
+            right: 16px;
+            color: #6a8aaa;
+            font-size: 0.75rem;
+            background: #ffffffb0;
+            padding: 2px 10px;
+            border-radius: 20px;
+            pointer-events: none;
+            backdrop-filter: blur(4px);
+        }
+        .stats-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 12px 4px 8px;
+        }
+        .stat-item {
+            background: #eef4fa;
+            padding: 8px 20px;
+            border-radius: 40px;
+            border: 1px solid #ffffffb0;
+            box-shadow: inset 0 1px 3px #00000008;
+        }
+        .stat-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: #4a6f8a;
+            letter-spacing: 1px;
+        }
+        .stat-value {
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: #0a3146;
+        }
+        .price-up { color: #c9423f !important; }
+        .price-down { color: #1f8b4c !important; }
+
+        .top-buttons {
+            position: absolute;
+            top: 24px;
+            right: 28px;
+            display: flex;
+            gap: 12px;
+            z-index: 10;
+        }
+        .top-btn {
+            background: #ffffffec;
+            border: 1px solid #cbdae6;
+            color: #1e4e6f;
+            padding: 10px 20px;
+            border-radius: 48px;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 20, 40, 0.06);
+            transition: 0.2s;
+        }
+        .top-btn:hover { background: #ffffff; }
+
+        .shop-panel, .save-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(16px);
+            border-radius: 28px;
+            padding: 24px;
+            margin: 20px 0;
+            border: 1px solid rgba(255,255,255,0.6);
+            box-shadow: 0 8px 20px rgba(0,20,40,0.08);
+            display: none;
+        }
+        .shop-panel.show, .save-panel.show { display: block; }
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            color: #1a3e60;
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+        .shop-currency {
+            background: #eef4fa;
+            padding: 8px 24px;
+            border-radius: 40px;
+            border: 1px solid #ffffffb0;
+            font-size: 1.2rem;
+            color: #1e4e6f;
+        }
+        .shop-items {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .shop-item, .save-slot {
+            background: #ffffffd0;
+            border-radius: 24px;
+            padding: 20px;
+            border: 1px solid #cbdae6;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+        }
+        .item-name { font-size: 1.3rem; font-weight: 600; color: #1a3e60; margin-bottom: 6px; }
+        .item-desc { font-size: 0.85rem; color: #3a5e7a; margin-bottom: 12px; }
+        .item-effect { font-size: 0.9rem; color: #1f8b4c; margin-bottom: 16px; }
+        .item-footer { display: flex; justify-content: space-between; align-items: center; }
+        .item-price { font-size: 1.3rem; font-weight: 600; color: #c9423f; }
+        .buy-btn, .save-btn, .load-btn, .export-btn, .import-label {
+            background: #ffffffec;
+            border: 1px solid #cbdae6;
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-weight: 500;
+            color: #1e4e6f;
+            cursor: pointer;
+            transition: 0.15s;
+            font-size: 0.9rem;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        .buy-btn:disabled, .save-btn:disabled { opacity: 0.4; pointer-events: none; }
+        .buy-btn:hover, .save-btn:hover, .load-btn:hover, .export-btn:hover, .import-label:hover {
+            background: #ffffff;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .save-slots {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .slot-title { font-size: 1.2rem; font-weight: 600; margin-bottom: 8px; color: #1a3e60; }
+        .slot-info { font-size: 0.85rem; color: #3a5e7a; margin-bottom: 16px; min-height: 60px; }
+        .slot-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+        .leverage-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #eef4fa80;
+            padding: 8px 20px;
+            border-radius: 60px;
+            margin-bottom: 16px;
+            backdrop-filter: blur(4px);
+            border: 1px solid #ffffffb0;
+            flex-wrap: wrap;
+        }
+        .leverage-input {
+            width: 90px;
+            padding: 6px 8px;
+            border-radius: 30px;
+            border: 1px solid #cbdae6;
+            background: white;
+            color: #1e4e6f;
+            text-align: center;
+            font-weight: 600;
+        }
+        .trade-panel {
+            background: #eef4fa80;
+            backdrop-filter: blur(8px);
+            border-radius: 28px;
+            padding: 20px 24px;
+            margin: 16px 0 12px;
+            border: 1px solid #ffffffb0;
+        }
+        .funds-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px 28px;
+            margin-bottom: 18px;
+        }
+        .fund-item { display: flex; flex-direction: column; }
+        .fund-label { font-size: 0.7rem; text-transform: uppercase; color: #4a6f8a; letter-spacing: 0.5px; }
+        .fund-value { font-size: 1.4rem; font-weight: 600; color: #0a3146; }
+
+        .loan-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #fff3e0;
+            padding: 12px 20px;
+            border-radius: 48px;
+            margin-bottom: 18px;
+            border: 1px solid #e6a02060;
+        }
+        .loan-input {
+            width: 120px;
+            padding: 6px 8px;
+            border-radius: 30px;
+            border: 1px solid #e6a020;
+            background: white;
+            color: #1e4e6f;
+            text-align: center;
+            font-weight: 600;
+        }
+        .loan-hint { font-size: 0.8rem; color: #b37b00; }
+
+        .trade-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+        .buy-control {
+            display: flex; align-items: center; gap: 8px;
+            background: #ffffffb0; padding: 4px 8px 4px 16px; border-radius: 48px;
+            border: 1px solid #cbdae6;
+        }
+        .buy-control input {
+            width: 100px; padding: 8px 4px; border: none; background: transparent;
+            font-size: 1rem; text-align: center; outline: none; color: #1e4e6f; font-weight: 600;
+        }
+        .direction-toggle { display: flex; gap: 4px; background: #ffffffb0; padding: 4px; border-radius: 48px; border: 1px solid #cbdae6; }
+        .dir-btn {
+            padding: 8px 20px; border-radius: 40px; border: none; background: transparent;
+            font-weight: 500; cursor: pointer; transition: 0.15s; color: #3a6a8a;
+        }
+        .dir-btn.active-long { background: #1f8b4c; color: white; box-shadow: 0 2px 8px #1f8b4c60; }
+        .dir-btn.active-short { background: #c9423f; color: white; box-shadow: 0 2px 8px #c9423f60; }
+        .btn {
+            background: #ffffffec; border: none; padding: 12px 24px; border-radius: 48px;
+            font-weight: 500; color: #1e4e6f; box-shadow: 0 4px 10px rgba(0,20,40,0.06);
+            border: 1px solid #cbdae6; cursor: pointer; transition: 0.15s;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .btn.primary { background: #1e4e6f; color: white; border-color: #0f3349; }
+        .btn.long-btn { background: #1f8b4c10; border-color: #1f8b4c40; color: #1f8b4c; }
+        .btn.short-btn { background: #c9423f10; border-color: #c9423f40; color: #b33a36; }
+        .btn.yolo-btn { background: #e6a02010; border-color: #e6a02060; color: #b37b00; }
+        .btn.loan-btn { background: #e6a020; border-color: #b37b00; color: white; }
+        .btn:disabled { opacity: 0.4; pointer-events: none; }
+        .btn:hover { background: #ffffff; box-shadow: 0 10px 18px -6px #1e3f5e26; transform: translateY(-1px); }
+        .control-group { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 12px; }
+        .speed-slider {
+            display: flex; align-items: center; gap: 12px; margin-left: auto;
+            background: #eef4fa80; padding: 4px 20px; border-radius: 40px; border: 1px solid #ffffffb0;
+        }
+        input[type="range"] { accent-color: #1e4e6f; width: 140px; }
+        .footer {
+            display: flex; justify-content: space-between; margin-top: 16px;
+            font-size: 0.8rem; color: #4e6f88;
+        }
+        .warning { color: #c9423f; font-weight: 500; }
+        .contract-info {
+            display: grid; grid-template-columns: auto 1fr; gap: 6px 20px;
+            font-size: 0.85rem; margin-top: 14px; background: #ffffff60;
+            padding: 12px 18px; border-radius: 24px; border: 1px solid #ffffffb0;
+        }
+        .status-badge {
+            background: #d9e4ec; padding: 4px 16px; border-radius: 30px;
+            font-weight: 500; color: #1f4b69; margin-left: 16px;
+        }
+        .flash-overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            pointer-events: none; z-index: 999; opacity: 0; transition: opacity 0.1s;
+        }
+        .risk-warning-bar {
+            background: #c9423f10; border-left: 4px solid #c9423f; padding: 8px 16px;
+            margin: 8px 0; border-radius: 20px; color: #a0302c; display: none;
+        }
+        .risk-warning-bar.show { display: block; }
+        .expert-toggle {
+            display: flex; align-items: center; gap: 8px; margin-left: 16px;
+            color: #b37b00; font-weight: 500;
+        }
+        .expert-toggle input { width: 20px; height: 20px; accent-color: #e6a020; }
+
+        .top-status {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            padding: 12px 24px; background: white; border-radius: 40px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15); z-index: 1000; display: none;
+        }
+    </style>
+</head>
+<body id="mainBody">
+<div class="flash-overlay" id="flashOverlay"></div>
+<div class="top-status" id="topStatus"></div>
+<div class="card" id="mainCard">
+    <div class="top-buttons">
+        <button class="top-btn" id="shopToggleBtn">🛒 商城</button>
+        <button class="top-btn" id="saveToggleBtn">💾 存档</button>
+    </div>
+    <h1>
+        <span>📈 无限杠杆 · Worker加密</span>
+        <span class="status-badge" id="wealthStatus">💼 稳健</span>
+    </h1>
+    <div class="subtitle">
+        <strong>起始 ¥100.00</strong> · 波动 ±<span id="currentStepSize">0.50</span> · 维持0.05% · 杠杆上限 <span id="maxLeverageLimit">100000</span>x
+    </div>
+
+    <!-- 商城面板 -->
+    <div class="shop-panel" id="shopPanel">
+        <div class="panel-header">
+            <span>🏪 癫狂黑市</span>
+            <span class="shop-currency">💰 积分: <span id="shopPoints">0</span></span>
+        </div>
+        <div class="shop-items">
+            <div class="shop-item">
+                <div class="item-name">📊 波动增幅器</div>
+                <div class="item-desc">永久增加每步价格波动</div>
+                <div class="item-effect">当前: ±<span id="shopStepSize">0.50</span> → 下一级: ±<span id="nextStepSize">1.00</span></div>
+                <div class="item-footer">
+                    <span class="item-price" id="stepUpgradePrice">500 积分</span>
+                    <button class="buy-btn" id="buyStepUpgrade">升级</button>
+                </div>
+            </div>
+            <div class="shop-item">
+                <div class="item-name">🚀 杠杆解放券</div>
+                <div class="item-desc">提升杠杆上限至1,000,000x</div>
+                <div class="item-effect" id="leverageUnlockStatus">🔒 未解锁</div>
+                <div class="item-footer">
+                    <span class="item-price" id="leverageUnlockPrice">3000 积分</span>
+                    <button class="buy-btn" id="buyLeverageUnlock">购买</button>
+                </div>
+            </div>
+            <div class="shop-item">
+                <div class="item-name">💀 复活币</div>
+                <div class="item-desc">爆仓后自动消耗，恢复20%本金</div>
+                <div class="item-effect">持有: <span id="reviveCoinCount">0</span> 枚</div>
+                <div class="item-footer">
+                    <span class="item-price">800 积分</span>
+                    <button class="buy-btn" id="buyReviveCoin">购买</button>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top: 16px; color: #4a6f8a; font-size: 0.8rem; text-align: right;">
+            ※ 积分来自平仓盈利
+        </div>
+    </div>
+
+    <!-- 存档面板 -->
+    <div class="save-panel" id="savePanel">
+        <div class="panel-header">
+            <span>💾 存档管理 (Worker加密)</span>
+            <div style="display: flex; gap: 12px;">
+                <span style="font-size:0.9rem; color:#3a6a8a;">导出为加密文件</span>
+                <button class="top-btn" id="clearAllSavesBtn" style="padding: 4px 16px; font-size:0.8rem;">🗑️ 清空所有</button>
+            </div>
+        </div>
+        <div class="save-slots">
+            <!-- 存档 1 -->
+            <div class="save-slot">
+                <div class="slot-title">📁 存档 1</div>
+                <div class="slot-info" id="slot1Info">空</div>
+                <div class="slot-actions">
+                    <button class="save-btn" data-slot="1">💾 保存</button>
+                    <button class="load-btn" data-slot="1">📂 加载</button>
+                    <button class="export-btn" data-slot="1">📤 导出加密</button>
+                    <label class="import-label" for="importFileSlot1">📥 导入</label>
+                    <input type="file" id="importFileSlot1" class="import-file" data-slot="1" accept=".txt,.leverage,application/octet-stream" style="display:none;">
+                </div>
+            </div>
+            <!-- 存档 2 -->
+            <div class="save-slot">
+                <div class="slot-title">📁 存档 2</div>
+                <div class="slot-info" id="slot2Info">空</div>
+                <div class="slot-actions">
+                    <button class="save-btn" data-slot="2">💾 保存</button>
+                    <button class="load-btn" data-slot="2">📂 加载</button>
+                    <button class="export-btn" data-slot="2">📤 导出加密</button>
+                    <label class="import-label" for="importFileSlot2">📥 导入</label>
+                    <input type="file" id="importFileSlot2" class="import-file" data-slot="2" accept=".txt,.leverage,application/octet-stream" style="display:none;">
+                </div>
+            </div>
+            <!-- 存档 3 -->
+            <div class="save-slot">
+                <div class="slot-title">📁 存档 3</div>
+                <div class="slot-info" id="slot3Info">空</div>
+                <div class="slot-actions">
+                    <button class="save-btn" data-slot="3">💾 保存</button>
+                    <button class="load-btn" data-slot="3">📂 加载</button>
+                    <button class="export-btn" data-slot="3">📤 导出加密</button>
+                    <label class="import-label" for="importFileSlot3">📥 导入</label>
+                    <input type="file" id="importFileSlot3" class="import-file" data-slot="3" accept=".txt,.leverage,application/octet-stream" style="display:none;">
+                </div>
+            </div>
+        </div>
+        <div style="margin-top: 16px; color: #4a6f8a; font-size: 0.8rem; text-align: right;">
+            ※ 存档自动加密，篡改将导致“文件已损坏”
+        </div>
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="walkCanvas" width="880" height="360"></canvas>
+        <div class="view-hint">🖱️ 拖拽平移 · 滚轮缩放 · 双击重置</div>
+    </div>
+
+    <div class="stats-panel">
+        <div class="stat-item"><span class="stat-label">时间</span><span class="stat-value" id="stepDisplay">0</span></div>
+        <div class="stat-item"><span class="stat-label">当前价</span><span class="stat-value" id="priceDisplay">100.00</span></div>
+        <div class="stat-item"><span class="stat-label">盈亏%</span><span class="stat-value" id="changeDisplay">0.00%</span></div>
+    </div>
+
+    <div class="leverage-bar">
+        <span style="font-weight:500; color:#1e4e6f;">⚡ 杠杆</span>
+        <div style="display:flex; align-items:center; gap:6px;">
+            <span style="color:#3a6a8a;">1x</span>
+            <input type="range" id="leverageSlider" min="1" max="100000" value="1000" step="1" style="width:220px;">
+            <span style="color:#3a6a8a;" id="maxLeverageDisplay">100000x</span>
+        </div>
+        <input type="number" id="leverageInput" class="leverage-input" min="1" max="100000" value="1000" step="1">
+        <button class="btn" id="maxLeverageBtn" style="padding:8px 20px;">🔝 最大</button>
+        <div class="expert-toggle">
+            <input type="checkbox" id="expertModeCheck"> 💀 专家模式
+        </div>
+        <span style="margin-left:auto; color:#3a6a8a;">📊 保证金率 <span id="marginRatioDisplay" style="color:#1e4e6f;">—</span> · 强平价 <span id="liqPriceDisplay" style="color:#c9423f;">—</span></span>
+    </div>
+    <div class="risk-warning-bar" id="riskWarning"></div>
+
+    <div class="trade-panel">
+        <div class="funds-row">
+            <div class="fund-item"><span class="fund-label">💰 净资产</span><span class="fund-value" id="equityDisplay">¥1,000.00</span></div>
+            <div class="fund-item"><span class="fund-label">💳 总负债</span><span class="fund-value" id="loanDisplay" style="color:#b37b00;">¥0.00</span></div>
+            <div class="fund-item"><span class="fund-label">📦 仓位价值</span><span class="fund-value" id="positionValueDisplay">¥0.00</span></div>
+            <div class="fund-item"><span class="fund-label">🔒 已用保证金</span><span class="fund-value" id="marginDisplay">¥0.00</span></div>
+            <div class="fund-item"><span class="fund-label">💵 可用保证金</span><span class="fund-value" id="availableDisplay">¥1,000.00</span></div>
+        </div>
+        <div class="loan-bar">
+            <span style="color:#b37b00; font-weight:500;">🏦 借款 (利息10%)</span>
+            <input type="number" id="loanAmountInput" class="loan-input" min="0" value="0" step="100">
+            <button class="btn loan-btn" id="borrowBtn">借款</button>
+            <button class="btn loan-btn" id="repayBtn" disabled>还款</button>
+            <span class="loan-hint" id="maxLoanHint">最大可借 ¥2,000.00</span>
+        </div>
+        <div class="trade-actions">
+            <div class="buy-control">
+                <span style="color:#3a6a8a;">数量</span>
+                <input type="number" id="tradeQtyInput" min="1" value="1" step="1">
+                <span style="color:#3a6a8a;">张</span>
+            </div>
+            <div class="direction-toggle" id="directionToggle">
+                <button class="dir-btn active-long" data-dir="long">🚀 做多</button>
+                <button class="dir-btn" data-dir="short">🔻 做空</button>
+            </div>
+            <button class="btn long-btn" id="buyBtn">🟢 开多</button>
+            <button class="btn short-btn" id="sellBtn">🔴 开空</button>
+            <button class="btn primary" id="closeBtn" disabled>⬛ 平仓</button>
+            <button class="btn yolo-btn" id="maxTradeBtn">💀 梭哈</button>
+            <span id="maxTradeHint" style="margin-left:8px; color:#1e4e6f; font-weight:500;"></span>
+        </div>
+        <div class="contract-info">
+            <span>持仓方向:</span><span id="positionSide">无</span>
+            <span>持仓数量:</span><span id="positionQty">0 张</span>
+            <span>开仓均价:</span><span id="avgPriceDisplay">—</span>
+            <span>未实现盈亏:</span><span id="unrealizedPLDisplay2">¥0.00</span>
+            <span>强平价格:</span><span id="liqPriceDetail">—</span>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <button class="btn primary" id="startPauseBtn">▶ 开始</button>
+        <button class="btn" id="stepBtn">⏵ 单步</button>
+        <button class="btn" id="resetBtn">↻ 重置</button>
+        <div class="speed-slider">
+            <label style="color:#1e4e6f;">⚡ 速度</label>
+            <input type="range" id="speedRange" min="1" max="60" value="15">
+            <span id="speedValue" style="color:#1e4e6f;">极速</span>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div>🔴 当前价 · ▲开多 ▼开空 · 灰线开盘价</div>
+        <div class="warning">⚠️ 保证金率≤100% 强制平仓 (维持0.05%)</div>
+    </div>
+</div>
+
+<script>
+    (function(){
+        "use strict";
+
+        // ---------- 管理员预设密码 ----------
+        const ADMIN_PASSWORD = 'QGYv5e#o*tSnDX*Yn!';
+        const PBKDF2_ITERATIONS = 100000;
+
+        // ---------- 检测 Worker 支持 ----------
+        function isWorkerSupported() {
+            try { return !!window.Worker; } catch(e) { return false; }
+        }
+
+        // ---------- 创建派生密钥的 Worker ----------
+        function createDeriveWorker() {
+            const workerCode = `
+                self.onmessage = async function(e) {
+                    const { password, salt, iterations } = e.data;
+                    try {
+                        const encoder = new TextEncoder();
+                        const passwordBuffer = encoder.encode(password);
+                        const baseKey = await crypto.subtle.importKey('raw', passwordBuffer, { name: 'PBKDF2' }, false, ['deriveKey']);
+                        const key = await crypto.subtle.deriveKey(
+                            { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+                            baseKey,
+                            { name: 'AES-GCM', length: 256 },
+                            true,
+                            ['encrypt', 'decrypt']
+                        );
+                        const rawKey = await crypto.subtle.exportKey('raw', key);
+                        self.postMessage({ success: true, rawKey });
+                    } catch (err) {
+                        self.postMessage({ success: false, error: err.message });
+                    }
+                };
+            `;
+            const blob = new Blob([workerCode], { type: 'application/javascript' });
+            return new Worker(URL.createObjectURL(blob));
+        }
+
+        // ---------- 主线程派生 (回退) ----------
+        async function deriveKeyMain(password, salt, iterations) {
+            const encoder = new TextEncoder();
+            const passwordBuffer = encoder.encode(password);
+            const baseKey = await crypto.subtle.importKey('raw', passwordBuffer, { name: 'PBKDF2' }, false, ['deriveKey']);
+            return crypto.subtle.deriveKey(
+                { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+                baseKey,
+                { name: 'AES-GCM', length: 256 },
+                true,
+                ['encrypt', 'decrypt']
+            );
+        }
+
+        // ---------- 统一派生：优先 Worker，失败回退主线程 ----------
+        async function deriveKeyWithWorker(password, salt, iterations) {
+            if (isWorkerSupported()) {
+                try {
+                    const worker = createDeriveWorker();
+                    const result = await new Promise((resolve, reject) => {
+                        const timeout = setTimeout(() => {
+                            worker.terminate();
+                            reject(new Error('Worker timeout'));
+                        }, 5000);
+                        worker.onmessage = (e) => {
+                            clearTimeout(timeout);
+                            worker.terminate();
+                            if (e.data.success) resolve(e.data.rawKey);
+                            else reject(new Error(e.data.error));
+                        };
+                        worker.onerror = (err) => {
+                            clearTimeout(timeout);
+                            worker.terminate();
+                            reject(err);
+                        };
+                        worker.postMessage({ password, salt, iterations });
+                    });
+                    return await crypto.subtle.importKey('raw', result, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+                } catch (e) {
+                    console.warn('Worker 派生失败，回退主线程:', e);
+                }
+            }
+            return deriveKeyMain(password, salt, iterations);
+        }
+
+        // ---------- 加密存档 ----------
+        async function encryptWithAdmin(plaintext) {
+            const encoder = new TextEncoder();
+            const plainBuffer = encoder.encode(plaintext);
+            const salt = crypto.getRandomValues(new Uint8Array(16));
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const key = await deriveKeyWithWorker(ADMIN_PASSWORD, salt, PBKDF2_ITERATIONS);
+            const header = new Uint8Array(1 + 4 + 16 + 12);
+            header[0] = 0x01;
+            new DataView(header.buffer).setUint32(1, PBKDF2_ITERATIONS, false);
+            header.set(salt, 5);
+            header.set(iv, 21);
+            const encrypted = await crypto.subtle.encrypt(
+                { name: 'AES-GCM', iv, tagLength: 128, additionalData: header },
+                key,
+                plainBuffer
+            );
+            const combined = new Uint8Array(header.length + encrypted.byteLength);
+            combined.set(header, 0);
+            combined.set(new Uint8Array(encrypted), header.length);
+            let binary = '';
+            for (let i = 0; i < combined.length; i++) binary += String.fromCharCode(combined[i]);
+            return btoa(binary);
+        }
+
+        // ---------- 解密存档 ----------
+        async function decryptWithAdmin(ciphertextBase64) {
+            try {
+                const binary = atob(ciphertextBase64);
+                const combined = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) combined[i] = binary.charCodeAt(i);
+                if (combined.length < 33 || combined[0] !== 0x01) throw new Error('文件已损坏');
+                const iterations = new DataView(combined.buffer).getUint32(1, false);
+                const salt = combined.slice(5, 21);
+                const iv = combined.slice(21, 33);
+                const header = combined.slice(0, 33);
+                const ciphertext = combined.slice(33);
+                const key = await deriveKeyWithWorker(ADMIN_PASSWORD, salt, iterations);
+                const decrypted = await crypto.subtle.decrypt(
+                    { name: 'AES-GCM', iv, tagLength: 128, additionalData: header },
+                    key,
+                    ciphertext
+                );
+                return new TextDecoder().decode(decrypted);
+            } catch (e) {
+                throw new Error('文件已损坏');
+            }
+        }
+
+        // ---------- 画布 ----------
+        const canvas = document.getElementById('walkCanvas');
+        const ctx = canvas.getContext('2d');
+        const CW = 880, H = 360;
+        canvas.width = CW; canvas.height = H;
+        const PAD_LEFT = 62, PAD_RIGHT = 38, PAD_TOP = 32, PAD_BOTTOM = 38;
+        const graphWidth = CW - PAD_LEFT - PAD_RIGHT;
+        const graphHeight = H - PAD_TOP - PAD_BOTTOM;
+
+        // ---------- 常数 ----------
+        const INITIAL_PRICE = 100.0;
+        const INITIAL_BALANCE = 1000.0;
+        const MAINTENANCE_MARGIN_RATE = 0.0005;
+        const LOAN_INTEREST_RATE = 0.1;
+
+        // ---------- 可升级状态 ----------
+        let stepSize = 0.5;
+        let maxLeverage = 100000;
+        let reviveCoins = 0;
+        let totalRealizedPL = 0;
+        const stepUpgradeLevels = [0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 6.0, 8.0, 10.0];
+        let stepLevel = 0;
+        let leverageUnlocked = false;
+
+        // ---------- 核心状态 ----------
+        let prices = [INITIAL_PRICE];
+        let currentStep = 0;
+        let equity = INITIAL_BALANCE;
+        let loanAmount = 0;
+        let position = 0;
+        let avgPrice = 0;
+        let usedMargin = 0;
+        let trades = [];
+        let leverage = 1000;
+        let selectedDirection = 'long';
+        let expertMode = false;
+
+        let isRunning = false;
+        let stepInterval = 60;
+        let stepTimer = null;
+
+        // ---------- 视图控制 ----------
+        let viewStartStep = 0;
+        let viewEndStep = 0;
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartViewStart = 0;
+
+        // ---------- UI 元素 ----------
+        const stepDisplay = document.getElementById('stepDisplay');
+        const priceDisplay = document.getElementById('priceDisplay');
+        const changeDisplay = document.getElementById('changeDisplay');
+        const equityDisplay = document.getElementById('equityDisplay');
+        const loanDisplay = document.getElementById('loanDisplay');
+        const positionValueDisplay = document.getElementById('positionValueDisplay');
+        const marginDisplay = document.getElementById('marginDisplay');
+        const availableDisplay = document.getElementById('availableDisplay');
+        const positionSide = document.getElementById('positionSide');
+        const positionQty = document.getElementById('positionQty');
+        const avgPriceDisplay = document.getElementById('avgPriceDisplay');
+        const unrealizedPLDisplay2 = document.getElementById('unrealizedPLDisplay2');
+        const liqPriceDetail = document.getElementById('liqPriceDetail');
+        const tradeQtyInput = document.getElementById('tradeQtyInput');
+        const leverageSlider = document.getElementById('leverageSlider');
+        const leverageInput = document.getElementById('leverageInput');
+        const marginRatioDisplay = document.getElementById('marginRatioDisplay');
+        const liqPriceDisplay = document.getElementById('liqPriceDisplay');
+        const wealthStatus = document.getElementById('wealthStatus');
+        const mainBody = document.getElementById('mainBody');
+        const mainCard = document.getElementById('mainCard');
+        const flashOverlay = document.getElementById('flashOverlay');
+        const expertModeCheck = document.getElementById('expertModeCheck');
+        const riskWarning = document.getElementById('riskWarning');
+        const currentStepSizeSpan = document.getElementById('currentStepSize');
+        const maxLeverageLimitSpan = document.getElementById('maxLeverageLimit');
+        const maxLeverageDisplaySpan = document.getElementById('maxLeverageDisplay');
+        const maxTradeHint = document.getElementById('maxTradeHint');
+
+        const loanAmountInput = document.getElementById('loanAmountInput');
+        const maxLoanHint = document.getElementById('maxLoanHint');
+        const borrowBtn = document.getElementById('borrowBtn');
+        const repayBtn = document.getElementById('repayBtn');
+
+        // 商城
+        const shopToggleBtn = document.getElementById('shopToggleBtn');
+        const shopPanel = document.getElementById('shopPanel');
+        const shopPointsSpan = document.getElementById('shopPoints');
+        const shopStepSizeSpan = document.getElementById('shopStepSize');
+        const nextStepSizeSpan = document.getElementById('nextStepSize');
+        const stepUpgradePriceSpan = document.getElementById('stepUpgradePrice');
+        const leverageUnlockStatus = document.getElementById('leverageUnlockStatus');
+        const leverageUnlockPriceSpan = document.getElementById('leverageUnlockPrice');
+        const reviveCoinCountSpan = document.getElementById('reviveCoinCount');
+        const buyStepUpgrade = document.getElementById('buyStepUpgrade');
+        const buyLeverageUnlock = document.getElementById('buyLeverageUnlock');
+        const buyReviveCoin = document.getElementById('buyReviveCoin');
+
+        // 存档
+        const saveToggleBtn = document.getElementById('saveToggleBtn');
+        const savePanel = document.getElementById('savePanel');
+        const slot1Info = document.getElementById('slot1Info');
+        const slot2Info = document.getElementById('slot2Info');
+        const slot3Info = document.getElementById('slot3Info');
+        const clearAllSavesBtn = document.getElementById('clearAllSavesBtn');
+
+        // 按钮
+        const startPauseBtn = document.getElementById('startPauseBtn');
+        const stepBtn = document.getElementById('stepBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const buyBtn = document.getElementById('buyBtn');
+        const sellBtn = document.getElementById('sellBtn');
+        const closeBtn = document.getElementById('closeBtn');
+        const maxTradeBtn = document.getElementById('maxTradeBtn');
+        const maxLeverageBtn = document.getElementById('maxLeverageBtn');
+        const speedRange = document.getElementById('speedRange');
+        const speedValue = document.getElementById('speedValue');
+        const dirButtons = document.querySelectorAll('.dir-btn');
+
+        const topStatusDiv = document.getElementById('topStatus');
+        let statusTimeout = null;
+
+        function showTopStatus(message, type, autoHide = true, timeout = 3000) {
+            if (statusTimeout) clearTimeout(statusTimeout);
+            topStatusDiv.style.display = 'block';
+            topStatusDiv.style.background = type === 'processing' ? '#e6f7ff' : (type === 'success' ? '#e6f9e6' : '#fff1f0');
+            topStatusDiv.style.color = type === 'processing' ? '#0050b3' : (type === 'success' ? '#237804' : '#a8071a');
+            topStatusDiv.innerHTML = type === 'processing' ? `<span style="display:inline-block;width:16px;height:16px;border:2px solid #1890ff;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:middle;margin-right:8px;"></span>${message}` : message;
+            if (autoHide && type !== 'processing') {
+                statusTimeout = setTimeout(() => { topStatusDiv.style.display = 'none'; }, timeout);
+            }
+        }
+        function hideTopStatus() { topStatusDiv.style.display = 'none'; if (statusTimeout) clearTimeout(statusTimeout); }
+        function flashScreen(color) { flashOverlay.style.backgroundColor = color; flashOverlay.style.opacity = '0.6'; setTimeout(() => flashOverlay.style.opacity = '0', 150); }
+
+        // ---------- 存档操作 ----------
+        function updateSaveSlotsInfo() {
+            for (let i = 1; i <= 3; i++) {
+                const key = `leverageSaveSlot${i}`;
+                const data = localStorage.getItem(key);
+                const infoEl = document.getElementById(`slot${i}Info`);
+                if (data) {
+                    try {
+                        const save = JSON.parse(data);
+                        infoEl.innerHTML = `权益: ¥${save.equity?.toFixed(2) || '0'}<br>步数: ${save.currentStep || 0}<br>${save.timestamp || ''}`;
+                    } catch { infoEl.textContent = '存档损坏'; }
+                } else {
+                    infoEl.textContent = '空';
+                }
+            }
+        }
+
+        function saveGame(slot) {
+            const state = {
+                prices, currentStep, equity, loanAmount, position, avgPrice, usedMargin, trades,
+                leverage, selectedDirection, expertMode, stepSize, stepLevel, maxLeverage,
+                reviveCoins, totalRealizedPL, leverageUnlocked,
+                timestamp: new Date().toLocaleString()
+            };
+            localStorage.setItem(`leverageSaveSlot${slot}`, JSON.stringify(state));
+            updateSaveSlotsInfo();
+            flashScreen('#1f8b4c80');
+            alert(`存档 ${slot} 保存成功！`);
+        }
+
+        function loadGame(slot) {
+            const key = `leverageSaveSlot${slot}`;
+            const data = localStorage.getItem(key);
+            if (!data) { alert('存档为空'); return; }
+            try {
+                const state = JSON.parse(data);
+                prices = state.prices; currentStep = state.currentStep; equity = state.equity;
+                loanAmount = state.loanAmount; position = state.position; avgPrice = state.avgPrice;
+                usedMargin = state.usedMargin; trades = state.trades; leverage = state.leverage;
+                selectedDirection = state.selectedDirection; expertMode = state.expertMode;
+                stepSize = state.stepSize; stepLevel = state.stepLevel; maxLeverage = state.maxLeverage;
+                reviveCoins = state.reviveCoins; totalRealizedPL = state.totalRealizedPL;
+                leverageUnlocked = state.leverageUnlocked;
+                expertModeCheck.checked = expertMode;
+                mainCard.classList.toggle('expert-mode', expertMode);
+                leverageSlider.value = leverage;
+                leverageInput.value = leverage;
+                dirButtons.forEach(b => {
+                    b.classList.remove('active-long', 'active-short');
+                    if (b.dataset.dir === selectedDirection) b.classList.add(selectedDirection === 'long' ? 'active-long' : 'active-short');
+                });
+                viewStartStep = 0;
+                viewEndStep = currentStep;
+                updateShopUI();
+                updateUI();
+                setTimeout(() => drawCanvas(), 10);
+                flashScreen('#e6a02080');
+                alert(`存档 ${slot} 加载成功！`);
+            } catch (e) {
+                alert('存档读取失败');
+            }
+        }
+
+        async function exportSave(slot) {
+            const key = `leverageSaveSlot${slot}`;
+            const data = localStorage.getItem(key);
+            if (!data) { alert('存档为空'); return; }
+            try {
+                showTopStatus('正在加密存档 (Worker)...', 'processing', false);
+                const encrypted = await encryptWithAdmin(data);
+                const blob = new Blob([encrypted], { type: 'application/octet-stream' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `leverage_slot${slot}_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.txt`;
+                a.click();
+                URL.revokeObjectURL(url);
+                hideTopStatus();
+                showTopStatus('加密存档导出成功', 'success');
+            } catch (e) {
+                hideTopStatus();
+                alert('加密失败: ' + e.message);
+            }
+        }
+
+        async function importSave(slot, file) {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    showTopStatus('正在解密存档 (Worker)...', 'processing', false);
+                    const content = e.target.result;
+                    let jsonStr;
+                    try {
+                        jsonStr = await decryptWithAdmin(content);
+                    } catch {
+                        try { JSON.parse(content); jsonStr = content; } catch { throw new Error('文件已损坏'); }
+                    }
+                    const state = JSON.parse(jsonStr);
+                    if (typeof state.equity === 'undefined') throw new Error('无效存档');
+                    prices = state.prices; currentStep = state.currentStep; equity = state.equity;
+                    loanAmount = state.loanAmount; position = state.position; avgPrice = state.avgPrice;
+                    usedMargin = state.usedMargin; trades = state.trades; leverage = state.leverage;
+                    selectedDirection = state.selectedDirection; expertMode = state.expertMode;
+                    stepSize = state.stepSize; stepLevel = state.stepLevel; maxLeverage = state.maxLeverage;
+                    reviveCoins = state.reviveCoins; totalRealizedPL = state.totalRealizedPL;
+                    leverageUnlocked = state.leverageUnlocked;
+                    expertModeCheck.checked = expertMode;
+                    mainCard.classList.toggle('expert-mode', expertMode);
+                    leverageSlider.value = leverage;
+                    leverageInput.value = leverage;
+                    dirButtons.forEach(b => {
+                        b.classList.remove('active-long', 'active-short');
+                        if (b.dataset.dir === selectedDirection) b.classList.add(selectedDirection === 'long' ? 'active-long' : 'active-short');
+                    });
+                    viewStartStep = 0;
+                    viewEndStep = currentStep;
+                    localStorage.setItem(`leverageSaveSlot${slot}`, JSON.stringify(state));
+                    updateSaveSlotsInfo();
+                    updateShopUI();
+                    updateUI();
+                    setTimeout(() => drawCanvas(), 10);
+                    hideTopStatus();
+                    flashScreen('#1f8b4c80');
+                    alert(`存档 ${slot} 导入成功！`);
+                } catch (err) {
+                    hideTopStatus();
+                    alert(err.message === '文件已损坏' ? '文件已损坏，无法读取' : '导入失败');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function clearAllSaves() {
+            if (!confirm('确定要清空所有本地存档吗？')) return;
+            for (let i = 1; i <= 3; i++) localStorage.removeItem(`leverageSaveSlot${i}`);
+            updateSaveSlotsInfo();
+            flashScreen('#c9423f80');
+            showTopStatus('所有存档已清空', 'success');
+        }
+
+        // ---------- 方向切换 ----------
+        dirButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                dirButtons.forEach(b => b.classList.remove('active-long', 'active-short'));
+                btn.classList.add(btn.dataset.dir === 'long' ? 'active-long' : 'active-short');
+                selectedDirection = btn.dataset.dir;
+                updateUI();
+            });
+        });
+
+        expertModeCheck.addEventListener('change', () => {
+            expertMode = expertModeCheck.checked;
+            mainCard.classList.toggle('expert-mode', expertMode);
+            updateUI(); drawCanvas();
+        });
+
+        shopToggleBtn.addEventListener('click', () => { shopPanel.classList.toggle('show'); savePanel.classList.remove('show'); });
+        saveToggleBtn.addEventListener('click', () => { savePanel.classList.toggle('show'); shopPanel.classList.remove('show'); updateSaveSlotsInfo(); });
+
+        function getMaxLoan() { return Math.max(0, equity * 2); }
+
+        function updateShopUI() {
+            shopPointsSpan.textContent = Math.floor(totalRealizedPL);
+            const cur = stepUpgradeLevels[stepLevel];
+            shopStepSizeSpan.textContent = cur.toFixed(2);
+            if (stepLevel < stepUpgradeLevels.length - 1) {
+                nextStepSizeSpan.textContent = stepUpgradeLevels[stepLevel+1].toFixed(2);
+                stepUpgradePriceSpan.textContent = `${(stepLevel+1)*500} 积分`;
+                buyStepUpgrade.disabled = totalRealizedPL < (stepLevel+1)*500;
+            } else {
+                nextStepSizeSpan.textContent = 'MAX';
+                stepUpgradePriceSpan.textContent = '已满级';
+                buyStepUpgrade.disabled = true;
+            }
+            if (leverageUnlocked) {
+                leverageUnlockStatus.textContent = '🔓 已解锁 (1,000,000x)';
+                leverageUnlockPriceSpan.textContent = '已购买';
+                buyLeverageUnlock.disabled = true;
+                maxLeverage = 1000000;
+            } else {
+                leverageUnlockStatus.textContent = '🔒 未解锁 (1,000,000x)';
+                leverageUnlockPriceSpan.textContent = '3000 积分';
+                buyLeverageUnlock.disabled = totalRealizedPL < 3000;
+                maxLeverage = 100000;
+            }
+            reviveCoinCountSpan.textContent = reviveCoins;
+            buyReviveCoin.disabled = totalRealizedPL < 800;
+            currentStepSizeSpan.textContent = stepSize.toFixed(2);
+            maxLeverageLimitSpan.textContent = maxLeverage;
+            maxLeverageDisplaySpan.textContent = maxLeverage + 'x';
+            leverageSlider.max = maxLeverage;
+            leverageInput.max = maxLeverage;
+            if (leverage > maxLeverage) setLeverage(maxLeverage);
+        }
+
+        buyStepUpgrade.addEventListener('click', () => {
+            if (stepLevel >= stepUpgradeLevels.length-1) return;
+            const cost = (stepLevel+1)*500;
+            if (totalRealizedPL >= cost) { totalRealizedPL -= cost; stepLevel++; stepSize = stepUpgradeLevels[stepLevel]; updateShopUI(); updateUI(); flashScreen('#1f8b4c80'); }
+        });
+        buyLeverageUnlock.addEventListener('click', () => {
+            if (leverageUnlocked) return;
+            if (totalRealizedPL >= 3000) { totalRealizedPL -= 3000; leverageUnlocked = true; maxLeverage = 1000000; updateShopUI(); updateUI(); flashScreen('#e6a02080'); }
+        });
+        buyReviveCoin.addEventListener('click', () => {
+            if (totalRealizedPL >= 800) { totalRealizedPL -= 800; reviveCoins++; updateShopUI(); flashScreen('#ffd96680'); }
+        });
+
+        function borrow(amount) {
+            if (amount <= 0) return;
+            const max = getMaxLoan();
+            if (amount > max) amount = max;
+            equity += amount; loanAmount += amount;
+            updateUI(); drawCanvas(); flashScreen('#e6a02080');
+        }
+        function repay() {
+            if (loanAmount <= 0) return;
+            const total = loanAmount * (1 + LOAN_INTEREST_RATE);
+            if (equity < total) { alert('净资产不足'); return; }
+            equity -= total; loanAmount = 0;
+            updateUI(); drawCanvas(); flashScreen('#1f8b4c80');
+        }
+
+        function getPositionValue(price) { return Math.abs(position) * price; }
+        function getUnrealizedPL(price) { return position === 0 ? 0 : (price - avgPrice) * position; }
+        function getMaintenanceMargin(price) { return getPositionValue(price) * MAINTENANCE_MARGIN_RATE; }
+        function getMarginRatio(price) { const mm = getMaintenanceMargin(price); return mm <= 0 ? Infinity : equity / mm; }
+        function getAvailableMargin() { return equity - usedMargin; }
+
+        function calculateLiquidationPrice() {
+            if (position === 0) return null;
+            const mm = MAINTENANCE_MARGIN_RATE;
+            if (position > 0) return (position * avgPrice - equity) / (position * (1 - mm));
+            else { const abs = Math.abs(position); return (equity + abs * avgPrice) / (abs * (1 + mm)); }
+        }
+
+        function checkAndLiquidate() {
+            const price = prices[currentStep];
+            if (position === 0) return false;
+            if (getMarginRatio(price) <= 1.0) {
+                if (reviveCoins > 0) {
+                    reviveCoins--; equity = INITIAL_BALANCE * 0.2; flashScreen('#ffaa00');
+                    alert(`💀 复活！权益恢复至 ¥${equity.toFixed(2)}`);
+                    position = 0; avgPrice = 0; usedMargin = 0;
+                    updateShopUI(); updateUI(); drawCanvas(); return true;
+                }
+                const pl = getUnrealizedPL(price); equity += pl;
+                flashScreen('#c9423f'); alert(`💥 爆仓！以 ¥${price.toFixed(2)} 平仓`);
+                trades.push({ step: currentStep, price, type: position > 0 ? 'sell' : 'buy' });
+                position = 0; avgPrice = 0; usedMargin = 0;
+                updateUI(); drawCanvas(); return true;
+            }
+            return false;
+        }
+
+        function getMaxOpenQty(price, isLong) {
+            if (price <= 0) return 0;
+            const available = getAvailableMargin();
+            if (available <= 0) return 0;
+            const maxByLev = available * leverage;
+            const target = expertMode ? 1.0 : 1.2;
+            const maxByMargin = equity / (MAINTENANCE_MARGIN_RATE * target);
+            let maxVal = Math.min(maxByLev, maxByMargin) * 0.99;
+            if ((position > 0 && isLong) || (position < 0 && !isLong)) {
+                maxVal = Math.max(0, maxVal - Math.abs(position) * avgPrice);
+            }
+            return Math.floor(maxVal / price);
+        }
+
+        function updateUI() {
+            const price = prices[currentStep];
+            const upl = getUnrealizedPL(price);
+            const pv = getPositionValue(price);
+            const mr = getMarginRatio(price);
+            const liq = calculateLiquidationPrice();
+            const avail = getAvailableMargin();
+            stepDisplay.textContent = currentStep;
+            priceDisplay.textContent = price.toFixed(2);
+            let cp; if (position !== 0) cp = ((price - avgPrice) / avgPrice * 100) * (position > 0 ? 1 : -1); else cp = ((price - INITIAL_PRICE) / INITIAL_PRICE) * 100;
+            changeDisplay.textContent = (cp>=0?'+':'') + cp.toFixed(2)+'%';
+            changeDisplay.className = (position !== 0 ? (upl>=0) : (price>=INITIAL_PRICE)) ? 'stat-value price-up' : 'stat-value price-down';
+            priceDisplay.className = price >= INITIAL_PRICE ? 'stat-value price-up' : 'stat-value price-down';
+            equityDisplay.textContent = '¥' + equity.toFixed(2);
+            loanDisplay.textContent = '¥' + loanAmount.toFixed(2);
+            positionValueDisplay.textContent = '¥' + pv.toFixed(2);
+            marginDisplay.textContent = '¥' + usedMargin.toFixed(2);
+            availableDisplay.textContent = '¥' + avail.toFixed(2);
+            unrealizedPLDisplay2.textContent = (upl>=0?'¥+':'¥') + upl.toFixed(2);
+            unrealizedPLDisplay2.style.color = upl>=0 ? '#c9423f' : '#1f8b4c';
+            if (position > 0) { positionSide.innerHTML = '<span style="color:#1f8b4c;">🚀 做多</span>'; positionQty.textContent = position + ' 张'; }
+            else if (position < 0) { positionSide.innerHTML = '<span style="color:#c9423f;">🔻 做空</span>'; positionQty.textContent = (-position) + ' 张'; }
+            else { positionSide.textContent = '无'; positionQty.textContent = '0 张'; }
+            avgPriceDisplay.textContent = position !== 0 ? '¥' + avgPrice.toFixed(2) : '—';
+            if (position !== 0) {
+                marginRatioDisplay.textContent = (mr*100).toFixed(2)+'%';
+                marginRatioDisplay.style.color = mr <= 1.5 ? '#c9423f' : '#1f8b4c';
+                liqPriceDisplay.textContent = liq ? '¥'+liq.toFixed(2) : '—';
+                liqPriceDetail.textContent = liq ? '¥'+liq.toFixed(2) : '—';
+            } else { marginRatioDisplay.textContent = '—'; liqPriceDisplay.textContent = '—'; liqPriceDetail.textContent = '—'; }
+            const maxQ = getMaxOpenQty(price, selectedDirection==='long');
+            maxTradeHint.textContent = `💀 最大可开${selectedDirection==='long'?'多':'空'} ${maxQ} 张`;
+            tradeQtyInput.max = maxQ;
+            let q = parseInt(tradeQtyInput.value); if (isNaN(q)||q<1) q=1; if (q>maxQ) q=maxQ; tradeQtyInput.value = q;
+            const can = maxQ > 0;
+            buyBtn.disabled = !can; sellBtn.disabled = !can; maxTradeBtn.disabled = !can; closeBtn.disabled = position === 0;
+            if (leverage > 5000 && !expertMode) { riskWarning.classList.add('show'); riskWarning.innerHTML = '⚠️ 杠杆极高，建议开启专家模式'; }
+            else riskWarning.classList.remove('show');
+            const ratio = equity / INITIAL_BALANCE;
+            if (equity <= 0) wealthStatus.textContent = '💀 归零';
+            else if (ratio >= 20) wealthStatus.textContent = '👑 超越神';
+            else if (ratio >= 10) wealthStatus.textContent = '🚀 财富自由';
+            else if (ratio >= 5) wealthStatus.textContent = '💰 贪婪';
+            else if (ratio >= 2) wealthStatus.textContent = '📈 盈利';
+            else if (ratio >= 0.5) wealthStatus.textContent = '⚠️ 危险';
+            else wealthStatus.textContent = '🔥 濒死';
+            mainBody.style.background = ratio >= 2 ? 'linear-gradient(145deg, #f6f9fc 0%, #f0e6d2 100%)' : (ratio <= 0.5 ? 'linear-gradient(145deg, #fce4e4 0%, #f9e9e9 100%)' : 'linear-gradient(145deg, #f6f9fc 0%, #e9f2f9 100%)');
+            const maxLoan = getMaxLoan();
+            maxLoanHint.textContent = `最大可借 ¥${maxLoan.toFixed(2)}`;
+            loanAmountInput.max = maxLoan;
+            let lv = parseFloat(loanAmountInput.value); if (isNaN(lv)||lv<0) lv=0; if (lv>maxLoan) lv=maxLoan; loanAmountInput.value = lv;
+            borrowBtn.disabled = maxLoan <= 0;
+            repayBtn.disabled = loanAmount <= 0 || equity < loanAmount * 1.1;
+            updateShopUI();
+        }
+
+        function openPosition(qty, isLong) {
+            const price = prices[currentStep];
+            if (qty <= 0) return false;
+            if ((position > 0 && !isLong) || (position < 0 && isLong)) closePosition();
+            const pv = qty * price;
+            const req = pv / leverage;
+            if (req > getAvailableMargin()) return false;
+            if (!expertMode && equity / ((Math.abs(position)+qty)*price*MAINTENANCE_MARGIN_RATE) < 1.0) { alert('安全限制：开仓后保证金率将低于100%'); return false; }
+            if (position === 0) { position = isLong ? qty : -qty; avgPrice = price; usedMargin = req; }
+            else { const old = Math.abs(position)*avgPrice; avgPrice = (old + pv) / (Math.abs(position)+qty); position += isLong ? qty : -qty; usedMargin += req; }
+            trades.push({ step: currentStep, price, type: isLong ? 'buy' : 'sell' });
+            flashScreen('#ffd96660'); updateUI(); drawCanvas();
+            if (checkAndLiquidate()) { updateUI(); drawCanvas(); }
+            return true;
+        }
+
+        function closePosition() {
+            if (position === 0) return;
+            const price = prices[currentStep];
+            const pl = getUnrealizedPL(price);
+            equity += pl; if (pl > 0) totalRealizedPL += pl;
+            usedMargin = 0; trades.push({ step: currentStep, price, type: position > 0 ? 'sell' : 'buy' });
+            flashScreen(pl>0?'#1f8b4c80':'#c9423f80');
+            position = 0; avgPrice = 0; updateUI(); drawCanvas();
+        }
+
+        function fullReset() {
+            if (isRunning) stopAnimation();
+            prices = [INITIAL_PRICE]; currentStep = 0; equity = INITIAL_BALANCE; loanAmount = 0;
+            position = 0; avgPrice = 0; usedMargin = 0; trades = [];
+            leverage = Math.min(1000, maxLeverage); leverageSlider.value = leverage; leverageInput.value = leverage;
+            selectedDirection = 'long'; dirButtons.forEach(b => { b.classList.remove('active-long','active-short'); if(b.dataset.dir==='long') b.classList.add('active-long'); });
+            expertMode = false; expertModeCheck.checked = false; mainCard.classList.remove('expert-mode');
+            viewStartStep = 0; viewEndStep = 0;
+            updateShopUI(); updateUI(); drawCanvas(); startPauseBtn.innerHTML = '▶ 开始'; isRunning = false;
+        }
+
+        function performStep() {
+            const move = Math.random() < 0.5 ? -stepSize : stepSize;
+            const newPrice = Math.round((prices[prices.length-1] + move) * 100) / 100;
+            prices.push(newPrice); currentStep++;
+            if (viewEndStep === 0 || viewEndStep >= currentStep-1) viewEndStep = currentStep;
+            checkAndLiquidate(); updateUI(); drawCanvas();
+        }
+
+        function drawCanvas() {
+            if (currentStep > 0) {
+                if (viewEndStep === 0 || viewEndStep > currentStep) viewEndStep = currentStep;
+                if (viewStartStep >= viewEndStep) viewStartStep = Math.max(0, viewEndStep - 10);
+            } else { viewStartStep = 0; viewEndStep = 0; }
+            const dispSteps = viewEndStep - viewStartStep;
+            const dispPrices = prices.slice(viewStartStep, viewEndStep + 1);
+            let minY = Math.min(...dispPrices), maxY = Math.max(...dispPrices);
+            if(minY===maxY){ minY-=2; maxY+=2; } else { const pad=(maxY-minY)*0.15; minY-=pad; maxY+=pad; }
+            minY=Math.min(minY, INITIAL_PRICE-0.5); maxY=Math.max(maxY, INITIAL_PRICE+0.5);
+            const yScale = graphHeight/(maxY-minY), xScale = dispSteps>0 ? graphWidth/dispSteps : 0;
+            const canvasX = s => PAD_LEFT + (s - viewStartStep) * xScale;
+            const canvasY = p => PAD_TOP + (maxY - p) * yScale;
+
+            ctx.clearRect(0,0,CW,H);
+            ctx.save();
+            ctx.beginPath(); ctx.rect(PAD_LEFT, PAD_TOP, graphWidth, graphHeight); ctx.clip();
+            ctx.strokeStyle = '#d7e1ea'; ctx.lineWidth = 0.6;
+            for(let p=Math.ceil(minY*2)/2; p<=maxY; p+=0.5) { const y=canvasY(p); ctx.beginPath(); ctx.moveTo(PAD_LEFT,y); ctx.lineTo(CW-PAD_RIGHT,y); ctx.stroke(); }
+            const openY = canvasY(INITIAL_PRICE);
+            ctx.beginPath(); ctx.moveTo(PAD_LEFT,openY); ctx.lineTo(CW-PAD_RIGHT,openY); ctx.strokeStyle='#8aa9c9'; ctx.setLineDash([6,4]); ctx.lineWidth=1.4; ctx.stroke(); ctx.setLineDash([]);
+            if(dispSteps>0) { const sInt = Math.max(1, Math.floor(dispSteps/8)); for(let s=viewStartStep; s<=viewEndStep; s+=sInt) { const x=canvasX(s); ctx.beginPath(); ctx.moveTo(x,PAD_TOP); ctx.lineTo(x,H-PAD_BOTTOM); ctx.strokeStyle='#d7e1ea'; ctx.stroke(); } }
+            if(dispPrices.length>1) { ctx.beginPath(); ctx.moveTo(canvasX(viewStartStep), canvasY(dispPrices[0])); for(let i=1; i<dispPrices.length; i++) ctx.lineTo(canvasX(viewStartStep+i), canvasY(dispPrices[i])); ctx.strokeStyle='#1e4e6f'; ctx.lineWidth=2.4; ctx.stroke(); }
+            trades.forEach(t=>{ if(t.step<viewStartStep||t.step>viewEndStep) return; const x=canvasX(t.step), y=canvasY(t.price); ctx.fillStyle=t.type==='buy'?'#1f8b4c':'#c9423f'; ctx.beginPath(); ctx.arc(x,y,5,0,2*Math.PI); ctx.fill(); });
+            ctx.restore();
+            ctx.strokeStyle='#b0c6d9'; ctx.lineWidth=1.2; ctx.strokeRect(PAD_LEFT,PAD_TOP,graphWidth,graphHeight);
+            ctx.beginPath(); ctx.arc(canvasX(0), canvasY(INITIAL_PRICE),5,0,2*Math.PI); ctx.fillStyle='#2c3e50'; ctx.shadowBlur=6; ctx.fill(); ctx.shadowBlur=0; ctx.strokeStyle='white'; ctx.lineWidth=1.8; ctx.stroke();
+            const cx=canvasX(currentStep), cy=canvasY(prices[currentStep]); if(cx >= PAD_LEFT && cx <= CW-PAD_RIGHT && cy >= PAD_TOP && cy <= H-PAD_BOTTOM) { ctx.beginPath(); ctx.arc(cx,cy,7,0,2*Math.PI); ctx.fillStyle='#c9423f'; ctx.shadowBlur=10; ctx.fill(); }
+            ctx.font = "12px 'Segoe UI', sans-serif"; ctx.fillStyle = '#3a6a8a'; ctx.textAlign = 'right';
+            ctx.fillText(`显示 ${viewStartStep}-${viewEndStep} / ${currentStep} 步`, CW - PAD_RIGHT - 10, H - 8);
+        }
+
+        function initViewControls() {
+            function dragStart(cx) { isDragging = true; dragStartX = cx; dragStartViewStart = viewStartStep; canvas.style.cursor = 'grabbing'; }
+            function dragMove(cx) { if(!isDragging) return; const dx = cx - dragStartX; const stepRange = viewEndStep - viewStartStep; const pxPerStep = graphWidth / stepRange; const delta = Math.round(-dx / pxPerStep); let ns = dragStartViewStart + delta; ns = Math.max(0, Math.min(ns, currentStep - stepRange)); if(ns !== viewStartStep) { viewStartStep = ns; viewEndStep = ns + stepRange; drawCanvas(); } }
+            function dragEnd() { isDragging = false; canvas.style.cursor = 'default'; }
+            canvas.addEventListener('mousedown', e => { if(e.button===0) dragStart(e.clientX); });
+            window.addEventListener('mousemove', e => { if(isDragging) { e.preventDefault(); dragMove(e.clientX); } });
+            window.addEventListener('mouseup', dragEnd);
+            canvas.addEventListener('touchstart', e => { e.preventDefault(); if(e.touches.length===1) dragStart(e.touches[0].clientX); });
+            canvas.addEventListener('touchmove', e => { e.preventDefault(); if(isDragging && e.touches.length===1) dragMove(e.touches[0].clientX); });
+            canvas.addEventListener('touchend', dragEnd);
+            canvas.addEventListener('wheel', e => { e.preventDefault(); const delta = e.deltaY > 0 ? 1 : -1; const curRange = viewEndStep - viewStartStep; let newRange = curRange + delta * Math.max(1, Math.floor(curRange*0.1)); newRange = Math.max(5, Math.min(newRange, currentStep)); if(newRange !== curRange) { const center = (viewStartStep+viewEndStep)/2; let ns = Math.round(center - newRange/2); ns = Math.max(0, Math.min(ns, currentStep - newRange)); viewStartStep = ns; viewEndStep = ns + newRange; drawCanvas(); } }, { passive: false });
+            canvas.addEventListener('dblclick', () => { viewStartStep = 0; viewEndStep = currentStep; drawCanvas(); });
+        }
+
+        function startAnimation() { if(isRunning) return; isRunning=true; startPauseBtn.innerHTML='⏸︎ 暂停'; function loop(){ if(!isRunning) return; performStep(); stepTimer=setTimeout(loop, stepInterval); } stepTimer=setTimeout(loop, stepInterval); }
+        function stopAnimation() { if(stepTimer) clearTimeout(stepTimer); isRunning=false; startPauseBtn.innerHTML='▶ 开始'; }
+        function toggleAnimation(){ isRunning?stopAnimation():startAnimation(); }
+        function updateSpeedLabel(){ const v=speedRange.value; stepInterval=Math.round(200*Math.exp(-Math.log(200/8)/59*(v-1))); speedValue.textContent=(stepInterval>=100?'慢速':stepInterval>=40?'中速':stepInterval>=15?'快速':'💨 极速')+` (${stepInterval}ms)`; if(isRunning){ stopAnimation(); startAnimation(); } }
+        function setLeverage(v){ v=Math.min(maxLeverage, Math.max(1, v)); leverage=v; leverageSlider.value=v; leverageInput.value=v; if(position!==0){ const req=getPositionValue(prices[currentStep])/leverage; if(req>equity) checkAndLiquidate(); else usedMargin=req; } updateUI(); drawCanvas(); }
+
+        // 绑定事件
+        function bindEvents() {
+            document.querySelectorAll('.save-btn').forEach(b => b.addEventListener('click', () => saveGame(b.dataset.slot)));
+            document.querySelectorAll('.load-btn').forEach(b => b.addEventListener('click', () => loadGame(b.dataset.slot)));
+            document.querySelectorAll('.export-btn').forEach(b => b.addEventListener('click', async () => await exportSave(b.dataset.slot)));
+            document.querySelectorAll('.import-file').forEach(i => i.addEventListener('change', async (e) => { const f = e.target.files[0]; if(f) await importSave(i.dataset.slot, f); i.value = ''; }));
+            if (clearAllSavesBtn) clearAllSavesBtn.addEventListener('click', clearAllSaves);
+            startPauseBtn.addEventListener('click', toggleAnimation);
+            stepBtn.addEventListener('click', () => { if(isRunning) stopAnimation(); performStep(); });
+            resetBtn.addEventListener('click', fullReset);
+            buyBtn.addEventListener('click', () => { const q = parseInt(tradeQtyInput.value); if(q>0) openPosition(q, true); });
+            sellBtn.addEventListener('click', () => { const q = parseInt(tradeQtyInput.value); if(q>0) openPosition(q, false); });
+            closeBtn.addEventListener('click', closePosition);
+            maxTradeBtn.addEventListener('click', () => { const q = getMaxOpenQty(prices[currentStep], selectedDirection==='long'); if(q>0) openPosition(q, selectedDirection==='long'); });
+            tradeQtyInput.addEventListener('input', () => { let v=parseInt(tradeQtyInput.value); const max=getMaxOpenQty(prices[currentStep], selectedDirection==='long'); if(isNaN(v)||v<1) v=1; if(v>max) v=max; tradeQtyInput.value=v; });
+            leverageSlider.addEventListener('input', () => setLeverage(parseFloat(leverageSlider.value)));
+            leverageInput.addEventListener('change', () => setLeverage(parseFloat(leverageInput.value)));
+            maxLeverageBtn.addEventListener('click', () => setLeverage(maxLeverage));
+            speedRange.addEventListener('input', updateSpeedLabel);
+            borrowBtn.addEventListener('click', () => { const amt = parseFloat(loanAmountInput.value); if(amt>0) borrow(amt); });
+            repayBtn.addEventListener('click', repay);
+            loanAmountInput.addEventListener('input', () => { let v=parseFloat(loanAmountInput.value); const max=getMaxLoan(); if(isNaN(v)||v<0) v=0; if(v>max) v=max; loanAmountInput.value=v; });
+        }
+
+        function init() {
+            updateShopUI(); updateUI(); drawCanvas(); initViewControls(); bindEvents();
+            updateSpeedLabel();
+            showTopStatus('就绪', 'success', true, 2000);
+        }
+        init();
+        resetBtn.onclick = fullReset;
+        window.addEventListener('resize', () => drawCanvas());
+    })();
+</script>
+</body>
+</html>

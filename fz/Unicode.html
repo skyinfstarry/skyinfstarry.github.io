@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Unicode 字符浏览器 | 支持搜索字符/码位</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', 'Noto Sans', system-ui, -apple-system, 'Roboto', sans-serif;
+            background: #f5f7fb;
+            margin: 0;
+            padding: 20px;
+            color: #1e293b;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        h1 small {
+            font-size: 0.8rem;
+            font-weight: normal;
+            background: #e9eef3;
+            padding: 4px 10px;
+            border-radius: 40px;
+            color: #2c3e66;
+        }
+        .search-section {
+            background: white;
+            border-radius: 20px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+        .search-input-group {
+            flex: 3;
+            min-width: 200px;
+            display: flex;
+            gap: 8px;
+        }
+        .search-input-group input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            outline: none;
+            transition: 0.2s;
+        }
+        .search-input-group input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+        }
+        .search-input-group button {
+            background: #2d3a5e;
+            border: none;
+            color: white;
+            padding: 0 20px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+        .search-input-group button:hover {
+            background: #1e2a4a;
+        }
+        .search-result {
+            background: #f1f5f9;
+            border-radius: 40px;
+            padding: 6px 16px;
+            font-size: 0.85rem;
+            color: #334155;
+        }
+        .desc {
+            background: white;
+            border-radius: 20px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+            color: #334155;
+        }
+        .desc code {
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+        .block-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 28px;
+            background: white;
+            padding: 16px 18px;
+            border-radius: 28px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .block-btn {
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #1e293b;
+            flex-shrink: 0;
+        }
+        .block-btn:hover {
+            background: #eef2ff;
+            border-color: #94a3b8;
+            transform: translateY(-1px);
+        }
+        .block-btn.active {
+            background: #2d3a5e;
+            border-color: #2d3a5e;
+            color: white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .char-panel {
+            background: white;
+            border-radius: 28px;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        }
+        .block-header {
+            background: #f1f5f9;
+            padding: 14px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 600;
+            font-size: 1.2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .block-range {
+            font-family: monospace;
+            font-size: 0.8rem;
+            background: #e6edf4;
+            padding: 3px 10px;
+            border-radius: 30px;
+            font-weight: normal;
+        }
+        .char-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(70px, 85px));
+            gap: 2px;
+            padding: 16px;
+            background: #ffffff;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .char-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #fefefe;
+            border: 1px solid #edf2f7;
+            border-radius: 14px;
+            padding: 8px 4px;
+            transition: all 0.1s ease;
+            cursor: pointer;
+            font-size: 1.7rem;
+            font-family: 'Segoe UI Emoji', 'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Symbol', 'Noto Sans', system-ui, sans-serif;
+        }
+        .char-card:hover {
+            background: #f1f5ff;
+            border-color: #b9c8f0;
+            transform: scale(0.98);
+        }
+        .char-card.highlight {
+            background: #fde047;
+            border-color: #eab308;
+            box-shadow: 0 0 0 2px #facc15;
+            animation: pulse 0.6s ease;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); background: #fef9c3; }
+            50% { transform: scale(1.02); background: #fde047; }
+            100% { transform: scale(1); background: #fde047; }
+        }
+        .char-code {
+            font-size: 0.65rem;
+            font-family: monospace;
+            color: #5b6e8c;
+            margin-top: 6px;
+            background: #f8fafc;
+            padding: 2px 6px;
+            border-radius: 20px;
+        }
+        .char-symbol {
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.9rem;
+            line-height: 1.2;
+        }
+        .loading, .error-msg {
+            padding: 40px;
+            text-align: center;
+            color: #4b5563;
+            font-style: italic;
+        }
+        footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #6c7a91;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 20px;
+        }
+        @media (max-width: 640px) {
+            .char-grid {
+                grid-template-columns: repeat(auto-fill, minmax(62px, 70px));
+            }
+            .char-symbol {
+                font-size: 1.4rem;
+            }
+            .char-card {
+                padding: 5px 2px;
+            }
+            .search-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>
+        📖 Unicode 字符浏览器
+        <small>基本多文种平面 (BMP · U+0000 – U+FFFF)</small>
+    </h1>
+    <div class="search-section">
+        <div class="search-input-group">
+            <input type="text" id="searchInput" placeholder="输入字符 或 码位 (如 A, 🐱, U+4E00, 0x1F600, 4E00)" autocomplete="off">
+            <button id="searchBtn">🔍 搜索</button>
+        </div>
+        <div id="searchResult" class="search-result">💡 点击搜索，自动定位并高亮</div>
+    </div>
+    <div class="desc">
+        💡 展示 <strong>65,536 个码位</strong>中的可显示字符。按 <strong>Unicode 区块</strong>分组加载，性能友好。<br>
+        ⚠️ 控制字符、未分配区域会显示为占位符“␣”或空白，<code>U+D800–U+DFFF</code> 为代理区无实际字符。<br>
+        🔎 支持搜索：直接输入字符（如“星”）或码位（如“661f”或“U+661F”），点击搜索即可跳转并高亮。
+    </div>
+
+    <div class="block-nav" id="blockNav"></div>
+    <div class="char-panel" id="charPanel">
+        <div class="block-header">
+            <span>✨ 选择一个区块开始浏览</span>
+            <span class="block-range">点击上方区块按钮</span>
+        </div>
+        <div class="loading" style="padding: 60px;">⬅️ 点击任意区块，展示该区域内所有字符</div>
+    </div>
+    <footer>
+        Unicode 版本参考 v15.1+ | 区块划分基于官方数据 | 点击字符卡片可复制到剪贴板 | 搜索功能支持字符与码位
+    </footer>
+</div>
+
+<script>
+    // ---------- Unicode BMP 区块定义 (覆盖完整 0x0000-0xFFFF) ----------
+    // 使用更直观的区块列表，避免复杂合并，确保每个区域都正确覆盖
+    const blocks = [
+        { name: "基本拉丁文", start: 0x0000, end: 0x007F },
+        { name: "拉丁文-1 补充", start: 0x0080, end: 0x00FF },
+        { name: "拉丁文扩展-A", start: 0x0100, end: 0x017F },
+        { name: "拉丁文扩展-B", start: 0x0180, end: 0x024F },
+        { name: "国际音标扩展", start: 0x0250, end: 0x02AF },
+        { name: "间距修饰字母", start: 0x02B0, end: 0x02FF },
+        { name: "组合变音符号", start: 0x0300, end: 0x036F },
+        { name: "希腊文", start: 0x0370, end: 0x03FF },
+        { name: "西里尔文", start: 0x0400, end: 0x04FF },
+        { name: "西里尔文补充", start: 0x0500, end: 0x052F },
+        { name: "亚美尼亚文", start: 0x0530, end: 0x058F },
+        { name: "希伯来文", start: 0x0590, end: 0x05FF },
+        { name: "阿拉伯文", start: 0x0600, end: 0x06FF },
+        { name: "叙利亚文", start: 0x0700, end: 0x074F },
+        { name: "阿拉伯文补充", start: 0x0750, end: 0x077F },
+        { name: "它拿文", start: 0x0780, end: 0x07BF },
+        { name: "西非书面语言", start: 0x07C0, end: 0x07FF },
+        { name: "八思巴文", start: 0xA840, end: 0xA87F },
+        { name: "切罗基文", start: 0x13A0, end: 0x13FF },
+        { name: "格鲁吉亚文", start: 0x10A0, end: 0x10FF },
+        { name: "谚文字母", start: 0x1100, end: 0x11FF },
+        { name: "埃塞俄比亚文", start: 0x1200, end: 0x137F },
+        { name: "加拿大原住民音节", start: 0x1400, end: 0x167F },
+        { name: "欧甘文", start: 0x1680, end: 0x169F },
+        { name: "如尼文", start: 0x16A0, end: 0x16FF },
+        { name: "他加禄文", start: 0x1700, end: 0x171F },
+        { name: "蒙古文", start: 0x1800, end: 0x18AF },
+        { name: "林布文", start: 0x1900, end: 0x194F },
+        { name: "泰文", start: 0x0E00, end: 0x0E7F },
+        { name: "老挝文", start: 0x0E80, end: 0x0EFF },
+        { name: "藏文", start: 0x0F00, end: 0x0FFF },
+        { name: "缅甸文", start: 0x1000, end: 0x109F },
+        { name: "格鲁吉亚文补充", start: 0x2D00, end: 0x2D2F },
+        { name: "谚文音节", start: 0xAC00, end: 0xD7AF },
+        { name: "高半代用区", start: 0xD800, end: 0xDBFF, noDisplay: true },
+        { name: "低半代用区", start: 0xDC00, end: 0xDFFF, noDisplay: true },
+        { name: "专用区 & 兼容区", start: 0xE000, end: 0xF8FF },
+        { name: "阿拉伯文表示形式-A", start: 0xFB50, end: 0xFDFF },
+        { name: "字型变体", start: 0xFE00, end: 0xFE0F },
+        { name: "竖排标点", start: 0xFE10, end: 0xFE1F },
+        { name: "组合半角符号", start: 0xFE20, end: 0xFE2F },
+        { name: "CJK 兼容形式", start: 0xFE30, end: 0xFE4F },
+        { name: "小写变体", start: 0xFE50, end: 0xFE6F },
+        { name: "阿拉伯文表示形式-B", start: 0xFE70, end: 0xFEFF },
+        { name: "半角及全角形式", start: 0xFF00, end: 0xFFEF },
+        { name: "特殊字符", start: 0xFFF0, end: 0xFFFF },
+        { name: "谚文字母扩展", start: 0x3130, end: 0x318F },
+        { name: "中日韩符号和标点", start: 0x3000, end: 0x303F },
+        { name: "平假名", start: 0x3040, end: 0x309F },
+        { name: "片假名", start: 0x30A0, end: 0x30FF },
+        { name: "注音字母", start: 0x3100, end: 0x312F },
+        { name: "中日韩统一表意文字 (基本区)", start: 0x4E00, end: 0x9FFF },
+        { name: "高丽代用区 (韩文旧字)", start: 0xD7B0, end: 0xD7FF },
+        { name: "制表符", start: 0x2500, end: 0x257F },
+        { name: "方块元素", start: 0x2580, end: 0x259F },
+        { name: "几何形状", start: 0x25A0, end: 0x25FF },
+        { name: "杂项符号", start: 0x2600, end: 0x26FF },
+        { name: "印刷符号", start: 0x2700, end: 0x27BF },
+        { name: "装饰符号", start: 0x27C0, end: 0x27EF },
+        { name: "数学运算符", start: 0x2200, end: 0x22FF },
+        { name: "箭头符号", start: 0x2190, end: 0x21FF },
+        { name: "货币符号", start: 0x20A0, end: 0x20CF }
+    ];
+
+    // 过滤掉代理区区块，并排序（按起始码位）
+    let displayBlocks = blocks.filter(b => !b.noDisplay).sort((a,b) => a.start - b.start);
+    
+    // 确保所有区域连续（不重叠，无缺口），这里简单合并相邻或重叠区块
+    function mergeBlocks(blocks) {
+        if (blocks.length === 0) return [];
+        let merged = [];
+        let current = { ...blocks[0] };
+        for (let i = 1; i < blocks.length; i++) {
+            const b = blocks[i];
+            if (b.start <= current.end + 1) {
+                // 重叠或相邻，合并
+                current.end = Math.max(current.end, b.end);
+                current.name = current.name + " / " + b.name;
+            } else {
+                merged.push(current);
+                current = { ...b };
+            }
+        }
+        merged.push(current);
+        return merged;
+    }
+    displayBlocks = mergeBlocks(displayBlocks);
+    
+    // 补齐未覆盖的区域（由于我们已覆盖所有常用区块，且合并后应无大缺口，但为保险，检查首尾）
+    let finalBlocks = [];
+    let currentPos = 0x0000;
+    for (let i = 0; i < displayBlocks.length; i++) {
+        const b = displayBlocks[i];
+        if (b.start > currentPos) {
+            finalBlocks.push({
+                name: `未分配 / 保留区域 (U+${currentPos.toString(16).toUpperCase().padStart(4,'0')})`,
+                start: currentPos,
+                end: b.start - 1
+            });
+        }
+        finalBlocks.push(b);
+        currentPos = b.end + 1;
+    }
+    if (currentPos <= 0xFFFF) {
+        finalBlocks.push({
+            name: `BMP 末区域 (私有/保留)`,
+            start: currentPos,
+            end: 0xFFFF
+        });
+    }
+
+    // 构建快速映射（字符→码位，码位→区块索引）
+    let charToCodePoint = new Map();
+    let codePointToBlockInfo = new Map(); // cp -> { blockIndex, block }
+    
+    function buildMaps() {
+        for (let i = 0; i < finalBlocks.length; i++) {
+            const block = finalBlocks[i];
+            for (let cp = block.start; cp <= block.end; cp++) {
+                if (cp >= 0xD800 && cp <= 0xDFFF) continue; // 跳过代理区
+                codePointToBlockInfo.set(cp, { blockIndex: i, block });
+                try {
+                    const char = String.fromCodePoint(cp);
+                    // 避免覆盖已有映射（通常不会重复，但为了安全）
+                    if (!charToCodePoint.has(char)) {
+                        charToCodePoint.set(char, cp);
+                    }
+                } catch(e) {}
+            }
+        }
+    }
+    
+    // 渲染字符网格（分批，避免卡死）
+    function renderBlock(block, callback) {
+        const panelDiv = document.getElementById('charPanel');
+        const { name, start, end } = block;
+        panelDiv.innerHTML = `
+            <div class="block-header">
+                <span>📁 ${name}</span>
+                <span class="block-range">范围: U+${start.toString(16).toUpperCase()} — U+${end.toString(16).toUpperCase()}  (共 ${end-start+1} 个码位)</span>
+            </div>
+            <div class="char-grid" id="dynamicGrid"></div>
+        `;
+        const gridContainer = document.getElementById('dynamicGrid');
+        if (!gridContainer) return;
+        
+        const total = end - start + 1;
+        let rendered = 0;
+        const BATCH = 300;
+        
+        function renderBatch() {
+            const fragment = document.createDocumentFragment();
+            const limit = Math.min(rendered + BATCH, total);
+            for (let i = rendered; i < limit; i++) {
+                const cp = start + i;
+                let symbol, isPlaceholder = false;
+                // 判断是否为可显示字符（简化逻辑：只过滤代理区和极少控制字符）
+                if (cp >= 0xD800 && cp <= 0xDFFF) {
+                    symbol = '�'; // 代理区不可显示
+                    isPlaceholder = true;
+                } else {
+                    try {
+                        let ch = String.fromCodePoint(cp);
+                        // 过滤一些零宽或不可见控制字符（但仍显示占位符）
+                        if (cp <= 0x1F || (cp >= 0x7F && cp <= 0x9F) || cp === 0xAD || ch === '\u200B' || ch === '\u200C' || ch === '\u200D' || ch === '\uFEFF') {
+                            symbol = '␣';
+                            isPlaceholder = true;
+                        } else {
+                            symbol = ch;
+                            isPlaceholder = false;
+                        }
+                    } catch(e) {
+                        symbol = '?';
+                        isPlaceholder = true;
+                    }
+                }
+                const card = document.createElement('div');
+                card.className = 'char-card';
+                card.setAttribute('data-cp', cp);
+                card.title = `U+${cp.toString(16).toUpperCase()}${isPlaceholder ? ' (控制/不可见)' : ''}`;
+                const symbolSpan = document.createElement('div');
+                symbolSpan.className = 'char-symbol';
+                if (isPlaceholder) {
+                    symbolSpan.textContent = symbol;
+                    symbolSpan.style.opacity = '0.6';
+                    symbolSpan.style.fontSize = '1.2rem';
+                } else {
+                    symbolSpan.textContent = symbol;
+                }
+                const codeSpan = document.createElement('div');
+                codeSpan.className = 'char-code';
+                codeSpan.textContent = cp.toString(16).toUpperCase();
+                card.appendChild(symbolSpan);
+                card.appendChild(codeSpan);
+                card.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const textToCopy = isPlaceholder ? '' : symbol;
+                    if (!textToCopy) {
+                        alert('该字符为控制字符，无法复制');
+                        return;
+                    }
+                    navigator.clipboard.writeText(textToCopy).then(() => {
+                        const originalBg = card.style.backgroundColor;
+                        card.style.backgroundColor = '#cbdffc';
+                        setTimeout(() => card.style.backgroundColor = originalBg, 200);
+                        showToast(`✅ 已复制: ${textToCopy}`);
+                    }).catch(() => alert('复制失败，手动选取'));
+                });
+                fragment.appendChild(card);
+            }
+            gridContainer.appendChild(fragment);
+            rendered = limit;
+            if (rendered < total) {
+                requestAnimationFrame(renderBatch);
+            } else if (callback) {
+                callback();
+            }
+        }
+        renderBatch();
+    }
+    
+    function showToast(msg) {
+        const toast = document.createElement('div');
+        toast.textContent = msg;
+        toast.style.position = 'fixed';
+        toast.style.bottom = '20px';
+        toast.style.left = '50%';
+        toast.style.transform = 'translateX(-50%)';
+        toast.style.backgroundColor = '#1e293b';
+        toast.style.color = 'white';
+        toast.style.padding = '8px 18px';
+        toast.style.borderRadius = '40px';
+        toast.style.fontSize = '0.8rem';
+        toast.style.zIndex = '999';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 1500);
+    }
+    
+    // 搜索逻辑
+    function parseSearchInput(input) {
+        input = input.trim();
+        if (!input) return null;
+        let hexMatch = input.match(/^(?:0x|U\+|#)?([0-9A-Fa-f]{1,6})$/);
+        if (hexMatch) {
+            let cp = parseInt(hexMatch[1], 16);
+            if (cp >= 0 && cp <= 0x10FFFF) return { type: 'codepoint', value: cp };
+        }
+        const firstChar = Array.from(input)[0];
+        if (firstChar) {
+            const cp = firstChar.codePointAt(0);
+            if (cp !== undefined) return { type: 'char', value: cp, char: firstChar };
+        }
+        return null;
+    }
+    
+    function highlightCardByCp(cp) {
+        const grid = document.querySelector('.char-grid');
+        if (!grid) return false;
+        const cards = grid.querySelectorAll('.char-card');
+        for (let card of cards) {
+            if (parseInt(card.getAttribute('data-cp')) === cp) {
+                cards.forEach(c => c.classList.remove('highlight'));
+                card.classList.add('highlight');
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    function performSearch() {
+        const input = document.getElementById('searchInput').value;
+        const resultDiv = document.getElementById('searchResult');
+        const parsed = parseSearchInput(input);
+        if (!parsed) {
+            resultDiv.textContent = '❌ 无法解析输入，请输入字符或十六进制码位 (如 A, U+4E00, 1F600)';
+            return;
+        }
+        let cp = parsed.value;
+        if (cp > 0xFFFF) {
+            resultDiv.textContent = '⚠️ 当前仅支持 BMP (U+0000–U+FFFF) 内的字符搜索。';
+            return;
+        }
+        const blockInfo = codePointToBlockInfo.get(cp);
+        if (!blockInfo) {
+            resultDiv.textContent = `❌ 未找到码位 U+${cp.toString(16).toUpperCase()} 对应的区块（可能为代理区或保留区）。`;
+            return;
+        }
+        const { blockIndex, block } = blockInfo;
+        // 激活对应的按钮
+        const btns = document.querySelectorAll('.block-btn');
+        btns.forEach((btn, idx) => {
+            if (idx === blockIndex) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+        // 渲染区块，完成后高亮
+        renderBlock(block, () => {
+            const success = highlightCardByCp(cp);
+            if (success) {
+                const displayChar = parsed.char || `U+${cp.toString(16).toUpperCase()}`;
+                resultDiv.textContent = `✅ 已定位到字符 ${displayChar} (码位 U+${cp.toString(16).toUpperCase()})，已高亮。`;
+            } else {
+                resultDiv.textContent = `⚠️ 字符已定位到区块，但可能因不可见未高亮。码位: U+${cp.toString(16).toUpperCase()}`;
+            }
+        });
+    }
+    
+    // 渲染导航按钮
+    function renderNav() {
+        const navDiv = document.getElementById('blockNav');
+        navDiv.innerHTML = '';
+        finalBlocks.forEach((block, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'block-btn';
+            btn.textContent = `${block.name}  (${block.start.toString(16).toUpperCase()}-${block.end.toString(16).toUpperCase()})`;
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.block-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                renderBlock(block, null);
+            });
+            navDiv.appendChild(btn);
+        });
+    }
+    
+    // 初始化
+    buildMaps();
+    renderNav();
+    if (finalBlocks.length > 0) {
+        // 默认选中第一个区块并渲染
+        const firstBtn = document.querySelector('.block-btn');
+        if (firstBtn) firstBtn.classList.add('active');
+        renderBlock(finalBlocks[0], null);
+    }
+    
+    // 绑定搜索事件
+    document.getElementById('searchBtn').addEventListener('click', performSearch);
+    document.getElementById('searchInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') performSearch();
+    });
+</script>
+</body>
+</html>
