@@ -2,282 +2,262 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AES-256-GCM 安全加密工具 | 通用版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
+    <title>AES-256-GCM 安全加密工具 | 全能定制版</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
         body {
             background: #f0f2f5;
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             min-height: 100vh;
             margin: 0;
-            padding: 20px;
+            padding: 16px;
         }
         .container {
-            max-width: 1000px;
+            max-width: 1100px;
             width: 100%;
             background: white;
             border-radius: 24px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            padding: 24px;
+            padding: 20px;
             position: relative;
         }
-        h1 {
-            font-size: 1.6rem;
-            margin-bottom: 20px;
-            color: #1a2c3e;
-            text-align: center;
-        }
+        h1 { font-size: 1.5rem; margin-bottom: 16px; color: #1a2c3e; text-align: center; }
         .top-status {
-            position: sticky;
-            top: 0;
-            background: white;
-            z-index: 10;
-            padding: 8px 16px;
-            margin: -12px -12px 20px -12px;
-            border-radius: 40px;
-            text-align: center;
-            font-weight: 500;
-            transition: all 0.2s;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            position: sticky; top: 0; background: white; z-index: 10;
+            padding: 8px 16px; margin: -12px -12px 16px -12px;
+            border-radius: 40px; text-align: center; font-weight: 500;
+            transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             overflow: hidden;
         }
-        .top-status.processing {
-            background: #e6f7ff;
-            color: #0050b3;
-            border-left: 4px solid #1890ff;
-        }
-        .top-status.success {
-            background: #e6f9e6;
-            color: #237804;
-            border-left: 4px solid #52c41a;
-        }
-        .top-status.error {
-            background: #fff1f0;
-            color: #a8071a;
-            border-left: 4px solid #ff4d4f;
-        }
-        .top-status .message {
-            display: inline-block;
-        }
+        .top-status.processing { background: #e6f7ff; color: #0050b3; border-left: 4px solid #1890ff; }
+        .top-status.success { background: #e6f9e6; color: #237804; border-left: 4px solid #52c41a; }
+        .top-status.error { background: #fff1f0; color: #a8071a; border-left: 4px solid #ff4d4f; }
+        .top-status .message { display: inline-block; }
         .top-status .spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid #1890ff;
-            border-top-color: transparent;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            vertical-align: middle;
-            margin-right: 8px;
+            display: inline-block; width: 16px; height: 16px;
+            border: 2px solid #1890ff; border-top-color: transparent;
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+            vertical-align: middle; margin-right: 8px;
         }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
         .indeterminate-progress {
-            width: 100%;
-            height: 3px;
-            background-color: #e6f7ff;
-            margin-top: 8px;
-            border-radius: 3px;
-            overflow: hidden;
-            position: relative;
+            width: 100%; height: 3px; background-color: #e6f7ff;
+            margin-top: 8px; border-radius: 3px; overflow: hidden; position: relative;
         }
         .indeterminate-progress::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 30%;
-            height: 100%;
-            background: #1890ff;
-            border-radius: 3px;
-            animation: progress 1.2s infinite ease-in-out;
+            content: ''; position: absolute; top: 0; left: 0;
+            width: 30%; height: 100%; background: #1890ff;
+            border-radius: 3px; animation: progress 1.2s infinite ease-in-out;
         }
-        @keyframes progress {
-            0% { left: -30%; width: 30%; }
-            50% { left: 35%; width: 30%; }
-            100% { left: 100%; width: 30%; }
+        @keyframes progress { 0% { left: -30%; width: 30%; } 50% { left: 35%; width: 30%; } 100% { left: 100%; width: 30%; } }
+        .log-panel {
+            background: #1e1e2e; border: 1px solid #333; border-radius: 12px;
+            padding: 8px 12px; margin-top: 16px; margin-bottom: 16px;
+            max-height: 200px; overflow-y: auto; font-size: 0.8rem;
+            font-family: 'Courier New', monospace; line-height: 1.6; color: #e0e0e0;
         }
-        textarea {
-            width: 100%;
-            padding: 12px;
-            font-family: monospace;
-            font-size: 14px;
-            border: 1px solid #ccc;
-            border-radius: 12px;
-            resize: vertical;
-            margin-bottom: 16px;
+        .log-panel .log-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 4px; color: #aaa; font-weight: 600; font-size: 0.75rem;
+            border-bottom: 1px solid #333; padding-bottom: 4px;
         }
+        .log-panel .log-header .log-controls {
+            display: flex; align-items: center; gap: 12px;
+        }
+        .log-panel .log-header .log-controls label {
+            font-weight: normal; color: #888; font-size: 0.7rem;
+            display: flex; align-items: center; gap: 4px; cursor: pointer;
+        }
+        .log-panel .log-header .log-controls input[type="checkbox"] {
+            width: 14px; height: 14px; cursor: pointer;
+        }
+        .log-panel .log-header button {
+            background: none; border: none; color: #888;
+            cursor: pointer; font-size: 0.7rem; padding: 0 6px;
+        }
+        .log-panel .log-header button:hover { color: #fff; }
+        .log-panel .log-entry {
+            display: flex; gap: 10px; padding: 1px 0; border-bottom: 1px solid #2a2a3a;
+        }
+        .log-panel .log-entry:last-child { border-bottom: none; }
+        .log-panel .log-time { color: #6c7a89; white-space: nowrap; min-width: 70px; }
+        .log-panel .log-type { font-weight: 600; min-width: 50px; }
+        .log-panel .log-type.info { color: #61afef; }
+        .log-panel .log-type.success { color: #98c379; }
+        .log-panel .log-type.warning { color: #e5c07b; }
+        .log-panel .log-type.error { color: #e06c75; }
+        .log-panel .log-msg { word-break: break-word; flex: 1; }
+        .textarea-wrapper { position: relative; margin-bottom: 14px; }
+        .textarea-wrapper textarea {
+            width: 100%; padding: 12px 50px 12px 12px;
+            font-family: monospace; font-size: 14px; border: 1px solid #ccc;
+            border-radius: 12px; resize: vertical; min-height: 60px;
+        }
+        .copy-btn {
+            position: absolute; top: 8px; right: 8px;
+            background: #e9ecef; border: none; border-radius: 20px;
+            padding: 4px 12px; font-size: 0.75rem; cursor: pointer;
+            color: #1a2c3e; transition: 0.2s; min-height: 28px;
+        }
+        .copy-btn:hover { background: #d0d4d8; }
         .password-wrapper {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 8px;
+            display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;
         }
         .password-wrapper input {
-            flex: 1;
-            padding: 12px;
-            font-family: monospace;
-            font-size: 14px;
-            border: 1px solid #ccc;
+            flex: 1; min-width: 150px; padding: 12px;
+            font-family: monospace; font-size: 14px; border: 1px solid #ccc;
             border-radius: 12px;
+        }
+        .password-wrapper .copy-btn {
+            position: static; border-radius: 30px; padding: 0 14px; min-height: 44px;
         }
         .password-actions {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 16px;
+            display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
         }
         .password-actions button {
-            flex: 1;
-            padding: 6px;
-            background: #e9ecef;
-            border: none;
-            border-radius: 30px;
-            cursor: pointer;
-            font-size: 0.8rem;
+            flex: 1; min-width: 80px; padding: 8px 6px;
+            background: #e9ecef; border: none; border-radius: 30px;
+            cursor: pointer; font-size: 0.8rem; min-height: 44px;
         }
         .row {
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-            margin-bottom: 16px;
+            display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px;
             align-items: center;
         }
-        .iter-group {
-            flex: 2;
-            min-width: 180px;
-        }
-        .iter-group label {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: #2c3e50;
+        .iter-group { flex: 2.5; min-width: 220px; }
+        .iter-group label { font-size: 0.85rem; font-weight: 600; color: #2c3e50; }
+        .iter-select-wrapper {
+            display: flex; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap;
         }
         select {
-            width: 100%;
-            padding: 10px;
-            border-radius: 30px;
-            border: 1px solid #ccc;
-            background: white;
+            flex: 1; min-width: 100px; padding: 10px 12px; border-radius: 30px;
+            border: 1px solid #ccc; background: white; font-size: 0.9rem; min-height: 44px;
         }
-        .strength-area {
-            flex: 3;
+        #iterWarning { font-size: 0.75rem; font-weight: bold; white-space: nowrap; }
+        #iterEstimate {
+            font-size: 0.75rem; color: #555; background: #f0f2f5;
+            padding: 2px 12px; border-radius: 20px; white-space: nowrap;
         }
+        .calibrate-btn {
+            background: #e9ecef; border: none; border-radius: 30px;
+            padding: 4px 14px; font-size: 0.8rem; cursor: pointer;
+            min-height: 32px; color: #1a2c3e; transition: 0.2s; font-weight: 500;
+        }
+        .calibrate-btn:hover:not(:disabled) { background: #d0d4d8; }
+        .calibrate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .custom-iter-container {
+            display: none; align-items: center; gap: 8px;
+            margin-top: 4px; flex-wrap: wrap; width: 100%;
+        }
+        .custom-iter-container.show { display: flex; }
+        .custom-iter-container input[type="number"] {
+            flex: 1; min-width: 80px; padding: 8px 12px;
+            border: 1px solid #ccc; border-radius: 30px;
+            font-size: 0.9rem; min-height: 44px;
+        }
+        .custom-iter-container select {
+            flex: 0 1 auto; min-width: 70px; padding: 8px 12px;
+        }
+        .strength-area { flex: 3; min-width: 150px; }
         .strength-bar {
-            height: 6px;
-            background-color: #e2e8f0;
-            border-radius: 3px;
-            overflow: hidden;
-            margin-top: 6px;
+            height: 6px; background-color: #e2e8f0; border-radius: 3px;
+            overflow: hidden; margin-top: 6px;
         }
-        .strength-fill {
-            width: 0%;
-            height: 100%;
-            transition: width 0.2s;
+        .strength-fill { width: 0%; height: 100%; transition: width 0.2s; }
+        .strength-text { font-size: 0.7rem; margin-top: 4px; color: #4a627a; }
+        .strength-advice { font-size: 0.7rem; color: #e67e22; margin-top: 2px; }
+        .checkbox-group {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 0.85rem; color: #2c3e50;
         }
-        .strength-text {
-            font-size: 0.7rem;
-            margin-top: 4px;
-            color: #4a627a;
+        .checkbox-group input { width: 18px; height: 18px; cursor: pointer; }
+        .flex-center {
+            display: flex; align-items: center; gap: 16px;
+            flex-wrap: wrap; margin-bottom: 8px;
         }
-        .strength-advice {
-            font-size: 0.7rem;
-            color: #e67e22;
-            margin-top: 2px;
-        }
-        .buttons {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            justify-content: center;
-            margin: 20px 0;
+        .buttons, .file-group, .download-group {
+            display: flex; gap: 12px; flex-wrap: wrap;
+            justify-content: center; margin: 12px 0;
         }
         button {
-            padding: 10px 20px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            border: none;
-            border-radius: 40px;
-            cursor: pointer;
-            background: #1a2c3e;
-            color: white;
-            transition: 0.2s;
+            padding: 12px 24px; font-size: 0.95rem; font-weight: 600;
+            border: none; border-radius: 40px; cursor: pointer;
+            background: #1a2c3e; color: white; transition: 0.2s;
+            min-height: 44px; min-width: 48px; touch-action: manipulation;
         }
-        button:hover:not(:disabled) {
-            background: #2c4c6e;
-            transform: translateY(-1px);
-        }
-        button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-        .secondary {
-            background: #e9ecef;
-            color: #1a2c3e;
-        }
-        .cancel-btn {
-            background: #ff4d4f;
-            color: white;
-            margin-left: 8px;
-        }
-        .download-group {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            justify-content: center;
-            margin: 20px 0 10px;
-        }
+        button:hover:not(:disabled) { background: #2c4c6e; transform: translateY(-1px); }
+        button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .secondary { background: #e9ecef; color: #1a2c3e; }
+        .secondary:hover:not(:disabled) { background: #d5d8dd; }
+        .cancel-btn { background: #ff4d4f; color: white; }
+        .cancel-btn:hover:not(:disabled) { background: #d9363e; }
+        .file-group input[type="file"] { display: none; }
         .temp-pwd {
-            background: #eef2ff;
-            border: 1px solid #c7d2fe;
-            border-radius: 12px;
-            padding: 8px 12px;
-            margin-bottom: 16px;
-            font-family: monospace;
-            font-size: 0.85rem;
-            word-break: break-all;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .temp-pwd span {
-            flex: 1;
+            background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 12px;
+            padding: 8px 12px; margin-bottom: 16px; font-family: monospace;
+            font-size: 0.85rem; word-break: break-all;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 8px;
         }
         .temp-pwd button {
-            background: #1a2c3e;
-            padding: 4px 12px;
-            font-size: 0.7rem;
-            margin-left: 8px;
-        }
-        hr {
-            margin: 20px 0;
+            background: #1a2c3e; padding: 4px 14px; font-size: 0.75rem;
+            margin-left: 4px; min-height: 34px;
         }
         .note {
-            font-size: 0.7rem;
-            color: #6c757d;
-            text-align: center;
-            margin-top: 20px;
-        }
-        .warning-text {
-            color: #e67e22;
-        }
-        .cancel-wrapper {
-            text-align: center;
-            margin: 10px 0;
+            font-size: 0.7rem; color: #6c757d; text-align: center; margin-top: 20px;
         }
         .env-warning {
-            background: #fff3e0;
-            border-left: 4px solid #faad14;
-            padding: 8px 12px;
-            border-radius: 8px;
-            margin-bottom: 16px;
-            font-size: 0.8rem;
-            color: #ad6800;
+            background: #fff3e0; border-left: 4px solid #faad14;
+            padding: 8px 12px; border-radius: 8px; margin-bottom: 16px;
+            font-size: 0.8rem; color: #ad6800;
+        }
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+            display: none; align-items: center; justify-content: center;
+            z-index: 9999; padding: 20px;
+            animation: fadeIn 0.2s ease;
+        }
+        .modal-overlay.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .modal-box {
+            background: white; border-radius: 24px; max-width: 480px; width: 100%;
+            padding: 28px 32px 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            position: relative; animation: slideUp 0.25s ease;
+        }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-icon { font-size: 3rem; text-align: center; margin-bottom: 12px; }
+        .modal-title { font-size: 1.2rem; font-weight: 700; text-align: center; color: #1a2c3e; margin-bottom: 8px; }
+        .modal-message { font-size: 0.95rem; color: #4a5568; text-align: center; line-height: 1.6; margin-bottom: 20px; white-space: pre-wrap; word-break: break-word; }
+        .modal-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+        .modal-actions button { padding: 10px 28px; border: none; border-radius: 40px; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: 0.2s; min-width: 80px; }
+        .modal-actions .btn-primary { background: #1a2c3e; color: white; }
+        .modal-actions .btn-primary:hover { background: #2c4c6e; }
+        .modal-actions .btn-secondary { background: #e9ecef; color: #1a2c3e; }
+        .modal-actions .btn-secondary:hover { background: #d5d8dd; }
+        .modal-actions .btn-danger { background: #ff4d4f; color: white; }
+        .modal-actions .btn-danger:hover { background: #d9363e; }
+        .modal-actions .btn-success { background: #52c41a; color: white; }
+        .modal-actions .btn-success:hover { background: #389e0d; }
+        @media (max-width: 600px) {
+            .container { padding: 16px; }
+            h1 { font-size: 1.3rem; }
+            .top-status { font-size: 0.85rem; padding: 6px 12px; }
+            .password-wrapper input { font-size: 16px; }
+            .copy-btn { font-size: 0.7rem; padding: 2px 10px; }
+            button { font-size: 0.85rem; padding: 10px 16px; min-height: 44px; }
+            .iter-select-wrapper { flex-wrap: wrap; }
+            #iterEstimate { white-space: normal; }
+            .log-panel { max-height: 150px; font-size: 0.7rem; }
+            .log-panel .log-time { min-width: 50px; }
+            .custom-iter-container { flex-wrap: wrap; }
+            .log-panel .log-header .log-controls { flex-wrap: wrap; gap: 4px; }
+            .modal-box { padding: 20px; }
+            .modal-icon { font-size: 2.5rem; }
         }
     </style>
 </head>
@@ -288,12 +268,19 @@
     <div id="envWarning" class="env-warning" style="display: none;"></div>
     <div id="topStatus" class="top-status" style="display: none;"></div>
 
-    <textarea id="plaintext" rows="4" placeholder="明文（要加密的内容）"></textarea>
-    <textarea id="ciphertext" rows="4" placeholder="密文（Base64格式）"></textarea>
+    <div class="textarea-wrapper">
+        <textarea id="plaintext" rows="3" placeholder="明文（要加密的内容）"></textarea>
+        <button class="copy-btn" id="copyPlainBtn">📋 复制</button>
+    </div>
+    <div class="textarea-wrapper">
+        <textarea id="ciphertext" rows="3" placeholder="密文（Base64格式）"></textarea>
+        <button class="copy-btn" id="copyCipherBtn">📋 复制</button>
+    </div>
 
     <div class="password-wrapper">
         <input type="password" id="password" placeholder="加密/解密口令" autocomplete="off">
-        <button id="togglePasswordBtn" class="secondary" style="width: 70px;">👁️ 显示</button>
+        <button id="togglePasswordBtn" class="secondary" style="width:70px; min-width:60px;">👁️ 显示</button>
+        <button class="copy-btn" id="copyPwdBtn">📋 复制密码</button>
     </div>
     <div class="password-actions">
         <button id="genPwdBtn">✨ 生成强密码</button>
@@ -304,16 +291,31 @@
     <div class="row">
         <div class="iter-group">
             <label>⚙️ PBKDF2 迭代次数</label>
-            <select id="iterSelect">
-                <option value="100000">10万次</option>
-                <option value="500000">50万次</option>
-                <option value="1000000">100万次</option>
-                <option value="2000000" selected>200万次 (推荐)</option>
-                <option value="5000000">500万次</option>
-                <option value="10000000">1000万次</option>
-                <option value="50000000">5000万次</option>
-                <option value="100000000">1亿次</option>
-            </select>
+            <div class="iter-select-wrapper">
+                <select id="iterSelect">
+                    <option value="100000">10万次</option>
+                    <option value="500000">50万次</option>
+                    <option value="1000000">100万次</option>
+                    <option value="2000000" selected>200万次 (推荐)</option>
+                    <option value="5000000">500万次</option>
+                    <option value="10000000">1000万次</option>
+                    <option value="50000000">5000万次</option>
+                    <option value="100000000">1亿次</option>
+                    <option value="custom">✨ 自定义</option>
+                </select>
+                <span id="iterWarning"></span>
+                <span id="iterEstimate"></span>
+                <button id="calibrateBtn" class="calibrate-btn" title="根据当前设备性能校准预估耗时">⚡ 校准</button>
+            </div>
+            <div id="customIterContainer" class="custom-iter-container">
+                <input type="number" id="customIterInput" min="0.01" step="0.01" value="1" placeholder="正数">
+                <select id="customIterUnit">
+                    <option value="1">次</option>
+                    <option value="10000">万次</option>
+                    <option value="100000000">亿次</option>
+                    <option value="1000000000000">万亿次</option>
+                </select>
+            </div>
         </div>
         <div class="strength-area">
             <div class="strength-bar"><div id="strengthFill" class="strength-fill"></div></div>
@@ -322,12 +324,42 @@
         </div>
     </div>
 
+    <div class="flex-center">
+        <div class="checkbox-group">
+            <input type="checkbox" id="clearPlainCheck">
+            <label for="clearPlainCheck">加密后清空明文</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="clearPasswordCheck">
+            <label for="clearPasswordCheck">加密后清空密码</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="autoDownloadKey">
+            <label for="autoDownloadKey">加密后自动下载密钥</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="autoDownloadCipher">
+            <label for="autoDownloadCipher">加密后自动下载密文 (文本加密)</label>
+        </div>
+    </div>
+
     <div class="buttons">
         <button id="encryptBtn">🔒 加密 → 生成密文</button>
         <button id="decryptBtn">🔓 解密 → 恢复明文</button>
     </div>
-    <div class="cancel-wrapper" id="cancelWrapper" style="display: none;">
+    <div class="cancel-wrapper" id="cancelWrapper" style="display: none; text-align:center; margin:10px 0;">
         <button id="cancelOpBtn" class="cancel-btn">❌ 取消当前操作</button>
+    </div>
+
+    <div class="file-group">
+        <button id="fileEncryptBtn" class="secondary">📁 加密文件</button>
+        <button id="folderEncryptBtn" class="secondary">📂 加密文件夹</button>
+        <button id="fileDecryptBtn" class="secondary">📁 解密文件 (.aes)</button>
+        <button id="importCipherBtn" class="secondary">📂 导入密文 (.txt)</button>
+        <input type="file" id="fileInput" accept="*/*">
+        <input type="file" id="folderInput" webkitdirectory multiple>
+        <input type="file" id="aesFileInput" accept=".aes">
+        <input type="file" id="cipherTextFileInput" accept=".txt">
     </div>
 
     <div class="download-group">
@@ -336,20 +368,152 @@
         <button id="clearAllBtn" class="secondary">🗑️ 清空所有</button>
     </div>
 
+    <div id="logPanel" class="log-panel">
+        <div class="log-header">
+            <span>📋 运行日志</span>
+            <div class="log-controls">
+                <label>
+                    <input type="checkbox" id="logScrollLock"> ⏸️ 暂停滚动
+                </label>
+                <button id="clearLogBtn">清空日志</button>
+            </div>
+        </div>
+        <div id="logEntries"></div>
+    </div>
+
     <div class="note">
         ⚠️ 安全提示：<br>
-        • 本工具使用 AES-256-GCM 认证加密，头部 AAD 防篡改。<br>
-        • 密码强度必须达到“中等”以上才能加密（可强制确认）。<br>
-        • 解密时若检测到迭代次数低于 10000，将拒绝并提示密文可能被篡改。<br>
-        • 最大处理文本限制为 50MB，超出将拒绝操作，避免浏览器崩溃。<br>
-        • 生成的密码提示框不再自动消失，请手动关闭。<br>
-        • 下载的密钥文件为明文，请妥善保管，避免同步到云盘或共享文件夹。
+        • 本工具使用 AES-256-GCM 认证加密。<br>
+        • 单文件加密后为 .aes；文件夹加密后为 .aes，解密后还原为 .zip。<br>
+        • 密码强度建议达到“中等”以上。<br>
+        • 超大文件（>50MB）可能导致浏览器卡顿或崩溃，请谨慎操作。<br>
+        • 点击“⚡ 校准”可基于您的设备精确估算耗时。<br>
+        • 自定义迭代次数过高可能导致严重卡顿，请合理设置。
+    </div>
+</div>
+
+<div id="modalOverlay" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-icon" id="modalIcon">ℹ️</div>
+        <div class="modal-title" id="modalTitle">提示</div>
+        <div class="modal-message" id="modalMessage">消息内容</div>
+        <div class="modal-actions" id="modalActions">
+            <button class="btn-primary" id="modalConfirmBtn">确定</button>
+            <button class="btn-secondary" id="modalCancelBtn" style="display:none;">取消</button>
+        </div>
     </div>
 </div>
 
 <script>
     (function() {
-        // DOM 元素
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalIcon = document.getElementById('modalIcon');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
+        const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+        const modalCancelBtn = document.getElementById('modalCancelBtn');
+
+        let modalResolve = null;
+        let modalReject = null;
+
+        function showModal(options) {
+            return new Promise((resolve, reject) => {
+                const {
+                    icon = 'ℹ️',
+                    title = '提示',
+                    message = '',
+                    confirmText = '确定',
+                    cancelText = '取消',
+                    showCancel = false,
+                    type = 'info',
+                    closeOnOverlay = true
+                } = options;
+
+                modalIcon.textContent = icon;
+                modalTitle.textContent = title;
+                modalMessage.textContent = message;
+
+                modalConfirmBtn.textContent = confirmText;
+                if (showCancel) {
+                    modalCancelBtn.style.display = 'inline-block';
+                    modalCancelBtn.textContent = cancelText;
+                } else {
+                    modalCancelBtn.style.display = 'none';
+                }
+
+                const primaryBtn = modalConfirmBtn;
+                primaryBtn.className = 'btn-primary';
+                if (type === 'warning') {
+                    primaryBtn.className = 'btn-danger';
+                } else if (type === 'success') {
+                    primaryBtn.className = 'btn-success';
+                } else if (type === 'error') {
+                    primaryBtn.className = 'btn-danger';
+                }
+
+                modalOverlay.classList.add('active');
+
+                modalResolve = resolve;
+                modalReject = reject;
+
+                const cloneConfirm = modalConfirmBtn.cloneNode(true);
+                const cloneCancel = modalCancelBtn.cloneNode(true);
+                modalConfirmBtn.parentNode.replaceChild(cloneConfirm, modalConfirmBtn);
+                if (modalCancelBtn.parentNode) {
+                    modalCancelBtn.parentNode.replaceChild(cloneCancel, modalCancelBtn);
+                }
+
+                const newConfirm = document.getElementById('modalConfirmBtn');
+                const newCancel = document.getElementById('modalCancelBtn');
+
+                newConfirm.addEventListener('click', function() {
+                    modalOverlay.classList.remove('active');
+                    if (modalResolve) modalResolve(true);
+                    modalResolve = null;
+                    modalReject = null;
+                });
+
+                if (showCancel) {
+                    newCancel.addEventListener('click', function() {
+                        modalOverlay.classList.remove('active');
+                        if (modalResolve) modalResolve(false);
+                        modalResolve = null;
+                        modalReject = null;
+                    });
+                }
+
+                if (closeOnOverlay) {
+                    modalOverlay.addEventListener('click', function(e) {
+                        if (e.target === modalOverlay) {
+                            modalOverlay.classList.remove('active');
+                            if (modalResolve) modalResolve(false);
+                            modalResolve = null;
+                            modalReject = null;
+                        }
+                    });
+                }
+
+                const escHandler = function(e) {
+                    if (e.key === 'Escape') {
+                        modalOverlay.classList.remove('active');
+                        if (modalResolve) modalResolve(false);
+                        modalResolve = null;
+                        modalReject = null;
+                        document.removeEventListener('keydown', escHandler);
+                    }
+                };
+                document.addEventListener('keydown', escHandler);
+            });
+        }
+
+        function confirmDialog(message, title = '确认', icon = '❓') {
+            return showModal({ icon, title, message, confirmText: '确定', cancelText: '取消', showCancel: true, type: 'warning' });
+        }
+
+        function alertDialog(message, title = '提示', icon = 'ℹ️', type = 'info') {
+            return showModal({ icon, title, message, confirmText: '确定', showCancel: false, type });
+        }
+
         const plaintextEl = document.getElementById('plaintext');
         const ciphertextEl = document.getElementById('ciphertext');
         const passwordEl = document.getElementById('password');
@@ -358,6 +522,12 @@
         const clearPwdBtn = document.getElementById('clearPwdBtn');
         const clearAllBtn = document.getElementById('clearAllBtn');
         const iterSelect = document.getElementById('iterSelect');
+        const iterWarning = document.getElementById('iterWarning');
+        const iterEstimate = document.getElementById('iterEstimate');
+        const calibrateBtn = document.getElementById('calibrateBtn');
+        const customIterContainer = document.getElementById('customIterContainer');
+        const customIterInput = document.getElementById('customIterInput');
+        const customIterUnit = document.getElementById('customIterUnit');
         const encryptBtn = document.getElementById('encryptBtn');
         const decryptBtn = document.getElementById('decryptBtn');
         const downloadKeyBtn = document.getElementById('downloadKeyBtn');
@@ -370,24 +540,60 @@
         const cancelWrapper = document.getElementById('cancelWrapper');
         const cancelOpBtn = document.getElementById('cancelOpBtn');
         const envWarningDiv = document.getElementById('envWarning');
+        const clearPlainCheck = document.getElementById('clearPlainCheck');
+        const clearPasswordCheck = document.getElementById('clearPasswordCheck');
+        const autoDownloadKey = document.getElementById('autoDownloadKey');
+        const autoDownloadCipher = document.getElementById('autoDownloadCipher');
+        const copyPlainBtn = document.getElementById('copyPlainBtn');
+        const copyCipherBtn = document.getElementById('copyCipherBtn');
+        const copyPwdBtn = document.getElementById('copyPwdBtn');
+        const fileInput = document.getElementById('fileInput');
+        const folderInput = document.getElementById('folderInput');
+        const aesFileInput = document.getElementById('aesFileInput');
+        const cipherTextFileInput = document.getElementById('cipherTextFileInput');
+        const fileEncryptBtn = document.getElementById('fileEncryptBtn');
+        const folderEncryptBtn = document.getElementById('folderEncryptBtn');
+        const fileDecryptBtn = document.getElementById('fileDecryptBtn');
+        const importCipherBtn = document.getElementById('importCipherBtn');
+        const logEntries = document.getElementById('logEntries');
+        const clearLogBtn = document.getElementById('clearLogBtn');
+        const logScrollLock = document.getElementById('logScrollLock');
 
         let statusTimeout = null;
         let processing = false;
         let currentOperationAborted = false;
-        let useWorker = false;      // 是否使用 Worker（file:// 下不可用）
+        let useWorker = false;
         let currentWorker = null;
+        let isCompressing = false;
+        let benchFactor = null;
+        let benchAesSpeed = null;
+        const WARN_SIZE_MB = 50;
 
-        // 最大处理字节数 (50MB)
-        const MAX_BYTES = 50 * 1024 * 1024;
+        let logUserScrolledUp = false;
 
-        // 检测 Web Crypto API
+        logEntries.parentElement.addEventListener('scroll', function() {
+            const panel = this;
+            const atBottom = panel.scrollTop + panel.clientHeight >= panel.scrollHeight - 2;
+            if (!logScrollLock.checked) {
+                logUserScrolledUp = !atBottom;
+            }
+        });
+
+        logScrollLock.addEventListener('change', function() {
+            if (!this.checked) {
+                const panel = logEntries.parentElement;
+                panel.scrollTop = panel.scrollHeight;
+                logUserScrolledUp = false;
+            }
+        });
+
         if (!window.crypto || !window.crypto.subtle) {
-            showTopStatus('❌ 您的浏览器不支持 Web Crypto API，无法使用本工具。', 'error', true, 0);
+            showTopStatus('❌ 您的浏览器不支持 Web Crypto API', 'error', true, 0);
             encryptBtn.disabled = true;
             decryptBtn.disabled = true;
+            addLog('error', '浏览器不支持 Web Crypto API，无法使用本工具。');
         }
 
-        // 检测 Worker 是否可用（file:// 下 Blob Worker 会被阻止）
         function checkWorkerSupport() {
             try {
                 const blob = new Blob(['self.postMessage("test")'], { type: 'application/javascript' });
@@ -396,36 +602,58 @@
                 worker.terminate();
                 URL.revokeObjectURL(url);
                 return true;
-            } catch (e) {
-                return false;
+            } catch (e) { return false; }
+        }
+        const workerSupported = checkWorkerSupport();
+        if (location.protocol === 'file:' || !workerSupported) {
+            useWorker = false;
+            envWarningDiv.style.display = 'block';
+            envWarningDiv.innerHTML = '⚠️ 当前环境不支持 Web Worker，高迭代次数时界面可能卡顿，但功能正常。建议使用 http:// 协议打开。';
+            addLog('warning', 'Web Worker 不可用，高迭代次数时界面可能卡顿。');
+        } else {
+            useWorker = true;
+            addLog('info', 'Web Worker 已启用，后台计算不阻塞界面。');
+        }
+
+        function addLog(type, message) {
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            const typeMap = { info: '信息', success: '成功', warning: '警告', error: '错误' };
+            entry.innerHTML = `
+                <span class="log-time">${time}</span>
+                <span class="log-type ${type}">${typeMap[type] || type}</span>
+                <span class="log-msg">${escapeHtml(message)}</span>
+            `;
+            logEntries.appendChild(entry);
+            while (logEntries.children.length > 100) {
+                logEntries.removeChild(logEntries.firstChild);
+            }
+
+            const panel = logEntries.parentElement;
+            if (!logScrollLock.checked && !logUserScrolledUp) {
+                panel.scrollTop = panel.scrollHeight;
             }
         }
 
-        const workerSupported = checkWorkerSupport();
-        const isFileProtocol = location.protocol === 'file:';
-        if (isFileProtocol || !workerSupported) {
-            useWorker = false;
-            envWarningDiv.style.display = 'block';
-            envWarningDiv.innerHTML = '⚠️ 当前环境不支持后台计算（Web Worker），高迭代次数时界面可能暂时卡顿，但加密解密功能正常。建议将文件放置于本地服务器（如 http://localhost）以获得更好体验。';
-        } else {
-            useWorker = true;
+        function clearLog() {
+            logEntries.innerHTML = '';
+            addLog('info', '日志已清空。');
         }
+        clearLogBtn.addEventListener('click', clearLog);
 
-        // 顶部状态显示
         function showTopStatus(message, type = 'info', autoHide = true, timeout = 4000) {
             if (statusTimeout) clearTimeout(statusTimeout);
             topStatusDiv.style.display = 'block';
             topStatusDiv.className = `top-status ${type}`;
             if (type === 'processing') {
-                topStatusDiv.innerHTML = `
-                    <div class="message">
-                        <span class="spinner"></span>
-                        <span>${escapeHtml(message)}</span>
-                    </div>
-                    <div class="indeterminate-progress"></div>
-                `;
+                topStatusDiv.innerHTML =
+                    `<div class="message"><span class="spinner"></span><span>${escapeHtml(message)}</span></div><div class="indeterminate-progress"></div>`;
             } else {
                 topStatusDiv.innerHTML = `<div class="message">${escapeHtml(message)}</div>`;
+                if (type !== 'processing') {
+                    addLog(type, message);
+                }
             }
             if (autoHide && type !== 'processing') {
                 statusTimeout = setTimeout(() => {
@@ -443,35 +671,280 @@
 
         function escapeHtml(str) {
             if (!str) return '';
-            return str.replace(/[&<>]/g, function(m) {
-                if (m === '&') return '&amp;';
-                if (m === '<') return '&lt;';
-                if (m === '>') return '&gt;';
-                return m;
-            }).replace(/["']/g, function(m) {
-                if (m === '"') return '&quot;';
-                if (m === "'") return '&#39;';
-                return m;
-            });
+            return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' } [m] || m))
+                .replace(/["']/g, m => m === '"' ? '&quot;' : '&#39;');
         }
 
-        // 密码强度评估
+        function toggleCustomIter(show) {
+            show ? customIterContainer.classList.add('show') : customIterContainer.classList.remove('show');
+            updateEstimate();
+        }
+
+        iterSelect.addEventListener('change', function() {
+            toggleCustomIter(this.value === 'custom');
+            updateIterInfo();
+        });
+
+        customIterInput.addEventListener('input', updateEstimate);
+        customIterUnit.addEventListener('change', updateEstimate);
+
+        function getIterations() {
+            let val;
+            if (iterSelect.value === 'custom') {
+                const num = parseFloat(customIterInput.value);
+                if (isNaN(num) || num <= 0) {
+                    throw new Error('自定义迭代次数必须为正数');
+                }
+                const unit = parseInt(customIterUnit.value, 10);
+                // 浮点数乘以单位后四舍五入取整，确保为正整数
+                val = Math.round(num * unit);
+                if (val < 1) {
+                    throw new Error('迭代次数必须大于等于 1');
+                }
+            } else {
+                val = parseInt(iterSelect.value, 10);
+            }
+            // 检查 Web Crypto API 上限（unsigned long 最大值）
+            if (val > 4294967295) {
+                throw new Error('迭代次数超过 Web Crypto API 支持的上限（42.9亿次），请减小数值或单位。');
+            }
+            if (val > 1e12) {
+                addLog('warning', `迭代次数 ${val.toLocaleString()} 极高，可能导致严重卡顿或崩溃。`);
+            }
+            return val;
+        }
+
+        function getBenchmarkFactor() {
+            if (benchFactor !== null) return benchFactor;
+            try {
+                const cached = sessionStorage.getItem('aes_benchmark_factor');
+                if (cached) {
+                    const val = parseFloat(cached);
+                    if (!isNaN(val) && val > 0) {
+                        benchFactor = val;
+                        return val;
+                    }
+                }
+            } catch (e) { }
+            return null;
+        }
+
+        function getBenchmarkAesSpeed() {
+            if (benchAesSpeed !== null) return benchAesSpeed;
+            try {
+                const cached = sessionStorage.getItem('aes_benchmark_speed');
+                if (cached) {
+                    const val = parseFloat(cached);
+                    if (!isNaN(val) && val > 0) {
+                        benchAesSpeed = val;
+                        return val;
+                    }
+                }
+            } catch (e) { }
+            return null;
+        }
+
+        function setBenchmarkFactor(factor, aesSpeed) {
+            benchFactor = factor;
+            benchAesSpeed = aesSpeed;
+            try {
+                sessionStorage.setItem('aes_benchmark_factor', factor.toString());
+                sessionStorage.setItem('aes_benchmark_speed', aesSpeed.toString());
+                sessionStorage.setItem('aes_benchmark_time', Date.now().toString());
+            } catch (e) { }
+        }
+
+        async function runBenchmark(showFeedback = true) {
+            if (processing) {
+                if (showFeedback) showTopStatus('当前有操作进行中，请稍后校准', 'error');
+                return;
+            }
+            processing = true;
+            const origUseWorker = useWorker;
+            useWorker = false;
+            calibrateBtn.disabled = true;
+            cancelOpBtn.disabled = true;
+
+            if (showFeedback) {
+                showTopStatus('⚡ 正在执行性能校准（约 1~3 秒）...', 'processing', false);
+            } else {
+                topStatusDiv.style.display = 'block';
+                topStatusDiv.className = 'top-status processing';
+                topStatusDiv.innerHTML = `<div class="message"><span class="spinner"></span><span>⚡ 性能校准中...</span></div>`;
+            }
+
+            const TIMEOUT_MS = 1500;
+            let timeoutId = null;
+            const timeoutPromise = new Promise((_, reject) => {
+                timeoutId = setTimeout(() => {
+                    reject(new Error('校准超时（超过1.5秒），您的设备性能较慢，建议检查设备或更换更高性能设备；若重试仍超时，建议更换设备。'));
+                }, TIMEOUT_MS);
+            });
+
+            try {
+                const benchmarkIter = 200000;
+                const dataSize = 1024 * 1024;
+                const plainBuffer = new Uint8Array(dataSize);
+                const chunkSize = 65536;
+                for (let offset = 0; offset < dataSize; offset += chunkSize) {
+                    const chunk = plainBuffer.subarray(offset, Math.min(offset + chunkSize, dataSize));
+                    crypto.getRandomValues(chunk);
+                }
+
+                const pwdArr = crypto.getRandomValues(new Uint8Array(32));
+                const pwd = Array.from(pwdArr, b => b.toString(16).padStart(2, '0')).join('');
+
+                const start = performance.now();
+
+                const encryptPromise = encryptData(plainBuffer, pwd, benchmarkIter);
+                const combined = await Promise.race([encryptPromise, timeoutPromise]);
+
+                const decryptPromise = decryptData(combined, pwd);
+                await Promise.race([decryptPromise, timeoutPromise]);
+
+                const end = performance.now();
+                const encDuration = (end - start) / 1000;
+
+                const iterMillion = benchmarkIter / 1000000;
+                const dataMB = dataSize / (1024 * 1024);
+                const factor = encDuration / iterMillion / dataMB;
+
+                const pbkdf2Time = factor * iterMillion * 0.5;
+                const aesTimeEnc = Math.max(encDuration - pbkdf2Time, 0.001);
+                const aesSpeed = dataMB / aesTimeEnc;
+
+                if (factor > 0 && aesSpeed > 0) {
+                    setBenchmarkFactor(factor, aesSpeed);
+                    if (showFeedback) {
+                        showTopStatus(`✅ 校准完成！系数: ${factor.toFixed(3)} 秒/百万次·MB，AES: ${aesSpeed.toFixed(1)} MB/s`, 'success', true, 4000);
+                        addLog('success', `性能校准完成：系数 ${factor.toFixed(3)} 秒/百万次·MB，AES 速度 ${aesSpeed.toFixed(1)} MB/s`);
+                    } else {
+                        hideTopStatus();
+                        showTopStatus(`✅ 校准完成`, 'success', true, 2000);
+                        addLog('info', `自动校准完成：系数 ${factor.toFixed(3)} 秒/百万次·MB，AES 速度 ${aesSpeed.toFixed(1)} MB/s`);
+                    }
+                } else {
+                    throw new Error('测量数据异常');
+                }
+            } catch (err) {
+                console.warn('校准失败:', err);
+                if (err.message && err.message.includes('超时')) {
+                    if (showFeedback) {
+                        await showModal({ icon: '⏱️', title: '校准超时', message: err.message, confirmText: '确定', showCancel: false, type: 'warning' });
+                    } else {
+                        showTopStatus('⚠️ 校准超时，使用默认估算', 'error', true, 3000);
+                        addLog('warning', '校准超时，使用默认估算。');
+                    }
+                } else {
+                    if (showFeedback) {
+                        showTopStatus(`⚠️ 校准失败: ${err.message || '未知错误'}，使用默认估算`, 'error', true, 3000);
+                        addLog('error', `校准失败：${err.message || '未知错误'}，将使用默认估算。`);
+                    } else {
+                        hideTopStatus();
+                        showTopStatus('⚠️ 校准失败，使用默认估算', 'error', true, 2000);
+                        addLog('warning', '自动校准失败，使用默认估算。');
+                    }
+                }
+                try {
+                    sessionStorage.removeItem('aes_benchmark_factor');
+                    sessionStorage.removeItem('aes_benchmark_speed');
+                } catch (e) { }
+            } finally {
+                if (timeoutId) clearTimeout(timeoutId);
+                useWorker = origUseWorker;
+                calibrateBtn.disabled = false;
+                cancelOpBtn.disabled = false;
+                processing = false;
+                updateEstimate();
+                if (topStatusDiv.className.includes('processing')) {
+                    setTimeout(() => { if (topStatusDiv.className.includes('processing')) hideTopStatus(); }, 1000);
+                }
+            }
+        }
+
+        function getDataSizeMB() {
+            const plain = plaintextEl.value;
+            const cipher = ciphertextEl.value;
+            let bytes = 0;
+            if (plain) {
+                bytes = new TextEncoder().encode(plain).length;
+            } else if (cipher) {
+                bytes = Math.round(cipher.length * 0.75);
+            } else {
+                bytes = 1024;
+            }
+            return bytes / (1024 * 1024);
+        }
+
+        function formatEstimate(seconds) {
+            if (seconds < 0.1) return '约 0.1 秒';
+            if (seconds < 1) return `约 ${seconds.toFixed(1)} 秒`;
+            if (seconds < 60) return `约 ${Math.round(seconds)} 秒`;
+            if (seconds < 3600) return `约 ${(seconds / 60).toFixed(1)} 分钟`;
+            return '> 1 小时';
+        }
+
+        function updateEstimate() {
+            let val;
+            try {
+                val = getIterations();
+            } catch (e) {
+                iterEstimate.textContent = '⏱ 无效输入';
+                return;
+            }
+            const factor = getBenchmarkFactor();
+            const aesSpeed = getBenchmarkAesSpeed() || 200;
+            const dataMB = getDataSizeMB();
+
+            let estSeconds = 0;
+            let suffix = '';
+
+            if (factor && factor > 0) {
+                estSeconds = factor * (val / 1000000) * Math.max(dataMB, 0.1);
+                suffix = ' (校准)';
+            } else {
+                estSeconds = 1.2 * (val / 2000000) * Math.max(dataMB, 0.1);
+                suffix = ' (默认)';
+            }
+
+            iterEstimate.textContent = `⏱ ${formatEstimate(estSeconds)}${suffix}`;
+        }
+
+        plaintextEl.addEventListener('input', updateEstimate);
+        ciphertextEl.addEventListener('input', updateEstimate);
+
+        function updateIterInfo() {
+            let val;
+            try {
+                val = getIterations();
+            } catch (e) {
+                iterWarning.textContent = '⚠️ 无效';
+                iterWarning.style.color = '#e67e22';
+                updateEstimate();
+                return;
+            }
+            if (val < 1000000) {
+                iterWarning.textContent = '⚠️ 安全性较低';
+                iterWarning.style.color = '#e67e22';
+            } else {
+                iterWarning.textContent = '✅ 推荐';
+                iterWarning.style.color = '#27ae60';
+            }
+            updateEstimate();
+        }
+        iterSelect.addEventListener('change', updateIterInfo);
+        calibrateBtn.addEventListener('click', () => runBenchmark(true));
+        addLog('info', '⏱ 性能估算基于设备校准（PBKDF2 + AES 综合测量）。');
+
         function evaluateStrength(pwd) {
             if (!pwd) return { score: 0, level: '未输入', color: '#e2e8f0', percent: 0, advice: '请输入密码' };
-            let score = 0;
-            let advice = [];
-            if (pwd.length >= 12) score++;
-            else advice.push('长度至少12位');
-            if (pwd.length >= 16) score++;
-            else advice.push('长度≥16更安全');
-            if (/[a-z]/.test(pwd)) score++;
-            else advice.push('包含小写字母');
-            if (/[A-Z]/.test(pwd)) score++;
-            else advice.push('包含大写字母');
-            if (/[0-9]/.test(pwd)) score++;
-            else advice.push('包含数字');
-            if (/[^a-zA-Z0-9]/.test(pwd)) score++;
-            else advice.push('包含特殊符号');
+            let score = 0, advice = [];
+            if (pwd.length >= 12) score++; else advice.push('长度至少12位');
+            if (pwd.length >= 16) score++; else advice.push('长度≥16更安全');
+            if (/[a-z]/.test(pwd)) score++; else advice.push('包含小写字母');
+            if (/[A-Z]/.test(pwd)) score++; else advice.push('包含大写字母');
+            if (/[0-9]/.test(pwd)) score++; else advice.push('包含数字');
+            if (/[^a-zA-Z0-9]/.test(pwd)) score++; else advice.push('包含特殊符号');
             let level = '', color = '';
             if (score <= 2) { level = '极弱'; color = '#e53e3e'; }
             else if (score <= 3) { level = '弱'; color = '#ed8936'; }
@@ -480,6 +953,7 @@
             else { level = '极强'; color = '#38a169'; }
             return { score, level, color, percent: (score / 6) * 100, advice: advice.join('、') };
         }
+
         function updateStrength() {
             const res = evaluateStrength(passwordEl.value);
             strengthFill.style.width = res.percent + '%';
@@ -489,62 +963,47 @@
         }
         passwordEl.addEventListener('input', updateStrength);
 
-        // 生成强密码
         function generateStrongPassword() {
             const length = 18;
-            const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-            const lower = "abcdefghijkmnopqrstuvwxyz";
-            const digits = "23456789";
-            const special = "!@#$%^&*";
+            const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ", lower = "abcdefghijkmnopqrstuvwxyz", digits = "23456789", special = "!@#$%^&*";
             const all = upper + lower + digits + special;
             let pwd = '';
             pwd += upper[Math.floor(Math.random() * upper.length)];
             pwd += lower[Math.floor(Math.random() * lower.length)];
             pwd += digits[Math.floor(Math.random() * digits.length)];
             pwd += special[Math.floor(Math.random() * special.length)];
-            for (let i = pwd.length; i < length; i++) {
-                pwd += all[Math.floor(Math.random() * all.length)];
-            }
+            for (let i = pwd.length; i < length; i++) pwd += all[Math.floor(Math.random() * all.length)];
             const arr = pwd.split('');
-            for (let i = arr.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [arr[i], arr[j]] = [arr[j], arr[i]];
-            }
+            for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
             pwd = arr.join('');
             passwordEl.value = pwd;
             updateStrength();
-
             const tempDiv = document.createElement('div');
             tempDiv.className = 'temp-pwd';
-            tempDiv.innerHTML = `<span>🔑 生成的密码：<strong>${escapeHtml(pwd)}</strong></span>
+            tempDiv.innerHTML =
+                `<span>🔑 生成的密码：<strong>${escapeHtml(pwd)}</strong></span>
+                                 <span>
                                  <button class="copy-temp">复制</button>
-                                 <button class="close-temp">✖️ 关闭</button>`;
+                                 <button class="close-temp">✖️ 关闭</button>
+                                 </span>`;
             tempPwdContainer.innerHTML = '';
             tempPwdContainer.appendChild(tempDiv);
             tempPwdContainer.style.display = 'block';
-            const copyBtn = tempDiv.querySelector('.copy-temp');
-            const closeBtn = tempDiv.querySelector('.close-temp');
-            copyBtn.addEventListener('click', () => {
-                navigator.clipboard.writeText(pwd).then(() => {
-                    showTopStatus('密码已复制到剪贴板', 'success');
-                }).catch(() => showTopStatus('复制失败，请手动复制', 'error'));
+            tempDiv.querySelector('.copy-temp').addEventListener('click', () => {
+                copyToClipboard(pwd, '密码已复制');
             });
-            closeBtn.addEventListener('click', () => {
+            tempDiv.querySelector('.close-temp').addEventListener('click', () => {
                 tempDiv.remove();
                 if (tempPwdContainer.children.length === 0) tempPwdContainer.style.display = 'none';
             });
-            showTopStatus('强密码已生成，可复制或记住', 'success');
+            showTopStatus('强密码已生成', 'success');
+            addLog('info', '生成了新的强密码。');
         }
 
-        function clearPassword() {
-            passwordEl.value = '';
-            updateStrength();
-        }
+        function clearPassword() { passwordEl.value = ''; updateStrength(); }
 
         function clearAll() {
-            if (processing) {
-                cancelCurrentOperation();
-            }
+            if (processing) cancelCurrentOperation();
             plaintextEl.value = '';
             ciphertextEl.value = '';
             clearPassword();
@@ -552,24 +1011,119 @@
             tempPwdContainer.style.display = 'none';
             hideTopStatus();
             showTopStatus('所有数据已清空', 'success');
+            addLog('info', '已清空所有数据。');
         }
 
-        function downloadFile(content, filename, isKey = false) {
-            if (isKey) {
-                if (!confirm('⚠️ 密码将以明文形式保存为 .txt 文件。请务必存放于加密存储或离线设备，切勿同步至云盘/共享文件夹。\n\n确定要下载吗？')) return;
+        function copyToClipboard(text, successMsg = '已复制到剪贴板') {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showTopStatus(successMsg, 'success');
+                    addLog('info', successMsg);
+                }).catch(() => {
+                    fallbackCopy(text, successMsg);
+                });
+            } else {
+                fallbackCopy(text, successMsg);
             }
+        }
+
+        function fallbackCopy(text, successMsg) {
+            try {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                textarea.style.left = '-9999px';
+                textarea.style.top = '-9999px';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showTopStatus(successMsg, 'success');
+                addLog('info', successMsg);
+            } catch (e) {
+                showTopStatus('复制失败，请手动复制', 'error');
+                addLog('error', '复制失败：' + (e.message || '未知错误'));
+            }
+        }
+
+        copyPlainBtn.addEventListener('click', () => {
+            if (plaintextEl.value) copyToClipboard(plaintextEl.value, '明文已复制');
+            else showTopStatus('明文为空', 'error');
+        });
+        copyCipherBtn.addEventListener('click', () => {
+            if (ciphertextEl.value) copyToClipboard(ciphertextEl.value, '密文已复制');
+            else showTopStatus('密文为空', 'error');
+        });
+        copyPwdBtn.addEventListener('click', async () => {
+            if (!passwordEl.value) { showTopStatus('密码为空', 'error'); return; }
+            const ok = await confirmDialog('⚠️ 密码将复制到剪贴板，注意周边环境安全。确定复制吗？', '确认复制', '🔐');
+            if (ok) {
+                copyToClipboard(passwordEl.value, '密码已复制');
+            }
+        });
+
+        function downloadFile(content, filename, isKey = false, skipConfirm = false) {
+            if (isKey && !skipConfirm) {
+                return new Promise(async (resolve) => {
+                    const ok = await confirmDialog('⚠️ 密码将以明文保存。请存放于加密存储，切勿同步至云盘。\n确定下载吗？', '安全警告', '⚠️');
+                    if (!ok) { resolve(false); return; }
+                    doDownload(content, filename);
+                    resolve(true);
+                });
+            } else {
+                doDownload(content, filename);
+                return Promise.resolve(true);
+            }
+        }
+
+        function doDownload(content, filename) {
             const blob = new Blob([content], { type: 'text/plain' });
             const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            link.href = url;
+            link.href = URL.createObjectURL(blob);
             link.download = filename;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            URL.revokeObjectURL(url);
+            URL.revokeObjectURL(link.href);
+            addLog('info', `下载文件：${filename}`);
         }
 
-        // 高效 Base64 转换
+        function downloadBlob(blob, filename) {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+            addLog('info', `下载文件：${filename}`);
+        }
+
+        function handleAutoDownloads(operationType, cipherText) {
+            const pwd = passwordEl.value;
+            if (autoDownloadKey.checked && pwd) {
+                const ts = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                downloadFile(pwd, `aes_key_${ts}.txt`, true, true);
+            }
+            if (autoDownloadCipher.checked && operationType === 'text' && cipherText) {
+                const ts = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                downloadFile(cipherText, `aes_cipher_${ts}.txt`, false, true);
+            }
+        }
+
+        function checkSizeWarning(sizeBytes, name) {
+            const sizeMB = sizeBytes / (1024 * 1024);
+            if (sizeMB > WARN_SIZE_MB) {
+                return confirmDialog(
+                    `⚠️ ${name} 大小为 ${sizeMB.toFixed(1)} MB，超过 ${WARN_SIZE_MB} MB。\n处理超大文件可能导致浏览器卡顿、内存溢出甚至崩溃。\n\n确定要继续吗？`,
+                    '文件过大警告',
+                    '⚠️'
+                );
+            }
+            return Promise.resolve(true);
+        }
+
         function arrayBufferToBase64(buffer) {
             const bytes = new Uint8Array(buffer);
             const chunkSize = 8192;
@@ -577,9 +1131,7 @@
             for (let i = 0; i < bytes.length; i += chunkSize) {
                 const chunk = bytes.subarray(i, i + chunkSize);
                 let chunkStr = '';
-                for (let j = 0; j < chunk.length; j++) {
-                    chunkStr += String.fromCharCode(chunk[j]);
-                }
+                for (let j = 0; j < chunk.length; j++) chunkStr += String.fromCharCode(chunk[j]);
                 binary += chunkStr;
             }
             return btoa(binary);
@@ -593,23 +1145,18 @@
             return bytes.buffer;
         }
 
-        // 派生密钥 (主线程版本)
         async function deriveKeyMain(password, salt, iterations) {
             const encoder = new TextEncoder();
             const passwordBuffer = encoder.encode(password);
-            const baseKey = await crypto.subtle.importKey(
-                'raw', passwordBuffer, { name: 'PBKDF2' }, false, ['deriveKey']
-            );
-            return crypto.subtle.deriveKey(
-                { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
-                baseKey,
-                { name: 'AES-GCM', length: 256 },
-                true,   // 可导出，以便后续 import 为 raw
-                ['encrypt', 'decrypt']
-            );
+            password = null;
+            try {
+                const baseKey = await crypto.subtle.importKey('raw', passwordBuffer, { name: 'PBKDF2' }, false, ['deriveKey']);
+                return await crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+                    baseKey, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']
+                );
+            } finally { passwordBuffer.fill(0); }
         }
 
-        // Worker 版本 (仅当 useWorker 为 true)
         function createDeriveKeyWorker() {
             const workerCode = `
                 self.onmessage = async function(e) {
@@ -617,20 +1164,19 @@
                     try {
                         const encoder = new TextEncoder();
                         const passwordBuffer = encoder.encode(password);
-                        const baseKey = await crypto.subtle.importKey(
-                            'raw', passwordBuffer, { name: 'PBKDF2' }, false, ['deriveKey']
-                        );
+                        e.data.password = null;
+                        const baseKey = await crypto.subtle.importKey('raw', passwordBuffer, { name: 'PBKDF2' }, false, ['deriveKey']);
                         const key = await crypto.subtle.deriveKey(
                             { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
-                            baseKey,
-                            { name: 'AES-GCM', length: 256 },
-                            true,
-                            ['encrypt', 'decrypt']
+                            baseKey, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']
                         );
                         const rawKey = await crypto.subtle.exportKey('raw', key);
                         self.postMessage({ taskId, success: true, rawKey });
                     } catch (err) {
                         self.postMessage({ taskId, success: false, error: err.message });
+                    } finally {
+                        if (typeof passwordBuffer !== 'undefined') passwordBuffer.fill(0);
+                        if (typeof password !== 'undefined') password = null;
                     }
                 };
             `;
@@ -647,37 +1193,23 @@
                 currentWorker = worker;
                 const taskId = Date.now() + Math.random();
                 const handler = (e) => {
-                    const { taskId: respId, success, rawKey, error } = e.data;
-                    if (respId !== taskId) return;
+                    if (e.data.taskId !== taskId) return;
                     worker.removeEventListener('message', handler);
                     worker.terminate();
                     if (currentWorker === worker) currentWorker = null;
-                    if (success) {
-                        resolve(rawKey);
-                    } else {
-                        reject(new Error(error || '密钥派生失败'));
-                    }
+                    if (e.data.success) resolve(e.data.rawKey);
+                    else reject(new Error(e.data.error || '密钥派生失败'));
                 };
                 worker.addEventListener('message', handler);
                 worker.postMessage({ password, salt, iterations, taskId });
-
-                // 取消监听
                 const cancelHandler = () => {
-                    if (currentWorker === worker) {
-                        worker.terminate();
-                        worker.removeEventListener('message', handler);
-                        if (currentWorker === worker) currentWorker = null;
-                        reject(new Error('操作已取消'));
-                    }
+                    if (currentWorker === worker) { worker.terminate(); worker.removeEventListener('message', handler); if (currentWorker === worker) currentWorker = null; reject(new Error('操作已取消')); }
                 };
-                if (currentOperationAborted) {
-                    cancelHandler();
-                }
+                if (currentOperationAborted) cancelHandler();
                 window.__abortCurrent = cancelHandler;
             });
         }
 
-        // 统一密钥派生接口
         async function deriveKey(password, salt, iterations) {
             if (useWorker) {
                 const rawKey = await deriveKeyInWorker(password, salt, iterations);
@@ -687,13 +1219,12 @@
             }
         }
 
-        // 加密
-        async function encrypt(plaintext, password, iterations) {
-            const encoder = new TextEncoder();
-            const plainBuffer = encoder.encode(plaintext);
+        async function encryptData(plainBuffer, password, iterations) {
+            if (currentOperationAborted) {
+                throw new Error('操作已取消');
+            }
             const salt = crypto.getRandomValues(new Uint8Array(16));
             const iv = crypto.getRandomValues(new Uint8Array(12));
-
             const version = new Uint8Array([0x01]);
             const iterBytes = new Uint8Array(4);
             new DataView(iterBytes.buffer).setUint32(0, iterations, false);
@@ -705,71 +1236,127 @@
             aadBuffer.set(iv, offset);
 
             const key = await deriveKey(password, salt, iterations);
-            const encrypted = await crypto.subtle.encrypt(
-                { name: 'AES-GCM', iv, tagLength: 128, additionalData: aadBuffer },
-                key,
-                plainBuffer
+            password = null;
+
+            if (currentOperationAborted) {
+                throw new Error('操作已取消');
+            }
+
+            const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, tagLength: 128, additionalData: aadBuffer },
+                key, plainBuffer
             );
             const encryptedArray = new Uint8Array(encrypted);
             const combined = new Uint8Array(aadBuffer.length + encryptedArray.length);
             combined.set(aadBuffer, 0);
             combined.set(encryptedArray, aadBuffer.length);
-            return arrayBufferToBase64(combined.buffer);
+            return combined;
         }
 
-        // 解密
-        async function decrypt(ciphertextBase64, password) {
-            let combinedBuffer;
-            try {
-                combinedBuffer = base64ToArrayBuffer(ciphertextBase64);
-            } catch (e) {
-                throw new Error('密文不是有效的Base64格式');
+        async function decryptData(combinedArray, password) {
+            if (currentOperationAborted) {
+                throw new Error('操作已取消');
             }
-            const combinedArray = new Uint8Array(combinedBuffer);
-            if (combinedArray.length < 49) throw new Error('密文格式错误：数据长度不足');
-            if (combinedArray[0] !== 0x01) throw new Error('不支持的旧版密文格式，请使用本工具重新加密（新版密文以0x01开头）');
-
+            if (combinedArray.length < 49) {
+                throw new Error('密文格式错误：数据长度不足，可能已损坏');
+            }
+            if (combinedArray[0] !== 0x01) {
+                throw new Error('不支持的旧版密文格式，请使用本工具重新加密（新版密文以 0x01 开头）');
+            }
             const iterations = new DataView(combinedArray.buffer).getUint32(1, false);
-            if (iterations < 10000) {
-                throw new Error('密文头部迭代次数过小，可能被篡改，拒绝解密以保证安全');
-            }
             const offsetHeader = 1 + 4;
             const salt = combinedArray.slice(offsetHeader, offsetHeader + 16);
             const iv = combinedArray.slice(offsetHeader + 16, offsetHeader + 28);
             const aadBuffer = combinedArray.slice(0, offsetHeader + 28);
             const cipherWithTag = combinedArray.slice(offsetHeader + 28);
-            if (cipherWithTag.length < 16) throw new Error('密文格式错误：认证标签缺失');
+            if (cipherWithTag.length < 16) {
+                throw new Error('密文格式错误：认证标签缺失，可能已损坏');
+            }
 
             const key = await deriveKey(password, salt, iterations);
+            password = null;
+
+            if (currentOperationAborted) {
+                throw new Error('操作已取消');
+            }
+
             try {
-                const decrypted = await crypto.subtle.decrypt(
-                    { name: 'AES-GCM', iv, tagLength: 128, additionalData: aadBuffer },
-                    key,
-                    cipherWithTag
+                const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv, tagLength: 128, additionalData: aadBuffer },
+                    key, cipherWithTag
                 );
-                return new TextDecoder().decode(decrypted);
+                return new Uint8Array(decrypted);
             } catch (err) {
-                throw new Error('解密失败：密码错误或密文已损坏');
+                throw new Error('解密失败：密码错误或密文已被篡改');
             }
         }
 
-        // 检查文本大小
-        function checkSize(data, type) {
-            const bytes = new TextEncoder().encode(data).length;
-            if (bytes > MAX_BYTES) {
-                throw new Error(`${type} 大小超过限制 (${(bytes / (1024*1024)).toFixed(1)}MB > 50MB)，请分割后处理或使用专业本地工具。`);
-            }
-            return bytes;
+        async function encryptText(plaintext, password, iterations) {
+            const plainBuffer = new TextEncoder().encode(plaintext);
+            const combined = await encryptData(plainBuffer, password, iterations);
+            return arrayBufferToBase64(combined.buffer);
         }
 
-        // 取消操作
+        async function decryptText(ciphertextBase64, password) {
+            let combinedBuffer;
+            try { combinedBuffer = base64ToArrayBuffer(ciphertextBase64); } catch (e) { throw new Error('密文不是有效的Base64格式'); }
+            const combinedArray = new Uint8Array(combinedBuffer);
+            const plainBuffer = await decryptData(combinedArray, password);
+            return new TextDecoder().decode(plainBuffer);
+        }
+
+        async function encryptFileData(fileData, password, iterations) {
+            return await encryptData(fileData, password, iterations);
+        }
+
+        async function decryptFileData(combinedArray, password) {
+            return await decryptData(combinedArray, password);
+        }
+
+        function isFolderPackage(data) {
+            if (data.length < 8) return false;
+            const magic = new TextDecoder().decode(data.slice(0, 4));
+            return magic === 'FOLD';
+        }
+
+        function parseFolderPackage(data) {
+            if (!isFolderPackage(data)) return null;
+            const nameLen = (data[4] << 24) | (data[5] << 16) | (data[6] << 8) | data[7];
+            if (data.length < 8 + nameLen) return null;
+            const nameBytes = data.slice(8, 8 + nameLen);
+            const folderName = new TextDecoder().decode(nameBytes);
+            const zipData = data.slice(8 + nameLen);
+            return { folderName, zipData };
+        }
+
+        function buildFolderPackage(folderName, zipData) {
+            const nameBytes = new TextEncoder().encode(folderName);
+            const header = new Uint8Array(4 + 4 + nameBytes.length);
+            const magic = new TextEncoder().encode('FOLD');
+            header.set(magic, 0);
+            header[4] = (nameBytes.length >> 24) & 0xFF;
+            header[5] = (nameBytes.length >> 16) & 0xFF;
+            header[6] = (nameBytes.length >> 8) & 0xFF;
+            header[7] = nameBytes.length & 0xFF;
+            header.set(nameBytes, 8);
+            const combined = new Uint8Array(header.length + zipData.length);
+            combined.set(header, 0);
+            combined.set(zipData, header.length);
+            return combined;
+        }
+
         function cancelCurrentOperation() {
+            if (isCompressing) {
+                showTopStatus('⚠️ 正在压缩文件夹，无法立即取消，请等待压缩完成。', 'warning', true, 4000);
+                addLog('warning', '用户尝试取消，但正在压缩文件夹。');
+                return;
+            }
             if (useWorker && currentWorker) {
                 currentWorker.terminate();
                 currentWorker = null;
             }
             if (window.__abortCurrent) {
-                window.__abortCurrent();
+                try {
+                    window.__abortCurrent();
+                } catch (e) { }
                 window.__abortCurrent = null;
             }
             currentOperationAborted = true;
@@ -778,131 +1365,395 @@
             cancelWrapper.style.display = 'none';
             hideTopStatus();
             showTopStatus('操作已取消', 'error', true, 2000);
+            addLog('warning', '操作已被用户取消。');
         }
 
         function setButtonsDisabled(disabled) {
-            const btns = [encryptBtn, decryptBtn, genPwdBtn, clearPwdBtn, clearAllBtn, downloadKeyBtn, downloadCipherBtn];
-            btns.forEach(btn => btn.disabled = disabled);
+            [encryptBtn, decryptBtn, genPwdBtn, clearPwdBtn, clearAllBtn, downloadKeyBtn, downloadCipherBtn,
+                fileEncryptBtn, folderEncryptBtn, fileDecryptBtn, importCipherBtn
+            ].forEach(btn => btn.disabled = disabled);
         }
 
-        async function runOperation(operationFn, operationName) {
-            if (processing) {
-                showTopStatus('已有操作进行中，请稍后再试或点击取消', 'error');
-                return;
-            }
+        async function runOperation(operationFn, operationName, isFile = false) {
+            if (processing) { showTopStatus('已有操作进行中，请等待完成或点击取消', 'error'); return; }
             processing = true;
             currentOperationAborted = false;
             setButtonsDisabled(true);
             cancelWrapper.style.display = 'block';
-            if (!useWorker) {
-                showTopStatus(`${operationName} 处理中 (可能耗时较长，请耐心等待)...`, 'processing', false);
-            } else {
-                showTopStatus(`${operationName} 处理中...`, 'processing', false);
-            }
+            showTopStatus(`${operationName} 处理中...`, 'processing', false);
 
             try {
                 const result = await operationFn();
-                showTopStatus(`${operationName} 成功`, 'success');
+                if (!currentOperationAborted) {
+                    showTopStatus(`${operationName} 成功`, 'success');
+                    addLog('success', `${operationName} 成功。`);
+                }
                 return result;
             } catch (err) {
                 if (err.message === '操作已取消') {
                     showTopStatus('操作已取消', 'error', true, 2000);
                 } else {
                     showTopStatus(`${operationName} 失败: ${err.message}`, 'error');
+                    addLog('error', `${operationName} 失败：${err.message}`);
                 }
                 throw err;
             } finally {
                 processing = false;
+                isCompressing = false;
                 setButtonsDisabled(false);
                 cancelWrapper.style.display = 'none';
                 if (currentWorker) {
                     currentWorker.terminate();
                     currentWorker = null;
                 }
-                window.__abortCurrent = null;
+                if (window.__abortCurrent) {
+                    try { window.__abortCurrent(); } catch (e) { }
+                    window.__abortCurrent = null;
+                }
                 if (topStatusDiv.className.includes('processing')) {
-                    hideTopStatus();
+                    setTimeout(() => { if (topStatusDiv.className.includes('processing')) hideTopStatus(); }, 1000);
                 }
             }
         }
 
-        // 加密按钮
         encryptBtn.addEventListener('click', async () => {
-            const plain = plaintextEl.value;
-            const pwd = passwordEl.value;
-            const iter = parseInt(iterSelect.value, 10);
-            if (!plain.trim()) { showTopStatus('请输入明文', 'error'); return; }
-            if (!pwd) { showTopStatus('请输入密码', 'error'); return; }
+            let pwd = passwordEl.value;
             try {
-                checkSize(plain, '明文');
-            } catch (e) {
-                showTopStatus(e.message, 'error');
+                const plain = plaintextEl.value;
+                let iter;
+                try { iter = getIterations(); } catch (e) { showTopStatus(e.message, 'error'); return; }
+                if (!plain.trim()) { showTopStatus('请输入明文', 'error'); return; }
+                if (!pwd) { showTopStatus('请输入密码', 'error'); return; }
+
+                const plainBytes = new TextEncoder().encode(plain).length;
+                const sizeOk = await checkSizeWarning(plainBytes, '明文');
+                if (!sizeOk) return;
+
+                const strength = evaluateStrength(pwd);
+                if (strength.score <= 3) {
+                    const go = await confirmDialog(
+                        `密码强度为“${strength.level}”，建议使用更强密码（长度≥12，含大小写、数字、符号）。\n是否仍要继续加密？`,
+                        '密码强度不足',
+                        '⚠️'
+                    );
+                    if (!go) return;
+                }
+                if (iter >= 10000000) {
+                    const go = await confirmDialog(
+                        `迭代次数 ${iter.toLocaleString()} 次，可能耗时较久，是否继续？`,
+                        '高迭代次数提醒',
+                        '⏱️'
+                    );
+                    if (!go) return;
+                }
+
+                await runOperation(async () => {
+                    const cipher = await encryptText(plain, pwd, iter);
+                    ciphertextEl.value = cipher;
+                    if (clearPlainCheck.checked) plaintextEl.value = '';
+                    if (clearPasswordCheck.checked) {
+                        passwordEl.value = '';
+                        updateStrength();
+                    }
+                    handleAutoDownloads('text', cipher);
+                    return cipher;
+                }, '加密');
+            } finally {
+                pwd = null;
+            }
+        });
+
+        decryptBtn.addEventListener('click', async () => {
+            let pwd = passwordEl.value;
+            try {
+                const cipher = ciphertextEl.value;
+                if (!cipher.trim()) { showTopStatus('请输入密文', 'error'); return; }
+                if (!pwd) { showTopStatus('请输入密码', 'error'); return; }
+                await runOperation(async () => {
+                    const plain = await decryptText(cipher, pwd);
+                    plaintextEl.value = plain;
+                    return plain;
+                }, '解密');
+            } finally {
+                pwd = null;
+            }
+        });
+
+        fileEncryptBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', async (e) => {
+            let pwd = passwordEl.value;
+            try {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const sizeOk = await checkSizeWarning(file.size, `文件 ${file.name}`);
+                if (!sizeOk) {
+                    fileInput.value = '';
+                    return;
+                }
+
+                if (!pwd) { showTopStatus('请先输入密码', 'error'); fileInput.value = ''; return; }
+                let iter;
+                try { iter = getIterations(); } catch (e) { showTopStatus(e.message, 'error'); fileInput.value = ''; return; }
+                const strength = evaluateStrength(pwd);
+                if (strength.score <= 3) {
+                    const go = await confirmDialog(
+                        `密码强度为“${strength.level}”，建议使用更强密码。\n是否继续？`,
+                        '密码强度不足',
+                        '⚠️'
+                    );
+                    if (!go) { fileInput.value = ''; return; }
+                }
+
+                const arrayBuffer = await file.arrayBuffer();
+                const data = new Uint8Array(arrayBuffer);
+                await runOperation(async () => {
+                    const combined = await encryptFileData(data, pwd, iter);
+                    const ext = file.name.includes('.') ? file.name.substring(file.name.lastIndexOf('.')) : '';
+                    const baseName = file.name.replace(/\.[^.]+$/, '');
+                    downloadBlob(new Blob([combined], { type: 'application/octet-stream' }), `${baseName}${ext}.aes`);
+                    handleAutoDownloads('file', null);
+                    if (clearPasswordCheck.checked) {
+                        passwordEl.value = '';
+                        updateStrength();
+                    }
+                    return combined;
+                }, `加密文件 ${file.name}`, true);
+            } catch (err) { showTopStatus(`文件加密失败: ${err.message}`, 'error'); }
+            fileInput.value = '';
+            pwd = null;
+        });
+
+        folderEncryptBtn.addEventListener('click', () => {
+            if (typeof JSZip === 'undefined') {
+                showTopStatus('❌ JSZip 库加载失败，请检查网络连接后刷新页面重试。', 'error');
+                addLog('error', 'JSZip 库未加载，文件夹加密功能不可用。');
                 return;
             }
-            const strength = evaluateStrength(pwd);
-            if (strength.score <= 3) {
-                if (!confirm(`当前密码强度为“${strength.level}”，建议使用更强密码（长度≥12，包含大小写、数字、符号）。\n是否仍要继续加密？`)) {
-                    return;
-                }
-            }
-            if (iter >= 10000000 && !useWorker) {
-                if (!confirm(`当前迭代次数为 ${iter.toLocaleString()} 次，由于环境限制，界面可能卡顿数秒。是否继续？`)) {
-                    return;
-                }
-            } else if (iter >= 10000000) {
-                if (!confirm(`当前迭代次数为 ${iter.toLocaleString()} 次，可能耗时数秒，但不会阻塞界面。是否继续？`)) {
-                    return;
-                }
-            }
-            await runOperation(async () => {
-                const cipher = await encrypt(plain, pwd, iter);
-                ciphertextEl.value = cipher;
-                return cipher;
-            }, '加密');
+            folderInput.click();
         });
 
-        // 解密按钮
-        decryptBtn.addEventListener('click', async () => {
-            const cipher = ciphertextEl.value;
-            const pwd = passwordEl.value;
-            if (!cipher.trim()) { showTopStatus('请输入密文', 'error'); return; }
-            if (!pwd) { showTopStatus('请输入密码', 'error'); return; }
-            const cipherSizeMB = cipher.length / (1024 * 1024);
-            if (cipherSizeMB > 60) {
-                if (!confirm(`密文Base64大小约 ${cipherSizeMB.toFixed(1)} MB，解密可能消耗较多内存，是否继续？`)) {
+        folderInput.addEventListener('change', async (e) => {
+            let pwd = passwordEl.value;
+            try {
+                const files = e.target.files;
+                if (!files || files.length === 0) { showTopStatus('未选择文件夹', 'error'); folderInput.value = ''; return; }
+
+                if (processing) {
+                    showTopStatus('已有操作进行中，请等待完成', 'error');
+                    folderInput.value = '';
+                    return;
+                }
+                processing = true;
+                currentOperationAborted = false;
+                setButtonsDisabled(true);
+                cancelWrapper.style.display = 'block';
+                showTopStatus('📦 正在压缩文件夹（请耐心等待）...', 'processing', false);
+
+                if (currentOperationAborted) {
+                    folderInput.value = '';
+                    showTopStatus('操作已取消', 'error', true, 2000);
+                    processing = false;
+                    setButtonsDisabled(false);
+                    cancelWrapper.style.display = 'none';
+                    return;
+                }
+
+                let totalSize = 0;
+                for (let f of files) totalSize += f.size;
+                const sizeOk = await checkSizeWarning(totalSize, '文件夹');
+                if (!sizeOk) {
+                    folderInput.value = '';
+                    processing = false;
+                    setButtonsDisabled(false);
+                    cancelWrapper.style.display = 'none';
+                    return;
+                }
+
+                if (!pwd) { showTopStatus('请先输入密码', 'error'); folderInput.value = ''; processing = false; setButtonsDisabled(false); cancelWrapper.style.display = 'none'; return; }
+                let iter;
+                try { iter = getIterations(); } catch (e) { showTopStatus(e.message, 'error'); folderInput.value = ''; processing = false; setButtonsDisabled(false); cancelWrapper.style.display = 'none'; return; }
+                const strength = evaluateStrength(pwd);
+                if (strength.score <= 3) {
+                    const go = await confirmDialog(
+                        `密码强度为“${strength.level}”，建议使用更强密码。\n是否继续？`,
+                        '密码强度不足',
+                        '⚠️'
+                    );
+                    if (!go) { folderInput.value = ''; processing = false; setButtonsDisabled(false); cancelWrapper.style.display = 'none'; return; }
+                }
+
+                let folderName = '';
+                const pathParts = files[0].webkitRelativePath.split('/');
+                if (pathParts.length > 0) folderName = pathParts[0];
+                if (!folderName) folderName = '文件夹';
+
+                isCompressing = true;
+                addLog('info', `开始压缩文件夹 "${folderName}"，包含 ${files.length} 个文件。`);
+
+                const zip = new JSZip();
+                let processed = 0;
+                for (let file of files) {
+                    if (currentOperationAborted) {
+                        folderInput.value = '';
+                        isCompressing = false;
+                        processing = false;
+                        setButtonsDisabled(false);
+                        cancelWrapper.style.display = 'none';
+                        showTopStatus('操作已取消', 'error', true, 2000);
+                        return;
+                    }
+                    const relPath = file.webkitRelativePath;
+                    const parts = relPath.split('/');
+                    parts.shift();
+                    const innerPath = parts.join('/');
+                    const content = await file.arrayBuffer();
+                    zip.file(innerPath, content, { binary: true });
+
+                    processed++;
+                    if (processed % 10 === 0) {
+                        addLog('info', `压缩进度：${processed}/${files.length} 个文件`);
+                    }
+                }
+
+                const zipBlob = await zip.generateAsync({ type: 'blob' });
+                const zipData = new Uint8Array(await zipBlob.arrayBuffer());
+                isCompressing = false;
+                addLog('info', `压缩完成，ZIP 大小：${(zipData.length / (1024*1024)).toFixed(2)} MB`);
+
+                const packageData = buildFolderPackage(folderName, zipData);
+
+                try {
+                    const combined = await encryptFileData(packageData, pwd, iter);
+                    downloadBlob(new Blob([combined], { type: 'application/octet-stream' }), `${folderName}.aes`);
+                    handleAutoDownloads('folder', null);
+                    if (clearPasswordCheck.checked) {
+                        passwordEl.value = '';
+                        updateStrength();
+                    }
+                    showTopStatus(`加密文件夹 ${folderName} 成功`, 'success');
+                    addLog('success', `加密文件夹 ${folderName} 成功。`);
+                } catch (err) {
+                    if (err.message === '操作已取消') {
+                        showTopStatus('操作已取消', 'error', true, 2000);
+                    } else {
+                        showTopStatus(`文件夹加密失败: ${err.message}`, 'error');
+                        addLog('error', `文件夹加密失败：${err.message}`);
+                    }
+                } finally {
+                    processing = false;
+                    setButtonsDisabled(false);
+                    cancelWrapper.style.display = 'none';
+                    if (currentWorker) {
+                        currentWorker.terminate();
+                        currentWorker = null;
+                    }
+                    if (window.__abortCurrent) {
+                        try { window.__abortCurrent(); } catch (e) { }
+                        window.__abortCurrent = null;
+                    }
+                    if (topStatusDiv.className.includes('processing')) {
+                        setTimeout(() => { if (topStatusDiv.className.includes('processing')) hideTopStatus(); }, 1000);
+                    }
+                }
+            } catch (err) {
+                isCompressing = false;
+                processing = false;
+                setButtonsDisabled(false);
+                cancelWrapper.style.display = 'none';
+                showTopStatus(`文件夹加密失败: ${err.message}`, 'error');
+            }
+            folderInput.value = '';
+            pwd = null;
+        });
+
+        fileDecryptBtn.addEventListener('click', () => aesFileInput.click());
+        aesFileInput.addEventListener('change', async (e) => {
+            let pwd = passwordEl.value;
+            try {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const sizeOk = await checkSizeWarning(file.size, `文件 ${file.name}`);
+                if (!sizeOk) {
+                    aesFileInput.value = '';
+                    return;
+                }
+
+                if (!pwd) { showTopStatus('请先输入密码', 'error'); aesFileInput.value = ''; return; }
+                const arrayBuffer = await file.arrayBuffer();
+                const data = new Uint8Array(arrayBuffer);
+                await runOperation(async () => {
+                    const plainData = await decryptFileData(data, pwd);
+                    if (isFolderPackage(plainData)) {
+                        const parsed = parseFolderPackage(plainData);
+                        if (parsed) {
+                            const zipBlob = new Blob([parsed.zipData], { type: 'application/zip' });
+                            downloadBlob(zipBlob, `${parsed.folderName}.zip`);
+                            addLog('info', `解密文件夹包：${parsed.folderName}.zip`);
+                        } else {
+                            throw new Error('解析文件夹包失败');
+                        }
+                    } else {
+                        let outName = file.name;
+                        if (outName.endsWith('.aes')) outName = outName.slice(0, -4);
+                        else outName += '.decrypted';
+                        downloadBlob(new Blob([plainData]), outName);
+                        addLog('info', `解密单文件：${outName}`);
+                    }
+                    return plainData;
+                }, `解密文件 ${file.name}`, true);
+            } catch (err) {
+                showTopStatus(`文件解密失败: ${err.message}`, 'error');
+            }
+            aesFileInput.value = '';
+            pwd = null;
+        });
+
+        importCipherBtn.addEventListener('click', () => cipherTextFileInput.click());
+        cipherTextFileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 10 * 1024 * 1024) {
+                const ok = await confirmDialog(
+                    `⚠️ 密文文件大小 ${(file.size/(1024*1024)).toFixed(1)} MB，导入后可能影响页面性能。\n确定继续吗？`,
+                    '大文件导入警告',
+                    '⚠️'
+                );
+                if (!ok) {
+                    cipherTextFileInput.value = '';
                     return;
                 }
             }
-            await runOperation(async () => {
-                const plain = await decrypt(cipher, pwd);
-                plaintextEl.value = plain;
-                return plain;
-            }, '解密');
+            try {
+                const text = await file.text();
+                ciphertextEl.value = text;
+                showTopStatus(`密文已从 ${file.name} 导入`, 'success');
+                addLog('info', `从 ${file.name} 导入密文（${(file.size / 1024).toFixed(1)}KB）。`);
+                updateEstimate();
+            } catch (err) { showTopStatus(`读取文件失败: ${err.message}`, 'error'); }
+            cipherTextFileInput.value = '';
         });
 
-        // 取消按钮
-        cancelOpBtn.addEventListener('click', () => {
-            if (processing) {
-                cancelCurrentOperation();
-            }
-        });
-
-        // 其他按钮
         genPwdBtn.addEventListener('click', generateStrongPassword);
         clearPwdBtn.addEventListener('click', clearPassword);
         clearAllBtn.addEventListener('click', clearAll);
-        downloadKeyBtn.addEventListener('click', () => {
+        downloadKeyBtn.addEventListener('click', async () => {
             const pwd = passwordEl.value;
             if (!pwd) { showTopStatus('没有密码可下载', 'error'); return; }
-            const ts = new Date().toISOString().slice(0,19).replace(/:/g, '-');
-            downloadFile(pwd, `aes_key_${ts}.txt`, true);
-            showTopStatus('密码已下载', 'success');
+            const ts = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+            const success = await downloadFile(pwd, `aes_key_${ts}.txt`, true, false);
+            if (success) {
+                showTopStatus('密码已下载', 'success');
+            } else {
+                showTopStatus('已取消下载', 'info', true, 2000);
+            }
         });
         downloadCipherBtn.addEventListener('click', () => {
             const cipher = ciphertextEl.value;
             if (!cipher) { showTopStatus('没有密文可下载', 'error'); return; }
-            const ts = new Date().toISOString().slice(0,19).replace(/:/g, '-');
-            downloadFile(cipher, `aes_cipher_${ts}.txt`);
+            const ts = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+            downloadFile(cipher, `aes_cipher_${ts}.txt`, false, true);
             showTopStatus('密文已下载', 'success');
         });
         togglePwdBtn.addEventListener('click', () => {
@@ -910,9 +1761,22 @@
             passwordEl.type = visible ? 'text' : 'password';
             togglePwdBtn.textContent = visible ? '🙈 隐藏' : '👁️ 显示';
         });
+        cancelOpBtn.addEventListener('click', () => { if (processing || isCompressing) cancelCurrentOperation(); });
 
         updateStrength();
-        showTopStatus('就绪', 'success', true, 2000);
+        if (iterSelect.value === 'custom') toggleCustomIter(true);
+        else toggleCustomIter(false);
+        updateIterInfo();
+
+        setTimeout(() => {
+            if (!getBenchmarkFactor()) {
+                runBenchmark(false);
+            } else {
+                updateEstimate();
+                showTopStatus('就绪 (已校准)', 'success', true, 1500);
+                addLog('info', '使用缓存的性能校准系数。');
+            }
+        }, 500);
     })();
 </script>
 </body>
