@@ -5,15 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover" />
     <title>五子棋 · AI 对战</title>
     <style>
-        /* ========== 导入字体 ========== */
         @import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap');
 
-        /* ========== 全局重置 & 主题 ========== */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             --bg-start: #e8dcc8;
@@ -23,11 +17,6 @@
             --text-secondary: #5a4a3a;
             --label-color: #2d1e10;
             --toggle-bg: rgba(60, 40, 20, 0.20);
-            --slider-bg: rgba(60, 40, 20, 0.15);
-            --progress-bg: rgba(60, 40, 20, 0.10);
-            --badge-bg: rgba(58, 123, 213, 0.15);
-            --badge-text: #1e4f8a;
-
             background: linear-gradient(145deg, var(--bg-start) 0%, var(--bg-end) 100%);
             min-height: 100vh;
             display: flex;
@@ -37,12 +26,10 @@
             padding: 20px;
             margin: 0;
             -webkit-font-smoothing: antialiased;
-            transition: background 0.5s cubic-bezier(0.23, 1, 0.32, 1);
         }
 
-        /* ========== 主容器 ========== */
         .game-container {
-            max-width: 740px;
+            max-width: 760px;
             width: 100%;
             background: var(--card-bg);
             backdrop-filter: blur(24px);
@@ -54,14 +41,10 @@
                 0 10px 30px rgba(0, 0, 0, 0.04),
                 inset 0 1px 1px rgba(255, 240, 220, 0.6);
             border: 1px solid rgba(255, 235, 210, 0.5);
-            transition: background 0.5s cubic-bezier(0.23, 1, 0.32, 1),
-                box-shadow 0.4s ease,
-                border-color 0.4s ease;
             color: var(--text-primary);
             position: relative;
         }
 
-        /* ========== 顶部信息栏 ========== */
         .header {
             display: flex;
             justify-content: space-between;
@@ -107,20 +90,11 @@
             border-radius: 50%;
             border: 2px solid rgba(0, 0, 0, 0.20);
             flex-shrink: 0;
-            transition: background 0.2s, box-shadow 0.2s;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.10);
         }
-        .turn-dot.black {
-            background: radial-gradient(circle at 35% 35%, #555, #111);
-        }
-        .turn-dot.white {
-            background: radial-gradient(circle at 35% 35%, #f9f9f9, #ccc);
-            border-color: rgba(0, 0, 0, 0.15);
-        }
-        .turn-dot.win {
-            box-shadow: 0 0 16px #f5d742, 0 0 30px #f5b742;
-            border-color: #f5b742;
-        }
+        .turn-dot.black { background: radial-gradient(circle at 35% 35%, #555, #111); }
+        .turn-dot.white { background: radial-gradient(circle at 35% 35%, #f9f9f9, #ccc); }
+        .turn-dot.win { box-shadow: 0 0 16px #f5d742, 0 0 30px #f5b742; border-color: #f5b742; }
 
         .status-text {
             font-size: 15px;
@@ -138,19 +112,10 @@
             font-weight: 600;
             color: #2d1e10;
             cursor: pointer;
-            transition: all 0.15s;
             border: 1px solid rgba(255, 215, 160, 0.15);
-            backdrop-filter: blur(2px);
         }
-        .btn-reset:hover {
-            background: rgba(50, 30, 15, 0.30);
-            transform: scale(1.02);
-        }
-        .btn-reset:active {
-            transform: scale(0.95);
-        }
+        .btn-reset:hover { background: rgba(50, 30, 15, 0.30); }
 
-        /* ========== 棋盘容器 ========== */
         .board-wrapper {
             position: relative;
             display: flex;
@@ -174,13 +139,9 @@
             max-width: 620px;
         }
 
-        /* ========== 遮罩层 ========== */
         #overlay {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.60);
             border-radius: 16px;
             display: none;
@@ -190,11 +151,8 @@
             color: white;
             z-index: 20;
             backdrop-filter: blur(4px);
-            pointer-events: auto;
         }
-        #overlay.show {
-            display: flex;
-        }
+        #overlay.show { display: flex; }
 
         #resultText {
             font-size: 32px;
@@ -203,10 +161,7 @@
             text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
         }
 
-        .overlay-buttons {
-            display: flex;
-            gap: 20px;
-        }
+        .overlay-buttons { display: flex; gap: 20px; }
         .overlay-buttons button {
             padding: 12px 36px;
             font-size: 20px;
@@ -214,25 +169,12 @@
             border-radius: 40px;
             color: white;
             cursor: pointer;
-            transition: transform 0.15s, box-shadow 0.15s;
             font-weight: 600;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
-        .overlay-buttons button:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
-        }
-        .overlay-buttons button:active {
-            transform: scale(0.95);
-        }
-        #btnNextGame {
-            background: #4CAF50;
-        }
-        #btnReview {
-            background: #2196F3;
-        }
+        #btnNextGame { background: #4CAF50; }
+        #btnReview { background: #2196F3; }
 
-        /* ========== 复盘控制条 ========== */
         #reviewControls {
             display: none;
             align-items: center;
@@ -242,62 +184,17 @@
             background: rgba(60, 40, 20, 0.10);
             border-radius: 40px;
             border: 1px solid rgba(255, 215, 160, 0.20);
-            backdrop-filter: blur(2px);
             justify-content: center;
             width: 100%;
             flex-wrap: wrap;
         }
-        #reviewControls.active {
-            display: flex;
-        }
-        #reviewControls span {
-            font-size: 15px;
-            font-weight: 500;
-            color: #2d1e10;
-            white-space: nowrap;
-        }
-        #progressSlider {
-            flex: 1;
-            min-width: 80px;
-            max-width: 200px;
-            accent-color: #4a7a9c;
-            height: 6px;
-            cursor: pointer;
-        }
-        #btnExitReview {
-            padding: 4px 16px;
-            font-size: 15px;
-            border: none;
-            border-radius: 30px;
-            background: #e74c3c;
-            color: white;
-            cursor: pointer;
-            font-weight: 600;
-            transition: background 0.15s;
-        }
-        #btnExitReview:hover {
-            background: #c0392b;
-        }
-        #btnBranch {
-            padding: 4px 16px;
-            font-size: 15px;
-            border: none;
-            border-radius: 30px;
-            background: #f39c12;
-            color: white;
-            cursor: pointer;
-            font-weight: 600;
-            transition: background 0.15s;
-        }
-        #btnBranch:hover:not(:disabled) {
-            background: #e67e22;
-        }
-        #btnBranch:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
+        #reviewControls.active { display: flex; }
+        #reviewControls span { font-size: 15px; font-weight: 500; color: #2d1e10; white-space: nowrap; }
+        #progressSlider { flex: 1; min-width: 80px; max-width: 200px; accent-color: #4a7a9c; height: 6px; cursor: pointer; }
+        #btnExitReview { padding: 4px 16px; font-size: 15px; border: none; border-radius: 30px; background: #e74c3c; color: white; cursor: pointer; font-weight: 600; }
+        #btnBranch { padding: 4px 16px; font-size: 15px; border: none; border-radius: 30px; background: #f39c12; color: white; cursor: pointer; font-weight: 600; }
+        #btnBranch:disabled { opacity: 0.4; cursor: not-allowed; }
 
-        /* ========== 底部按钮 ========== */
         .footer {
             display: flex;
             justify-content: center;
@@ -316,26 +213,10 @@
             font-weight: 600;
             color: #2d1e10;
             cursor: pointer;
-            transition: all 0.15s;
             border: 1px solid rgba(255, 215, 160, 0.12);
-            backdrop-filter: blur(2px);
         }
-        .btn-undo:hover:not(:disabled) {
-            background: rgba(50, 30, 15, 0.25);
-            transform: scale(1.02);
-        }
-        .btn-undo:active:not(:disabled) {
-            transform: scale(0.95);
-        }
-        .btn-undo:disabled {
-            opacity: 0.35;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        /* ================================================================
-           定制控件 — 滑动开关 (Toggle) + 分段控制器 (Segmented)
-           ================================================================ */
+        .btn-undo:hover:not(:disabled) { background: rgba(50, 30, 15, 0.25); }
+        .btn-undo:disabled { opacity: 0.35; cursor: not-allowed; }
 
         .settings {
             display: flex;
@@ -345,7 +226,6 @@
             padding: 10px 16px 12px;
             background: rgba(60, 40, 20, 0.06);
             border-radius: 32px;
-            backdrop-filter: blur(4px);
             border: 1px solid rgba(255, 215, 160, 0.15);
         }
 
@@ -375,15 +255,11 @@
             background: var(--toggle-bg);
             border-radius: 40px;
             box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.08);
-            transition: background 0.25s ease, border-color 0.4s;
+            transition: background 0.25s;
             border: 1px solid rgba(255, 235, 210, 0.3);
             flex-shrink: 0;
         }
-
-        .toggle-track.active {
-            background: #3a7bd5;
-            border-color: rgba(255, 255, 255, 0.4);
-        }
+        .toggle-track.active { background: #3a7bd5; }
 
         .toggle-knob {
             position: absolute;
@@ -393,31 +269,41 @@
             height: 22px;
             background: white;
             border-radius: 30px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.10), 0 0 0 1px rgba(0, 0, 0, 0.02);
-            transition: left 0.35s cubic-bezier(0.34, 1.3, 0.64, 1), box-shadow 0.25s ease;
-            pointer-events: none;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.10);
+            transition: left 0.35s cubic-bezier(0.34, 1.3, 0.64, 1);
         }
+        .toggle-track.active .toggle-knob { left: 26px; }
 
-        .toggle-track.active .toggle-knob {
-            left: 26px;
-            box-shadow: 0 6px 14px rgba(58, 123, 213, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.3);
+        /* 面板内的开关 */
+        .panel-toggle-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px 22px;
+            padding-top: 8px;
+            margin-top: 4px;
+            border-top: 1px dashed rgba(60, 40, 20, 0.10);
+            justify-content: center;
         }
-
-        .toggle-track:hover .toggle-knob {
-            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14);
+        .panel-toggle-row .toggle-wrap {
+            font-size: 13px;
+            gap: 8px;
         }
-
-        .toggle-label {
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--label-color);
-            white-space: nowrap;
+        .panel-toggle-row .toggle-track {
+            width: 44px;
+            height: 24px;
         }
+        .panel-toggle-row .toggle-knob {
+            width: 18px;
+            height: 18px;
+            top: 2px;
+            left: 2px;
+        }
+        .panel-toggle-row .toggle-track.active .toggle-knob { left: 22px; }
 
         .segmented-wrap {
             display: flex;
-            align-items: center;
-            gap: 14px;
+            align-items: flex-start;
+            gap: 12px;
             justify-content: center;
             flex-wrap: wrap;
         }
@@ -427,33 +313,41 @@
             font-size: 14px;
             color: var(--label-color);
             white-space: nowrap;
+            padding-top: 10px;
         }
 
+        /* ==== 分段控件：支持换行，按钮更宽 ==== */
         .segmented-control {
             position: relative;
-            display: inline-flex;
+            display: flex;
+            flex-wrap: wrap;
             background: rgba(60, 40, 20, 0.08);
-            border-radius: 60px;
+            border-radius: 24px;
             padding: 4px;
-            backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 235, 210, 0.35);
-            transition: background 0.4s, border-color 0.4s;
             flex: 1 1 auto;
-            min-width: 200px;
-            max-width: 460px;
+            min-width: 240px;
+            max-width: 640px;
+            row-gap: 4px;
+        }
+
+        .segmented-control-small {
+            min-width: 180px;
+            max-width: 260px;
+            flex: 0 0 auto;
         }
 
         .segmented-slider {
             position: absolute;
-            top: 4px;
-            left: 4px;
-            height: calc(100% - 8px);
-            background: rgba(255, 255, 255, 0.75);
-            border-radius: 40px;
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(255, 255, 255, 0.6);
-            transition: left 0.40s cubic-bezier(0.34, 1.3, 0.64, 1),
-                width 0.40s cubic-bezier(0.34, 1.3, 0.64, 1),
-                background 0.4s;
+            /* left / top / width / height 由 JS 动态设置 */
+            background: rgba(255, 255, 255, 0.80);
+            border-radius: 20px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.7);
+            transition: left 0.35s cubic-bezier(0.34, 1.3, 0.64, 1),
+                        top 0.35s cubic-bezier(0.34, 1.3, 0.64, 1),
+                        width 0.35s cubic-bezier(0.34, 1.3, 0.64, 1),
+                        height 0.35s cubic-bezier(0.34, 1.3, 0.64, 1),
+                        background 0.4s;
             z-index: 0;
             pointer-events: none;
             backdrop-filter: blur(4px);
@@ -462,10 +356,10 @@
         .segmented-option {
             position: relative;
             z-index: 1;
-            padding: 8px 18px;
-            border-radius: 40px;
+            padding: 8px 16px;
+            border-radius: 20px;
             font-weight: 600;
-            font-size: 14px;
+            font-size: 13px;
             color: #5a4a3a;
             cursor: pointer;
             transition: color 0.3s ease;
@@ -475,16 +369,27 @@
             white-space: nowrap;
             flex: 1 1 0;
             text-align: center;
-            min-width: 40px;
+            min-width: 72px;
         }
 
-        .segmented-option.active {
-            color: #1e293b;
-        }
+        .segmented-option.active { color: #1e293b; }
+        .segmented-option:hover { color: #1e293b; }
 
-        .segmented-option:hover {
-            color: #1e293b;
+        .custom-weights-panel {
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            padding: 10px 14px;
+            background: rgba(60, 40, 20, 0.05);
+            border-radius: 18px;
+            border: 1px solid rgba(255, 215, 160, 0.12);
         }
+        .custom-weights-panel.show { display: flex; }
+
+        .weight-slider-row { display: flex; align-items: center; gap: 10px; }
+        .weight-label { font-size: 13px; color: var(--label-color); font-weight: 500; min-width: 64px; }
+        .weight-slider-row input[type="range"] { flex: 1; accent-color: #6a9a7a; height: 4px; cursor: pointer; }
+        .weight-value { font-size: 13px; font-weight: 600; color: var(--text-primary); min-width: 46px; text-align: right; }
 
         .legend-row {
             display: flex;
@@ -496,35 +401,13 @@
             padding-top: 4px;
             border-top: 1px solid rgba(60, 40, 20, 0.06);
         }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .legend-color { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(0, 0, 0, 0.08); }
+        .legend-color.blue { background: #3a86ff; }
+        .legend-color.red { background: #ff006e; }
+        .legend-color.green { background: #00ff88; border-color: #00cc77; }
 
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .legend-color {
-            display: inline-block;
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            border: 2px solid rgba(0, 0, 0, 0.08);
-        }
-        .legend-color.blue {
-            background: #3a86ff;
-        }
-        .legend-color.red {
-            background: #ff006e;
-        }
-        .legend-color.green {
-            background: #00ff88;
-            border-color: #00cc77;
-        }
-
-        /* ================================================================
-           外挂菜单 · 液态玻璃美学 (Liquid Glass)
-           ================================================================ */
-
+        /* 外挂菜单 */
         .cheat-menu-btn {
             display: flex;
             align-items: center;
@@ -533,52 +416,32 @@
             height: 40px;
             border-radius: 50%;
             background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
             border: 1px solid rgba(255, 255, 255, 0.15);
             cursor: pointer;
             font-size: 20px;
             color: #e0e0f0;
-            transition: all 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
-            user-select: none;
-            flex-shrink: 0;
-            position: relative;
             margin-left: 4px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.10);
+            transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
         }
-        .cheat-menu-btn:hover {
-            background: rgba(255, 255, 255, 0.15);
-            transform: rotate(90deg) scale(1.05);
-            border-color: rgba(255, 255, 255, 0.3);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.20);
-        }
-        .cheat-menu-btn:active {
-            transform: rotate(90deg) scale(0.92);
-        }
-        .cheat-menu-btn.active {
-            background: rgba(160, 130, 255, 0.25);
-            border-color: rgba(160, 130, 255, 0.5);
-            box-shadow: 0 0 25px rgba(160, 130, 255, 0.15);
-        }
+        .cheat-menu-btn:hover { transform: rotate(90deg) scale(1.05); background: rgba(255,255,255,0.15); }
+        .cheat-menu-btn.active { background: rgba(160, 130, 255, 0.25); border-color: rgba(160, 130, 255, 0.5); }
 
-        /* 外挂面板 - 液态玻璃 (使用 visibility + opacity 实现弹出动画) */
         .cheat-panel {
             position: absolute;
             top: 70px;
             right: 10px;
-            width: 240px;
+            width: 250px;
             background: rgba(20, 20, 40, 0.75);
             backdrop-filter: blur(24px) saturate(180%);
-            -webkit-backdrop-filter: blur(24px) saturate(180%);
             border-radius: 20px;
             padding: 18px 18px 20px;
             border: 1px solid rgba(255, 255, 255, 0.12);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
             z-index: 50;
             display: flex;
             flex-direction: column;
             gap: 8px;
-            /* 关键：使用 visibility + opacity + transform 实现弹出动画 */
             visibility: hidden;
             opacity: 0;
             transform: scale(0.92) translateY(-12px);
@@ -586,14 +449,9 @@
             pointer-events: none;
             transition: opacity 0.35s cubic-bezier(0.22, 0.61, 0.36, 1),
                 transform 0.35s cubic-bezier(0.22, 0.61, 0.36, 1),
-                visibility 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+                visibility 0.35s;
         }
-        .cheat-panel.open {
-            visibility: visible;
-            opacity: 1;
-            transform: scale(1) translateY(0);
-            pointer-events: auto;
-        }
+        .cheat-panel.open { visibility: visible; opacity: 1; transform: scale(1) translateY(0); pointer-events: auto; }
 
         .cheat-panel-title {
             font-size: 11px;
@@ -603,7 +461,6 @@
             text-transform: uppercase;
             padding-bottom: 8px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-            margin-bottom: 4px;
         }
 
         .cheat-btn {
@@ -618,56 +475,15 @@
             font-size: 14px;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
             font-family: inherit;
             width: 100%;
             text-align: left;
-            position: relative;
-            overflow: hidden;
+            transition: all 0.3s;
             backdrop-filter: blur(4px);
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
         }
-        .cheat-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255, 255, 255, 0.08) 0%, transparent 60%);
-            opacity: 0;
-            transition: opacity 0.4s ease;
-            pointer-events: none;
-            z-index: 2;
-            border-radius: 12px;
-        }
-        .cheat-btn:hover:not(:disabled)::before {
-            opacity: 1;
-        }
-        .cheat-btn:hover:not(:disabled) {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.2);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
-        }
-        .cheat-btn:active:not(:disabled) {
-            transform: translateY(1px);
-            transition-duration: 0.05s;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        }
-        .cheat-btn:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-            transform: none !important;
-            box-shadow: none !important;
-        }
-        .cheat-btn .icon {
-            font-size: 18px;
-            width: 28px;
-            text-align: center;
-            flex-shrink: 0;
-            z-index: 3;
-        }
+        .cheat-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.08); transform: translateY(-2px); }
+        .cheat-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .cheat-btn .icon { font-size: 18px; width: 28px; text-align: center; }
         .cheat-btn .badge {
             margin-left: auto;
             font-size: 11px;
@@ -675,236 +491,91 @@
             padding: 2px 10px;
             border-radius: 20px;
             color: rgba(255, 255, 255, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.04);
-            z-index: 3;
         }
-        .cheat-btn.active-mode {
-            background: rgba(58, 123, 213, 0.20);
-            border-color: rgba(58, 123, 213, 0.35);
-            box-shadow: 0 0 30px rgba(58, 123, 213, 0.05);
-        }
-        .cheat-btn.danger {
-            color: #ff8a8a;
-        }
-        .cheat-btn.danger:hover:not(:disabled) {
-            background: rgba(255, 80, 80, 0.12);
-            border-color: rgba(255, 80, 80, 0.25);
-        }
-        .cheat-btn::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.15);
-            transition: all 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            z-index: 1;
-        }
-        .cheat-btn:active:not(:disabled)::after {
-            width: 300px;
-            height: 300px;
-            opacity: 0;
-            transition: 0s;
-        }
+        .cheat-btn.active-mode { background: rgba(58, 123, 213, 0.20); border-color: rgba(58, 123, 213, 0.35); }
+        .cheat-btn.danger { color: #ff8a8a; }
+        .cheat-btn.rollback { color: #ffc07a; }
+
+        .cheat-divider { height: 1px; background: rgba(255, 255, 255, 0.05); margin: 4px 0; }
 
         .cheat-status-tip {
             font-size: 12px;
             color: rgba(255, 255, 255, 0.35);
             padding: 6px 4px 0;
             border-top: 1px solid rgba(255, 255, 255, 0.04);
-            margin-top: 4px;
             text-align: center;
             min-height: 24px;
-            transition: color 0.3s;
         }
 
-        /* ========== 响应式 ========== */
+        /* 通知 */
+        #notification {
+            position: fixed;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-120px);
+            background: linear-gradient(135deg, rgba(20, 20, 45, 0.95), rgba(40, 30, 65, 0.95));
+            color: #fff;
+            padding: 14px 28px;
+            border-radius: 50px;
+            border: 1px solid rgba(160, 130, 255, 0.5);
+            box-shadow: 0 12px 50px rgba(160, 130, 255, 0.35), 0 4px 20px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 9999;
+            transition: transform 0.55s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.35s;
+            opacity: 0;
+            pointer-events: none;
+            font-weight: 600;
+            font-size: 15px;
+            backdrop-filter: blur(16px);
+            max-width: 90vw;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #notification.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        #notification .notif-icon { font-size: 22px; flex-shrink: 0; }
+
         @media (max-width: 640px) {
-            .game-container {
-                padding: 20px 16px 18px;
-                border-radius: 32px;
-            }
-            .title {
-                font-size: 20px;
-            }
-            .status-area {
-                padding: 4px 12px 4px 10px;
-                font-size: 13px;
-                gap: 10px;
-            }
-            .turn-indicator {
-                font-size: 14px;
-            }
-            .turn-dot {
-                width: 17px;
-                height: 17px;
-            }
-            .status-text {
-                font-size: 13px;
-                min-width: 44px;
-            }
-            .btn-reset {
-                font-size: 13px;
-                padding: 4px 14px;
-            }
-
-            .cheat-menu-btn {
-                width: 34px;
-                height: 34px;
-                font-size: 16px;
-            }
-
-            .cheat-panel {
-                top: 58px;
-                right: 4px;
-                width: 200px;
-                padding: 14px 14px 16px;
-            }
-            .cheat-btn {
-                font-size: 13px;
-                padding: 8px 12px;
-                gap: 10px;
-            }
-            .cheat-btn .icon {
-                font-size: 16px;
-                width: 24px;
-            }
-            .cheat-panel-title {
-                font-size: 10px;
-            }
-            .cheat-status-tip {
-                font-size: 11px;
-            }
-
-            .settings {
-                padding: 8px 10px 10px;
-                gap: 10px;
-            }
-            .toggles-row {
-                gap: 12px 18px;
-            }
-            .toggle-track {
-                width: 44px;
-                height: 24px;
-            }
-            .toggle-knob {
-                width: 18px;
-                height: 18px;
-                top: 2px;
-                left: 2px;
-            }
-            .toggle-track.active .toggle-knob {
-                left: 22px;
-            }
-            .toggle-label {
-                font-size: 13px;
-            }
-
-            .segmented-control {
-                min-width: 140px;
-                padding: 3px;
-            }
-            .segmented-option {
-                font-size: 12px;
-                padding: 6px 10px;
-                min-width: 32px;
-            }
-            .segmented-slider {
-                top: 3px;
-                height: calc(100% - 6px);
-            }
-            .segmented-label {
-                font-size: 13px;
-            }
-
-            .legend-row {
-                font-size: 12px;
-                gap: 12px;
-            }
-            .legend-color {
-                width: 12px;
-                height: 12px;
-            }
-
-            .footer .btn-undo {
-                font-size: 13px;
-                padding: 5px 18px;
-            }
-
-            #resultText {
-                font-size: 24px;
-            }
-            .overlay-buttons button {
-                padding: 8px 24px;
-                font-size: 16px;
-            }
-            #reviewControls span {
-                font-size: 13px;
-            }
-            #progressSlider {
-                min-width: 60px;
-                max-width: 120px;
-            }
-            #btnBranch,
-            #btnExitReview {
-                font-size: 13px;
-                padding: 3px 12px;
-            }
+            .game-container { padding: 20px 14px 18px; border-radius: 32px; }
+            .title { font-size: 20px; }
+            .status-area { padding: 4px 10px; font-size: 13px; gap: 8px; }
+            .turn-indicator { font-size: 14px; }
+            .turn-dot { width: 17px; height: 17px; }
+            .status-text { font-size: 13px; min-width: 44px; }
+            .btn-reset { font-size: 13px; padding: 4px 12px; }
+            .cheat-menu-btn { width: 34px; height: 34px; font-size: 16px; }
+            .cheat-panel { top: 58px; right: 4px; width: 210px; padding: 14px; }
+            .cheat-btn { font-size: 13px; padding: 8px 12px; }
+            .settings { padding: 8px 10px; gap: 10px; }
+            .segmented-option { font-size: 12px; padding: 7px 10px; min-width: 64px; }
+            .segmented-label { font-size: 12px; padding-top: 8px; }
+            .segmented-control { min-width: 180px; }
+            #notification { font-size: 13px; padding: 10px 20px; top: 16px; }
+            #resultText { font-size: 24px; }
+            .overlay-buttons button { padding: 8px 24px; font-size: 16px; }
         }
 
         @media (max-width: 420px) {
-            .game-container {
-                padding: 12px 8px 14px;
-                border-radius: 24px;
-            }
-            .title {
-                font-size: 17px;
-            }
-            .status-text {
-                font-size: 12px;
-                min-width: 36px;
-            }
-            .segmented-option {
-                font-size: 11px;
-                padding: 5px 6px;
-                min-width: 28px;
-            }
-            .toggle-label {
-                font-size: 12px;
-            }
-            .toggles-row {
-                gap: 8px 12px;
-            }
-            .legend-row {
-                font-size: 11px;
-                gap: 8px;
-            }
-            .cheat-panel {
-                width: 180px;
-                right: 2px;
-                top: 52px;
-                padding: 12px 12px 14px;
-            }
-            .cheat-btn {
-                font-size: 12px;
-                padding: 6px 10px;
-                gap: 8px;
-            }
-            .cheat-btn .icon {
-                font-size: 14px;
-                width: 20px;
-            }
+            .game-container { padding: 12px 8px 14px; border-radius: 24px; }
+            .title { font-size: 17px; }
+            .segmented-option { font-size: 11px; padding: 6px 6px; min-width: 56px; }
+            .segmented-label { font-size: 11px; }
+            .cheat-panel { width: 190px; }
+            .weight-label { font-size: 12px; min-width: 50px; }
+            .weight-value { font-size: 12px; min-width: 38px; }
         }
     </style>
 </head>
 <body>
 
+    <div id="notification">
+        <span class="notif-icon">⚡</span>
+        <span class="notif-text">通知</span>
+    </div>
+
     <div class="game-container">
-        <!-- 头部信息 -->
         <div class="header">
             <div class="title">♟ 五子棋</div>
             <div class="status-area">
@@ -914,12 +585,10 @@
                 </div>
                 <span class="status-text" id="statusText">你的回合</span>
                 <button class="btn-reset" id="btnReset">↺ 重开</button>
-                <!-- 外挂菜单按钮 -->
                 <div class="cheat-menu-btn" id="cheatMenuBtn" title="外挂菜单">⚙</div>
             </div>
         </div>
 
-        <!-- 棋盘 -->
         <div class="board-wrapper">
             <canvas id="boardCanvas" width="600" height="600"></canvas>
             <div id="overlay">
@@ -930,31 +599,21 @@
                 </div>
             </div>
 
-            <!-- 外挂面板 · 液态玻璃 -->
             <div class="cheat-panel" id="cheatPanel">
                 <div class="cheat-panel-title">⚡ 外挂控制台</div>
-                <button class="cheat-btn" id="cheatReplace">
-                    <span class="icon">🔄</span> 替换
-                    <span class="badge">白→黑</span>
-                </button>
-                <button class="cheat-btn" id="cheatDouble">
-                    <span class="icon">✌️</span> 下两颗
-                    <span class="badge">连下</span>
-                </button>
-                <button class="cheat-btn danger" id="cheatWin">
-                    <span class="icon">🏆</span> Win！
-                    <span class="badge">直接获胜</span>
-                </button>
+                <button class="cheat-btn" id="cheatReplace"><span class="icon">🔄</span> 替换<span class="badge">白→黑</span></button>
+                <button class="cheat-btn" id="cheatDouble"><span class="icon">✌️</span> 下两颗<span class="badge">连下</span></button>
+                <button class="cheat-btn danger" id="cheatWin"><span class="icon">🏆</span> Win！<span class="badge">直接获胜</span></button>
+                <div class="cheat-divider"></div>
+                <button class="cheat-btn rollback" id="cheatRollback"><span class="icon">⏪</span> 强制回滚<span class="badge">无视状态</span></button>
                 <div class="cheat-status-tip" id="cheatTip">点击功能进入对应模式</div>
             </div>
         </div>
 
-        <!-- 底部按钮 -->
         <div class="footer">
             <button class="btn-undo" id="btnUndo" disabled>↩ 悔棋</button>
         </div>
 
-        <!-- 复盘控制条 -->
         <div id="reviewControls">
             <span id="stepLabel">0/0</span>
             <input type="range" id="progressSlider" min="0" max="0" value="0" />
@@ -963,56 +622,102 @@
             <button id="btnExitReview">退出</button>
         </div>
 
-        <!-- ===== 设置区：丝滑定制控件 ===== -->
         <div class="settings">
             <div class="toggles-row">
                 <div class="toggle-wrap" id="toggleHighlight">
-                    <div class="toggle-track" id="trackHighlight">
-                        <div class="toggle-knob"></div>
-                    </div>
+                    <div class="toggle-track" id="trackHighlight"><div class="toggle-knob"></div></div>
                     <span class="toggle-label">高亮白子活路</span>
                 </div>
                 <div class="toggle-wrap" id="toggleBestMove">
-                    <div class="toggle-track" id="trackBestMove">
-                        <div class="toggle-knob"></div>
-                    </div>
+                    <div class="toggle-track" id="trackBestMove"><div class="toggle-knob"></div></div>
                     <span class="toggle-label">显示AI推荐点</span>
                 </div>
             </div>
 
             <div class="segmented-wrap">
-                <span class="segmented-label">AI难度</span>
+                <span class="segmented-label">对战AI</span>
                 <div class="segmented-control" id="difficultyControl">
                     <div class="segmented-slider" id="difficultySlider"></div>
                     <button class="segmented-option" data-value="easy">简单</button>
                     <button class="segmented-option" data-value="medium">普通</button>
                     <button class="segmented-option" data-value="hard">困难</button>
-                    <button class="segmented-option active" data-value="thunder">雷霆大AI</button>
+                    <button class="segmented-option" data-value="extreme">极致</button>
+                    <button class="segmented-option" data-value="custom">自定义</button>
+                    <button class="segmented-option" data-value="thunder">雷霆大AI</button>
+                    <button class="segmented-option" data-value="test">测试</button>
+                </div>
+            </div>
+
+            <div class="custom-weights-panel" id="battleWeightsPanel">
+                <div class="weight-slider-row">
+                    <span class="weight-label">攻击权重</span>
+                    <input type="range" id="battleAttackSlider" min="0" max="2" step="0.05" value="0.05">
+                    <span class="weight-value" id="battleAttackValue">0.05</span>
+                </div>
+                <div class="weight-slider-row">
+                    <span class="weight-label">防御权重</span>
+                    <input type="range" id="battleDefenseSlider" min="0" max="20" step="0.5" value="20">
+                    <span class="weight-value" id="battleDefenseValue">20.0</span>
+                </div>
+                <div class="weight-slider-row">
+                    <span class="weight-label">中心加成</span>
+                    <input type="range" id="battleCenterSlider" min="0" max="5" step="0.1" value="1">
+                    <span class="weight-value" id="battleCenterValue">1.0</span>
+                </div>
+                <div class="panel-toggle-row">
+                    <div class="toggle-wrap" id="toggleCustomCheat">
+                        <div class="toggle-track" id="trackCustomCheat"><div class="toggle-knob"></div></div>
+                        <span class="toggle-label">允许使用外挂</span>
+                    </div>
+                    <div class="toggle-wrap" id="toggleCustomFullScan">
+                        <div class="toggle-track" id="trackCustomFullScan"><div class="toggle-knob"></div></div>
+                        <span class="toggle-label">完全扫描</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="segmented-wrap">
+                <span class="segmented-label">推荐点AI</span>
+                <div class="segmented-control segmented-control-small" id="recommendControl">
+                    <div class="segmented-slider" id="recommendSlider"></div>
+                    <button class="segmented-option active" data-value="default">默认(极致)</button>
+                    <button class="segmented-option" data-value="custom">自定义</button>
+                </div>
+            </div>
+
+            <div class="custom-weights-panel" id="recommendWeightsPanel">
+                <div class="weight-slider-row">
+                    <span class="weight-label">攻击权重</span>
+                    <input type="range" id="recommendAttackSlider" min="0" max="2" step="0.05" value="0.05">
+                    <span class="weight-value" id="recommendAttackValue">0.05</span>
+                </div>
+                <div class="weight-slider-row">
+                    <span class="weight-label">防御权重</span>
+                    <input type="range" id="recommendDefenseSlider" min="0" max="20" step="0.5" value="20">
+                    <span class="weight-value" id="recommendDefenseValue">20.0</span>
+                </div>
+                <div class="weight-slider-row">
+                    <span class="weight-label">中心加成</span>
+                    <input type="range" id="recommendCenterSlider" min="0" max="5" step="0.1" value="1">
+                    <span class="weight-value" id="recommendCenterValue">1.0</span>
                 </div>
             </div>
 
             <div class="legend-row">
-                <span class="legend-item">
-                    <span class="legend-color blue"></span> 活三
-                </span>
-                <span class="legend-item">
-                    <span class="legend-color red"></span> 活四
-                </span>
-                <span class="legend-item">
-                    <span class="legend-color green"></span> 推荐点
-                </span>
+                <span class="legend-item"><span class="legend-color blue"></span> 活三</span>
+                <span class="legend-item"><span class="legend-color red"></span> 活四</span>
+                <span class="legend-item"><span class="legend-color green"></span> 推荐点</span>
             </div>
         </div>
     </div>
 
     <script>
         // ================================================================
-        //  五子棋 · AI 对战 + 液态玻璃外挂菜单
-        //  修复：替换操作正确记录到历史，复盘可见
-        //  修复：外挂菜单弹出动画
+        //  五子棋 · AI 对战
+        //  - 分段按钮加宽 + 支持换行
+        //  - 滑块动态跟随 active 按钮的位置与大小
         // ================================================================
 
-        // ---------- DOM 元素 ----------
         const canvas = document.getElementById('boardCanvas');
         const ctx = canvas.getContext('2d');
         const turnDot = document.getElementById('turnDot');
@@ -1030,33 +735,55 @@
         const btnExitReview = document.getElementById('btnExitReview');
         const btnBranch = document.getElementById('btnBranch');
 
-        // ---- 外挂 ----
+        const notification = document.getElementById('notification');
+        const notifText = notification.querySelector('.notif-text');
+
         const cheatMenuBtn = document.getElementById('cheatMenuBtn');
         const cheatPanel = document.getElementById('cheatPanel');
         const cheatReplace = document.getElementById('cheatReplace');
         const cheatDouble = document.getElementById('cheatDouble');
         const cheatWin = document.getElementById('cheatWin');
+        const cheatRollback = document.getElementById('cheatRollback');
         const cheatTip = document.getElementById('cheatTip');
 
-        // ---- 定制控件 ----
         const toggleHighlight = document.getElementById('toggleHighlight');
         const trackHighlight = document.getElementById('trackHighlight');
         const toggleBestMove = document.getElementById('toggleBestMove');
         const trackBestMove = document.getElementById('trackBestMove');
+
         const difficultyControl = document.getElementById('difficultyControl');
         const difficultySlider = document.getElementById('difficultySlider');
         const diffOptions = difficultyControl.querySelectorAll('.segmented-option');
+        const battleWeightsPanel = document.getElementById('battleWeightsPanel');
+        const battleAttackSlider = document.getElementById('battleAttackSlider');
+        const battleDefenseSlider = document.getElementById('battleDefenseSlider');
+        const battleCenterSlider = document.getElementById('battleCenterSlider');
+        const battleAttackValue = document.getElementById('battleAttackValue');
+        const battleDefenseValue = document.getElementById('battleDefenseValue');
+        const battleCenterValue = document.getElementById('battleCenterValue');
 
-        // ---------- 常量 ----------
+        const toggleCustomCheat = document.getElementById('toggleCustomCheat');
+        const trackCustomCheat = document.getElementById('trackCustomCheat');
+        const toggleCustomFullScan = document.getElementById('toggleCustomFullScan');
+        const trackCustomFullScan = document.getElementById('trackCustomFullScan');
+
+        const recommendControl = document.getElementById('recommendControl');
+        const recommendSlider = document.getElementById('recommendSlider');
+        const recommendOptions = recommendControl.querySelectorAll('.segmented-option');
+        const recommendWeightsPanel = document.getElementById('recommendWeightsPanel');
+        const recommendAttackSlider = document.getElementById('recommendAttackSlider');
+        const recommendDefenseSlider = document.getElementById('recommendDefenseSlider');
+        const recommendCenterSlider = document.getElementById('recommendCenterSlider');
+        const recommendAttackValue = document.getElementById('recommendAttackValue');
+        const recommendDefenseValue = document.getElementById('recommendDefenseValue');
+        const recommendCenterValue = document.getElementById('recommendCenterValue');
+
         const SIZE = 15;
-        const EMPTY = 0,
-            BLACK = 1,
-            WHITE = 2;
+        const EMPTY = 0, BLACK = 1, WHITE = 2;
         const CELL_SIZE = canvas.width / (SIZE + 1);
         const OFFSET = CELL_SIZE;
         const PIECE_RADIUS = CELL_SIZE * 0.42;
 
-        // ---------- 游戏状态 ----------
         let board = [];
         let currentPlayer = BLACK;
         let gameOver = false;
@@ -1067,21 +794,29 @@
         let winCells = [];
         let hoverPos = null;
 
-        // ---------- 复盘状态 ----------
         let isReviewMode = false;
         let reviewStep = 0;
 
-        // ---------- 开关 & 难度 ----------
         let highlightEnabled = false;
         let bestMoveEnabled = false;
-        let currentDifficulty = 'thunder';
+        let currentDifficulty = 'extreme';
 
-        // ---------- 外挂模式 ----------
-        let cheatMode = null; // null | 'replace' | 'double'
+        let battleAttackWeight = 0.05;
+        let battleDefenseWeight = 20;
+        let battleCenterBonus = 1.0;
+        let customCheatEnabled = false;
+        let customFullScanEnabled = false;
+
+        let recommendMode = 'default';
+        let recommendAttackWeight = 0.05;
+        let recommendDefenseWeight = 20;
+        let recommendCenterBonus = 1.0;
+
+        let cheatMode = null;
         let doubleCount = 0;
         let isCheatPanelOpen = false;
+        let notificationTimer = null;
 
-        // ---------- 初始化 ----------
         function initBoard() {
             board = Array.from({ length: SIZE }, () => Array(SIZE).fill(EMPTY));
             currentPlayer = BLACK;
@@ -1105,9 +840,9 @@
             cheatReplace.disabled = false;
             cheatDouble.disabled = false;
             cheatWin.disabled = false;
+            cheatRollback.disabled = false;
         }
 
-        // ---------- 工具 ----------
         function isOnBoard(r, c) { return r >= 0 && r < SIZE && c >= 0 && c < SIZE; }
 
         function getEmptyCells() {
@@ -1122,32 +857,32 @@
             for (let dr = -dist; dr <= dist; dr++)
                 for (let dc = -dist; dc <= dist; dc++) {
                     if (dr === 0 && dc === 0) continue;
-                    const nr = r + dr,
-                        nc = c + dc;
+                    const nr = r + dr, nc = c + dc;
                     if (isOnBoard(nr, nc) && board[nr][nc] !== EMPTY) return true;
                 }
             return false;
         }
 
-        // ---------- 五子连珠 ----------
+        function showNotification(msg) {
+            notifText.textContent = msg;
+            notification.classList.add('show');
+            if (notificationTimer) clearTimeout(notificationTimer);
+            notificationTimer = setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3200);
+        }
+
         function checkWin(row, col, color) {
-            const dirs = [
-                [0, 1],
-                [1, 0],
-                [1, 1],
-                [1, -1]
-            ];
+            const dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
             for (const [dr, dc] of dirs) {
                 let cells = [{ row, col }];
                 for (let s = 1; s < 5; s++) {
-                    const nr = row + dr * s,
-                        nc = col + dc * s;
+                    const nr = row + dr * s, nc = col + dc * s;
                     if (!isOnBoard(nr, nc) || board[nr][nc] !== color) break;
                     cells.push({ row: nr, col: nc });
                 }
                 for (let s = 1; s < 5; s++) {
-                    const nr = row - dr * s,
-                        nc = col - dc * s;
+                    const nr = row - dr * s, nc = col - dc * s;
                     if (!isOnBoard(nr, nc) || board[nr][nc] !== color) break;
                     cells.push({ row: nr, col: nc });
                 }
@@ -1156,20 +891,50 @@
             return false;
         }
 
+        function checkWinSilent(row, col, color) {
+            const dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
+            for (const [dr, dc] of dirs) {
+                let count = 1;
+                for (let s = 1; s < 5; s++) {
+                    const nr = row + dr * s, nc = col + dc * s;
+                    if (!isOnBoard(nr, nc) || board[nr][nc] !== color) break;
+                    count++;
+                }
+                for (let s = 1; s < 5; s++) {
+                    const nr = row - dr * s, nc = col - dc * s;
+                    if (!isOnBoard(nr, nc) || board[nr][nc] !== color) break;
+                    count++;
+                }
+                if (count >= 5) return true;
+            }
+            return false;
+        }
+
         function isBoardFull() { return getEmptyCells().length === 0; }
 
-        // ---------- 落子 ----------
-        function placePiece(row, col, color, recordOnly = false) {
+        function playerCanWinNextMove() {
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (board[r][c] === EMPTY) {
+                        board[r][c] = BLACK;
+                        const won = checkWinSilent(r, c, BLACK);
+                        board[r][c] = EMPTY;
+                        if (won) return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function placePiece(row, col, color) {
             if (gameOver) return false;
             if (!isOnBoard(row, col) || board[row][col] !== EMPTY) return false;
-            if (!recordOnly && color !== currentPlayer) return false;
-            if (isAIThinking && !recordOnly) return false;
+            if (color !== currentPlayer) return false;
+            if (isAIThinking) return false;
 
             board[row][col] = color;
-            if (!recordOnly) {
-                moveHistory.push({ type: 'move', row, col, color });
-                lastMove = { row, col };
-            }
+            moveHistory.push({ type: 'move', row, col, color });
+            lastMove = { row, col };
 
             if (checkWin(row, col, color)) {
                 winner = color;
@@ -1177,10 +942,6 @@
                 updateUI();
                 drawBoard();
                 showOverlay();
-                return true;
-            }
-
-            if (recordOnly) {
                 return true;
             }
 
@@ -1200,7 +961,6 @@
             return true;
         }
 
-        // ---------- 替换操作 (记录历史) ----------
         function executeReplace(row, col) {
             if (gameOver) return false;
             if (!isOnBoard(row, col)) return false;
@@ -1209,20 +969,10 @@
                 return false;
             }
 
-            // 记录替换操作到历史
-            moveHistory.push({
-                type: 'replace',
-                row,
-                col,
-                from: WHITE,
-                to: BLACK
-            });
-
-            // 执行替换
+            moveHistory.push({ type: 'replace', row, col, from: WHITE, to: BLACK });
             board[row][col] = BLACK;
             lastMove = { row, col };
 
-            // 检查是否获胜
             if (checkWin(row, col, BLACK)) {
                 winner = BLACK;
                 gameOver = true;
@@ -1236,118 +986,419 @@
                 return true;
             }
 
-            // 替换后当前玩家不变（仍然是黑棋）
-            // 但如果有AI回合，触发AI
             updateUI();
             drawBoard();
             updateCheatTip('替换完成');
-
-            // 退出替换模式
             cheatMode = null;
             cheatReplace.classList.remove('active-mode');
-
-            // 如果当前是AI回合，触发AI
-            if (currentPlayer === WHITE && !gameOver) {
-                triggerAI();
-            }
-
+            if (currentPlayer === WHITE && !gameOver) triggerAI();
             return true;
         }
 
-        // ---------- AI ----------
+        // ================================================================
+        //  AI 触发总控
+        // ================================================================
         function triggerAI() {
             if (isAIThinking || gameOver || currentPlayer !== WHITE) return;
             if (cheatMode === 'double') return;
 
+            let atk, def, centerBonus, dist;
+            let label = 'AI';
+            let useCheat = false;
+            let useFullScan = false;
+
+            if (currentDifficulty === 'easy') {
+                atk = 1.0; def = 1.0; centerBonus = 0; dist = 1;
+            } else if (currentDifficulty === 'medium') {
+                atk = 1.2; def = 0.8; centerBonus = 2.0; dist = 2;
+            } else if (currentDifficulty === 'hard') {
+                atk = 1.1; def = 0.9; centerBonus = 2.0; dist = 2;
+            } else if (currentDifficulty === 'extreme') {
+                atk = 0.05; def = 20.0; centerBonus = 1.0; dist = 2;
+            } else if (currentDifficulty === 'thunder') {
+                atk = 1.1; def = 0.9; centerBonus = 2.0; dist = 2;
+                useCheat = true;
+                label = '雷霆大AI';
+            } else if (currentDifficulty === 'test') {
+                useFullScan = true;
+                label = '测试AI';
+            } else if (currentDifficulty === 'custom') {
+                atk = battleAttackWeight;
+                def = battleDefenseWeight;
+                centerBonus = battleCenterBonus;
+                dist = 2;
+                useCheat = customCheatEnabled;
+                useFullScan = customFullScanEnabled;
+                label = '自定义AI';
+            } else {
+                atk = 1.0; def = 1.0; centerBonus = 0; dist = 1;
+            }
+
+            if (useCheat && Math.random() < 0.30) {
+                triggerCheatAction(label);
+                return;
+            }
+
+            if (useFullScan) {
+                triggerFullScan(label);
+                return;
+            }
+
+            triggerNormalMove(atk, def, centerBonus, dist, label);
+        }
+
+        // ================================================================
+        //  普通走法
+        // ================================================================
+        function triggerNormalMove(atk, def, centerBonus, dist, label) {
             isAIThinking = true;
-            statusText.textContent = 'AI 思考中...';
+            statusText.textContent = label + ' 思考中...';
             btnUndo.disabled = true;
 
             setTimeout(() => {
-                const move = getBestMove(currentDifficulty);
-                if (move) {
-                    const { row, col } = move;
-                    board[row][col] = WHITE;
-                    moveHistory.push({ type: 'move', row, col, color: WHITE });
-                    lastMove = { row, col };
-                    if (checkWin(row, col, WHITE)) {
-                        winner = WHITE;
-                        gameOver = true;
-                        isAIThinking = false;
-                        updateUI();
-                        drawBoard();
-                        showOverlay();
-                        return;
-                    }
-                    if (isBoardFull()) {
-                        winner = EMPTY;
-                        gameOver = true;
-                        isAIThinking = false;
-                        updateUI();
-                        drawBoard();
-                        showOverlay();
-                        return;
-                    }
-                    currentPlayer = BLACK;
+                const move = getBestMoveWithWeights(atk, def, centerBonus, dist);
+                if (!move) {
                     isAIThinking = false;
                     updateUI();
                     drawBoard();
-                    btnUndo.disabled = (moveHistory.length < 2);
-                } else {
-                    isAIThinking = false;
-                    updateUI();
-                    drawBoard();
+                    return;
                 }
+                const { row, col } = move;
+                board[row][col] = WHITE;
+                moveHistory.push({ type: 'move', row, col, color: WHITE });
+                lastMove = { row, col };
+
+                if (checkWin(row, col, WHITE)) {
+                    winner = WHITE;
+                    gameOver = true;
+                    isAIThinking = false;
+                    updateUI();
+                    drawBoard();
+                    showOverlay();
+                    return;
+                }
+                if (isBoardFull()) {
+                    winner = EMPTY;
+                    gameOver = true;
+                    isAIThinking = false;
+                    updateUI();
+                    drawBoard();
+                    showOverlay();
+                    return;
+                }
+                currentPlayer = BLACK;
+                isAIThinking = false;
+                updateUI();
+                drawBoard();
+                btnUndo.disabled = (moveHistory.length < 2);
             }, 30);
         }
 
         // ================================================================
-        //  AI 引擎
+        //  完全扫描 (穷举所有两步组合，无早退)
+        // ================================================================
+        function triggerFullScan(label) {
+            isAIThinking = true;
+            statusText.textContent = label + ' 穷举中...';
+            btnUndo.disabled = true;
+
+            setTimeout(() => {
+                const move = getFullScanMove();
+                if (!move) {
+                    isAIThinking = false;
+                    updateUI();
+                    drawBoard();
+                    return;
+                }
+                const { row, col } = move;
+                board[row][col] = WHITE;
+                moveHistory.push({ type: 'move', row, col, color: WHITE });
+                lastMove = { row, col };
+
+                if (checkWin(row, col, WHITE)) {
+                    winner = WHITE;
+                    gameOver = true;
+                    isAIThinking = false;
+                    updateUI();
+                    drawBoard();
+                    showOverlay();
+                    return;
+                }
+                if (isBoardFull()) {
+                    winner = EMPTY;
+                    gameOver = true;
+                    isAIThinking = false;
+                    updateUI();
+                    drawBoard();
+                    showOverlay();
+                    return;
+                }
+                currentPlayer = BLACK;
+                isAIThinking = false;
+                updateUI();
+                drawBoard();
+                btnUndo.disabled = (moveHistory.length < 2);
+            }, 60);
+        }
+
+        function getPatternScore(row, col, color) {
+            let total = 0;
+            const dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
+            for (const [dr, dc] of dirs) {
+                let count = 1;
+                let openL = false, openR = false;
+                for (let s = 1; s < 5; s++) {
+                    const nr = row + dr * s, nc = col + dc * s;
+                    if (!isOnBoard(nr, nc)) break;
+                    const v = board[nr][nc];
+                    if (v === color) { count++; continue; }
+                    if (v === EMPTY) { openR = true; break; }
+                    break;
+                }
+                for (let s = 1; s < 5; s++) {
+                    const nr = row - dr * s, nc = col - dc * s;
+                    if (!isOnBoard(nr, nc)) break;
+                    const v = board[nr][nc];
+                    if (v === color) { count++; continue; }
+                    if (v === EMPTY) { openL = true; break; }
+                    break;
+                }
+                let score = 0;
+                const openEnds = (openL ? 1 : 0) + (openR ? 1 : 0);
+                if (count >= 5) score = 1000000;
+                else if (count === 4) {
+                    if (openEnds === 2) score = 100000;
+                    else if (openEnds === 1) score = 10000;
+                } else if (count === 3) {
+                    if (openEnds === 2) score = 8000;
+                    else if (openEnds === 1) score = 1000;
+                } else if (count === 2) {
+                    if (openEnds === 2) score = 500;
+                    else if (openEnds === 1) score = 100;
+                } else if (count === 1) {
+                    if (openEnds === 2) score = 20;
+                    else if (openEnds === 1) score = 5;
+                }
+                total += score;
+            }
+            return total;
+        }
+
+        // 完全扫描：遍历 AI 所有落点 × 玩家所有回应，找出最优解
+        // ★ 无任何早退，必须遍历完所有组合
+        function getFullScanMove() {
+            const empty = getEmptyCells();
+            if (empty.length === 0) return null;
+
+            if (moveHistory.length === 0) {
+                const center = Math.floor(SIZE / 2);
+                return { row: center, col: center };
+            }
+
+            let bestGuaranteed = -Infinity;
+            let bestMove = empty[0];
+
+            for (let i = 0; i < empty.length; i++) {
+                const aiPos = empty[i];
+                const ar = aiPos.row, ac = aiPos.col;
+                board[ar][ac] = WHITE;
+
+                const aiWin = checkWinSilent(ar, ac, WHITE);
+                const aiScore = aiWin ? 1e8 : getPatternScore(ar, ac, WHITE);
+
+                let worstOutcome = +Infinity;
+                for (let j = 0; j < empty.length; j++) {
+                    if (i === j) continue;
+                    const pPos = empty[j];
+                    const pr = pPos.row, pc = pPos.col;
+
+                    board[pr][pc] = BLACK;
+                    let outcome;
+                    if (checkWinSilent(pr, pc, BLACK)) {
+                        outcome = -1e9;
+                    } else {
+                        const playerScore = getPatternScore(pr, pc, BLACK);
+                        outcome = aiScore - playerScore * 0.9;
+                    }
+                    board[pr][pc] = EMPTY;
+
+                    if (outcome < worstOutcome) {
+                        worstOutcome = outcome;
+                    }
+                }
+
+                board[ar][ac] = EMPTY;
+
+                if (worstOutcome > bestGuaranteed) {
+                    bestGuaranteed = worstOutcome;
+                    bestMove = aiPos;
+                }
+            }
+
+            return bestMove;
+        }
+
+        // ================================================================
+        //  外挂动作
+        // ================================================================
+        function triggerCheatAction(label) {
+            isAIThinking = true;
+            statusText.textContent = label + ' 思考中...';
+            btnUndo.disabled = true;
+
+            setTimeout(() => {
+                const options = [];
+                let blackCount = 0;
+                for (let r = 0; r < SIZE; r++)
+                    for (let c = 0; c < SIZE; c++)
+                        if (board[r][c] === BLACK) blackCount++;
+                if (blackCount > 0) options.push('replace');
+                if (getEmptyCells().length >= 2) options.push('double');
+                if (moveHistory.length >= 2) options.push('rollback');
+                if (playerCanWinNextMove()) options.push('win');
+                if (options.length === 0) options.push('replace');
+
+                const choice = options[Math.floor(Math.random() * options.length)];
+                switch (choice) {
+                    case 'replace': executeCheatReplace(label); break;
+                    case 'double': executeCheatDouble(label); break;
+                    case 'rollback': executeCheatRollback(label); break;
+                    case 'win': executeCheatWin(label); break;
+                }
+            }, 400);
+        }
+
+        function executeCheatReplace(label) {
+            const blackPieces = [];
+            for (let r = 0; r < SIZE; r++)
+                for (let c = 0; c < SIZE; c++)
+                    if (board[r][c] === BLACK) blackPieces.push({ row: r, col: c });
+            if (blackPieces.length === 0) { triggerNormalMove(1.1, 0.9, 2.0, 2, label); return; }
+            let bestTarget = blackPieces[0], bestScore = -Infinity;
+            for (const t of blackPieces) {
+                const score = evaluatePoint(t.row, t.col, WHITE);
+                if (score > bestScore) { bestScore = score; bestTarget = t; }
+            }
+            board[bestTarget.row][bestTarget.col] = WHITE;
+            moveHistory.push({ type: 'replace', row: bestTarget.row, col: bestTarget.col, from: BLACK, to: WHITE });
+            lastMove = { row: bestTarget.row, col: bestTarget.col };
+            showNotification(`⚡ ${label} 使用了【替换】：黑子 → 白子`);
+            if (checkWin(bestTarget.row, bestTarget.col, WHITE)) {
+                winner = WHITE; gameOver = true; isAIThinking = false;
+                updateUI(); drawBoard(); showOverlay(); return;
+            }
+            currentPlayer = BLACK;
+            isAIThinking = false;
+            updateUI(); drawBoard();
+            btnUndo.disabled = (moveHistory.length < 2);
+        }
+
+        function executeCheatDouble(label) {
+            const m1 = getBestMoveWithWeights(1.1, 0.9, 2.0, 2);
+            if (!m1) { triggerNormalMove(1.1, 0.9, 2.0, 2, label); return; }
+            board[m1.row][m1.col] = WHITE;
+            moveHistory.push({ type: 'move', row: m1.row, col: m1.col, color: WHITE });
+            lastMove = { row: m1.row, col: m1.col };
+            if (checkWin(m1.row, m1.col, WHITE)) {
+                winner = WHITE; gameOver = true; isAIThinking = false;
+                updateUI(); drawBoard(); showOverlay();
+                showNotification(`⚡ ${label} 使用了【下两颗】并获胜！`);
+                return;
+            }
+            const m2 = getBestMoveWithWeights(1.1, 0.9, 2.0, 2);
+            if (m2) {
+                board[m2.row][m2.col] = WHITE;
+                moveHistory.push({ type: 'move', row: m2.row, col: m2.col, color: WHITE });
+                lastMove = { row: m2.row, col: m2.col };
+                if (checkWin(m2.row, m2.col, WHITE)) {
+                    winner = WHITE; gameOver = true; isAIThinking = false;
+                    updateUI(); drawBoard(); showOverlay();
+                    showNotification(`⚡ ${label} 使用了【下两颗】并获胜！`);
+                    return;
+                }
+            }
+            showNotification(`⚡ ${label} 使用了【下两颗】`);
+            if (isBoardFull()) {
+                winner = EMPTY; gameOver = true; isAIThinking = false;
+                updateUI(); drawBoard(); showOverlay(); return;
+            }
+            currentPlayer = BLACK;
+            isAIThinking = false;
+            updateUI(); drawBoard();
+            btnUndo.disabled = (moveHistory.length < 2);
+        }
+
+        function executeCheatRollback(label) {
+            if (moveHistory.length < 2) { triggerNormalMove(1.1, 0.9, 2.0, 2, label); return; }
+            const stepsToRemove = Math.min(2, moveHistory.length);
+            for (let i = 0; i < stepsToRemove; i++) {
+                const r = moveHistory.pop();
+                if (r.type === 'move') board[r.row][r.col] = EMPTY;
+                else if (r.type === 'replace') board[r.row][r.col] = r.from;
+            }
+            if (moveHistory.length > 0) {
+                const lastRec = moveHistory[moveHistory.length - 1];
+                lastMove = { row: lastRec.row, col: lastRec.col };
+            } else { lastMove = null; }
+            gameOver = false; winner = EMPTY; winCells = []; hideOverlay();
+            showNotification(`⚡ ${label} 使用了【强制回滚】`);
+            setTimeout(() => {
+                if (!gameOver && currentPlayer === WHITE) triggerNormalMove(1.1, 0.9, 2.0, 2, label);
+                else { isAIThinking = false; updateUI(); drawBoard(); }
+            }, 500);
+        }
+
+        function executeCheatWin(label) {
+            winner = WHITE; gameOver = true;
+            let found = false;
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (board[r][c] === WHITE) {
+                        winCells = [{ row: r, col: c }];
+                        found = true; break;
+                    }
+                }
+                if (found) break;
+            }
+            if (!found) {
+                const center = Math.floor(SIZE / 2);
+                board[center][center] = WHITE;
+                moveHistory.push({ type: 'move', row: center, col: center, color: WHITE });
+                winCells = [{ row: center, col: center }];
+            }
+            isAIThinking = false;
+            updateUI(); drawBoard(); showOverlay();
+            showNotification(`⚡ ${label} 使用了【Win！】直接获胜！`);
+        }
+
+        // ================================================================
+        //  通用 AI 引擎
         // ================================================================
         const SCORES = {
-            FIVE: 100000,
-            LIVE_FOUR: 50000,
-            RUSH_FOUR: 5000,
-            LIVE_THREE: 3000,
-            SLEEP_THREE: 500,
-            LIVE_TWO: 200,
-            SLEEP_TWO: 50,
-            LIVE_ONE: 10,
-            SLEEP_ONE: 5,
+            FIVE: 100000, LIVE_FOUR: 50000, RUSH_FOUR: 5000,
+            LIVE_THREE: 3000, SLEEP_THREE: 500, LIVE_TWO: 200,
+            SLEEP_TWO: 50, LIVE_ONE: 10, SLEEP_ONE: 5,
         };
 
         function evaluatePoint(row, col, color) {
             if (!isOnBoard(row, col) || board[row][col] !== EMPTY) return 0;
             board[row][col] = color;
             let total = 0;
-            const dirs = [
-                [0, 1],
-                [1, 0],
-                [1, 1],
-                [1, -1]
-            ];
+            const dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
             for (const [dr, dc] of dirs) {
-                let count = 1,
-                    openL = false,
-                    openR = false,
-                    blockL = false,
-                    blockR = false;
+                let count = 1, openL = false, openR = false;
                 for (let s = 1; s < 5; s++) {
-                    const nr = row + dr * s,
-                        nc = col + dc * s;
-                    if (!isOnBoard(nr, nc)) { blockR = true; break; }
+                    const nr = row + dr * s, nc = col + dc * s;
+                    if (!isOnBoard(nr, nc)) break;
                     if (board[nr][nc] === color) { count++; continue; }
                     if (board[nr][nc] === EMPTY) { openR = true; break; }
-                    blockR = true;
                     break;
                 }
                 for (let s = 1; s < 5; s++) {
-                    const nr = row - dr * s,
-                        nc = col - dc * s;
-                    if (!isOnBoard(nr, nc)) { blockL = true; break; }
+                    const nr = row - dr * s, nc = col - dc * s;
+                    if (!isOnBoard(nr, nc)) break;
                     if (board[nr][nc] === color) { count++; continue; }
                     if (board[nr][nc] === EMPTY) { openL = true; break; }
-                    blockL = true;
                     break;
                 }
                 if (count >= 5) { total += SCORES.FIVE; continue; }
@@ -1372,37 +1423,16 @@
             return total;
         }
 
-        function getBestMove(difficulty) {
+        function getBestMoveWithWeights(atk, def, centerBonus, dist) {
             const empty = getEmptyCells();
             if (empty.length === 0) return null;
             if (moveHistory.length === 0) {
                 const center = Math.floor(SIZE / 2);
                 return { row: center, col: center };
             }
-
-            if (difficulty === 'easy') {
-                const candidates = empty.filter(cell => isNearPiece(cell.row, cell.col, 1));
-                if (candidates.length > 0) return candidates[Math.floor(Math.random() * candidates.length)];
-                return empty[Math.floor(Math.random() * empty.length)];
-            }
-
-            let atk, def, centerBonus, dist;
-            if (difficulty === 'medium') { atk = 1.0;
-                def = 1.0;
-                centerBonus = 0;
-                dist = 1; } else if (difficulty === 'hard') { atk = 1.2;
-                def = 0.8;
-                centerBonus = 2.0;
-                dist = 2; } else { atk = 1.1;
-                def = 0.9;
-                centerBonus = 2.0;
-                dist = 2; }
-
             const candidates = empty.filter(cell => isNearPiece(cell.row, cell.col, dist));
             if (candidates.length === 0) return empty[Math.floor(Math.random() * empty.length)];
-
-            let bestScore = -Infinity,
-                bestMove = candidates[0];
+            let bestScore = -Infinity, bestMove = candidates[0];
             for (const cell of candidates) {
                 const { row, col } = cell;
                 let score = evaluatePoint(row, col, WHITE) * atk + evaluatePoint(row, col, BLACK) * def;
@@ -1410,28 +1440,30 @@
                     const cd = Math.abs(row - 7) + Math.abs(col - 7);
                     score += (14 - cd) * centerBonus;
                 }
-                if (score > bestScore) { bestScore = score;
-                    bestMove = cell; }
+                if (score > bestScore) { bestScore = score; bestMove = cell; }
             }
             return bestMove;
+        }
+
+        function getRecommendMove() {
+            if (recommendMode === 'custom') {
+                return getBestMoveWithWeights(recommendAttackWeight, recommendDefenseWeight, recommendCenterBonus, 2);
+            }
+            return getBestMoveWithWeights(0.05, 20.0, 1.0, 2);
         }
 
         // ================================================================
         //  绘图
         // ================================================================
-
         function drawBoard() {
-            const w = canvas.width,
-                h = canvas.height;
+            const w = canvas.width, h = canvas.height;
             ctx.clearRect(0, 0, w, h);
-
             const grad = ctx.createLinearGradient(0, 0, w, h);
             grad.addColorStop(0, '#eaceac');
             grad.addColorStop(0.5, '#ddbc8a');
             grad.addColorStop(1, '#ceaa7a');
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, w, h);
-
             ctx.globalAlpha = 0.06;
             for (let i = 0; i < 20; i++) {
                 const y = 10 + i * 30 + Math.sin(i * 0.7) * 8;
@@ -1443,175 +1475,89 @@
                 ctx.stroke();
             }
             ctx.globalAlpha = 1;
-
             ctx.strokeStyle = '#4d3220';
             ctx.lineWidth = 1.2;
-            ctx.shadowColor = 'rgba(0,0,0,0.1)';
-            ctx.shadowBlur = 2;
             for (let i = 0; i < SIZE; i++) {
                 const pos = OFFSET + i * CELL_SIZE;
-                ctx.beginPath();
-                ctx.moveTo(pos, OFFSET);
-                ctx.lineTo(pos, OFFSET + (SIZE - 1) * CELL_SIZE);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.moveTo(OFFSET, pos);
-                ctx.lineTo(OFFSET + (SIZE - 1) * CELL_SIZE, pos);
-                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(pos, OFFSET); ctx.lineTo(pos, OFFSET + (SIZE - 1) * CELL_SIZE); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(OFFSET, pos); ctx.lineTo(OFFSET + (SIZE - 1) * CELL_SIZE, pos); ctx.stroke();
             }
-            ctx.shadowBlur = 0;
-
-            const stars = [
-                [3, 3],
-                [3, 11],
-                [11, 3],
-                [11, 11],
-                [7, 7]
-            ];
+            const stars = [[3, 3], [3, 11], [11, 3], [11, 11], [7, 7]];
             ctx.fillStyle = '#4d3220';
             for (const [r, c] of stars) {
-                const x = OFFSET + c * CELL_SIZE,
-                    y = OFFSET + r * CELL_SIZE;
                 ctx.beginPath();
-                ctx.arc(x, y, 4.5, 0, Math.PI * 2);
+                ctx.arc(OFFSET + c * CELL_SIZE, OFFSET + r * CELL_SIZE, 4.5, 0, Math.PI * 2);
                 ctx.fill();
             }
 
-            // ----- 复盘模式：从历史重建棋盘 -----
-            let currentBoard = board;
-            let currentLastMove = lastMove;
-            let currentGameOver = gameOver;
-            let currentWinCells = winCells;
-
+            let currentBoard = board, currentLastMove = lastMove, currentGameOver = gameOver, currentWinCells = winCells;
             if (isReviewMode) {
-                const displayBoard = Array.from({ length: SIZE }, () => Array(SIZE).fill(EMPTY));
-                // 逐步执行历史记录
+                const db = Array.from({ length: SIZE }, () => Array(SIZE).fill(EMPTY));
                 for (let i = 0; i < reviewStep; i++) {
-                    const record = moveHistory[i];
-                    if (record.type === 'move') {
-                        displayBoard[record.row][record.col] = record.color;
-                    } else if (record.type === 'replace') {
-                        displayBoard[record.row][record.col] = record.to; // 显示为黑子
-                    }
+                    const r = moveHistory[i];
+                    if (r.type === 'move') db[r.row][r.col] = r.color;
+                    else if (r.type === 'replace') db[r.row][r.col] = r.to;
                 }
-                currentBoard = displayBoard;
-                // 最后一步标记
-                if (reviewStep > 0) {
-                    const lastRec = moveHistory[reviewStep - 1];
-                    if (lastRec.type === 'move') {
-                        currentLastMove = { row: lastRec.row, col: lastRec.col };
-                    } else if (lastRec.type === 'replace') {
-                        currentLastMove = { row: lastRec.row, col: lastRec.col };
-                    } else {
-                        currentLastMove = null;
-                    }
-                } else {
-                    currentLastMove = null;
-                }
+                currentBoard = db;
+                currentLastMove = reviewStep > 0 ? { row: moveHistory[reviewStep - 1].row, col: moveHistory[reviewStep - 1].col } : null;
                 currentGameOver = false;
                 currentWinCells = [];
             }
 
-            // ----- 绘制棋子 -----
-            for (let r = 0; r < SIZE; r++) {
-                for (let c = 0; c < SIZE; c++) {
-                    if (currentBoard[r][c] === EMPTY) continue;
-                    const x = OFFSET + c * CELL_SIZE,
-                        y = OFFSET + r * CELL_SIZE;
-                    drawPiece(x, y, currentBoard[r][c], false);
-                }
-            }
+            for (let r = 0; r < SIZE; r++)
+                for (let c = 0; c < SIZE; c++)
+                    if (currentBoard[r][c] !== EMPTY)
+                        drawPiece(OFFSET + c * CELL_SIZE, OFFSET + r * CELL_SIZE, currentBoard[r][c], false);
 
-            // ----- 最后一步高亮 (非复盘) -----
             if (!isReviewMode && currentLastMove) {
-                const x = OFFSET + currentLastMove.col * CELL_SIZE,
-                    y = OFFSET + currentLastMove.row * CELL_SIZE;
+                const x = OFFSET + currentLastMove.col * CELL_SIZE, y = OFFSET + currentLastMove.row * CELL_SIZE;
                 ctx.shadowBlur = 0;
-                ctx.beginPath();
-                ctx.arc(x, y, 6, 0, Math.PI * 2);
-                const col = (currentBoard[currentLastMove.row] && currentBoard[currentLastMove.row][currentLastMove.col] ===
-                    BLACK) ? '#ff6b4a' : '#ff3b6a';
-                ctx.fillStyle = col;
+                ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2);
+                ctx.fillStyle = (currentBoard[currentLastMove.row] && currentBoard[currentLastMove.row][currentLastMove.col] === BLACK) ? '#ff6b4a' : '#ff3b6a';
                 ctx.fill();
             }
-
-            // ----- 获胜高亮 (非复盘) -----
             if (!isReviewMode && currentGameOver && winner !== EMPTY && currentWinCells.length >= 5) {
                 for (const cell of currentWinCells) {
-                    const x = OFFSET + cell.col * CELL_SIZE,
-                        y = OFFSET + cell.row * CELL_SIZE;
+                    const x = OFFSET + cell.col * CELL_SIZE, y = OFFSET + cell.row * CELL_SIZE;
                     ctx.shadowBlur = 0;
-                    ctx.beginPath();
-                    ctx.arc(x, y, PIECE_RADIUS + 4, 0, Math.PI * 2);
-                    ctx.strokeStyle = '#f5d742';
-                    ctx.lineWidth = 3.5;
-                    ctx.shadowColor = '#f5d742';
-                    ctx.shadowBlur = 14;
-                    ctx.stroke();
-                    ctx.shadowBlur = 0;
+                    ctx.beginPath(); ctx.arc(x, y, PIECE_RADIUS + 4, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#f5d742'; ctx.lineWidth = 3.5;
+                    ctx.shadowColor = '#f5d742'; ctx.shadowBlur = 14; ctx.stroke(); ctx.shadowBlur = 0;
                 }
             }
-
-            // ----- 替换模式高亮 -----
             if (!isReviewMode && cheatMode === 'replace' && hoverPos) {
                 const { row, col } = hoverPos;
                 if (isOnBoard(row, col) && currentBoard[row][col] === WHITE) {
-                    const x = OFFSET + col * CELL_SIZE,
-                        y = OFFSET + row * CELL_SIZE;
+                    const x = OFFSET + col * CELL_SIZE, y = OFFSET + row * CELL_SIZE;
                     ctx.shadowBlur = 0;
-                    ctx.beginPath();
-                    ctx.arc(x, y, PIECE_RADIUS + 10, 0, Math.PI * 2);
-                    ctx.strokeStyle = 'rgba(255, 215, 0, 0.7)';
-                    ctx.lineWidth = 4;
-                    ctx.setLineDash([6, 6]);
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-                    ctx.shadowBlur = 0;
+                    ctx.beginPath(); ctx.arc(x, y, PIECE_RADIUS + 10, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(255, 215, 0, 0.7)'; ctx.lineWidth = 4;
+                    ctx.setLineDash([6, 6]); ctx.stroke(); ctx.setLineDash([]); ctx.shadowBlur = 0;
                 }
             }
-
-            // ----- 悬停预览 -----
             if (!isReviewMode && hoverPos && !gameOver && !isAIThinking && currentPlayer === BLACK && cheatMode !== 'replace') {
                 const { row, col } = hoverPos;
                 if (isOnBoard(row, col) && currentBoard[row][col] === EMPTY) {
-                    const x = OFFSET + col * CELL_SIZE,
-                        y = OFFSET + row * CELL_SIZE;
-                    ctx.globalAlpha = 0.4;
-                    drawPiece(x, y, BLACK, true);
-                    ctx.globalAlpha = 1;
+                    const x = OFFSET + col * CELL_SIZE, y = OFFSET + row * CELL_SIZE;
+                    ctx.globalAlpha = 0.4; drawPiece(x, y, BLACK, true); ctx.globalAlpha = 1;
                 }
             }
-
-            // ----- 高亮白子活路 -----
             if (!isReviewMode && highlightEnabled) highlightWhitePieces(currentBoard);
-
-            // ----- 显示AI推荐点 -----
             if (!isReviewMode && bestMoveEnabled && !gameOver && !isAIThinking && cheatMode !== 'double') {
-                const move = getBestMove('thunder');
+                const move = getRecommendMove();
                 if (move) {
-                    const x = OFFSET + move.col * CELL_SIZE,
-                        y = OFFSET + move.row * CELL_SIZE;
+                    const x = OFFSET + move.col * CELL_SIZE, y = OFFSET + move.row * CELL_SIZE;
                     ctx.shadowBlur = 0;
-                    ctx.beginPath();
-                    ctx.arc(x, y, PIECE_RADIUS + 8, 0, Math.PI * 2);
-                    ctx.strokeStyle = '#00ff88';
-                    ctx.lineWidth = 3;
-                    ctx.setLineDash([6, 5]);
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-                    ctx.beginPath();
-                    ctx.arc(x, y, 5, 0, Math.PI * 2);
-                    ctx.fillStyle = '#00ff88';
-                    ctx.shadowColor = '#00ff88';
-                    ctx.shadowBlur = 10;
-                    ctx.fill();
+                    ctx.beginPath(); ctx.arc(x, y, PIECE_RADIUS + 8, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#00ff88'; ctx.lineWidth = 3;
+                    ctx.setLineDash([6, 5]); ctx.stroke(); ctx.setLineDash([]);
+                    ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2);
+                    ctx.fillStyle = '#00ff88'; ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 10; ctx.fill();
                     ctx.shadowBlur = 0;
                 }
             }
-
             ctx.shadowBlur = 0;
-            ctx.strokeStyle = '#8a6a4a';
-            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#8a6a4a'; ctx.lineWidth = 2;
             ctx.strokeRect(OFFSET - 6, OFFSET - 6, (SIZE - 1) * CELL_SIZE + 12, (SIZE - 1) * CELL_SIZE + 12);
         }
 
@@ -1620,54 +1566,34 @@
             ctx.shadowColor = 'rgba(0,0,0,0.35)';
             ctx.shadowBlur = ghost ? 4 : 10;
             ctx.shadowOffsetY = ghost ? 0 : 2;
-
             const grad = ctx.createRadialGradient(x - radius * 0.3, y - radius * 0.35, radius * 0.08, x, y, radius);
             if (color === BLACK) {
-                grad.addColorStop(0, '#666');
-                grad.addColorStop(0.3, '#333');
-                grad.addColorStop(0.8, '#111');
-                grad.addColorStop(1, '#000');
+                grad.addColorStop(0, '#666'); grad.addColorStop(0.3, '#333');
+                grad.addColorStop(0.8, '#111'); grad.addColorStop(1, '#000');
             } else {
-                grad.addColorStop(0, '#ffffff');
-                grad.addColorStop(0.3, '#f5f5f5');
-                grad.addColorStop(0.7, '#e0e0e0');
-                grad.addColorStop(1, '#b8b8b8');
+                grad.addColorStop(0, '#fff'); grad.addColorStop(0.3, '#f5f5f5');
+                grad.addColorStop(0.7, '#e0e0e0'); grad.addColorStop(1, '#b8b8b8');
             }
-            ctx.beginPath();
-            ctx.arc(x, y, radius, 0, Math.PI * 2);
-            ctx.fillStyle = grad;
-            ctx.fill();
-
+            ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = grad; ctx.fill();
             if (!ghost) {
                 ctx.shadowBlur = 0;
-                const hl = ctx.createRadialGradient(x - radius * 0.3, y - radius * 0.35, radius * 0.02, x - radius * 0.2, y -
-                    radius * 0.25, radius * 0.35);
-                if (color === BLACK) {
-                    hl.addColorStop(0, 'rgba(255,255,255,0.2)');
-                    hl.addColorStop(1, 'rgba(255,255,255,0)');
-                } else {
-                    hl.addColorStop(0, 'rgba(255,255,255,0.9)');
-                    hl.addColorStop(1, 'rgba(255,255,255,0)');
-                }
-                ctx.beginPath();
-                ctx.arc(x, y, radius, 0, Math.PI * 2);
-                ctx.fillStyle = hl;
-                ctx.fill();
+                const hl = ctx.createRadialGradient(x - radius * 0.3, y - radius * 0.35, radius * 0.02, x - radius * 0.2, y - radius * 0.25, radius * 0.35);
+                if (color === BLACK) { hl.addColorStop(0, 'rgba(255,255,255,0.2)'); hl.addColorStop(1, 'rgba(255,255,255,0)'); }
+                else { hl.addColorStop(0, 'rgba(255,255,255,0.9)'); hl.addColorStop(1, 'rgba(255,255,255,0)'); }
+                ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fillStyle = hl; ctx.fill();
             }
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
+            ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
         }
 
         function highlightWhitePieces(currentBoard) {
             const highlight = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
-
             function processLine(coords) {
                 const n = coords.length;
                 for (let i = 0; i < n; i++) {
                     for (let len = 3; len <= 5 && i + len - 1 < n; len++) {
-                        let wc = 0,
-                            ec = 0,
-                            valid = true;
+                        let wc = 0, ec = 0, valid = true;
                         for (let j = i; j < i + len; j++) {
                             const { row, col } = coords[j];
                             if (currentBoard[row][col] === WHITE) wc++;
@@ -1675,16 +1601,9 @@
                             else { valid = false; break; }
                         }
                         if (!valid || wc < 3 || ec > 1) continue;
-                        let openL = false,
-                            openR = false;
-                        if (i - 1 >= 0) {
-                            const { row, col } = coords[i - 1];
-                            if (currentBoard[row][col] === EMPTY) openL = true;
-                        }
-                        if (i + len < n) {
-                            const { row, col } = coords[i + len];
-                            if (currentBoard[row][col] === EMPTY) openR = true;
-                        }
+                        let openL = false, openR = false;
+                        if (i - 1 >= 0 && currentBoard[coords[i - 1].row][coords[i - 1].col] === EMPTY) openL = true;
+                        if (i + len < n && currentBoard[coords[i + len].row][coords[i + len].col] === EMPTY) openR = true;
                         if (!openL && !openR) continue;
                         const color = (wc >= 4) ? 'red' : 'blue';
                         for (let j = i; j < i + len; j++) {
@@ -1697,84 +1616,56 @@
                     }
                 }
             }
-
             for (let r = 0; r < SIZE; r++) {
-                const coords = [];
-                for (let c = 0; c < SIZE; c++) coords.push({ row: r, col: c });
+                const coords = []; for (let c = 0; c < SIZE; c++) coords.push({ row: r, col: c });
                 processLine(coords);
             }
             for (let c = 0; c < SIZE; c++) {
-                const coords = [];
-                for (let r = 0; r < SIZE; r++) coords.push({ row: r, col: c });
+                const coords = []; for (let r = 0; r < SIZE; r++) coords.push({ row: r, col: c });
                 processLine(coords);
             }
             for (let start = 0; start < SIZE; start++) {
-                let coords = [];
-                let r = 0,
-                    c = start;
-                while (isOnBoard(r, c)) { coords.push({ row: r, col: c });
-                    r++;
-                    c++; }
+                let coords = [], r = 0, c = start;
+                while (isOnBoard(r, c)) { coords.push({ row: r, col: c }); r++; c++; }
                 if (coords.length >= 3) processLine(coords);
                 if (start !== 0) {
-                    coords = [];
-                    r = start;
-                    c = 0;
-                    while (isOnBoard(r, c)) { coords.push({ row: r, col: c });
-                        r++;
-                        c++; }
+                    coords = []; r = start; c = 0;
+                    while (isOnBoard(r, c)) { coords.push({ row: r, col: c }); r++; c++; }
                     if (coords.length >= 3) processLine(coords);
                 }
             }
             for (let start = 0; start < SIZE; start++) {
-                let coords = [];
-                let r = 0,
-                    c = start;
-                while (isOnBoard(r, c)) { coords.push({ row: r, col: c });
-                    r++;
-                    c--; }
+                let coords = [], r = 0, c = start;
+                while (isOnBoard(r, c)) { coords.push({ row: r, col: c }); r++; c--; }
                 if (coords.length >= 3) processLine(coords);
                 if (start !== 0) {
-                    coords = [];
-                    r = start;
-                    c = SIZE - 1;
-                    while (isOnBoard(r, c)) { coords.push({ row: r, col: c });
-                        r++;
-                        c--; }
+                    coords = []; r = start; c = SIZE - 1;
+                    while (isOnBoard(r, c)) { coords.push({ row: r, col: c }); r++; c--; }
                     if (coords.length >= 3) processLine(coords);
                 }
             }
-
-            for (let r = 0; r < SIZE; r++) {
+            for (let r = 0; r < SIZE; r++)
                 for (let c = 0; c < SIZE; c++) {
                     const color = highlight[r][c];
                     if (color === 0) continue;
-                    const x = OFFSET + c * CELL_SIZE,
-                        y = OFFSET + r * CELL_SIZE;
+                    const x = OFFSET + c * CELL_SIZE, y = OFFSET + r * CELL_SIZE;
                     ctx.shadowBlur = 0;
-                    ctx.beginPath();
-                    ctx.arc(x, y, PIECE_RADIUS + 5, 0, Math.PI * 2);
+                    ctx.beginPath(); ctx.arc(x, y, PIECE_RADIUS + 5, 0, Math.PI * 2);
                     ctx.strokeStyle = color === 'red' ? '#ff006e' : '#3a86ff';
                     ctx.lineWidth = color === 'red' ? 4 : 3.5;
                     ctx.shadowColor = color === 'red' ? '#ff006e' : '#3a86ff';
-                    ctx.shadowBlur = 12;
-                    ctx.stroke();
-                    ctx.shadowBlur = 0;
+                    ctx.shadowBlur = 12; ctx.stroke(); ctx.shadowBlur = 0;
                 }
-            }
         }
 
-        // ---------- 遮罩 ----------
         function showOverlay() {
             if (winner === BLACK) resultText.textContent = '🎉 你赢了！';
             else if (winner === WHITE) resultText.textContent = '😵 AI 赢了...';
             else resultText.textContent = '🤝 平局';
             overlay.classList.add('show');
         }
-
         function hideOverlay() { overlay.classList.remove('show'); }
 
-        // ---------- 复盘 ----------
         function enterReviewMode() {
             isReviewMode = true;
             reviewStep = moveHistory.length;
@@ -1786,14 +1677,12 @@
             btnBranch.disabled = (reviewStep >= moveHistory.length);
             closeCheatPanel();
         }
-
         function exitReviewMode() {
             isReviewMode = false;
             reviewStep = 0;
             reviewControls.classList.remove('active');
             btnBranch.disabled = true;
         }
-
         function updateProgressSlider() {
             const total = moveHistory.length;
             progressSlider.max = total;
@@ -1802,57 +1691,28 @@
             stepCount.textContent = reviewStep;
             btnBranch.disabled = (reviewStep >= total);
         }
-
         function branchFromCurrentStep() {
             if (!isReviewMode) return;
             const step = reviewStep;
             if (step >= moveHistory.length) return;
             moveHistory = moveHistory.slice(0, step);
             board = Array.from({ length: SIZE }, () => Array(SIZE).fill(EMPTY));
-            // 重建棋盘
             for (const record of moveHistory) {
-                if (record.type === 'move') {
-                    board[record.row][record.col] = record.color;
-                } else if (record.type === 'replace') {
-                    board[record.row][record.col] = record.to;
-                }
+                if (record.type === 'move') board[record.row][record.col] = record.color;
+                else if (record.type === 'replace') board[record.row][record.col] = record.to;
             }
-            lastMove = moveHistory.length > 0 ? {
-                row: moveHistory[moveHistory.length - 1].row,
-                col: moveHistory[moveHistory.length - 1].col
-            } : null;
-            // 确定当前玩家
-            if (moveHistory.length === 0) {
-                currentPlayer = BLACK;
-            } else {
+            lastMove = moveHistory.length > 0 ? { row: moveHistory[moveHistory.length - 1].row, col: moveHistory[moveHistory.length - 1].col } : null;
+            if (moveHistory.length === 0) currentPlayer = BLACK;
+            else {
                 const last = moveHistory[moveHistory.length - 1];
-                if (last.type === 'move') {
-                    currentPlayer = (last.color === BLACK) ? WHITE : BLACK;
-                } else if (last.type === 'replace') {
-                    // 替换操作不改变回合，需要看替换前的状态
-                    // 简单处理：检查上一步
-                    if (moveHistory.length >= 2) {
-                        const prev = moveHistory[moveHistory.length - 2];
-                        if (prev.type === 'move') {
-                            currentPlayer = (prev.color === BLACK) ? WHITE : BLACK;
-                        } else {
-                            currentPlayer = BLACK;
-                        }
-                    } else {
-                        currentPlayer = BLACK;
-                    }
-                }
+                if (last.type === 'move') currentPlayer = (last.color === BLACK) ? WHITE : BLACK;
+                else currentPlayer = BLACK;
             }
-            gameOver = false;
-            winner = EMPTY;
-            winCells = [];
-            exitReviewMode();
-            hideOverlay();
-            cheatMode = null;
-            doubleCount = 0;
+            gameOver = false; winner = EMPTY; winCells = [];
+            exitReviewMode(); hideOverlay();
+            cheatMode = null; doubleCount = 0;
             [cheatReplace, cheatDouble, cheatWin].forEach(b => b.classList.remove('active-mode'));
-            updateUI();
-            drawBoard();
+            updateUI(); drawBoard();
             btnUndo.disabled = (moveHistory.length < 2);
             if (currentPlayer === WHITE && !gameOver) triggerAI();
         }
@@ -1865,32 +1725,32 @@
             btnBranch.disabled = (reviewStep >= moveHistory.length);
             drawBoard();
         });
-
         btnExitReview.addEventListener('click', function() {
-            if (isReviewMode) { exitReviewMode();
-                showOverlay();
-                drawBoard();
-                updateUI(); }
+            if (isReviewMode) { exitReviewMode(); showOverlay(); drawBoard(); updateUI(); }
         });
         btnBranch.addEventListener('click', branchFromCurrentStep);
 
-        // ---------- UI ----------
         function updateUI() {
             if (gameOver) {
-                if (winner === BLACK) { turnDot.className = 'turn-dot black win';
-                    statusText.textContent = '🎉 你赢了!'; } else if (winner === WHITE) { turnDot.className =
-                        'turn-dot white win';
-                    statusText.textContent = '😵 AI 赢了...'; } else { turnDot.className = 'turn-dot';
-                    statusText.textContent = '🤝 平局'; }
+                if (winner === BLACK) { turnDot.className = 'turn-dot black win'; statusText.textContent = '🎉 你赢了!'; }
+                else if (winner === WHITE) { turnDot.className = 'turn-dot white win'; statusText.textContent = '😵 AI 赢了...'; }
+                else { turnDot.className = 'turn-dot'; statusText.textContent = '🤝 平局'; }
                 btnUndo.disabled = true;
                 return;
             }
-            if (isAIThinking) { turnDot.className = 'turn-dot white';
-                statusText.textContent = 'AI 思考中...';
-                btnUndo.disabled = true; return; }
+            if (isAIThinking) {
+                turnDot.className = 'turn-dot white';
+                if (currentDifficulty === 'thunder') statusText.textContent = '雷霆大AI 思考中...';
+                else if (currentDifficulty === 'test') statusText.textContent = '测试AI 穷举中...';
+                else if (currentDifficulty === 'custom') {
+                    if (customCheatEnabled || customFullScanEnabled) statusText.textContent = '自定义AI 思考中...';
+                    else statusText.textContent = 'AI 思考中...';
+                } else statusText.textContent = 'AI 思考中...';
+                btnUndo.disabled = true;
+                return;
+            }
             if (cheatMode === 'double') {
-                if (doubleCount === 0) statusText.textContent = '下第1颗 ✌️';
-                else if (doubleCount === 1) statusText.textContent = '下第2颗 ✌️';
+                statusText.textContent = doubleCount === 0 ? '下第1颗 ✌️' : '下第2颗 ✌️';
                 turnDot.className = 'turn-dot black';
                 btnUndo.disabled = true;
                 return;
@@ -1901,113 +1761,61 @@
                 btnUndo.disabled = true;
                 return;
             }
-            if (currentPlayer === BLACK) { turnDot.className = 'turn-dot black';
+            if (currentPlayer === BLACK) {
+                turnDot.className = 'turn-dot black';
                 statusText.textContent = '你的回合';
-                btnUndo.disabled = (moveHistory.length < 2); } else { turnDot.className = 'turn-dot white';
+                btnUndo.disabled = (moveHistory.length < 2);
+            } else {
+                turnDot.className = 'turn-dot white';
                 statusText.textContent = 'AI 回合';
-                btnUndo.disabled = true; }
+                btnUndo.disabled = true;
+            }
         }
 
-        // ---------- 外挂面板 ----------
         function toggleCheatPanel(e) {
             e.stopPropagation();
             isCheatPanelOpen = !isCheatPanelOpen;
             cheatPanel.classList.toggle('open', isCheatPanelOpen);
             cheatMenuBtn.classList.toggle('active', isCheatPanelOpen);
         }
-
         function closeCheatPanel() {
             isCheatPanelOpen = false;
             cheatPanel.classList.remove('open');
             cheatMenuBtn.classList.remove('active');
         }
+        function updateCheatTip(msg) { cheatTip.textContent = msg; }
 
-        function updateCheatTip(msg) {
-            cheatTip.textContent = msg;
-        }
-
-        // ---------- 外挂：替换 ----------
         function toggleReplaceMode() {
-            if (gameOver || isReviewMode) {
-                updateCheatTip('游戏已结束或复盘中，无法使用');
-                return;
-            }
-            if (isAIThinking) {
-                updateCheatTip('AI思考中，请稍候');
-                return;
-            }
-
+            if (gameOver || isReviewMode) { updateCheatTip('游戏已结束或复盘中，无法使用'); return; }
+            if (isAIThinking) { updateCheatTip('AI思考中，请稍候'); return; }
             if (cheatMode === 'replace') {
-                cheatMode = null;
-                cheatReplace.classList.remove('active-mode');
-                updateCheatTip('已退出替换模式');
-                updateUI();
-                drawBoard();
-                return;
+                cheatMode = null; cheatReplace.classList.remove('active-mode');
+                updateCheatTip('已退出替换模式'); updateUI(); drawBoard(); return;
             }
-
-            if (cheatMode === 'double') {
-                cheatDouble.classList.remove('active-mode');
-                doubleCount = 0;
-            }
-            cheatMode = 'replace';
-            cheatReplace.classList.add('active-mode');
+            if (cheatMode === 'double') { cheatDouble.classList.remove('active-mode'); doubleCount = 0; }
+            cheatMode = 'replace'; cheatReplace.classList.add('active-mode');
             updateCheatTip('点击棋盘上的白子将其变为黑子');
-            updateUI();
-            drawBoard();
-            closeCheatPanel();
+            updateUI(); drawBoard(); closeCheatPanel();
         }
 
-        // ---------- 外挂：下两颗 ----------
         function toggleDoubleMode() {
-            if (gameOver || isReviewMode) {
-                updateCheatTip('游戏已结束或复盘中，无法使用');
-                return;
-            }
-            if (isAIThinking) {
-                updateCheatTip('AI思考中，请稍候');
-                return;
-            }
-            if (currentPlayer !== BLACK) {
-                updateCheatTip('只能在你的回合使用下两颗');
-                return;
-            }
-
+            if (gameOver || isReviewMode) { updateCheatTip('游戏已结束或复盘中，无法使用'); return; }
+            if (isAIThinking) { updateCheatTip('AI思考中，请稍候'); return; }
+            if (currentPlayer !== BLACK) { updateCheatTip('只能在你的回合使用下两颗'); return; }
             if (cheatMode === 'double') {
-                cheatMode = null;
-                doubleCount = 0;
-                cheatDouble.classList.remove('active-mode');
-                updateCheatTip('已退出下两颗模式');
-                updateUI();
-                drawBoard();
-                return;
+                cheatMode = null; doubleCount = 0; cheatDouble.classList.remove('active-mode');
+                updateCheatTip('已退出下两颗模式'); updateUI(); drawBoard(); return;
             }
-
-            if (cheatMode === 'replace') {
-                cheatReplace.classList.remove('active-mode');
-            }
-            cheatMode = 'double';
-            doubleCount = 0;
-            cheatDouble.classList.add('active-mode');
+            if (cheatMode === 'replace') cheatReplace.classList.remove('active-mode');
+            cheatMode = 'double'; doubleCount = 0; cheatDouble.classList.add('active-mode');
             updateCheatTip('下第一颗黑子 ✌️');
-            updateUI();
-            drawBoard();
-            closeCheatPanel();
+            updateUI(); drawBoard(); closeCheatPanel();
         }
 
-        // ---------- 外挂：Win！ ----------
         function forceWin() {
-            if (gameOver || isReviewMode) {
-                updateCheatTip('游戏已结束或复盘中');
-                return;
-            }
-            if (isAIThinking) {
-                updateCheatTip('AI思考中，请稍候');
-                return;
-            }
-
-            winner = BLACK;
-            gameOver = true;
+            if (gameOver || isReviewMode) { updateCheatTip('游戏已结束或复盘中'); return; }
+            if (isAIThinking) { updateCheatTip('AI思考中，请稍候'); return; }
+            winner = BLACK; gameOver = true;
             if (moveHistory.length === 0) {
                 const center = Math.floor(SIZE / 2);
                 board[center][center] = BLACK;
@@ -2018,261 +1826,156 @@
                 let found = false;
                 for (let i = moveHistory.length - 1; i >= 0; i--) {
                     const rec = moveHistory[i];
-                    let pos = null;
-                    if (rec.type === 'move') pos = { row: rec.row, col: rec.col };
-                    else if (rec.type === 'replace') pos = { row: rec.row, col: rec.col };
-                    if (pos && board[pos.row] && board[pos.row][pos.col] === BLACK) {
-                        winCells = [{ row: pos.row, col: pos.col }];
-                        found = true;
-                        break;
+                    if (board[rec.row] && board[rec.row][rec.col] === BLACK) {
+                        winCells = [{ row: rec.row, col: rec.col }];
+                        found = true; break;
                     }
                 }
                 if (!found) {
                     const center = Math.floor(SIZE / 2);
-                    if (board[center][center] === EMPTY) {
-                        board[center][center] = BLACK;
-                        moveHistory.push({ type: 'move', row: center, col: center, color: BLACK });
-                        lastMove = { row: center, col: center };
-                        winCells = [{ row: center, col: center }];
-                    } else if (board[center][center] === BLACK) {
-                        winCells = [{ row: center, col: center }];
-                    } else {
-                        winCells = [{ row: 7, col: 7 }];
-                    }
+                    board[center][center] = BLACK;
+                    winCells = [{ row: center, col: center }];
                 }
             }
-
-            updateUI();
-            drawBoard();
-            showOverlay();
-            updateCheatTip('🏆 直接获胜！');
-            closeCheatPanel();
-
-            cheatMode = null;
-            doubleCount = 0;
+            updateUI(); drawBoard(); showOverlay();
+            updateCheatTip('🏆 直接获胜！'); closeCheatPanel();
+            cheatMode = null; doubleCount = 0;
             [cheatReplace, cheatDouble, cheatWin].forEach(b => b.classList.remove('active-mode'));
         }
 
-        // ---------- 事件：棋盘点击 ----------
-        function handleCanvasClick(e) {
-            if (isReviewMode) return;
-            if (gameOver) return;
-            if (isAIThinking) return;
+        function forceRollback() {
+            if (moveHistory.length === 0) { updateCheatTip('没有可回滚的步骤'); closeCheatPanel(); return; }
+            if (isReviewMode) exitReviewMode();
+            cheatMode = null; doubleCount = 0;
+            [cheatReplace, cheatDouble, cheatWin].forEach(b => b.classList.remove('active-mode'));
+            const stepsToRemove = Math.min(2, moveHistory.length);
+            for (let i = 0; i < stepsToRemove; i++) {
+                const r = moveHistory.pop();
+                if (r.type === 'move') board[r.row][r.col] = EMPTY;
+                else if (r.type === 'replace') board[r.row][r.col] = r.from;
+            }
+            gameOver = false; winner = EMPTY; winCells = []; hideOverlay();
+            if (moveHistory.length > 0) {
+                const lastRec = moveHistory[moveHistory.length - 1];
+                lastMove = { row: lastRec.row, col: lastRec.col };
+                if (lastRec.type === 'move') currentPlayer = (lastRec.color === BLACK) ? WHITE : BLACK;
+                else currentPlayer = BLACK;
+            } else {
+                lastMove = null; currentPlayer = BLACK;
+            }
+            updateUI(); drawBoard();
+            btnUndo.disabled = (moveHistory.length < 2);
+            updateCheatTip(`⏪ 已强制回滚 ${stepsToRemove} 步`);
+            closeCheatPanel();
+            if (currentPlayer === WHITE && !gameOver) triggerAI();
+        }
 
+        function handleCanvasClick(e) {
+            if (isReviewMode || gameOver || isAIThinking) return;
             const pos = getBoardPos(e);
             if (!pos) return;
             const { row, col } = pos;
-
-            // ---- 替换模式 ----
             if (cheatMode === 'replace') {
-                if (board[row][col] === WHITE) {
-                    executeReplace(row, col);
-                    return;
-                } else {
-                    updateCheatTip('请点击白子（AI的棋子）');
-                    return;
-                }
+                if (board[row][col] === WHITE) { executeReplace(row, col); return; }
+                else { updateCheatTip('请点击白子（AI的棋子）'); return; }
             }
-
-            // ---- 下两颗模式 ----
             if (cheatMode === 'double') {
-                if (board[row][col] !== EMPTY) {
-                    updateCheatTip('这个位置已有棋子');
-                    return;
-                }
+                if (board[row][col] !== EMPTY) { updateCheatTip('这个位置已有棋子'); return; }
                 board[row][col] = BLACK;
                 moveHistory.push({ type: 'move', row, col, color: BLACK });
                 lastMove = { row, col };
-
                 if (checkWin(row, col, BLACK)) {
-                    winner = BLACK;
-                    gameOver = true;
-                    cheatMode = null;
-                    doubleCount = 0;
+                    winner = BLACK; gameOver = true; cheatMode = null; doubleCount = 0;
                     cheatDouble.classList.remove('active-mode');
-                    updateUI();
-                    drawBoard();
-                    showOverlay();
-                    updateCheatTip('下两颗后获胜！🏆');
-                    closeCheatPanel();
-                    return;
+                    updateUI(); drawBoard(); showOverlay();
+                    updateCheatTip('下两颗后获胜！🏆'); closeCheatPanel(); return;
                 }
-
                 if (isBoardFull()) {
-                    winner = EMPTY;
-                    gameOver = true;
-                    cheatMode = null;
-                    doubleCount = 0;
+                    winner = EMPTY; gameOver = true; cheatMode = null; doubleCount = 0;
                     cheatDouble.classList.remove('active-mode');
-                    updateUI();
-                    drawBoard();
-                    showOverlay();
-                    updateCheatTip('平局');
-                    closeCheatPanel();
-                    return;
+                    updateUI(); drawBoard(); showOverlay();
+                    updateCheatTip('平局'); closeCheatPanel(); return;
                 }
-
                 doubleCount++;
                 if (doubleCount >= 2) {
-                    cheatMode = null;
-                    doubleCount = 0;
+                    cheatMode = null; doubleCount = 0;
                     cheatDouble.classList.remove('active-mode');
                     currentPlayer = WHITE;
                     updateCheatTip('两颗已下完，轮到AI');
-                    updateUI();
-                    drawBoard();
-                    if (currentPlayer === WHITE && !gameOver) {
-                        triggerAI();
-                    }
+                    updateUI(); drawBoard();
+                    if (!gameOver) triggerAI();
                     closeCheatPanel();
                 } else {
                     updateCheatTip('下第二颗黑子 ✌️');
-                    updateUI();
-                    drawBoard();
+                    updateUI(); drawBoard();
                 }
                 return;
             }
-
-            // ---- 正常落子 ----
-            if (currentPlayer !== BLACK) {
-                updateCheatTip('轮到AI，请稍候');
-                return;
-            }
+            if (currentPlayer !== BLACK) { updateCheatTip('轮到AI，请稍候'); return; }
             if (board[row][col] !== EMPTY) return;
             placePiece(row, col, BLACK);
             btnUndo.disabled = (moveHistory.length < 2);
         }
 
-        // ---------- 鼠标移动 ----------
         function handleMouseMove(e) {
-            if (isReviewMode) { hoverPos = null;
-                drawBoard(); return; }
+            if (isReviewMode) { hoverPos = null; drawBoard(); return; }
             const pos = getBoardPos(e);
             hoverPos = pos || null;
             drawBoard();
-
-            // 更新外挂按钮鼠标坐标 (液态玻璃光影)
-            if (cheatPanel.classList.contains('open')) {
-                const btns = cheatPanel.querySelectorAll('.cheat-btn');
-                btns.forEach(btn => {
-                    const rect = btn.getBoundingClientRect();
-                    const x = ((e.clientX - rect.left) / rect.width) * 100;
-                    const y = ((e.clientY - rect.top) / rect.height) * 100;
-                    btn.style.setProperty('--mouse-x', x + '%');
-                    btn.style.setProperty('--mouse-y', y + '%');
-                });
-            }
         }
-
-        function handleMouseLeave() { hoverPos = null;
-            drawBoard(); }
+        function handleMouseLeave() { hoverPos = null; drawBoard(); }
 
         function getBoardPos(e) {
             const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width,
-                scaleY = canvas.height / rect.height;
+            const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
             let cx, cy;
-            if (e.touches) { cx = e.touches[0].clientX;
-                cy = e.touches[0].clientY;
-                e.preventDefault(); } else { cx = e.clientX;
-                cy = e.clientY; }
-            const x = (cx - rect.left) * scaleX,
-                y = (cy - rect.top) * scaleY;
-            const col = Math.round((x - OFFSET) / CELL_SIZE),
-                row = Math.round((y - OFFSET) / CELL_SIZE);
+            if (e.touches) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; e.preventDefault(); }
+            else { cx = e.clientX; cy = e.clientY; }
+            const x = (cx - rect.left) * scaleX, y = (cy - rect.top) * scaleY;
+            const col = Math.round((x - OFFSET) / CELL_SIZE), row = Math.round((y - OFFSET) / CELL_SIZE);
             if (isOnBoard(row, col)) {
-                const px = OFFSET + col * CELL_SIZE,
-                    py = OFFSET + row * CELL_SIZE;
+                const px = OFFSET + col * CELL_SIZE, py = OFFSET + row * CELL_SIZE;
                 if (Math.hypot(x - px, y - py) < CELL_SIZE * 0.5) return { row, col };
             }
             return null;
         }
 
-        // ---------- 悔棋 (支持替换操作撤销) ----------
         function undoMove() {
             if (gameOver || isAIThinking) return;
-            // 至少要有两步才能悔棋
             if (moveHistory.length < 2) return;
-
             if (cheatMode) {
-                cheatMode = null;
-                doubleCount = 0;
+                cheatMode = null; doubleCount = 0;
                 [cheatReplace, cheatDouble, cheatWin].forEach(b => b.classList.remove('active-mode'));
                 updateCheatTip('已退出外挂模式');
             }
-
-            // 撤销最后两步
-            const last = moveHistory.pop();
-            undoStep(last);
-            const prev = moveHistory.pop();
-            undoStep(prev);
-
-            // 更新最后一步标记
+            const last = moveHistory.pop(); undoStep(last);
+            const prev = moveHistory.pop(); undoStep(prev);
             if (moveHistory.length > 0) {
                 const lastRec = moveHistory[moveHistory.length - 1];
-                if (lastRec.type === 'move') {
-                    lastMove = { row: lastRec.row, col: lastRec.col };
-                } else if (lastRec.type === 'replace') {
-                    lastMove = { row: lastRec.row, col: lastRec.col };
-                } else {
-                    lastMove = null;
-                }
-            } else {
-                lastMove = null;
-            }
-
-            // 重置获胜状态
-            winCells = [];
-            winner = EMPTY;
-            gameOver = false;
-
-            // 确定当前玩家
-            if (moveHistory.length === 0) {
-                currentPlayer = BLACK;
-            } else {
+                lastMove = { row: lastRec.row, col: lastRec.col };
+            } else lastMove = null;
+            winCells = []; winner = EMPTY; gameOver = false;
+            if (moveHistory.length === 0) currentPlayer = BLACK;
+            else {
                 const lastRec = moveHistory[moveHistory.length - 1];
-                if (lastRec.type === 'move') {
-                    currentPlayer = (lastRec.color === BLACK) ? WHITE : BLACK;
-                } else if (lastRec.type === 'replace') {
-                    // 替换操作不改变回合，看上一步
-                    if (moveHistory.length >= 2) {
-                        const prevRec = moveHistory[moveHistory.length - 2];
-                        if (prevRec.type === 'move') {
-                            currentPlayer = (prevRec.color === BLACK) ? WHITE : BLACK;
-                        } else {
-                            currentPlayer = BLACK;
-                        }
-                    } else {
-                        currentPlayer = BLACK;
-                    }
-                } else {
-                    currentPlayer = BLACK;
-                }
+                if (lastRec.type === 'move') currentPlayer = (lastRec.color === BLACK) ? WHITE : BLACK;
+                else currentPlayer = BLACK;
             }
-
-            updateUI();
-            drawBoard();
+            updateUI(); drawBoard();
             btnUndo.disabled = (moveHistory.length < 2);
             hideOverlay();
-            if (currentPlayer === WHITE && !gameOver) {
-                triggerAI();
-            }
+            if (currentPlayer === WHITE && !gameOver) triggerAI();
         }
 
         function undoStep(record) {
-            if (record.type === 'move') {
-                board[record.row][record.col] = EMPTY;
-            } else if (record.type === 'replace') {
-                board[record.row][record.col] = record.from; // 恢复为白子
-            }
+            if (record.type === 'move') board[record.row][record.col] = EMPTY;
+            else if (record.type === 'replace') board[record.row][record.col] = record.from;
         }
 
-        // ---------- 重置 ----------
         function resetGame() {
             if (isAIThinking) return;
             closeCheatPanel();
-            cheatMode = null;
-            doubleCount = 0;
+            cheatMode = null; doubleCount = 0;
             [cheatReplace, cheatDouble, cheatWin].forEach(b => b.classList.remove('active-mode'));
             initBoard();
             hideOverlay();
@@ -2281,7 +1984,6 @@
             drawBoard();
         }
 
-        // ---------- 注册事件 ----------
         btnReset.addEventListener('click', resetGame);
         btnUndo.addEventListener('click', undoMove);
         btnNextGame.addEventListener('click', resetGame);
@@ -2290,28 +1992,17 @@
         canvas.addEventListener('click', handleCanvasClick);
         canvas.addEventListener('mousemove', handleMouseMove);
         canvas.addEventListener('mouseleave', handleMouseLeave);
-        canvas.addEventListener('touchstart', (e) => { e.preventDefault();
-            handleCanvasClick(e); }, { passive: false });
-        canvas.addEventListener('touchmove', (e) => { e.preventDefault();
-            handleMouseMove(e); }, { passive: false });
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleCanvasClick(e); }, { passive: false });
+        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); handleMouseMove(e); }, { passive: false });
 
         cheatMenuBtn.addEventListener('click', toggleCheatPanel);
         document.addEventListener('click', function(e) {
-            if (isCheatPanelOpen && !cheatPanel.contains(e.target) && e.target !== cheatMenuBtn) {
-                closeCheatPanel();
-            }
+            if (isCheatPanelOpen && !cheatPanel.contains(e.target) && e.target !== cheatMenuBtn) closeCheatPanel();
         });
-
-        cheatReplace.addEventListener('click', function(e) { e.stopPropagation();
-            toggleReplaceMode(); });
-        cheatDouble.addEventListener('click', function(e) { e.stopPropagation();
-            toggleDoubleMode(); });
-        cheatWin.addEventListener('click', function(e) { e.stopPropagation();
-            forceWin(); });
-
-        // ================================================================
-        //  定制控件交互
-        // ================================================================
+        cheatReplace.addEventListener('click', function(e) { e.stopPropagation(); toggleReplaceMode(); });
+        cheatDouble.addEventListener('click', function(e) { e.stopPropagation(); toggleDoubleMode(); });
+        cheatWin.addEventListener('click', function(e) { e.stopPropagation(); forceWin(); });
+        cheatRollback.addEventListener('click', function(e) { e.stopPropagation(); forceRollback(); });
 
         toggleHighlight.addEventListener('click', function(e) {
             e.stopPropagation();
@@ -2319,7 +2010,6 @@
             trackHighlight.classList.toggle('active', highlightEnabled);
             drawBoard();
         });
-
         toggleBestMove.addEventListener('click', function(e) {
             e.stopPropagation();
             bestMoveEnabled = !bestMoveEnabled;
@@ -2327,15 +2017,34 @@
             drawBoard();
         });
 
-        function moveDifficultySlider() {
-            const active = difficultyControl.querySelector('.segmented-option.active');
+        toggleCustomCheat.addEventListener('click', function(e) {
+            e.stopPropagation();
+            customCheatEnabled = !customCheatEnabled;
+            trackCustomCheat.classList.toggle('active', customCheatEnabled);
+        });
+        toggleCustomFullScan.addEventListener('click', function(e) {
+            e.stopPropagation();
+            customFullScanEnabled = !customFullScanEnabled;
+            trackCustomFullScan.classList.toggle('active', customFullScanEnabled);
+        });
+
+        // ==== 通用滑块定位函数：适配换行布局 ====
+        function updateSegmentedSlider(control, slider) {
+            const active = control.querySelector('.segmented-option.active');
             if (!active) return;
             const optRect = active.getBoundingClientRect();
-            const ctrlRect = difficultyControl.getBoundingClientRect();
-            const left = optRect.left - ctrlRect.left;
-            const width = optRect.width;
-            difficultySlider.style.left = left + 'px';
-            difficultySlider.style.width = width + 'px';
+            const ctrlRect = control.getBoundingClientRect();
+            slider.style.left = (optRect.left - ctrlRect.left) + 'px';
+            slider.style.top = (optRect.top - ctrlRect.top) + 'px';
+            slider.style.width = optRect.width + 'px';
+            slider.style.height = optRect.height + 'px';
+        }
+
+        function moveDifficultySlider() {
+            updateSegmentedSlider(difficultyControl, difficultySlider);
+        }
+        function moveRecommendSlider() {
+            updateSegmentedSlider(recommendControl, recommendSlider);
         }
 
         diffOptions.forEach(opt => {
@@ -2345,39 +2054,98 @@
                 this.classList.add('active');
                 currentDifficulty = this.dataset.value;
                 moveDifficultySlider();
+                battleWeightsPanel.classList.toggle('show', currentDifficulty === 'custom');
                 if (!gameOver && !isAIThinking) drawBoard();
             });
         });
 
-        window.addEventListener('resize', moveDifficultySlider);
-        setTimeout(moveDifficultySlider, 30);
-        new MutationObserver(moveDifficultySlider).observe(difficultyControl, { attributes: true, childList: true,
-            subtree: true });
+        recommendOptions.forEach(opt => {
+            opt.addEventListener('click', function(e) {
+                e.stopPropagation();
+                recommendOptions.forEach(o => o.classList.remove('active'));
+                this.classList.add('active');
+                recommendMode = this.dataset.value;
+                moveRecommendSlider();
+                recommendWeightsPanel.classList.toggle('show', recommendMode === 'custom');
+                drawBoard();
+            });
+        });
+
+        function updateBattleWeights() {
+            battleAttackWeight = parseFloat(battleAttackSlider.value);
+            battleDefenseWeight = parseFloat(battleDefenseSlider.value);
+            battleCenterBonus = parseFloat(battleCenterSlider.value);
+            battleAttackValue.textContent = battleAttackWeight.toFixed(2);
+            battleDefenseValue.textContent = battleDefenseWeight.toFixed(1);
+            battleCenterValue.textContent = battleCenterBonus.toFixed(1);
+        }
+        battleAttackSlider.addEventListener('input', updateBattleWeights);
+        battleDefenseSlider.addEventListener('input', updateBattleWeights);
+        battleCenterSlider.addEventListener('input', updateBattleWeights);
+
+        function updateRecommendWeights() {
+            recommendAttackWeight = parseFloat(recommendAttackSlider.value);
+            recommendDefenseWeight = parseFloat(recommendDefenseSlider.value);
+            recommendCenterBonus = parseFloat(recommendCenterSlider.value);
+            recommendAttackValue.textContent = recommendAttackWeight.toFixed(2);
+            recommendDefenseValue.textContent = recommendDefenseWeight.toFixed(1);
+            recommendCenterValue.textContent = recommendCenterBonus.toFixed(1);
+            if (!isReviewMode && bestMoveEnabled && !gameOver && !isAIThinking) drawBoard();
+        }
+        recommendAttackSlider.addEventListener('input', updateRecommendWeights);
+        recommendDefenseSlider.addEventListener('input', updateRecommendWeights);
+        recommendCenterSlider.addEventListener('input', updateRecommendWeights);
+
+        window.addEventListener('resize', function() { moveDifficultySlider(); moveRecommendSlider(); });
+        setTimeout(function() { moveDifficultySlider(); moveRecommendSlider(); }, 30);
+        setTimeout(function() { moveDifficultySlider(); moveRecommendSlider(); }, 200);
+        setTimeout(function() { moveDifficultySlider(); moveRecommendSlider(); }, 600);
+
+        // 监听字体加载导致的布局变化
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(function() {
+                moveDifficultySlider();
+                moveRecommendSlider();
+            });
+        }
+
         difficultyControl.addEventListener('click', function(e) { e.stopPropagation(); });
+        recommendControl.addEventListener('click', function(e) { e.stopPropagation(); });
 
-        // ================================================================
-        //  启动
-        // ================================================================
+        // 启动
         initBoard();
-
         trackHighlight.classList.remove('active');
         trackBestMove.classList.remove('active');
-        highlightEnabled = false;
-        bestMoveEnabled = false;
+        trackCustomCheat.classList.remove('active');
+        trackCustomFullScan.classList.remove('active');
+        highlightEnabled = false; bestMoveEnabled = false;
+        customCheatEnabled = false; customFullScanEnabled = false;
 
-        currentDifficulty = 'thunder';
+        currentDifficulty = 'extreme';
         diffOptions.forEach(o => o.classList.remove('active'));
-        document.querySelector('.segmented-option[data-value="thunder"]').classList.add('active');
-        setTimeout(moveDifficultySlider, 50);
+        document.querySelector('.segmented-option[data-value="extreme"]').classList.add('active');
+
+        recommendMode = 'default';
+        recommendOptions.forEach(o => o.classList.remove('active'));
+        document.querySelector('.segmented-option[data-value="default"]').classList.add('active');
+
+        battleAttackSlider.value = battleAttackWeight;
+        battleDefenseSlider.value = battleDefenseWeight;
+        battleCenterSlider.value = battleCenterBonus;
+        updateBattleWeights();
+        recommendAttackSlider.value = recommendAttackWeight;
+        recommendDefenseSlider.value = recommendDefenseWeight;
+        recommendCenterSlider.value = recommendCenterBonus;
+        updateRecommendWeights();
+
+        battleWeightsPanel.classList.toggle('show', currentDifficulty === 'custom');
+        recommendWeightsPanel.classList.toggle('show', recommendMode === 'custom');
+
+        setTimeout(function() { moveDifficultySlider(); moveRecommendSlider(); }, 50);
 
         console.log('♟ 五子棋 AI 对战 · 液态玻璃外挂菜单');
-        console.log('⚡ 外挂功能：替换白子 | 下两颗 | 直接获胜');
-        console.log('✅ 替换操作已正确记录到历史，复盘可见');
-        console.log('✅ 外挂菜单弹出动画已修复');
-        console.log('点击右上角 ⚙ 打开外挂菜单');
-
-        window.__debug = { board, moveHistory, getBestMove, evaluatePoint, placePiece, resetGame };
+        console.log('⚡ 分段按钮已加宽，支持自动换行');
+        console.log('⚡ 滑块会动态跟随当前按钮位置');
     </script>
-
 </body>
 </html>
