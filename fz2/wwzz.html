@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>万物自指公式 · 粒子感应版</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: #e6edf7;
+    -webkit-font-smoothing: antialiased;
+  }
+  #scene {
+    display: block; width: 100vw; height: 100vh;
+    cursor: crosshair; touch-action: none;
+  }
+
+  /* ---- HUD 面板 ---- */
+  .hud {
+    position: fixed; z-index: 10;
+    background: rgba(12, 18, 30, 0.72);
+    border: 1px solid rgba(90, 130, 190, 0.22);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 12px 14px;
+    box-shadow: 0 10px 34px -18px rgba(0, 0, 0, 0.9);
+  }
+
+  .hud-tl { top: 18px; left: 18px; min-width: 210px; }
+  .hud-bl { bottom: 18px; left: 18px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; max-width: calc(100vw - 36px); }
+  .hud-br { bottom: 18px; right: 18px; display: flex; gap: 8px; }
+
+  .label {
+    font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+    color: #6b7d99; margin-bottom: 6px;
+  }
+  .y-value {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 15px; line-height: 1.6; color: #7dd3fc;
+    word-break: break-all; max-height: 108px; overflow-y: auto;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 18px rgba(76, 201, 240, .35);
+    margin-bottom: 10px;
+  }
+  .y-value.empty { color: #3f4c60; text-shadow: none; }
+
+  button {
+    font: inherit; font-size: 12.5px; padding: 7px 14px;
+    border-radius: 8px; border: 1px solid rgba(90, 130, 190, 0.28);
+    background: rgba(30, 45, 70, 0.72); color: #c3d0e2;
+    cursor: pointer; white-space: nowrap;
+    transition: background .16s, border-color .16s, color .16s, transform .08s;
+  }
+  button:hover { background: rgba(45, 68, 104, 0.9); border-color: rgba(120, 170, 240, 0.5); color: #fff; }
+  button:active { transform: translateY(1px); }
+  button.primary {
+    background: linear-gradient(135deg, rgba(29, 78, 216, .95), rgba(76, 201, 240, .95));
+    border-color: rgba(76, 201, 240, .8); color: #fff;
+    box-shadow: 0 0 22px -6px rgba(76, 201, 240, .7);
+  }
+  button.primary:hover { filter: brightness(1.12); }
+  button.copied { background: rgba(20, 83, 45, .95); border-color: #22c55e; color: #86efac; }
+  button.wide { width: 100%; }
+
+  #textInput {
+    flex: 1 1 180px; min-width: 140px;
+    font: inherit; font-size: 13.5px; padding: 9px 13px;
+    border-radius: 8px; border: 1px solid rgba(90, 130, 190, 0.28);
+    background: rgba(8, 13, 22, 0.85); color: #e6edf7;
+    outline: none;
+    transition: border-color .18s, box-shadow .18s;
+  }
+  #textInput::placeholder { color: #4d5c72; }
+  #textInput:focus {
+    border-color: rgba(76, 201, 240, .8);
+    box-shadow: 0 0 0 3px rgba(76, 201, 240, .14);
+  }
+  #fontSel {
+    font: inherit; font-size: 12.5px; padding: 9px 8px;
+    border-radius: 8px; border: 1px solid rgba(90, 130, 190, 0.28);
+    background: rgba(30, 45, 70, 0.72); color: #c3d0e2;
+    cursor: pointer; outline: none;
+  }
+  #fontSel:focus { border-color: rgba(76, 201, 240, .8); }
+
+  .hint {
+    position: fixed; left: 50%; top: 22px; transform: translateX(-50%);
+    z-index: 9;
+    color: rgba(160, 185, 220, 0.42); font-size: 12.5px;
+    letter-spacing: .1em; user-select: none; pointer-events: none;
+    transition: opacity .7s ease; white-space: nowrap;
+  }
+  .hint.fade { opacity: 0; }
+
+  @media (max-width: 720px) {
+    .hud-tl { top: 12px; left: 12px; right: 12px; min-width: 0; }
+    .hud-bl { bottom: 12px; left: 12px; right: 12px; }
+    .hud-br { bottom: auto; top: 128px; right: 12px; }
+    .hint { font-size: 11px; top: auto; bottom: 108px; }
+  }
+</style>
+</head>
+<body>
+  <canvas id="scene"></canvas>
+
+  <div class="hud hud-tl">
+    <div class="label">y 起始值 &nbsp;y₀</div>
+    <div class="y-value empty" id="yVal">0</div>
+    <button class="wide primary" id="copyY">复制 y₀</button>
+  </div>
+
+  <div class="hud hud-bl">
+    <input id="textInput" type="text" placeholder="输入文字后回车…" maxlength="20" autocomplete="off" spellcheck="false" />
+    <select id="fontSel" aria-label="字体">
+      <option value="sans">无衬线</option>
+      <option value="serif">衬线</option>
+      <option value="mono">等宽</option>
+    </select>
+    <button id="btnDraw" class="primary">画文字</button>
+  </div>
+
+  <div class="hud hud-br">
+    <button id="btnClear">清空</button>
+    <button id="btnInvert">反色</button>
+    <button id="btnRandom">随机</button>
+  </div>
+
+  <div class="hint" id="hint">移动鼠标让粒子感应散开 · 点击方格涂黑</div>
+
+<script>
+(() => {
+  "use strict";
+
+  /* ==================== 常量 ==================== */
+  const COLS = 106;
+  const ROWS = 17;
+  const TOTAL = COLS * ROWS;
+
+  // 交互参数（沿用你文件里的手感）
+  const REPEL_RADIUS = 110;
+  const REPEL_FORCE  = 1.05;
+  const SPRING       = 0.021;
+  const FRICTION     = 0.865;
+
+  // 预生成 BigInt 位权重
+  const BIT = new Array(TOTAL);
+  for (let i = 0; i < TOTAL; i++) BIT[i] = 1n << BigInt(i);
+
+  /* ==================== 画布 ==================== */
+  const canvas = document.getElementById("scene");
+  const ctx = canvas.getContext("2d", { alpha: false });
+  const hint = document.getElementById("hint");
+  const yValEl = document.getElementById("yVal");
+
+  let DPR = Math.min(window.devicePixelRatio || 1, 2);
+  let W = 0, H = 0;
+  let CELL = 12, originX = 0, originY = 0;
+
+  /* ==================== 状态 ==================== */
+  const particles = new Array(TOTAL).fill(null);
+
+  const mouse = { x: -9999, y: -9999, active: false };
+
+  let rawY = "0";
+
+  /* ==================== 布局 ==================== */
+  function computeLayout() {
+    const padX = W < 720 ? 24 : 80;
+    const padTop = W < 720 ? 160 : 150;
+    const padBottom = W < 720 ? 150 : 130;
+
+    const availW = W - padX * 2;
+    const availH = H - padTop - padBottom;
+
+    CELL = Math.max(3.5, Math.min(availW / COLS, availH / ROWS));
+
+    const gridW = CELL * COLS;
+    const gridH = CELL * ROWS;
+    originX = (W - gridW) / 2;
+    originY = padTop + (availH - gridH) / 2;
+  }
+
+  function homeOf(col, row) {
+    return {
+      x: originX + col * CELL + CELL / 2,
+      y: originY + row * CELL + CELL / 2
+    };
+  }
+
+  function updateAllHomes(teleport) {
+    for (let i = 0; i < TOTAL; i++) {
+      const p = particles[i];
+      if (!p) continue;
+      const h = homeOf(p.col, p.row);
+      p.homeX = h.x;
+      p.homeY = h.y;
+      if (teleport) { p.x = h.x; p.y = h.y; p.vx = 0; p.vy = 0; }
+    }
+  }
+
+  /* ==================== 粒子增删 ==================== */
+  function setCell(row, col, on) {
+    const idx = row * COLS + col;
+    if (on) {
+      if (particles[idx]) return;
+      const h = homeOf(col, row);
+      particles[idx] = {
+        col, row,
+        homeX: h.x, homeY: h.y,
+        x: h.x, y: h.y,
+        vx: 0, vy: 0
+      };
+    } else {
+      particles[idx] = null;
+    }
+  }
+
+  function clearAll() {
+    particles.fill(null);
+  }
+
+  /* ==================== 计算 y₀ ==================== */
+  function computeY() {
+    let m = 0n;
+    for (let r = 0; r < ROWS; r++) {
+      const bitBase = ROWS - 1 - r;
+      const rowOff = r * COLS;
+      for (let c = 0; c < COLS; c++) {
+        if (particles[rowOff + c]) m |= BIT[17 * c + bitBase];
+      }
+    }
+    return m * 17n;
+  }
+
+  const group = (s) => s.replace(/\B(?=(\d{6})+(?!\d))/g, " ");
+
+  function refreshY() {
+    const y = computeY();
+    rawY = y.toString();
+    const isEmpty = y === 0n;
+    yValEl.textContent = isEmpty ? "0" : group(rawY);
+    yValEl.classList.toggle("empty", isEmpty);
+  }
+
+  /* ==================== 文字 → 网格 ==================== */
+  const FONT_STACKS = {
+    sans:  'system-ui, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif',
+    serif: 'Georgia, "Times New Roman", "Songti SC", "SimSun", serif',
+    mono:  'ui-monospace, Menlo, Consolas, "Courier New", monospace'
+  };
+
+  const off = document.createElement("canvas");
+  const octx = off.getContext("2d", { willReadFrequently: true });
+
+  function buildFromText(text, fontKey) {
+    const fontStack = FONT_STACKS[fontKey] || FONT_STACKS.sans;
+    const SS = 6;
+    off.width = COLS * SS;
+    off.height = ROWS * SS;
+
+    octx.setTransform(1, 0, 0, 1, 0, 0);
+    octx.clearRect(0, 0, off.width, off.height);
+
+    let fontSize = ROWS * SS * 0.80;
+    octx.font = '700 ' + fontSize + 'px ' + fontStack;
+
+    const maxW = COLS * SS * 0.96;
+    const measured = octx.measureText(text).width;
+    if (measured > maxW && measured > 0) {
+      fontSize = Math.max(4, fontSize * maxW / measured);
+      octx.font = '700 ' + fontSize + 'px ' + fontStack;
+    }
+
+    octx.fillStyle = "#000";
+    octx.textAlign = "center";
+    octx.textBaseline = "middle";
+    octx.fillText(text, off.width / 2, off.height / 2);
+
+    const data = octx.getImageData(0, 0, off.width, off.height).data;
+
+    clearAll();
+
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        let hits = 0;
+        for (let sy = 0; sy < SS; sy++) {
+          const rowBase = (r * SS + sy) * off.width;
+          for (let sx = 0; sx < SS; sx++) {
+            if (data[(rowBase + c * SS + sx) * 4 + 3] > 110) hits++;
+          }
+        }
+        if (hits >= 6) {
+          const h = homeOf(c, r);
+          particles[r * COLS + c] = {
+            col: c, row: r,
+            homeX: h.x, homeY: h.y,
+            x: h.x, y: h.y,
+            vx: 0, vy: 0
+          };
+        }
+      }
+    }
+
+    refreshY();
+  }
+
+  /* ==================== 渲染循环 ==================== */
+  function render() {
+    // 半透明拖尾 → 发光余晖
+    ctx.globalCompositeOperation = "source-over";
+    ctx.fillStyle = "rgba(0, 0, 0, 0.26)";
+    ctx.fillRect(0, 0, W, H);
+
+    // 极淡网格参照线
+    if (CELL > 5) {
+      ctx.strokeStyle = "rgba(120, 160, 220, 0.045)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      const gw = COLS * CELL, gh = ROWS * CELL;
+      for (let c = 0; c <= COLS; c++) {
+        const x = originX + c * CELL + 0.5;
+        ctx.moveTo(x, originY);
+        ctx.lineTo(x, originY + gh);
+      }
+      for (let r = 0; r <= ROWS; r++) {
+        const y = originY + r * CELL + 0.5;
+        ctx.moveTo(originX, y);
+        ctx.lineTo(originX + gw, y);
+      }
+      ctx.stroke();
+    }
+
+    // 粒子（叠加发光）
+    ctx.globalCompositeOperation = "lighter";
+
+    const mr = REPEL_RADIUS;
+    const mr2 = mr * mr;
+    const active = mouse.active;
+    const mx = mouse.x, my = mouse.y;
+
+    const baseR = Math.max(1.1, CELL * 0.11);
+    const extraR = CELL * 0.30;
+    const dispScale = 1 / (CELL * 3.6);
+
+    for (let i = 0; i < TOTAL; i++) {
+      const p = particles[i];
+      if (!p) continue;
+
+      // —— 鼠标排斥 ——
+      if (active) {
+        const dx = p.x - mx;
+        const dy = p.y - my;
+        // 快速包围盒剔除，避免无谓的 sqrt
+        if (Math.abs(dx) < mr && Math.abs(dy) < mr) {
+          const d2 = dx * dx + dy * dy;
+          if (d2 < mr2 && d2 > 0.0001) {
+            const dist = Math.sqrt(d2);
+            const force = (mr - dist) / mr;
+            const k = (force * force * REPEL_FORCE) / dist;
+            p.vx += dx * k;
+            p.vy += dy * k;
+          }
+        }
+      }
+
+      // —— 弹簧回归 + 阻尼 ——
+      p.vx += (p.homeX - p.x) * SPRING;
+      p.vy += (p.homeY - p.y) * SPRING;
+      p.vx *= FRICTION;
+      p.vy *= FRICTION;
+      p.x += p.vx;
+      p.y += p.vy;
+
+      // —— 位移量决定亮度与大小 ——
+      const ddx = p.x - p.homeX;
+      const ddy = p.y - p.homeY;
+      const disp = Math.min(1, Math.sqrt(ddx * ddx + ddy * ddy) * dispScale);
+
+      const r = baseR + disp * extraR;
+      const a = 0.55 + disp * 0.45;
+
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(220, 240, 255, ${a})`;
+      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 位移大时给一点光晕
+      if (disp > 0.35) {
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(120, 200, 255, ${(disp - 0.35) * 0.18})`;
+        ctx.arc(p.x, p.y, r * 2.6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    ctx.globalCompositeOperation = "source-over";
+    requestAnimationFrame(render);
+  }
+
+  /* ==================== 坐标换算 ==================== */
+  function cellFromEvent(e) {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const c = Math.floor((x - originX) / CELL);
+    const r = Math.floor((y - originY) / CELL);
+    if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return null;
+    return { r, c };
+  }
+
+  /* Bresenham 连线，防止快速拖动丢格 */
+  function lineTo(r0, c0, r1, c1, cb) {
+    const dr = Math.abs(r1 - r0), dc = Math.abs(c1 - c0);
+    const sr = r0 < r1 ? 1 : -1, sc = c0 < c1 ? 1 : -1;
+    let err = dc - dr;
+    let r = r0, c = c0;
+    for (;;) {
+      cb(r, c);
+      if (r === r1 && c === c1) break;
+      const e2 = 2 * err;
+      if (e2 > -dr) { err -= dr; c += sc; }
+      if (e2 < dc) { err += dc; r += sr; }
+    }
+  }
+
+  /* ==================== 指针交互 ==================== */
+  let painting = false;
+  let paintOn = true;
+  let lastR = -1, lastC = -1;
+
+  function setMouse(x, y) {
+    mouse.x = x; mouse.y = y; mouse.active = true;
+    if (hint && !hint.classList.contains("fade")) hint.classList.add("fade");
+  }
+
+  canvas.addEventListener("pointerdown", (e) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    e.preventDefault();
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+
+    const p = cellFromEvent(e);
+    if (!p) return;
+
+    setMouse(e.clientX, e.clientY);
+
+    const idx = p.r * COLS + p.c;
+    paintOn = !particles[idx];      // 空格 → 涂黑；黑格 → 擦除
+    painting = true;
+    lastR = p.r; lastC = p.c;
+
+    setCell(p.r, p.c, paintOn);
+    refreshY();
+  });
+
+  canvas.addEventListener("pointermove", (e) => {
+    setMouse(e.clientX, e.clientY);
+    if (!painting) return;
+    e.preventDefault();
+
+    const p = cellFromEvent(e);
+    if (!p) return;
+    if (p.r === lastR && p.c === lastC) return;
+
+    lineTo(lastR, lastC, p.r, p.c, (rr, cc) => setCell(rr, cc, paintOn));
+    lastR = p.r; lastC = p.c;
+    refreshY();
+  });
+
+  function endPaint() {
+    if (painting) refreshY();
+    painting = false;
+    lastR = lastC = -1;
+  }
+  canvas.addEventListener("pointerup", endPaint);
+  canvas.addEventListener("pointercancel", endPaint);
+  canvas.addEventListener("lostpointercapture", endPaint);
+
+  window.addEventListener("pointerleave", () => {
+    mouse.active = false;
+    mouse.x = -9999; mouse.y = -9999;
+  });
+
+  /* ==================== 工具栏 ==================== */
+  document.getElementById("btnClear").addEventListener("click", () => {
+    clearAll();
+    refreshY();
+  });
+
+  document.getElementById("btnInvert").addEventListener("click", () => {
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const idx = r * COLS + c;
+        if (particles[idx]) {
+          particles[idx] = null;
+        } else {
+          const h = homeOf(c, r);
+          particles[idx] = {
+            col: c, row: r,
+            homeX: h.x, homeY: h.y,
+            x: h.x, y: h.y,
+            vx: 0, vy: 0
+          };
+        }
+      }
+    }
+    refreshY();
+  });
+
+  document.getElementById("btnRandom").addEventListener("click", () => {
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const idx = r * COLS + c;
+        if (Math.random() < 0.45) {
+          if (!particles[idx]) {
+            const h = homeOf(c, r);
+            particles[idx] = {
+              col: c, row: r,
+              homeX: h.x, homeY: h.y,
+              x: h.x, y: h.y,
+              vx: 0, vy: 0
+            };
+          }
+        } else {
+          particles[idx] = null;
+        }
+      }
+    }
+    refreshY();
+  });
+
+  /* ==================== 文字输入 ==================== */
+  const textInput = document.getElementById("textInput");
+  const fontSel = document.getElementById("fontSel");
+
+  function applyText() {
+    const v = textInput.value.trim();
+    if (!v) { textInput.focus(); return; }
+    buildFromText(v, fontSel.value);
+    textInput.blur();
+  }
+
+  document.getElementById("btnDraw").addEventListener("click", applyText);
+
+  textInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); applyText(); }
+  });
+
+  fontSel.addEventListener("change", () => {
+    if (textInput.value.trim()) applyText();
+  });
+
+  /* ==================== 复制 ==================== */
+  function flash(btn, label) {
+    const old = btn.textContent;
+    btn.textContent = label || "已复制 ✓";
+    btn.classList.add("copied");
+    setTimeout(() => {
+      btn.textContent = old;
+      btn.classList.remove("copied");
+    }, 1200);
+  }
+
+  function copyText(text, btn) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        () => flash(btn),
+        () => fallbackCopy(text, btn)
+      );
+    } else {
+      fallbackCopy(text, btn);
+    }
+  }
+
+  function fallbackCopy(text, btn) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); flash(btn); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+
+  document.getElementById("copyY").addEventListener("click", function () {
+    copyText(rawY, this);
+  });
+
+  /* ==================== 自适应 ==================== */
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = Math.floor(window.innerWidth);
+    H = Math.floor(window.innerHeight);
+    canvas.width = W * DPR;
+    canvas.height = H * DPR;
+    canvas.style.width = W + "px";
+    canvas.style.height = H + "px";
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, W, H);
+
+    computeLayout();
+    updateAllHomes(true);
+  }
+
+  let resizeTimer = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(resize, 120);
+  });
+
+  /* ==================== 启动 ==================== */
+  computeLayout();
+  buildFromText("万物自指", "sans");
+  resize();
+  render();
+})();
+</script>
+</body>
+</html>
