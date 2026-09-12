@@ -717,7 +717,7 @@
                 width: 0.8 + Math.random() * 1.6,
                 bornAt: now,                                    // 生成时刻(ms)
                 fadeIn: 60 + Math.random() * 80,                // 淡入时长(ms)
-                hue: warm ? '255, 226, 178' : '198, 224, 255'
+                hue: warm ? '255, 240, 220' : '198, 224, 255'
             });
         }
 
@@ -844,7 +844,7 @@
             ctx.fillStyle = '#03050b';
             ctx.fillRect(0, 0, width, height);
 
-            // 闪烁星辰
+            // 闪烁星辰（冷白色调）
             const nowSec = now / 1000;
             for (let i = 0; i < stars.length; i++) {
                 const star = stars[i];
@@ -853,13 +853,13 @@
 
                 ctx.beginPath();
                 ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(255, 240, 210, ' + alpha + ')';
+                ctx.fillStyle = 'rgba(225, 235, 255, ' + alpha + ')';
                 ctx.fill();
 
                 if (star.radius > 1.5 && twinkle > 0.7) {
                     ctx.beginPath();
                     ctx.arc(star.x, star.y, star.radius * 1.5, 0, Math.PI * 2);
-                    ctx.fillStyle = 'rgba(255, 200, 150, ' + (alpha * 0.2) + ')';
+                    ctx.fillStyle = 'rgba(180, 210, 255, ' + (alpha * 0.2) + ')';
                     ctx.fill();
                 }
             }
