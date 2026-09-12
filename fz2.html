@@ -10,19 +10,19 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            user-select: none; /* 避免拖动文字影响视觉，但不影响按钮点击 */
+            user-select: none;
         }
 
-        body {
-            width: 100vw;
-            height: 100vh;
+        html, body {
+            width: 100%;
+            height: 100%;
             overflow: hidden;
             font-family: 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', 'Helvetica Neue', sans-serif;
             background: #03050b;
             color: #fff;
         }
 
-        /* 星空画布 - 动态闪烁背景层 */
+        /* 星空 + 流星雨画布 */
         #starCanvas {
             position: fixed;
             top: 0;
@@ -31,13 +31,13 @@
             height: 100%;
             display: block;
             z-index: 0;
-            pointer-events: none;  /* 保证按钮可穿透点击 */
+            pointer-events: none;
         }
 
-        /* 主容器：内容浮层 */
+        /* 主容器：内容浮层（不要加 backdrop-filter/filter/opacity） */
         .main-container {
             position: relative;
-            z-index: 2;
+            z-index: 3;
             width: 100%;
             height: 100%;
             display: flex;
@@ -45,12 +45,12 @@
             justify-content: center;
             align-items: center;
             padding: 1.5rem;
-            backdrop-filter: blur(2px);
             overflow-y: auto;
+            overflow-x: hidden;
             scroll-behavior: smooth;
         }
 
-        /* 标题区域 - 优雅上升动画 */
+        /* 标题区域 */
         .title-section {
             text-align: center;
             margin-bottom: 3rem;
@@ -72,12 +72,11 @@
             margin-top: 0.6rem;
             letter-spacing: 1px;
             font-weight: 300;
-            backdrop-filter: blur(4px);
             display: inline-block;
             padding: 0 1rem;
         }
 
-        /* 按钮网格布局 - 液态玻璃集合 */
+        /* 按钮网格 */
         .buttons-grid {
             display: flex;
             flex-wrap: wrap;
@@ -89,79 +88,99 @@
             padding: 1rem;
         }
 
-        /* 液态玻璃按钮核心样式 - 参考原风格 + 增强质感 */
+        /* 液态玻璃按钮 */
         .liquid-btn {
+            position: relative;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 12px;
             padding: 1rem 2.4rem;
             min-width: 180px;
+            font-family: inherit;
             font-size: 1.35rem;
             font-weight: 600;
-            color: white;
-            text-decoration: none;
+            color: #ffffff;
             letter-spacing: 2px;
-            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.08) 80%);
-            background-color: rgba(20, 30, 55, 0.25);
-            border-radius: 80px;
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            backdrop-filter: blur(8px);
-            box-shadow: 
-                0 8px 20px rgba(0, 0, 0, 0.3),
-                0 0 0 1px rgba(255, 255, 255, 0.2) inset,
-                0 2px 4px rgba(255, 255, 255, 0.3) inset;
-            transition: all 0.3s ease;
+            text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+            background: rgba(255, 255, 255, 0.055);
+            border: none;
+            border-radius: 999px;
             cursor: pointer;
-            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(10px);
             white-space: nowrap;
+            overflow: hidden;
+            box-shadow:
+                inset  0.5px  0    0 0 rgba(255, 255, 255, 0.35),
+                inset -0.5px  0    0 0 rgba(255, 255, 255, 0.18),
+                inset  0      0.5px 0 0 rgba(255, 255, 255, 0.50),
+                inset  0     -0.5px 0 0 rgba(255, 255, 255, 0.22),
+                0 10px 26px rgba(0, 0, 0, 0.38);
+            transition:
+                transform 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1),
+                box-shadow 0.25s ease,
+                background-color 0.25s ease,
+                text-shadow 0.25s ease;
         }
 
-        /* 按钮悬浮效果：强化光泽 + 微微放大 */
         .liquid-btn:hover {
-            transform: translateY(-3px) scale(1.02);
-            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.15) 90%);
-            background-color: rgba(40, 60, 100, 0.35);
-            box-shadow: 
-                0 15px 30px rgba(0, 0, 0, 0.4),
-                0 0 0 1.5px rgba(255, 255, 255, 0.6) inset,
-                0 4px 12px rgba(255, 255, 245, 0.5);
-            border-color: rgba(255, 255, 255, 0.8);
-            text-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+            transform: translateY(-3px);
+            background: rgba(255, 255, 255, 0.11);
+            box-shadow:
+                inset  0.5px  0    0 0 rgba(255, 255, 255, 0.55),
+                inset -0.5px  0    0 0 rgba(255, 255, 255, 0.3),
+                inset  0      0.5px 0 0 rgba(255, 255, 255, 0.75),
+                inset  0     -0.5px 0 0 rgba(255, 255, 255, 0.35),
+                0 18px 34px rgba(0, 0, 0, 0.45),
+                0 0 24px rgba(140, 190, 255, 0.35);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
         }
 
-        /* 点击按压感 */
         .liquid-btn:active {
-            transform: scale(0.97) translateY(1px);
-            transition: 0.05s;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 1px 3px rgba(0, 0, 0, 0.2);
+            transform: translateY(1px);
+            transition-duration: 0.05s;
+            box-shadow:
+                inset  0.5px  0    0 0 rgba(255, 255, 255, 0.4),
+                inset -0.5px  0    0 0 rgba(255, 255, 255, 0.2),
+                inset  0      0.5px 0 0 rgba(255, 255, 255, 0.6),
+                inset  0     -0.5px 0 0 rgba(255, 255, 255, 0.25),
+                0 6px 14px rgba(0, 0, 0, 0.5);
         }
 
-        /* 针对触摸屏优化 */
+        .no-glass .liquid-btn {
+            background: rgba(40, 60, 100, 0.42);
+            box-shadow:
+                inset 0 0 0 1px rgba(255, 255, 255, 0.35),
+                0 10px 26px rgba(0, 0, 0, 0.4);
+        }
+
+        /* 涟漪 */
+        .ripple-effect {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 75%);
+            transform: scale(0);
+            opacity: 1;
+            z-index: 2;
+        }
+
+        /* 移动端适配 */
         @media (max-width: 680px) {
-            .buttons-grid {
-                gap: 1.2rem;
-            }
+            .buttons-grid { gap: 1.2rem; }
             .liquid-btn {
                 padding: 0.75rem 1.6rem;
                 min-width: 150px;
                 font-size: 1rem;
-                white-space: nowrap;
             }
             .main-container {
                 justify-content: flex-start;
                 padding-top: 2rem;
             }
-            .title-section {
-                margin-bottom: 2rem;
-            }
+            .title-section { margin-bottom: 2rem; }
         }
 
-        /* 自定义滚动条 (优雅) */
-        .main-container::-webkit-scrollbar {
-            width: 5px;
-        }
+        /* 滚动条 */
+        .main-container::-webkit-scrollbar { width: 5px; }
         .main-container::-webkit-scrollbar-track {
             background: rgba(0, 0, 0, 0.2);
             border-radius: 10px;
@@ -171,81 +190,218 @@
             border-radius: 10px;
         }
 
-        /* 底部微光装饰 */
+        /* 底部装饰 */
         .footer-note {
             margin-top: 3rem;
             font-size: 0.8rem;
             text-align: center;
             opacity: 0.6;
-            backdrop-filter: blur(5px);
-            background: rgba(0,0,0,0.2);
+            background: rgba(0, 0, 0, 0.2);
             padding: 0.5rem 1.2rem;
             border-radius: 40px;
             display: inline-block;
             pointer-events: none;
         }
 
-        /* 上升动画 */
         @keyframes floatUp {
-            0% {
-                opacity: 0;
-                transform: translateY(40px);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            0%   { opacity: 0; transform: translateY(40px); }
+            100% { opacity: 1; transform: translateY(0); }
         }
 
-        /* 按钮出现渐现效果 */
         .liquid-btn {
             animation: fadeIn 0.5s ease backwards;
             animation-delay: calc(var(--order, 0) * 0.08s);
         }
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes tipFade {
+            0%   { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            100% { opacity: 1; transform: translateX(-50%) translateY(0); }
         }
     </style>
 </head>
 <body>
 
-    <!-- 闪烁星空画布 (动态星星) -->
+    <!-- 星空 + 流星雨画布 -->
     <canvas id="starCanvas"></canvas>
 
-    <!-- 主内容区：按钮导航 -->
+    <!-- 主内容区 -->
     <div class="main-container">
         <div class="title-section">
             <div class="main-title">✨ 星际导航站 ✨</div>
             <div class="subtitle">液态银河 · 一键穿梭</div>
         </div>
 
-        <!-- 按钮网格容器：由js动态生成，便于后期添加修改 -->
         <div class="buttons-grid" id="buttonGrid"></div>
-        
+
         <div class="footer-note">
             🌟 点击发光按钮，开启旅程 | 更多精彩即将降临
         </div>
     </div>
 
     <script>
-        (function() {
-            // ============================================================
-            // 按钮数据配置区 (方便后期无限扩展)
-            // 每个按钮对象包含:
-            //   text: 按钮上显示的文字 (支持emoji)
-            //   url: 跳转链接 (如果为空或null则触发提示)
-            //   tip: 自定义提示 (可选，用于占位按钮)
-            //   active: 是否有效跳转 (若url有效则直接跳转，否则用tip)
-            // 使用方法：直接修改下面的数组，增加/删除/修改按钮即可，样式自动适配
-            // ============================================================
-            const buttonsConfig = [
+    (function () {
+        "use strict";
+
+        /* ============================================================
+           第一部分：Snell 折射算法
+           ============================================================ */
+
+        function calculateRefractionProfile(glassThickness, bezelWidth, heightFn, ior, samples) {
+            samples = samples || 128;
+            var eta = 1 / ior;
+            function refract(nx, ny) {
+                var dot = ny;
+                var k = 1 - eta * eta * (1 - dot * dot);
+                if (k < 0) return null;
+                var sq = Math.sqrt(k);
+                return [-(eta * dot + sq) * nx, eta - (eta * dot + sq) * ny];
+            }
+            var profile = new Float64Array(samples);
+            for (var i = 0; i < samples; i++) {
+                var x = i / samples;
+                var y = heightFn(x);
+                var dx = x < 1 ? 0.0001 : -0.0001;
+                var y2 = heightFn(x + dx);
+                var deriv = (y2 - y) / dx;
+                var mag = Math.sqrt(deriv * deriv + 1);
+                var ref = refract(-deriv / mag, -1 / mag);
+                if (!ref) { profile[i] = 0; continue; }
+                profile[i] = ref[0] * ((y * bezelWidth + glassThickness) / ref[1]);
+            }
+            return profile;
+        }
+
+        function squircleSurface(t) {
+            return Math.pow(1 - Math.pow(1 - t, 4), 0.25);
+        }
+
+        function generateDisplacementMap(w, h, radius, bezelWidth, profile, maxDisp) {
+            var c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            var ctx = c.getContext('2d');
+            var img = ctx.createImageData(w, h);
+            var d = img.data;
+            for (var i = 0; i < d.length; i += 4) {
+                d[i] = 128; d[i + 1] = 128; d[i + 2] = 0; d[i + 3] = 255;
+            }
+            var r = Math.min(radius, Math.min(w, h) / 2 - 1);
+            if (r <= 0) return c.toDataURL();
+            var clampedBezel = Math.min(bezelWidth, r - 1);
+            if (clampedBezel <= 1) return c.toDataURL();
+            var rSq = r * r;
+            var r1Sq = (r + 1) * (r + 1);
+            var rBSq = Math.max(r - clampedBezel, 0) * Math.max(r - clampedBezel, 0);
+            var wB = w - r * 2;
+            var hB = h - r * 2;
+            var S = profile.length;
+            if (wB < 0 || hB < 0) return c.toDataURL();
+
+            for (var y1 = 0; y1 < h; y1++) {
+                for (var x1 = 0; x1 < w; x1++) {
+                    var dx, dy;
+                    if (x1 < r) { dx = x1 - r; }
+                    else if (x1 >= w - r) { dx = x1 - r - wB; }
+                    else { dx = 0; }
+                    if (y1 < r) { dy = y1 - r; }
+                    else if (y1 >= h - r) { dy = y1 - r - hB; }
+                    else { dy = 0; }
+                    var dSq = dx * dx + dy * dy;
+                    if (dSq > r1Sq || dSq < rBSq) continue;
+                    var dist = Math.sqrt(dSq);
+                    var fromSide = r - dist;
+                    var op = dSq < rSq ? 1 : 1 - (dist - Math.sqrt(rSq)) / (Math.sqrt(r1Sq) - Math.sqrt(rSq));
+                    if (op <= 0 || dist === 0) continue;
+                    var cos = dx / dist;
+                    var sin = dy / dist;
+                    var bi = Math.min(Math.floor((fromSide / clampedBezel) * S), S - 1);
+                    var disp = profile[bi] || 0;
+                    var dX = (-cos * disp) / maxDisp;
+                    var dY = (-sin * disp) / maxDisp;
+                    var idx = (y1 * w + x1) * 4;
+                    d[idx]     = Math.min(255, Math.max(0, (128 + dX * 127 * op + 0.5) | 0));
+                    d[idx + 1] = Math.min(255, Math.max(0, (128 + dY * 127 * op + 0.5) | 0));
+                }
+            }
+            ctx.putImageData(img, 0, 0);
+            return c.toDataURL();
+        }
+
+        function generateSpecularMap(w, h, radius, bezelWidth, angle) {
+            angle = angle != null ? angle : Math.PI / 3;
+            var c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            var ctx = c.getContext('2d');
+            var img = ctx.createImageData(w, h);
+            var d = img.data;
+            for (var i = 0; i < d.length; i += 4) {
+                d[i] = 0; d[i + 1] = 0; d[i + 2] = 0; d[i + 3] = 0;
+            }
+            var r = Math.min(radius, Math.min(w, h) / 2 - 1);
+            if (r <= 0) return c.toDataURL();
+            var clampedBezel = Math.min(bezelWidth, r - 1);
+            if (clampedBezel <= 1) return c.toDataURL();
+            var rSq = r * r;
+            var r1Sq = (r + 1) * (r + 1);
+            var rBSq = Math.max(r - clampedBezel, 0) * Math.max(r - clampedBezel, 0);
+            var wB = w - r * 2;
+            var hB = h - r * 2;
+            var lightVec = [Math.cos(angle), Math.sin(angle)];
+
+            for (var y1 = 0; y1 < h; y1++) {
+                for (var x1 = 0; x1 < w; x1++) {
+                    var dx, dy;
+                    if (x1 < r) { dx = x1 - r; }
+                    else if (x1 >= w - r) { dx = x1 - r - wB; }
+                    else { dx = 0; }
+                    if (y1 < r) { dy = y1 - r; }
+                    else if (y1 >= h - r) { dy = y1 - r - hB; }
+                    else { dy = 0; }
+                    var dSq = dx * dx + dy * dy;
+                    if (dSq > r1Sq || dSq < rBSq) continue;
+                    var dist = Math.sqrt(dSq);
+                    var fromSide = r - dist;
+                    var op = dSq < rSq ? 1 : 1 - (dist - Math.sqrt(rSq)) / (Math.sqrt(r1Sq) - Math.sqrt(rSq));
+                    if (op <= 0 || dist === 0) continue;
+                    var cos = dx / dist;
+                    var sin = -dy / dist;
+                    var dot = Math.abs(cos * lightVec[0] + sin * lightVec[1]);
+                    var edge = Math.sqrt(Math.max(0, 1 - Math.pow(1 - fromSide, 2)));
+                    var coeff = dot * edge;
+                    var col = (255 * coeff) | 0;
+                    var alpha = Math.min(255, Math.max(0, (col * coeff * op * 0.85) | 0));
+                    var idx = (y1 * w + x1) * 4;
+                    d[idx] = col; d[idx + 1] = col; d[idx + 2] = col; d[idx + 3] = alpha;
+                }
+            }
+            ctx.putImageData(img, 0, 0);
+            return c.toDataURL();
+        }
+
+        function buildSVGFilter(filterId, dispUrl, specUrl, scale, w, h, specOpacity) {
+            specOpacity = specOpacity != null ? specOpacity : 0.3;
+            var fc = '';
+            fc += '<feImage href="' + dispUrl + '" x="0" y="0" width="' + w + '" height="' + h + '" result="disp_map" />';
+            fc += '<feDisplacementMap in="SourceGraphic" in2="disp_map" scale="' + scale +
+                  '" xChannelSelector="R" yChannelSelector="G" result="displaced" />';
+            if (specUrl) {
+                fc += '<feImage href="' + specUrl + '" x="0" y="0" width="' + w + '" height="' + h + '" result="spec_layer" />';
+                fc += '<feComposite in="displaced" in2="spec_layer" operator="in" result="spec_masked" />';
+                fc += '<feComponentTransfer in="spec_layer" result="spec_faded">' +
+                      '<feFuncA type="linear" slope="' + specOpacity + '" /></feComponentTransfer>';
+                fc += '<feBlend in="spec_masked" in2="displaced" mode="screen" result="with_spec" />';
+                fc += '<feBlend in="spec_faded" in2="with_spec" mode="screen" />';
+            }
+            return fc;
+        }
+
+        /* ============================================================
+           第二部分：按钮配置与构建
+           ============================================================ */
+        const buttonsConfig = [
                 {
                     text: "网页模拟浏览器",
                     url: "fz2/llq.html",
@@ -314,361 +470,614 @@
                 }
             ];
 
-            // 获取按钮容器
-            const gridContainer = document.getElementById('buttonGrid');
-            
-            // 清空容器，动态构建所有按钮
-            function buildButtons() {
-                if (!gridContainer) return;
-                gridContainer.innerHTML = ''; // 清空原有占位
-                
-                buttonsConfig.forEach((btn, idx) => {
-                    const button = document.createElement('button');
-                    button.className = 'liquid-btn';
-                    // 添加自定义属性，方便调试
-                    button.setAttribute('data-index', idx);
-                    button.innerHTML = btn.text;
-                    
-                    // 添加微光顺序动画延迟
-                    button.style.setProperty('--order', idx);
-                    
-                    // 绑定点击事件
-                    button.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        
-                        // 有效链接处理
-                        if (btn.url && btn.url.trim() !== '') {
-                            // 打开新标签页跳转
-                            window.open(btn.url, '_blank', 'noopener,noreferrer');
-                            // 可选触感反馈（不影响体验）
-                        } 
-                        else {
-                            // 没有链接时，显示提示信息 (占位或后期完善)
-                            const msg = btn.tip && btn.tip.trim() !== '' ? btn.tip : "✨ 这个按钮正在吸收宇宙能量，稍后就会开启 ✨";
-                            // 优雅弹框样式 - 不使用原生alert，而是创建轻提示浮动层 (更美观)
-                            showFloatingTip(msg, button);
-                        }
-                    });
-                    
-                    // 添加一点涟漪特效辅助 (可选，增强交互)
-                    button.addEventListener('mousedown', createRipple);
-                    gridContainer.appendChild(button);
+        const gridContainer = document.getElementById('buttonGrid');
+
+        const GLASS = {
+            THICKNESS: 70,
+            IOR: 2.4,
+            BEZEL_RATIO: 0.55,
+            BEZEL_MAX: 16,
+            SPECULAR_OPACITY: 0.26,
+            SPECULAR_ANGLE: Math.PI * 0.75,
+            BLUR: 0.4,
+            SCALE_RATIO: 0.55
+        };
+
+        let defsEl = null;
+
+        function ensureSVG() {
+            let svg = document.getElementById('lg-svg');
+            if (!svg) {
+                svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('id', 'lg-svg');
+                svg.setAttribute('width', '0');
+                svg.setAttribute('height', '0');
+                svg.setAttribute('style', 'position:absolute;width:0;height:0;overflow:hidden;pointer-events:none;');
+                svg.setAttribute('color-interpolation-filters', 'sRGB');
+                svg.setAttribute('aria-hidden', 'true');
+                document.body.appendChild(svg);
+            }
+            defsEl = svg.querySelector('defs');
+            if (!defsEl) {
+                defsEl = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                svg.appendChild(defsEl);
+            }
+        }
+
+        function writeFilter(id, filterHTML) {
+            if (!defsEl) return;
+            const old = defsEl.querySelector('#' + id);
+            if (old) old.remove();
+            if (!filterHTML) return;
+            const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+            filter.setAttribute('id', id);
+            filter.setAttribute('x', '0%');
+            filter.setAttribute('y', '0%');
+            filter.setAttribute('width', '100%');
+            filter.setAttribute('height', '100%');
+            filter.innerHTML = filterHTML;
+            defsEl.appendChild(filter);
+        }
+
+        function buildLiquidGlass() {
+            const btns = gridContainer.querySelectorAll('.liquid-btn');
+            if (!btns.length) return;
+
+            btns.forEach(function (btn, i) {
+                const w = Math.round(btn.offsetWidth);
+                const h = Math.round(btn.offsetHeight);
+                if (w < 8 || h < 8) return;
+
+                const radius = Math.min(w, h) / 2;
+                const bezel = Math.min(radius * GLASS.BEZEL_RATIO, GLASS.BEZEL_MAX, radius - 1);
+                if (bezel <= 1) return;
+
+                const profile = calculateRefractionProfile(
+                    GLASS.THICKNESS, bezel, squircleSurface, GLASS.IOR, 128
+                );
+                let maxDisp = 0;
+                for (let k = 0; k < profile.length; k++) {
+                    const a = Math.abs(profile[k]);
+                    if (a > maxDisp) maxDisp = a;
+                }
+                if (maxDisp < 0.001) maxDisp = 1;
+                const scale = maxDisp * GLASS.SCALE_RATIO;
+
+                const dispUrl = generateDisplacementMap(w, h, radius, bezel, profile, maxDisp);
+                let specUrl = '';
+                if (GLASS.SPECULAR_OPACITY > 0.001) {
+                    specUrl = generateSpecularMap(w, h, radius, bezel * 2.2, GLASS.SPECULAR_ANGLE);
+                }
+
+                const id = 'lg-btn-filter-' + i;
+                writeFilter(id, buildSVGFilter(id, dispUrl, specUrl, scale, w, h, GLASS.SPECULAR_OPACITY));
+
+                let bf = 'url(#' + id + ')';
+                if (GLASS.BLUR > 0) bf += ' blur(' + GLASS.BLUR.toFixed(1) + 'px)';
+
+                btn.style.setProperty('backdrop-filter', bf, 'important');
+                btn.style.setProperty('-webkit-backdrop-filter', bf, 'important');
+            });
+        }
+
+        function buildButtons() {
+            if (!gridContainer) return;
+            gridContainer.innerHTML = '';
+
+            buttonsConfig.forEach(function (btnCfg, idx) {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'liquid-btn';
+                button.setAttribute('data-index', idx);
+                button.innerHTML = btnCfg.text;
+                button.style.setProperty('--order', idx);
+
+                button.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (btnCfg.url && btnCfg.url.trim() !== '') {
+                        window.open(btnCfg.url, '_blank', 'noopener,noreferrer');
+                    } else {
+                        const msg = btnCfg.tip && btnCfg.tip.trim() !== ''
+                            ? btnCfg.tip
+                            : '✨ 这个按钮正在吸收宇宙能量，稍后就会开启 ✨';
+                        showFloatingTip(msg);
+                    }
+                });
+
+                button.addEventListener('mousedown', createRipple);
+                button.addEventListener('touchstart', createRipple, { passive: true });
+
+                gridContainer.appendChild(button);
+            });
+        }
+
+        let activeTip = null;
+        function showFloatingTip(message) {
+            if (activeTip) { activeTip.remove(); activeTip = null; }
+
+            const tipDiv = document.createElement('div');
+            tipDiv.textContent = message;
+            Object.assign(tipDiv.style, {
+                position: 'fixed',
+                bottom: '20%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                backgroundColor: 'rgba(10, 20, 35, 0.85)',
+                backdropFilter: 'blur(12px)',
+                webkitBackdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255,255,255,0.5)',
+                borderRadius: '60px',
+                padding: '12px 28px',
+                fontSize: '1rem',
+                fontWeight: '500',
+                color: '#fff',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.4), 0 0 15px rgba(255,255,200,0.3)',
+                zIndex: '9999',
+                textAlign: 'center',
+                whiteSpace: 'nowrap',
+                fontFamily: 'inherit',
+                letterSpacing: '1px',
+                pointerEvents: 'none',
+                animation: 'tipFade 0.3s ease forwards'
+            });
+
+            if (window.innerWidth < 600) {
+                tipDiv.style.whiteSpace = 'normal';
+                tipDiv.style.maxWidth = '80%';
+                tipDiv.style.fontSize = '0.85rem';
+                tipDiv.style.padding = '10px 20px';
+            }
+
+            document.body.appendChild(tipDiv);
+            activeTip = tipDiv;
+
+            setTimeout(function () {
+                if (!activeTip) return;
+                activeTip.style.opacity = '0';
+                activeTip.style.transform = 'translateX(-50%) translateY(10px)';
+                activeTip.style.transition = 'all 0.2s ease';
+                const dying = activeTip;
+                activeTip = null;
+                setTimeout(function () {
+                    if (dying.parentNode) dying.remove();
+                }, 220);
+            }, 2000);
+        }
+
+        function createRipple(e) {
+            const btn = e.currentTarget;
+            if (btn.querySelector('.ripple-effect')) return;
+
+            let clientX, clientY;
+            if (e.touches && e.touches.length) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+
+            const rect = btn.getBoundingClientRect();
+            const diameter = Math.max(rect.width, rect.height) * 1.6;
+            const radius = diameter / 2;
+            const x = clientX - rect.left - radius;
+            const y = clientY - rect.top - radius;
+
+            const ripple = document.createElement('span');
+            ripple.className = 'ripple-effect';
+            Object.assign(ripple.style, {
+                width: diameter + 'px',
+                height: diameter + 'px',
+                left: x + 'px',
+                top: y + 'px',
+                transition: 'transform 0.5s ease-out, opacity 0.6s ease'
+            });
+            btn.appendChild(ripple);
+
+            requestAnimationFrame(function () {
+                ripple.style.transform = 'scale(2.2)';
+                ripple.style.opacity = '0';
+            });
+            setTimeout(function () {
+                if (ripple.parentNode) ripple.remove();
+            }, 620);
+        }
+
+        /* ============================================================
+           第三部分：星空 + 全区域随机方向流星雨（完全基于时间戳，跨帧率一致）
+           ============================================================ */
+        const canvas = document.getElementById('starCanvas');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+        const STAR_COUNT = 220;
+        let width = 0, height = 0;
+
+        /* ---------- 流星数据（时间单位：毫秒，用 performance.now()） ---------- */
+        const meteors = [];
+        const MAX_METEORS = 3;                 // 同屏最多 3 颗，稀疏一些
+
+        let nextMeteorTime = 0;                // 下一颗自然流星的出现时刻(ms)
+        let burstRemaining = 0;                // 当前爆发剩余数量
+        let nextBurstShotTime = 0;             // 爆发内下一颗的时刻(ms)
+        let nextBurstCheckTime = 0;            // 下次可触发爆发的时间(ms)
+
+        function scheduleNextMeteor(now) {
+            // 2.5 ~ 8 秒后出现下一颗自然流星（真实时间，与帧率无关）
+            nextMeteorTime = now + 2500 + Math.random() * 5500;
+        }
+        function scheduleNextBurstShot(now) {
+            // 爆发内相邻两颗间隔 200 ~ 800 ms
+            nextBurstShotTime = now + 200 + Math.random() * 600;
+        }
+
+        function initStars() {
+            stars = [];
+            for (let i = 0; i < STAR_COUNT; i++) {
+                stars.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    radius: Math.random() * 2.2 + 0.8,
+                    alpha: Math.random() * 0.5 + 0.3,
+                    speed: 0.002 + Math.random() * 0.008,
+                    offset: Math.random() * Math.PI * 2
                 });
             }
-            
-            // 优雅的浮动提示 (替代alert)
-            let activeTip = null;
-            function showFloatingTip(message, targetBtn) {
-                // 移除已存在的提示
-                if (activeTip) {
-                    activeTip.remove();
-                    activeTip = null;
-                }
-                
-                const tipDiv = document.createElement('div');
-                tipDiv.className = 'floating-tip';
-                tipDiv.textContent = message;
-                // 样式内嵌，避免全局污染? 直接动态style
-                tipDiv.style.position = 'fixed';
-                tipDiv.style.bottom = '20%';
-                tipDiv.style.left = '50%';
-                tipDiv.style.transform = 'translateX(-50%)';
-                tipDiv.style.backgroundColor = 'rgba(10, 20, 35, 0.85)';
-                tipDiv.style.backdropFilter = 'blur(12px)';
-                tipDiv.style.border = '1px solid rgba(255,255,255,0.5)';
-                tipDiv.style.borderRadius = '60px';
-                tipDiv.style.padding = '12px 28px';
-                tipDiv.style.fontSize = '1rem';
-                tipDiv.style.fontWeight = '500';
-                tipDiv.style.color = '#fff';
-                tipDiv.style.boxShadow = '0 10px 30px rgba(0,0,0,0.4), 0 0 15px rgba(255,255,200,0.3)';
-                tipDiv.style.zIndex = '9999';
-                tipDiv.style.textAlign = 'center';
-                tipDiv.style.whiteSpace = 'nowrap';
-                tipDiv.style.fontFamily = 'inherit';
-                tipDiv.style.letterSpacing = '1px';
-                tipDiv.style.pointerEvents = 'none';
-                tipDiv.style.animation = 'tipFade 0.3s ease forwards';
-                
-                // 自适应手机换行
-                if (window.innerWidth < 600) {
-                    tipDiv.style.whiteSpace = 'normal';
-                    tipDiv.style.maxWidth = '80%';
-                    tipDiv.style.fontSize = '0.85rem';
-                    tipDiv.style.padding = '10px 20px';
-                }
-                
-                document.body.appendChild(tipDiv);
-                activeTip = tipDiv;
-                
-                // 2.2秒后消失
-                setTimeout(() => {
-                    if (activeTip) {
-                        activeTip.style.opacity = '0';
-                        activeTip.style.transform = 'translateX(-50%) translateY(10px)';
-                        activeTip.style.transition = 'all 0.2s ease';
-                        setTimeout(() => {
-                            if (activeTip && activeTip.parentNode) activeTip.remove();
-                            if (activeTip === tipDiv) activeTip = null;
-                        }, 200);
-                    }
-                }, 2000);
+        }
+
+        function resizeCanvas() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            initStars();
+        }
+
+        /* ------------------------------------------------------------
+           生成一颗流星：从屏幕四条边随机进入，朝内部随机目标点飞行。
+           速度单位 px/s，位置更新时乘以 dtSec，所以 60Hz / 144Hz / 360Hz 一致。
+           ------------------------------------------------------------ */
+        function spawnMeteor(speedBoost, now) {
+            if (meteors.length >= MAX_METEORS) return;
+
+            const baseSpeed = 320 + Math.random() * 420;       // px/s
+            const speed = speedBoost ? baseSpeed * 1.4 : baseSpeed;
+            const pad = 120;
+
+            const edge = Math.floor(Math.random() * 4);
+            let startX, startY;
+            if (edge === 0) {
+                startX = Math.random() * width;  startY = -pad;
+            } else if (edge === 1) {
+                startX = width + pad;            startY = Math.random() * height;
+            } else if (edge === 2) {
+                startX = Math.random() * width;  startY = height + pad;
+            } else {
+                startX = -pad;                   startY = Math.random() * height;
             }
-            
-            // 简单涟漪效果（装饰）
-            function createRipple(e) {
-                const btn = e.currentTarget;
-                const ripple = document.createElement('span');
-                ripple.classList.add('ripple-effect');
-                const diameter = Math.max(btn.clientWidth, btn.clientHeight);
-                const radius = diameter / 2;
-                const rect = btn.getBoundingClientRect();
-                const x = e.clientX - rect.left - radius;
-                const y = e.clientY - rect.top - radius;
-                ripple.style.width = ripple.style.height = `${diameter}px`;
-                ripple.style.left = `${x}px`;
-                ripple.style.top = `${y}px`;
-                ripple.style.position = 'absolute';
-                ripple.style.borderRadius = '50%';
-                ripple.style.backgroundColor = 'rgba(255,255,255,0.5)';
-                ripple.style.transform = 'scale(0)';
-                ripple.style.transition = 'transform 0.4s ease-out, opacity 0.6s';
-                ripple.style.opacity = '1';
-                ripple.style.pointerEvents = 'none';
-                btn.style.position = 'relative';
-                btn.style.overflow = 'hidden';
-                btn.appendChild(ripple);
-                
-                setTimeout(() => {
-                    ripple.style.transform = 'scale(2)';
-                    ripple.style.opacity = '0';
-                }, 10);
-                
-                setTimeout(() => {
-                    if (ripple.parentNode) ripple.remove();
-                }, 500);
+
+            const targetX = width  * (0.1 + Math.random() * 0.8);
+            const targetY = height * (0.1 + Math.random() * 0.8);
+            const dx = targetX - startX;
+            const dy = targetY - startY;
+            const d = Math.sqrt(dx * dx + dy * dy) || 1;
+
+            const warm = Math.random() < 0.22;
+            meteors.push({
+                x: startX,
+                y: startY,
+                vx: (dx / d) * speed,
+                vy: (dy / d) * speed,
+                len: 80 + Math.random() * 200,
+                width: 0.8 + Math.random() * 1.6,
+                bornAt: now,                                    // 生成时刻(ms)
+                fadeIn: 60 + Math.random() * 80,                // 淡入时长(ms)
+                hue: warm ? '255, 240, 220' : '198, 224, 255'
+            });
+        }
+
+        /* ---------- 更新流星（完全基于时间戳 + dt） ---------- */
+        function updateMeteors(now, dtSec) {
+            // 自然生成
+            if (now >= nextMeteorTime) {
+                spawnMeteor(false, now);
+                scheduleNextMeteor(now);
             }
-            
-            // 添加全局动画关键帧 (因为动态tip动画)
-            const styleSheet = document.createElement("style");
-            styleSheet.textContent = `
-                @keyframes tipFade {
-                    0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
-                    100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+            // 偶发流星雨爆发：每 30~90 秒检查一次，50% 触发一次 2~3 颗的爆发
+            if (burstRemaining === 0 && now >= nextBurstCheckTime) {
+                if (Math.random() < 0.5) {
+                    burstRemaining = 2 + Math.floor(Math.random() * 2);
+                    nextBurstShotTime = now;
                 }
-                .ripple-effect {
-                    position: absolute;
-                    border-radius: 50%;
-                    pointer-events: none;
-                    background: radial-gradient(circle, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 80%);
-                    transform: scale(0);
-                    animation: rippleAnim 0.5s linear forwards;
-                }
-                @keyframes rippleAnim {
-                    to {
-                        transform: scale(3);
-                        opacity: 0;
-                    }
-                }
-            `;
-            document.head.appendChild(styleSheet);
-            
-            // ==================== 星空背景canvas实现 (纯粹动态闪烁星辰) ====================
-            const canvas = document.getElementById('starCanvas');
-            const ctx = canvas.getContext('2d');
-            let stars = [];
-            const STAR_COUNT = 220;
-            let width, height;
-            
-            function initStars() {
-                stars = [];
-                for (let i = 0; i < STAR_COUNT; i++) {
-                    stars.push({
-                        x: Math.random() * width,
-                        y: Math.random() * height,
-                        radius: Math.random() * 2.2 + 0.8,
-                        alpha: Math.random() * 0.5 + 0.3,
-                        speed: 0.002 + Math.random() * 0.008,
-                        offset: Math.random() * Math.PI * 2
-                    });
-                }
+                nextBurstCheckTime = now + 30000 + Math.random() * 60000;
             }
-            
-            function resizeCanvas() {
-                width = window.innerWidth;
-                height = window.innerHeight;
-                canvas.width = width;
-                canvas.height = height;
-                initStars(); // 重置星星布局
+            if (burstRemaining > 0 && now >= nextBurstShotTime) {
+                spawnMeteor(true, now);
+                burstRemaining--;
+                if (burstRemaining > 0) scheduleNextBurstShot(now);
             }
-            
-            function drawStars() {
-                if (!ctx) return;
-                ctx.clearRect(0, 0, width, height);
-                // 极深空底色（保留一些星云质感）
-                ctx.fillStyle = '#03050b';
-                ctx.fillRect(0, 0, width, height);
-                
-                const now = Date.now() / 1000;
-                stars.forEach(star => {
-                    // 根据正弦波闪烁，更生动
-                    const twinkle = 0.5 + 0.5 * Math.sin(now * star.speed * 2.5 + star.offset);
-                    const alpha = Math.min(star.alpha * (0.6 + twinkle * 0.5), 0.95);
+
+            // 位移 + 回收（dtSec 保证与帧率无关）
+            const pad = 100;
+            for (let i = meteors.length - 1; i >= 0; i--) {
+                const m = meteors[i];
+                m.x += m.vx * dtSec;
+                m.y += m.vy * dtSec;
+
+                const offDist = Math.max(
+                    -m.x - pad, m.x - width - pad,
+                    -m.y - pad, m.y - height - pad,
+                    0
+                );
+                if (offDist > 320) meteors.splice(i, 1);
+            }
+        }
+
+        /* ---------- 绘制流星 ---------- */
+        function drawMeteors(now) {
+            const pad = 100;
+            for (let i = 0; i < meteors.length; i++) {
+                const m = meteors[i];
+
+                const d = Math.sqrt(m.vx * m.vx + m.vy * m.vy) || 1;
+                const ux = m.vx / d;
+                const uy = m.vy / d;
+                const tailX = m.x - ux * m.len;
+                const tailY = m.y - uy * m.len;
+
+                // 淡入（基于真实时间，与帧率无关）
+                let a = 1;
+                const age = now - m.bornAt;
+                if (age < m.fadeIn) a = age / m.fadeIn;
+
+                // 远离屏幕后淡出
+                const offDist = Math.max(
+                    -m.x - pad, m.x - width - pad,
+                    -m.y - pad, m.y - height - pad,
+                    0
+                );
+                a *= 1 - Math.min(1, offDist / 250);
+                if (a <= 0.02) continue;
+
+                const grad = ctx.createLinearGradient(m.x, m.y, tailX, tailY);
+                grad.addColorStop(0,    'rgba(255, 255, 255, ' + (a * 0.95) + ')');
+                grad.addColorStop(0.12, 'rgba(' + m.hue + ', ' + (a * 0.72) + ')');
+                grad.addColorStop(0.55, 'rgba(' + m.hue + ', ' + (a * 0.20) + ')');
+                grad.addColorStop(1,    'rgba(' + m.hue + ', 0)');
+
+                ctx.save();
+                ctx.lineCap = 'round';
+
+                // 外层柔光
+                ctx.strokeStyle = grad;
+                ctx.globalAlpha = 0.35;
+                ctx.lineWidth = m.width * 3.2;
+                ctx.beginPath();
+                ctx.moveTo(m.x, m.y);
+                ctx.lineTo(tailX, tailY);
+                ctx.stroke();
+
+                // 芯线
+                ctx.globalAlpha = 1;
+                ctx.strokeStyle = grad;
+                ctx.lineWidth = m.width;
+                ctx.beginPath();
+                ctx.moveTo(m.x, m.y);
+                ctx.lineTo(tailX, tailY);
+                ctx.stroke();
+
+                // 头部光晕
+                ctx.beginPath();
+                ctx.arc(m.x, m.y, m.width * 3.4, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(' + m.hue + ', ' + (a * 0.13) + ')';
+                ctx.fill();
+
+                // 头部亮点
+                ctx.beginPath();
+                ctx.arc(m.x, m.y, m.width * 0.9, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, ' + (a * 0.92) + ')';
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        /* ---------- 主绘制循环（带 dt，跨帧率一致） ---------- */
+        let lastFrameTime = 0;
+
+        function renderLoop(now) {
+            if (!ctx) return;
+
+            if (lastFrameTime === 0) lastFrameTime = now;
+            // 钳制最大步长：切到后台再切回来时 dt 会很大，限制 100ms 防止流星瞬移
+            const dt = Math.min(now - lastFrameTime, 100);
+            lastFrameTime = now;
+            const dtSec = dt / 1000;
+
+            ctx.clearRect(0, 0, width, height);
+            ctx.fillStyle = '#03050b';
+            ctx.fillRect(0, 0, width, height);
+
+            // 闪烁星辰（冷白色调）
+            const nowSec = now / 1000;
+            for (let i = 0; i < stars.length; i++) {
+                const star = stars[i];
+                const twinkle = 0.5 + 0.5 * Math.sin(nowSec * star.speed * 2.5 + star.offset);
+                const alpha = Math.min(star.alpha * (0.6 + twinkle * 0.5), 0.95);
+
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(225, 235, 255, ' + alpha + ')';
+                ctx.fill();
+
+                if (star.radius > 1.5 && twinkle > 0.7) {
                     ctx.beginPath();
-                    ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(255, 240, 210, ${alpha})`;
+                    ctx.arc(star.x, star.y, star.radius * 1.5, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(180, 210, 255, ' + (alpha * 0.2) + ')';
                     ctx.fill();
-                    // 偶尔增加微光晕大星星
-                    if (star.radius > 1.5 && twinkle > 0.7) {
-                        ctx.beginPath();
-                        ctx.arc(star.x, star.y, star.radius * 1.5, 0, Math.PI * 2);
-                        ctx.fillStyle = `rgba(255, 200, 150, ${alpha * 0.2})`;
-                        ctx.fill();
-                    }
-                });
-                
-                // 增加极少数流星效果或银河薄雾 (可选)
-                requestAnimationFrame(drawStars);
+                }
             }
-            
-            window.addEventListener('resize', () => {
+
+            updateMeteors(now, dtSec);
+            drawMeteors(now);
+
+            requestAnimationFrame(renderLoop);
+        }
+
+        /* ---------- 微粒子层 ---------- */
+        let particleCtx = null, particleCanvas = null;
+        let particles = [];
+        const PARTICLE_COUNT = 30;
+
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                particles.push({
+                    x: Math.random() * window.innerWidth,
+                    y: Math.random() * window.innerHeight,
+                    size: Math.random() * 2 + 1,
+                    alpha: 0.2,
+                    vx: (Math.random() - 0.5) * 0.2,
+                    vy: (Math.random() - 0.5) * 0.1
+                });
+            }
+        }
+
+        function initParticleLayer() {
+            particleCanvas = document.createElement('canvas');
+            Object.assign(particleCanvas.style, {
+                position: 'fixed',
+                top: '0',
+                left: '0',
+                width: '100%',
+                height: '100%',
+                pointerEvents: 'none',
+                zIndex: '1'
+            });
+            particleCanvas.id = 'particleCanvas';
+            document.body.appendChild(particleCanvas);
+            particleCtx = particleCanvas.getContext('2d');
+            resizeParticleCanvas();
+            animateParticles();
+        }
+
+        function resizeParticleCanvas() {
+            if (!particleCanvas) return;
+            particleCanvas.width = window.innerWidth;
+            particleCanvas.height = window.innerHeight;
+            initParticles();
+        }
+
+        function animateParticles() {
+            if (!particleCtx) return;
+            const W = particleCanvas.width, H = particleCanvas.height;
+            particleCtx.clearRect(0, 0, W, H);
+            for (let i = 0; i < particles.length; i++) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                if (p.x < 0) p.x = W;
+                if (p.x > W) p.x = 0;
+                if (p.y < 0) p.y = H;
+                if (p.y > H) p.y = 0;
+
+                particleCtx.beginPath();
+                particleCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                particleCtx.fillStyle = 'rgba(180, 200, 255, ' + (p.alpha * 0.5) + ')';
+                particleCtx.fill();
+            }
+            requestAnimationFrame(animateParticles);
+        }
+
+        /* ============================================================
+           第四部分：启动 & 自适应重建
+           ============================================================ */
+        let lastSignature = '';
+        let rebuildTimer = null;
+
+        function measureAndBuild(force) {
+            const btns = gridContainer.querySelectorAll('.liquid-btn');
+            let sig = '';
+            for (let i = 0; i < btns.length; i++) {
+                sig += btns[i].offsetWidth + 'x' + btns[i].offsetHeight + '|';
+            }
+            if (!force && sig === lastSignature) return;
+            lastSignature = sig;
+            buildLiquidGlass();
+        }
+
+        function scheduleRebuild() {
+            clearTimeout(rebuildTimer);
+            rebuildTimer = setTimeout(function () {
+                measureAndBuild(true);
+            }, 60);
+        }
+
+        function init() {
+            window.addEventListener('resize', function () {
                 resizeCanvas();
-            });
-            resizeCanvas();
-            drawStars();
-            
-            // 添加一点鼠标跟随的星尘粒子（极简氛围）
-            let mouseX = 0, mouseY = 0;
-            let particles = [];
-            const PARTICLE_COUNT = 30;
-            
-            function initParticles() {
-                for (let i = 0; i < PARTICLE_COUNT; i++) {
-                    particles.push({
-                        x: Math.random() * width,
-                        y: Math.random() * height,
-                        size: Math.random() * 2 + 1,
-                        alpha: 0.2,
-                        vx: (Math.random() - 0.5) * 0.2,
-                        vy: (Math.random() - 0.5) * 0.1,
-                    });
-                }
-            }
-            
-            // 动态微小粒子背景层（提升灵动感）
-            let particleCtx, particleCanvas;
-            function initParticleLayer() {
-                particleCanvas = document.createElement('canvas');
-                particleCanvas.style.position = 'fixed';
-                particleCanvas.style.top = '0';
-                particleCanvas.style.left = '0';
-                particleCanvas.style.width = '100%';
-                particleCanvas.style.height = '100%';
-                particleCanvas.style.pointerEvents = 'none';
-                particleCanvas.style.zIndex = '1';
-                particleCanvas.id = 'particleCanvas';
-                document.body.appendChild(particleCanvas);
-                particleCtx = particleCanvas.getContext('2d');
                 resizeParticleCanvas();
-                window.addEventListener('resize', resizeParticleCanvas);
-                animateParticles();
-            }
-            
-            function resizeParticleCanvas() {
-                if (particleCanvas) {
-                    particleCanvas.width = window.innerWidth;
-                    particleCanvas.height = window.innerHeight;
-                    initParticles();
-                }
-            }
-            
-            function animateParticles() {
-                if (!particleCtx) return;
-                particleCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
-                particles.forEach(p => {
-                    p.x += p.vx;
-                    p.y += p.vy;
-                    if (p.x < 0) p.x = particleCanvas.width;
-                    if (p.x > particleCanvas.width) p.x = 0;
-                    if (p.y < 0) p.y = particleCanvas.height;
-                    if (p.y > particleCanvas.height) p.y = 0;
-                    
-                    particleCtx.beginPath();
-                    particleCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                    particleCtx.fillStyle = `rgba(180, 200, 255, ${p.alpha * 0.5})`;
-                    particleCtx.fill();
-                });
-                requestAnimationFrame(animateParticles);
-            }
-            
-            // 鼠标移动产生跟随效果(极轻微)
-            document.addEventListener('mousemove', (e) => {
-                mouseX = e.clientX;
-                mouseY = e.clientY;
-                // 略微让粒子流偏移, 营造微交互(可选)
-                for (let i = 0; i < particles.length; i++) {
-                    let dx = mouseX - particles[i].x;
-                    let dy = mouseY - particles[i].y;
-                    let dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist < 120) {
-                        let angle = Math.atan2(dy, dx);
-                        let force = (120 - dist) / 800;
-                        particles[i].vx -= Math.cos(angle) * force;
-                        particles[i].vy -= Math.sin(angle) * force;
-                        // 限制最大速度
-                        let maxSpeed = 1.2;
-                        if (Math.abs(particles[i].vx) > maxSpeed) particles[i].vx = particles[i].vx > 0 ? maxSpeed : -maxSpeed;
-                        if (Math.abs(particles[i].vy) > maxSpeed) particles[i].vy = particles[i].vy > 0 ? maxSpeed : -maxSpeed;
-                    }
-                }
+                scheduleRebuild();
             });
-            
-            initParticleLayer();
-            
-            // 动态构建按钮 (确保所有按钮优雅出现)
-            buildButtons();
-            
-            // 添加简单提示 : 如果用户需要后期自己加按钮，可以直接修改 buttonsConfig 数组
-            // 在控制台输出使用说明 (方便调试)
-            console.log('✨ 星空导航已启动 | 按钮配置在 buttonsConfig 数组中，轻松增删改跳转链接 ✨');
-            console.log('💡 使用提示：修改 buttonsConfig 即可添加新按钮，支持任意url，占位按钮会显示优雅提示');
-            
-            // 对手机触摸优化，防止300ms延迟（无伤大雅）
-            if ('ontouchstart' in window) {
-                const btns = document.querySelectorAll('.liquid-btn');
-                btns.forEach(btn => {
-                    btn.addEventListener('touchstart', (e) => {
-                        // 只是为了优化响应，不做额外处理
-                    }, { passive: true });
-                });
+
+            if (typeof ResizeObserver !== 'undefined') {
+                const ro = new ResizeObserver(scheduleRebuild);
+                ro.observe(gridContainer);
             }
-            
-            // 添加背景光晕鼠标动态(让标题跟随鼠标光效，提升高级感)
+
+            // 背景
+            resizeCanvas();
+            initParticleLayer();
+
+            // 流星计时器初始化（首颗 1~3 秒内出现；首轮爆发检查 30~60 秒后）
+            const t0 = performance.now();
+            nextMeteorTime = t0 + 1000 + Math.random() * 2000;
+            nextBurstCheckTime = t0 + 30000 + Math.random() * 30000;
+
+            requestAnimationFrame(renderLoop);
+
+            // 按钮
+            buildButtons();
+
+            const supportsBD = !!(window.CSS && window.CSS.supports) &&
+                (window.CSS.supports('backdrop-filter', 'blur(2px)') ||
+                 window.CSS.supports('-webkit-backdrop-filter', 'blur(2px)'));
+            if (!supportsBD) document.body.classList.add('no-glass');
+
+            // 标题随鼠标微光
             const titleElement = document.querySelector('.main-title');
             if (titleElement) {
-                document.addEventListener('mousemove', (e) => {
+                document.addEventListener('mousemove', function (e) {
                     const x = e.clientX / window.innerWidth;
                     const y = e.clientY / window.innerHeight;
                     const glowX = (x * 30) - 15;
                     const glowY = (y * 20) - 10;
-                    titleElement.style.textShadow = `${glowX * 0.3}px ${glowY * 0.2}px 25px rgba(100, 180, 255, 0.6)`;
+                    titleElement.style.textShadow =
+                        (glowX * 0.3) + 'px ' + (glowY * 0.2) + 'px 25px rgba(100, 180, 255, 0.6)';
+                }, { passive: true });
+            }
+
+            ensureSVG();
+            requestAnimationFrame(function () {
+                requestAnimationFrame(function () {
+                    measureAndBuild(true);
+                });
+            });
+            window.addEventListener('load', function () {
+                setTimeout(function () { measureAndBuild(true); }, 60);
+            });
+            if (document.fonts && document.fonts.ready) {
+                document.fonts.ready.then(function () {
+                    setTimeout(function () { measureAndBuild(true); }, 60);
                 });
             }
-            
-            // 额外添加滚动流畅处理 (移动端滚动时避免背景抖动)
-            const mainContainer = document.querySelector('.main-container');
-            let startY = 0;
-            mainContainer.addEventListener('touchstart', (e) => {
-                startY = e.touches[0].clientY;
-            }, { passive: true });
-            
-            // 完善功能: 新增按钮管理提示浮层不与其他元素冲突
-            // 自适应安全区
-            const styleSafe = document.createElement('style');
-            styleSafe.textContent = `body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }`;
-            document.head.appendChild(styleSafe);
-        })();
+
+            console.log('✨ 星空导航已启动 | 液态玻璃折射 + 全区域随机方向流星雨（时间戳驱动） ✨');
+        }
+
+        init();
+    })();
     </script>
 </body>
 </html>
