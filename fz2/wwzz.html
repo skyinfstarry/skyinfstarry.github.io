@@ -12,175 +12,518 @@
     color: #e6edf7;
     -webkit-font-smoothing: antialiased;
   }
-  #scene {
-    display: block; width: 100vw; height: 100vh;
-    cursor: crosshair; touch-action: none;
-  }
-
-  /* ---- HUD 面板 ---- */
-  .hud {
-    position: fixed; z-index: 10;
-    background: rgba(12, 18, 30, 0.72);
-    border: 1px solid rgba(90, 130, 190, 0.22);
-    border-radius: 12px;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    padding: 12px 14px;
-    box-shadow: 0 10px 34px -18px rgba(0, 0, 0, 0.9);
-  }
-
-  .hud-tl { top: 18px; left: 18px; min-width: 210px; }
-  .hud-bl { bottom: 18px; left: 18px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; max-width: calc(100vw - 36px); }
-  .hud-br { bottom: 18px; right: 18px; display: flex; gap: 8px; }
-
-  .label {
-    font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
-    color: #6b7d99; margin-bottom: 6px;
-  }
-  .y-value {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 15px; line-height: 1.6; color: #7dd3fc;
-    word-break: break-all; max-height: 108px; overflow-y: auto;
-    font-variant-numeric: tabular-nums;
-    text-shadow: 0 0 18px rgba(76, 201, 240, .35);
-    margin-bottom: 10px;
-  }
-  .y-value.empty { color: #3f4c60; text-shadow: none; }
+  #scene { display: block; width: 100vw; height: 100vh; cursor: crosshair; touch-action: none; }
 
   button {
     font: inherit; font-size: 12.5px; padding: 7px 14px;
-    border-radius: 8px; border: 1px solid rgba(90, 130, 190, 0.28);
-    background: rgba(30, 45, 70, 0.72); color: #c3d0e2;
+    border-radius: 8px; border: 1px solid rgba(90,130,190,.28);
+    background: rgba(30,45,70,.72); color: #c3d0e2;
     cursor: pointer; white-space: nowrap;
     transition: background .16s, border-color .16s, color .16s, transform .08s;
   }
-  button:hover { background: rgba(45, 68, 104, 0.9); border-color: rgba(120, 170, 240, 0.5); color: #fff; }
+  button:hover { background: rgba(45,68,104,.9); border-color: rgba(120,170,240,.5); color: #fff; }
   button:active { transform: translateY(1px); }
   button.primary {
-    background: linear-gradient(135deg, rgba(29, 78, 216, .95), rgba(76, 201, 240, .95));
-    border-color: rgba(76, 201, 240, .8); color: #fff;
-    box-shadow: 0 0 22px -6px rgba(76, 201, 240, .7);
+    background: linear-gradient(135deg, rgba(29,78,216,.95), rgba(76,201,240,.95));
+    border-color: rgba(76,201,240,.8); color: #fff;
+    box-shadow: 0 0 22px -6px rgba(76,201,240,.7);
   }
   button.primary:hover { filter: brightness(1.12); }
-  button.copied { background: rgba(20, 83, 45, .95); border-color: #22c55e; color: #86efac; }
-  button.wide { width: 100%; }
+  button.copied { background: rgba(20,83,45,.95); border-color: #22c55e; color: #86efac; }
 
-  #textInput {
-    flex: 1 1 180px; min-width: 140px;
-    font: inherit; font-size: 13.5px; padding: 9px 13px;
-    border-radius: 8px; border: 1px solid rgba(90, 130, 190, 0.28);
-    background: rgba(8, 13, 22, 0.85); color: #e6edf7;
+  input[type="text"], input[type="number"], select {
+    font: inherit; border-radius: 8px;
+    border: 1px solid rgba(90,130,190,.28);
+    background: rgba(8,13,22,.85); color: #e6edf7;
     outline: none;
     transition: border-color .18s, box-shadow .18s;
   }
-  #textInput::placeholder { color: #4d5c72; }
-  #textInput:focus {
-    border-color: rgba(76, 201, 240, .8);
-    box-shadow: 0 0 0 3px rgba(76, 201, 240, .14);
+  input[type="text"]::placeholder { color: #4d5c72; }
+  input:focus, select:focus {
+    border-color: rgba(76,201,240,.8);
+    box-shadow: 0 0 0 3px rgba(76,201,240,.14);
   }
-  #fontSel {
-    font: inherit; font-size: 12.5px; padding: 9px 8px;
-    border-radius: 8px; border: 1px solid rgba(90, 130, 190, 0.28);
-    background: rgba(30, 45, 70, 0.72); color: #c3d0e2;
-    cursor: pointer; outline: none;
-  }
-  #fontSel:focus { border-color: rgba(76, 201, 240, .8); }
+  select { background: rgba(30,45,70,.72); color: #c3d0e2; cursor: pointer; }
+  select option { background: #1a2333; }
 
+  .label { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #6b7d99; white-space: nowrap; }
+
+  /* ---- 顶部栏 ---- */
+  .top-bar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 20;
+    background: rgba(10,15,25,.86);
+    border-bottom: 1px solid rgba(90,130,190,.22);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 10px 34px -22px rgba(0,0,0,.95);
+    padding: 11px 18px 12px;
+    display: flex; flex-direction: column; gap: 9px;
+  }
+  .y-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .y-value {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 14.5px; line-height: 1.55; color: #7dd3fc;
+    word-break: break-all; font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 18px rgba(76,201,240,.35);
+    max-height: 132px; overflow-y: auto; overflow-x: hidden;
+    padding-right: 4px; letter-spacing: .2px;
+  }
+  .y-value.empty { color: #3f4c60; text-shadow: none; }
+
+  .decode-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  #yInput { flex: 1 1 260px; min-width: 0; font-size: 13px; padding: 8px 12px; }
+  .mini-status {
+    font-size: 11.5px; color: #6b7d99; letter-spacing: .04em;
+    min-height: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .mini-status.ok { color: #6ee7b7; }
+  .mini-status.warn { color: #f0a04b; }
+  .mini-status.err { color: #f87171; }
+
+  /* ---- 底部栏 ---- */
+  .bottom-bar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    background: rgba(10,15,25,.86);
+    border-top: 1px solid rgba(90,130,190,.22);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 -10px 34px -22px rgba(0,0,0,.95);
+    padding: 11px 18px 12px;
+    display: flex; flex-direction: column; gap: 9px;
+  }
+  .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .grow { flex: 1 1 180px; display: flex; gap: 8px; min-width: 0; }
+  #textInput { flex: 1 1 auto; min-width: 0; font-size: 13px; padding: 8px 12px; }
+  #fontSel { font-size: 12.5px; padding: 8px 8px; }
+  .spacer { flex: 1 1 0; min-width: 0; }
+  .tool-group { display: flex; gap: 8px; flex-shrink: 0; }
+
+  #scaleSel { font-size: 12.5px; padding: 8px 8px; }
+  #customScale { width: 72px; font-size: 12.5px; padding: 8px 10px; display: none; }
+  .scale-info {
+    font-size: 11.5px; color: #6b7d99;
+    font-variant-numeric: tabular-nums;
+    padding-left: 2px;
+  }
+
+  /* ---- 计算模式徽章 ---- */
+  .mode-badge {
+    font-size: 11px;
+    letter-spacing: .06em;
+    padding: 4px 9px;
+    border-radius: 6px;
+    border: 1px solid rgba(90,130,190,.28);
+    background: rgba(30,45,70,.5);
+    color: #8b98ad;
+    font-variant-numeric: tabular-nums;
+    transition: color .2s, border-color .2s, background .2s;
+    white-space: nowrap;
+  }
+  .mode-badge.worker { color: #6ee7b7; border-color: rgba(110,231,183,.35); background: rgba(20,83,45,.35); }
+  .mode-badge.main   { color: #f0a04b; border-color: rgba(240,160,75,.35); background: rgba(80,50,15,.35); }
+  .mode-badge.init   { color: #7dd3fc; border-color: rgba(125,211,252,.35); background: rgba(20,50,80,.35); }
+  .mode-badge.dead   { color: #f87171; border-color: rgba(248,113,113,.35); background: rgba(80,20,20,.35); }
+
+  /* ---- 提示 ---- */
   .hint {
-    position: fixed; left: 50%; top: 22px; transform: translateX(-50%);
-    z-index: 9;
-    color: rgba(160, 185, 220, 0.42); font-size: 12.5px;
-    letter-spacing: .1em; user-select: none; pointer-events: none;
+    position: fixed; left: 50%; transform: translateX(-50%); z-index: 9;
+    color: rgba(160,185,220,.42); font-size: 12.5px; letter-spacing: .1em;
+    user-select: none; pointer-events: none;
     transition: opacity .7s ease; white-space: nowrap;
   }
   .hint.fade { opacity: 0; }
 
   @media (max-width: 720px) {
-    .hud-tl { top: 12px; left: 12px; right: 12px; min-width: 0; }
-    .hud-bl { bottom: 12px; left: 12px; right: 12px; }
-    .hud-br { bottom: auto; top: 128px; right: 12px; }
-    .hint { font-size: 11px; top: auto; bottom: 108px; }
+    .top-bar, .bottom-bar { padding: 9px 12px 10px; gap: 7px; }
+    .y-value { font-size: 13px; max-height: 96px; }
+    #yInput { flex: 1 1 140px; font-size: 12.5px; padding: 7px 10px; }
+    .mini-status { flex: 1 1 100%; }
+    .row { gap: 7px; }
+    .grow { flex: 1 1 100%; }
+    .spacer { display: none; }
+    .tool-group { width: 100%; justify-content: flex-end; }
+    .hint { display: none; }
+    .mode-badge { font-size: 10.5px; padding: 3px 7px; }
   }
 </style>
 </head>
 <body>
   <canvas id="scene"></canvas>
 
-  <div class="hud hud-tl">
-    <div class="label">y 起始值 &nbsp;y₀</div>
+  <div class="top-bar" id="topBar">
+    <div class="y-row">
+      <span class="label">y 起始值 &nbsp;y₀</span>
+      <button class="primary" id="copyY">复制 y₀</button>
+    </div>
     <div class="y-value empty" id="yVal">0</div>
-    <button class="wide primary" id="copyY">复制 y₀</button>
+
+    <div class="decode-row">
+      <span class="label">输入 y₀ 还原图案</span>
+      <input id="yInput" type="text" placeholder="粘贴任意 y₀，回车还原…"
+             inputmode="numeric" autocomplete="off" spellcheck="false" />
+      <button id="btnDecode" class="primary">还原</button>
+      <span class="mini-status" id="yStatus"></span>
+    </div>
   </div>
 
-  <div class="hud hud-bl">
-    <input id="textInput" type="text" placeholder="输入文字后回车…" maxlength="20" autocomplete="off" spellcheck="false" />
-    <select id="fontSel" aria-label="字体">
-      <option value="sans">无衬线</option>
-      <option value="serif">衬线</option>
-      <option value="mono">等宽</option>
-    </select>
-    <button id="btnDraw" class="primary">画文字</button>
-  </div>
+  <div class="bottom-bar" id="bottomBar">
+    <div class="row">
+      <div class="grow">
+        <input id="textInput" type="text" placeholder="输入文字后回车…"
+               maxlength="20" autocomplete="off" spellcheck="false" />
+        <select id="fontSel" aria-label="字体">
+          <option value="sans">无衬线</option>
+          <option value="serif">衬线</option>
+          <option value="mono">等宽</option>
+        </select>
+        <button id="btnDraw" class="primary">画文字</button>
+      </div>
+      <div class="tool-group">
+        <button id="btnClear">清空</button>
+        <button id="btnInvert">反色</button>
+        <button id="btnRandom">随机</button>
+      </div>
+    </div>
 
-  <div class="hud hud-br">
-    <button id="btnClear">清空</button>
-    <button id="btnInvert">反色</button>
-    <button id="btnRandom">随机</button>
+    <div class="row">
+      <span class="label">分辨率</span>
+      <select id="scaleSel" aria-label="分辨率">
+        <option value="1">经典 ×1</option>
+        <option value="2">×2</option>
+        <option value="3">×3</option>
+        <option value="5">×5</option>
+        <option value="custom">自定义</option>
+      </select>
+      <input id="customScale" type="number" min="1" max="10" value="4" />
+      <span class="scale-info" id="scaleInfo">106 × 17</span>
+      <span class="mode-badge init" id="modeBadge">计算模式 · 初始化中</span>
+    </div>
   </div>
 
   <div class="hint" id="hint">移动鼠标让粒子感应散开 · 点击方格涂黑</div>
 
 <script>
-(() => {
+(function () {
   "use strict";
 
-  /* ==================== 常量 ==================== */
-  const COLS = 106;
-  const ROWS = 17;
-  const TOTAL = COLS * ROWS;
+  /* ==================== 配置 ==================== */
+  const BASE_COLS = 106;
+  const BASE_ROWS = 17;
 
-  // 交互参数（沿用你文件里的手感）
+  let COLS = BASE_COLS;
+  let ROWS = BASE_ROWS;
+  let TOTAL = COLS * ROWS;
+
   const REPEL_RADIUS = 110;
   const REPEL_FORCE  = 1.05;
   const SPRING       = 0.021;
   const FRICTION     = 0.865;
 
-  // 预生成 BigInt 位权重
-  const BIT = new Array(TOTAL);
-  for (let i = 0; i < TOTAL; i++) BIT[i] = 1n << BigInt(i);
-
-  /* ==================== 画布 ==================== */
-  const canvas = document.getElementById("scene");
-  const ctx = canvas.getContext("2d", { alpha: false });
-  const hint = document.getElementById("hint");
-  const yValEl = document.getElementById("yVal");
+  /* ==================== DOM ==================== */
+  const canvas    = document.getElementById("scene");
+  const ctx       = canvas.getContext("2d", { alpha: false });
+  const hint      = document.getElementById("hint");
+  const yValEl    = document.getElementById("yVal");
+  const yStatus   = document.getElementById("yStatus");
+  const topBar    = document.getElementById("topBar");
+  const bottomBar = document.getElementById("bottomBar");
+  const scaleInfo = document.getElementById("scaleInfo");
+  const modeBadge = document.getElementById("modeBadge");
 
   let DPR = Math.min(window.devicePixelRatio || 1, 2);
   let W = 0, H = 0;
   let CELL = 12, originX = 0, originY = 0;
 
   /* ==================== 状态 ==================== */
-  const particles = new Array(TOTAL).fill(null);
-
+  let gridData  = new Uint8Array(TOTAL);
+  let particles = new Array(TOTAL).fill(null);
   const mouse = { x: -9999, y: -9999, active: false };
-
   let rawY = "0";
+
+  /* ====================================================
+     纯计算函数（Worker 与降级路径共用同一套逻辑）
+     放在主线程里，Worker 里也保留一份字符串版本
+     ==================================================== */
+
+  // 编码：网格 → y₀ 字符串（主线程版）
+  function encodeGridMain(grid, cols, rows) {
+    const total = cols * rows;
+    const bits = new Array(total);
+    for (let bit = total - 1, i = 0; bit >= 0; bit--, i++) {
+      const c = Math.floor(bit / rows);
+      const r = rows - 1 - (bit % rows);
+      bits[i] = grid[r * cols + c] ? "1" : "0";
+    }
+    const bin = bits.join("");
+    if (bin.indexOf("1") === -1) return "0";
+    return (BigInt("0b" + bin) * BigInt(rows)).toString();
+  }
+
+  // 解码：y₀ 字符串 → { grid, alignedY0, wasAligned }（主线程版）
+  function decodeYMain(y0Str, cols, rows) {
+    const total = cols * rows;
+    const H = BigInt(rows);
+
+    let y0Big;
+    try { y0Big = BigInt(String(y0Str).replace(/[^0-9]/g, "") || "0"); }
+    catch (e) { y0Big = 0n; }
+
+    const m = y0Big / H;
+    const wasAligned = (y0Big % H) === 0n;
+    const alignedY0 = (m * H).toString();
+
+    let bin = m.toString(2);
+    if (bin.length > total) bin = bin.slice(bin.length - total);
+    while (bin.length < total) bin = "0" + bin;
+
+    const grid = new Uint8Array(total);
+    for (let i = 0; i < total; i++) {
+      if (bin.charCodeAt(i) === 49) {  // '1'
+        const bit = total - 1 - i;
+        const c = Math.floor(bit / rows);
+        const r = rows - 1 - (bit % rows);
+        grid[r * cols + c] = 1;
+      }
+    }
+    return { grid: grid, alignedY0: alignedY0, wasAligned: wasAligned };
+  }
+
+  /* ====================================================
+     Worker 初始化 + 健康检查 + 降级
+     ==================================================== */
+
+  const workerSrc = [
+    'self.onmessage = function(e) {',
+    '  var d = e.data;',
+    '  if (d.type === "ping") {',
+    '    self.postMessage({ type: "pong", reqId: d.reqId });',
+    '    return;',
+    '  }',
+    '  if (d.type === "encode") {',
+    '    var grid = d.grid, cols = d.cols, rows = d.rows;',
+    '    var total = cols * rows;',
+    '    var s = "";',
+    '    for (var bit = total - 1; bit >= 0; bit--) {',
+    '      var c = Math.floor(bit / rows);',
+    '      var r = rows - 1 - (bit % rows);',
+    '      s += grid[r * cols + c] ? "1" : "0";',
+    '    }',
+    '    var y0 = 0n;',
+    '    if (s.indexOf("1") !== -1) {',
+    '      y0 = BigInt("0b" + s) * BigInt(rows);',
+    '    }',
+    '    self.postMessage({ type: "encoded", y0: y0.toString(), reqId: d.reqId });',
+    '  } else if (d.type === "decode") {',
+    '    var cols = d.cols, rows = d.rows, total = cols * rows;',
+    '    var H = BigInt(rows);',
+    '    var y0Big;',
+    '    try { y0Big = BigInt(d.y0Str); } catch (ex) { y0Big = 0n; }',
+    '    var m = y0Big / H;',
+    '    var wasAligned = (y0Big % H) === 0n;',
+    '    var alignedY0 = (m * H).toString();',
+    '    var bin = m.toString(2);',
+    '    if (bin.length > total) bin = bin.slice(bin.length - total);',
+    '    while (bin.length < total) bin = "0" + bin;',
+    '    var grid = new Uint8Array(total);',
+    '    for (var i = 0; i < total; i++) {',
+    '      if (bin.charCodeAt(i) === 49) {',
+    '        var bit = total - 1 - i;',
+    '        var c = Math.floor(bit / rows);',
+    '        var r = rows - 1 - (bit % rows);',
+    '        grid[r * cols + c] = 1;',
+    '      }',
+    '    }',
+    '    self.postMessage({ type: "decoded", grid: grid, alignedY0: alignedY0, wasAligned: wasAligned, reqId: d.reqId }, [grid.buffer]);',
+    '  }',
+    '};'
+  ].join('\n');
+
+  // 计算模式：'init' | 'worker' | 'main'
+  let computeMode = 'init';
+
+  let worker = null;
+  let workerUsable = false;
+  let workerReadyTimer = null;
+  let workerObjectUrl = null;
+
+  let encodeReqId = 0;
+  let decodeReqId = 0;
+
+  function setMode(mode) {
+    computeMode = mode;
+    if (mode === 'worker') {
+      modeBadge.textContent = '计算模式 · Web Worker';
+      modeBadge.className = 'mode-badge worker';
+    } else if (mode === 'main') {
+      modeBadge.textContent = '计算模式 · 主线程降级';
+      modeBadge.className = 'mode-badge main';
+    } else if (mode === 'dead') {
+      modeBadge.textContent = '计算模式 · 不可用';
+      modeBadge.className = 'mode-badge dead';
+    } else {
+      modeBadge.textContent = '计算模式 · 初始化中';
+      modeBadge.className = 'mode-badge init';
+    }
+  }
+
+  function workerFail(reason) {
+    if (workerUsable && computeMode !== 'worker') return;
+    console.warn('[计算降级] ' + reason + ' → 改用主线程');
+    workerUsable = false;
+    computeMode = 'main';
+    setMode('main');
+    if (workerReadyTimer) { clearTimeout(workerReadyTimer); workerReadyTimer = null; }
+    if (worker) {
+      try { worker.terminate(); } catch (e) {}
+      worker = null;
+    }
+    if (workerObjectUrl) {
+      try { URL.revokeObjectURL(workerObjectUrl); } catch (e) {}
+      workerObjectUrl = null;
+    }
+  }
+
+  function handleWorkerMessage(e) {
+    const d = e.data;
+
+    if (d.type === 'pong') {
+      if (!workerUsable) {
+        workerUsable = true;
+        if (workerReadyTimer) { clearTimeout(workerReadyTimer); workerReadyTimer = null; }
+        setMode('worker');
+      }
+      return;
+    }
+
+    if (d.type === 'encoded') {
+      if (d.reqId !== encodeReqId) return;
+      rawY = d.y0;
+      setYDisplay(d.y0);
+      return;
+    }
+
+    if (d.type === 'decoded') {
+      if (d.reqId !== decodeReqId) return;
+      applyDecodedGrid(d.grid, d.alignedY0);
+      setStatus(d.wasAligned ? "已还原 ✓" : "已按 ⌊y₀/H⌋×H 对齐", d.wasAligned ? "ok" : "warn");
+      return;
+    }
+  }
+
+  function initWorker() {
+    // 1) 环境完全不支持 Worker → 直接降级
+    if (typeof Worker === 'undefined' || typeof Blob === 'undefined' ||
+        typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
+      workerFail('浏览器不支持 Worker/Blob/URL');
+      return;
+    }
+
+    // 2) 尝试创建
+    try {
+      const blob = new Blob([workerSrc], { type: 'application/javascript' });
+      workerObjectUrl = URL.createObjectURL(blob);
+      worker = new Worker(workerObjectUrl);
+    } catch (e) {
+      workerFail('Worker 创建抛异常：' + (e && e.message ? e.message : e));
+      return;
+    }
+
+    // 3) 挂错误处理（CSP 拦截、脚本加载失败都会走这里）
+    worker.onerror = function (err) {
+      workerFail('Worker onerror：' + (err && err.message ? err.message : '未知错误'));
+    };
+    worker.onmessage = handleWorkerMessage;
+
+    // 4) 发 ping 做健康检查
+    try {
+      worker.postMessage({ type: 'ping', reqId: 0 });
+    } catch (e) {
+      workerFail('Worker postMessage 失败：' + (e && e.message ? e.message : e));
+      return;
+    }
+
+    // 5) 超时保护：1.5 秒内没有 pong → 判定为不可用
+    workerReadyTimer = setTimeout(function () {
+      if (!workerUsable) workerFail('Worker 1.5s 内未响应（疑似 CSP 拦截）');
+    }, 1500);
+
+    setMode('init');
+  }
+
+  /* ====================================================
+     统一入口：自动选路
+     ==================================================== */
+
+  let encodeTimer = null;
+
+  function requestEncode() {
+    if (encodeTimer) clearTimeout(encodeTimer);
+    encodeTimer = setTimeout(function () {
+      encodeTimer = null;
+
+      // 优先 Worker
+      if (worker && workerUsable && computeMode === 'worker') {
+        encodeReqId++;
+        const copy = new Uint8Array(gridData);
+        try {
+          worker.postMessage({
+            type: 'encode', grid: copy,
+            cols: COLS, rows: ROWS, reqId: encodeReqId
+          });
+          return;
+        } catch (e) {
+          workerFail('encode postMessage 失败：' + (e && e.message ? e.message : e));
+          // 落到降级路径
+        }
+      }
+
+      // 降级：主线程计算
+      const y0 = encodeGridMain(gridData, COLS, ROWS);
+      rawY = y0;
+      setYDisplay(y0);
+    }, 40);
+  }
+
+  function requestDecode(y0Str) {
+    if (worker && workerUsable && computeMode === 'worker') {
+      decodeReqId++;
+      try {
+        worker.postMessage({
+          type: 'decode', y0Str: y0Str,
+          cols: COLS, rows: ROWS, reqId: decodeReqId
+        });
+        return;
+      } catch (e) {
+        workerFail('decode postMessage 失败：' + (e && e.message ? e.message : e));
+        // 落到降级路径
+      }
+    }
+
+    // 降级：主线程计算
+    const r = decodeYMain(y0Str, COLS, ROWS);
+    applyDecodedGrid(r.grid, r.alignedY0);
+    setStatus(r.wasAligned ? "已还原 ✓" : "已按 ⌊y₀/H⌋×H 对齐", r.wasAligned ? "ok" : "warn");
+  }
 
   /* ==================== 布局 ==================== */
   function computeLayout() {
-    const padX = W < 720 ? 24 : 80;
-    const padTop = W < 720 ? 160 : 150;
-    const padBottom = W < 720 ? 150 : 130;
+    const tb = topBar.getBoundingClientRect().height;
+    const bb = bottomBar.getBoundingClientRect().height;
+    const isNarrow = W < 720;
+    const padX = isNarrow ? 14 : 50;
+    const padTop = tb + (isNarrow ? 14 : 24);
+    const padBottom = bb + (isNarrow ? 14 : 24);
 
     const availW = W - padX * 2;
-    const availH = H - padTop - padBottom;
+    const availH = Math.max(50, H - padTop - padBottom);
 
-    CELL = Math.max(3.5, Math.min(availW / COLS, availH / ROWS));
+    CELL = Math.min(availW / COLS, availH / ROWS);
+    CELL = Math.max(0.8, Math.min(14, CELL));
 
     const gridW = CELL * COLS;
     const gridH = CELL * ROWS;
     originX = (W - gridW) / 2;
     originY = padTop + (availH - gridH) / 2;
+
+    hint.style.bottom = (bb + 20) + "px";
   }
 
   function homeOf(col, row) {
@@ -195,54 +538,92 @@
       const p = particles[i];
       if (!p) continue;
       const h = homeOf(p.col, p.row);
-      p.homeX = h.x;
-      p.homeY = h.y;
+      p.homeX = h.x; p.homeY = h.y;
       if (teleport) { p.x = h.x; p.y = h.y; p.vx = 0; p.vy = 0; }
     }
   }
 
-  /* ==================== 粒子增删 ==================== */
+  let relayoutScheduled = false;
+  function relayout() {
+    if (relayoutScheduled) return;
+    relayoutScheduled = true;
+    requestAnimationFrame(function () {
+      relayoutScheduled = false;
+      computeLayout();
+      updateAllHomes(true);
+    });
+  }
+
+  /* ==================== 粒子 ==================== */
+  function makeParticle(col, row) {
+    const h = homeOf(col, row);
+    return { col: col, row: row, homeX: h.x, homeY: h.y, x: h.x, y: h.y, vx: 0, vy: 0 };
+  }
+
   function setCell(row, col, on) {
     const idx = row * COLS + col;
     if (on) {
       if (particles[idx]) return;
-      const h = homeOf(col, row);
-      particles[idx] = {
-        col, row,
-        homeX: h.x, homeY: h.y,
-        x: h.x, y: h.y,
-        vx: 0, vy: 0
-      };
+      particles[idx] = makeParticle(col, row);
+      gridData[idx] = 1;
     } else {
       particles[idx] = null;
+      gridData[idx] = 0;
     }
   }
 
   function clearAll() {
     particles.fill(null);
+    gridData.fill(0);
+    rawY = "0";
+    setYDisplay("0");
   }
 
-  /* ==================== 计算 y₀ ==================== */
-  function computeY() {
-    let m = 0n;
-    for (let r = 0; r < ROWS; r++) {
-      const bitBase = ROWS - 1 - r;
-      const rowOff = r * COLS;
-      for (let c = 0; c < COLS; c++) {
-        if (particles[rowOff + c]) m |= BIT[17 * c + bitBase];
+  /* ==================== y₀ 显示 ==================== */
+  function group(s) {
+    return s.replace(/\B(?=(\d{6})+(?!\d))/g, " ");
+  }
+
+  function setYDisplay(s) {
+    if (!s || s === "0") {
+      yValEl.textContent = "0";
+      yValEl.classList.add("empty");
+      return;
+    }
+    yValEl.classList.remove("empty");
+    if (s.length <= 2000) {
+      yValEl.textContent = group(s);
+    } else {
+      yValEl.textContent = group(s.slice(0, 1200)) + "  …  " + group(s.slice(-500));
+    }
+    relayout();
+  }
+
+  function setStatus(text, cls) {
+    yStatus.textContent = text;
+    yStatus.className = "mini-status" + (cls ? " " + cls : "");
+  }
+  function clearStatus() {
+    yStatus.textContent = "";
+    yStatus.className = "mini-status";
+  }
+
+  function applyDecodedGrid(grid, alignedY0) {
+    for (let i = 0; i < TOTAL; i++) {
+      if (grid[i]) {
+        if (!particles[i]) {
+          const r = Math.floor(i / COLS);
+          const c = i % COLS;
+          particles[i] = makeParticle(c, r);
+        }
+        gridData[i] = 1;
+      } else {
+        particles[i] = null;
+        gridData[i] = 0;
       }
     }
-    return m * 17n;
-  }
-
-  const group = (s) => s.replace(/\B(?=(\d{6})+(?!\d))/g, " ");
-
-  function refreshY() {
-    const y = computeY();
-    rawY = y.toString();
-    const isEmpty = y === 0n;
-    yValEl.textContent = isEmpty ? "0" : group(rawY);
-    yValEl.classList.toggle("empty", isEmpty);
+    rawY = alignedY0;
+    setYDisplay(alignedY0);
   }
 
   /* ==================== 文字 → 网格 ==================== */
@@ -257,7 +638,8 @@
 
   function buildFromText(text, fontKey) {
     const fontStack = FONT_STACKS[fontKey] || FONT_STACKS.sans;
-    const SS = 6;
+    const SS = COLS <= 200 ? 6 : (COLS <= 500 ? 4 : 3);
+
     off.width = COLS * SS;
     off.height = ROWS * SS;
 
@@ -281,7 +663,10 @@
 
     const data = octx.getImageData(0, 0, off.width, off.height).data;
 
-    clearAll();
+    particles.fill(null);
+    gridData.fill(0);
+
+    const threshold = Math.max(2, Math.round(SS * SS * 0.17));
 
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
@@ -292,31 +677,24 @@
             if (data[(rowBase + c * SS + sx) * 4 + 3] > 110) hits++;
           }
         }
-        if (hits >= 6) {
-          const h = homeOf(c, r);
-          particles[r * COLS + c] = {
-            col: c, row: r,
-            homeX: h.x, homeY: h.y,
-            x: h.x, y: h.y,
-            vx: 0, vy: 0
-          };
+        if (hits >= threshold) {
+          const idx = r * COLS + c;
+          gridData[idx] = 1;
+          particles[idx] = makeParticle(c, r);
         }
       }
     }
-
-    refreshY();
+    requestEncode();
   }
 
-  /* ==================== 渲染循环 ==================== */
+  /* ==================== 渲染 ==================== */
   function render() {
-    // 半透明拖尾 → 发光余晖
     ctx.globalCompositeOperation = "source-over";
-    ctx.fillStyle = "rgba(0, 0, 0, 0.26)";
+    ctx.fillStyle = "rgba(0,0,0,0.26)";
     ctx.fillRect(0, 0, W, H);
 
-    // 极淡网格参照线
-    if (CELL > 5) {
-      ctx.strokeStyle = "rgba(120, 160, 220, 0.045)";
+    if (CELL > 4) {
+      ctx.strokeStyle = "rgba(120,160,220,0.045)";
       ctx.lineWidth = 1;
       ctx.beginPath();
       const gw = COLS * CELL, gh = ROWS * CELL;
@@ -333,27 +711,23 @@
       ctx.stroke();
     }
 
-    // 粒子（叠加发光）
     ctx.globalCompositeOperation = "lighter";
 
-    const mr = REPEL_RADIUS;
-    const mr2 = mr * mr;
+    const mr = REPEL_RADIUS, mr2 = mr * mr;
     const active = mouse.active;
     const mx = mouse.x, my = mouse.y;
 
-    const baseR = Math.max(1.1, CELL * 0.11);
+    const baseR = Math.max(0.5, CELL * 0.11);
     const extraR = CELL * 0.30;
     const dispScale = 1 / (CELL * 3.6);
+    const useRect = CELL < 3;
 
     for (let i = 0; i < TOTAL; i++) {
       const p = particles[i];
       if (!p) continue;
 
-      // —— 鼠标排斥 ——
       if (active) {
-        const dx = p.x - mx;
-        const dy = p.y - my;
-        // 快速包围盒剔除，避免无谓的 sqrt
+        const dx = p.x - mx, dy = p.y - my;
         if (Math.abs(dx) < mr && Math.abs(dy) < mr) {
           const d2 = dx * dx + dy * dy;
           if (d2 < mr2 && d2 > 0.0001) {
@@ -366,7 +740,6 @@
         }
       }
 
-      // —— 弹簧回归 + 阻尼 ——
       p.vx += (p.homeX - p.x) * SPRING;
       p.vy += (p.homeY - p.y) * SPRING;
       p.vx *= FRICTION;
@@ -374,23 +747,25 @@
       p.x += p.vx;
       p.y += p.vy;
 
-      // —— 位移量决定亮度与大小 ——
-      const ddx = p.x - p.homeX;
-      const ddy = p.y - p.homeY;
+      const ddx = p.x - p.homeX, ddy = p.y - p.homeY;
       const disp = Math.min(1, Math.sqrt(ddx * ddx + ddy * ddy) * dispScale);
 
       const r = baseR + disp * extraR;
       const a = 0.55 + disp * 0.45;
 
-      ctx.beginPath();
-      ctx.fillStyle = `rgba(220, 240, 255, ${a})`;
-      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-      ctx.fill();
-
-      // 位移大时给一点光晕
-      if (disp > 0.35) {
+      if (useRect) {
+        ctx.fillStyle = "rgba(220,240,255," + a + ")";
+        ctx.fillRect(p.x - r, p.y - r, r + r, r + r);
+      } else {
         ctx.beginPath();
-        ctx.fillStyle = `rgba(120, 200, 255, ${(disp - 0.35) * 0.18})`;
+        ctx.fillStyle = "rgba(220,240,255," + a + ")";
+        ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      if (disp > 0.35 && !useRect) {
+        ctx.beginPath();
+        ctx.fillStyle = "rgba(120,200,255," + ((disp - 0.35) * 0.18) + ")";
         ctx.arc(p.x, p.y, r * 2.6, 0, Math.PI * 2);
         ctx.fill();
       }
@@ -408,10 +783,9 @@
     const c = Math.floor((x - originX) / CELL);
     const r = Math.floor((y - originY) / CELL);
     if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return null;
-    return { r, c };
+    return { r: r, c: c };
   }
 
-  /* Bresenham 连线，防止快速拖动丢格 */
   function lineTo(r0, c0, r1, c1, cb) {
     const dr = Math.abs(r1 - r0), dc = Math.abs(c1 - c0);
     const sr = r0 < r1 ? 1 : -1, sc = c0 < c1 ? 1 : -1;
@@ -427,16 +801,14 @@
   }
 
   /* ==================== 指针交互 ==================== */
-  let painting = false;
-  let paintOn = true;
-  let lastR = -1, lastC = -1;
+  let painting = false, paintOn = true, lastR = -1, lastC = -1;
 
   function setMouse(x, y) {
     mouse.x = x; mouse.y = y; mouse.active = true;
     if (hint && !hint.classList.contains("fade")) hint.classList.add("fade");
   }
 
-  canvas.addEventListener("pointerdown", (e) => {
+  canvas.addEventListener("pointerdown", function (e) {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     e.preventDefault();
     try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
@@ -445,32 +817,31 @@
     if (!p) return;
 
     setMouse(e.clientX, e.clientY);
+    clearStatus();
 
     const idx = p.r * COLS + p.c;
-    paintOn = !particles[idx];      // 空格 → 涂黑；黑格 → 擦除
+    paintOn = !gridData[idx];
     painting = true;
     lastR = p.r; lastC = p.c;
 
     setCell(p.r, p.c, paintOn);
-    refreshY();
+    requestEncode();
   });
 
-  canvas.addEventListener("pointermove", (e) => {
+  canvas.addEventListener("pointermove", function (e) {
     setMouse(e.clientX, e.clientY);
     if (!painting) return;
     e.preventDefault();
-
     const p = cellFromEvent(e);
     if (!p) return;
     if (p.r === lastR && p.c === lastC) return;
-
-    lineTo(lastR, lastC, p.r, p.c, (rr, cc) => setCell(rr, cc, paintOn));
+    lineTo(lastR, lastC, p.r, p.c, function (rr, cc) { setCell(rr, cc, paintOn); });
     lastR = p.r; lastC = p.c;
-    refreshY();
+    requestEncode();
   });
 
   function endPaint() {
-    if (painting) refreshY();
+    if (painting) requestEncode();
     painting = false;
     lastR = lastC = -1;
   }
@@ -478,78 +849,110 @@
   canvas.addEventListener("pointercancel", endPaint);
   canvas.addEventListener("lostpointercapture", endPaint);
 
-  window.addEventListener("pointerleave", () => {
+  window.addEventListener("pointerleave", function () {
     mouse.active = false;
     mouse.x = -9999; mouse.y = -9999;
   });
 
-  /* ==================== 工具栏 ==================== */
-  document.getElementById("btnClear").addEventListener("click", () => {
+  /* ==================== 工具按钮 ==================== */
+  document.getElementById("btnClear").addEventListener("click", function () {
     clearAll();
-    refreshY();
+    clearStatus();
   });
 
-  document.getElementById("btnInvert").addEventListener("click", () => {
+  document.getElementById("btnInvert").addEventListener("click", function () {
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         const idx = r * COLS + c;
-        if (particles[idx]) {
-          particles[idx] = null;
-        } else {
-          const h = homeOf(c, r);
-          particles[idx] = {
-            col: c, row: r,
-            homeX: h.x, homeY: h.y,
-            x: h.x, y: h.y,
-            vx: 0, vy: 0
-          };
-        }
+        setCell(r, c, !gridData[idx]);
       }
     }
-    refreshY();
+    clearStatus();
+    requestEncode();
   });
 
-  document.getElementById("btnRandom").addEventListener("click", () => {
+  document.getElementById("btnRandom").addEventListener("click", function () {
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
-        const idx = r * COLS + c;
-        if (Math.random() < 0.45) {
-          if (!particles[idx]) {
-            const h = homeOf(c, r);
-            particles[idx] = {
-              col: c, row: r,
-              homeX: h.x, homeY: h.y,
-              x: h.x, y: h.y,
-              vx: 0, vy: 0
-            };
-          }
-        } else {
-          particles[idx] = null;
-        }
+        setCell(r, c, Math.random() < 0.45);
       }
     }
-    refreshY();
+    clearStatus();
+    requestEncode();
   });
 
   /* ==================== 文字输入 ==================== */
   const textInput = document.getElementById("textInput");
-  const fontSel = document.getElementById("fontSel");
+  const fontSel   = document.getElementById("fontSel");
 
   function applyText() {
     const v = textInput.value.trim();
     if (!v) { textInput.focus(); return; }
     buildFromText(v, fontSel.value);
+    clearStatus();
     textInput.blur();
   }
 
   document.getElementById("btnDraw").addEventListener("click", applyText);
-
-  textInput.addEventListener("keydown", (e) => {
+  textInput.addEventListener("keydown", function (e) {
     if (e.key === "Enter") { e.preventDefault(); applyText(); }
   });
-
-  fontSel.addEventListener("change", () => {
+  fontSel.addEventListener("change", function () {
     if (textInput.value.trim()) applyText();
+  });
+
+  /* ==================== y₀ 输入框 ==================== */
+  const yInput = document.getElementById("yInput");
+
+  function applyY() {
+    const v = yInput.value.trim();
+    if (!v) { yInput.focus(); return; }
+    requestDecode(v);
+  }
+  document.getElementById("btnDecode").addEventListener("click", applyY);
+  yInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); applyY(); }
+  });
+
+  /* ==================== 分辨率切换 ==================== */
+  const scaleSel = document.getElementById("scaleSel");
+  const customScale = document.getElementById("customScale");
+
+  function changeScale(k) {
+    k = Math.max(1, Math.min(10, Math.round(k)));
+    COLS = BASE_COLS * k;
+    ROWS = BASE_ROWS * k;
+    TOTAL = COLS * ROWS;
+
+    gridData  = new Uint8Array(TOTAL);
+    particles = new Array(TOTAL).fill(null);
+    rawY = "0";
+    setYDisplay("0");
+    scaleInfo.textContent = COLS + " × " + ROWS;
+    clearStatus();
+
+    resize();
+  }
+
+  scaleSel.addEventListener("change", function () {
+    if (scaleSel.value === "custom") {
+      customScale.style.display = "inline-block";
+      customScale.focus();
+      changeScale(parseInt(customScale.value) || 4);
+    } else {
+      customScale.style.display = "none";
+      changeScale(parseInt(scaleSel.value));
+    }
+  });
+
+  customScale.addEventListener("change", function () {
+    if (scaleSel.value === "custom") changeScale(parseInt(customScale.value) || 1);
+  });
+  customScale.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (scaleSel.value === "custom") changeScale(parseInt(customScale.value) || 1);
+    }
   });
 
   /* ==================== 复制 ==================== */
@@ -557,7 +960,7 @@
     const old = btn.textContent;
     btn.textContent = label || "已复制 ✓";
     btn.classList.add("copied");
-    setTimeout(() => {
+    setTimeout(function () {
       btn.textContent = old;
       btn.classList.remove("copied");
     }, 1200);
@@ -566,8 +969,8 @@
   function copyText(text, btn) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(
-        () => flash(btn),
-        () => fallbackCopy(text, btn)
+        function () { flash(btn); },
+        function () { fallbackCopy(text, btn); }
       );
     } else {
       fallbackCopy(text, btn);
@@ -589,35 +992,40 @@
     copyText(rawY, this);
   });
 
-  /* ==================== 自适应 ==================== */
+  /* ==================== 尺寸自适应 ==================== */
   function resize() {
     DPR = Math.min(window.devicePixelRatio || 1, 2);
     W = Math.floor(window.innerWidth);
     H = Math.floor(window.innerHeight);
-    canvas.width = W * DPR;
+    canvas.width  = W * DPR;
     canvas.height = H * DPR;
-    canvas.style.width = W + "px";
+    canvas.style.width  = W + "px";
     canvas.style.height = H + "px";
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, W, H);
-
     computeLayout();
     updateAllHomes(true);
   }
 
   let resizeTimer = null;
-  window.addEventListener("resize", () => {
+  window.addEventListener("resize", function () {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(resize, 120);
   });
 
+  if (window.ResizeObserver) {
+    const ro = new ResizeObserver(relayout);
+    ro.observe(topBar);
+    ro.observe(bottomBar);
+  }
+
   /* ==================== 启动 ==================== */
-  computeLayout();
-  buildFromText("万物自指", "sans");
   resize();
+  buildFromText("万物自指", "sans");
+  initWorker();          // 先渲染，再异步初始化 Worker
   render();
+
 })();
 </script>
 </body>
