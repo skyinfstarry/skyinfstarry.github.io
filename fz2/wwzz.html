@@ -31,7 +31,7 @@
   button.primary:hover { filter: brightness(1.12); }
   button.copied { background: rgba(20,83,45,.95); border-color: #22c55e; color: #86efac; }
 
-  input[type="text"], input[type="number"], select {
+  input[type="text"], input[type="number"] {
     font: inherit; border-radius: 8px;
     border: 1px solid rgba(90,130,190,.28);
     background: rgba(8,13,22,.85); color: #e6edf7;
@@ -39,16 +39,93 @@
     transition: border-color .18s, box-shadow .18s;
   }
   input[type="text"]::placeholder { color: #4d5c72; }
-  input:focus, select:focus {
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type="number"] { -moz-appearance: textfield; }
+  input:focus {
     border-color: rgba(76,201,240,.8);
     box-shadow: 0 0 0 3px rgba(76,201,240,.14);
   }
-  select { background: rgba(30,45,70,.72); color: #c3d0e2; cursor: pointer; }
-  select option { background: #1a2333; }
 
   .label { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #6b7d99; white-space: nowrap; }
 
-  /* ---- 顶部栏 ---- */
+  /* ============ 自绘下拉 ============ */
+  .sel { position: relative; display: inline-block; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+  .sel-trigger {
+    display: inline-flex; align-items: center; justify-content: space-between;
+    gap: 10px; padding: 8px 10px 8px 12px; min-width: 112px;
+    border-radius: 8px; border: 1px solid rgba(90,130,190,.28);
+    background: rgba(30,45,70,.72); color: #c3d0e2;
+    font: inherit; font-size: 12.5px; cursor: pointer;
+    transition: background .16s, border-color .16s, color .16s, box-shadow .16s;
+  }
+  .sel-trigger:hover { background: rgba(45,68,104,.9); border-color: rgba(120,170,240,.5); color: #fff; }
+  .sel.open .sel-trigger {
+    border-color: rgba(76,201,240,.85);
+    box-shadow: 0 0 0 3px rgba(76,201,240,.14);
+    color: #fff; background: rgba(45,68,104,.95);
+  }
+  .sel-trigger .sel-label { flex: 1 1 auto; text-align: left; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .sel-arrow { width: 9px; height: 6px; flex: 0 0 auto; opacity: .65; transition: transform .2s ease, opacity .2s; }
+  .sel.open .sel-arrow { transform: rotate(180deg); opacity: 1; color: #7dd3fc; }
+
+  .sel-panel {
+    position: absolute; bottom: calc(100% + 7px); left: 0; min-width: 100%;
+    padding: 5px; border-radius: 10px;
+    border: 1px solid rgba(90,130,190,.4);
+    background: rgba(14,20,32,.97);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 18px 48px -14px rgba(0,0,0,.95), 0 0 0 1px rgba(76,201,240,.06);
+    opacity: 0; transform: translateY(8px) scale(.96);
+    transform-origin: bottom left; pointer-events: none;
+    transition: opacity .16s ease, transform .16s ease;
+    z-index: 40;
+  }
+  .sel.open .sel-panel { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+
+  .sel-opt {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 14px; padding: 8px 11px; border-radius: 6px;
+    font-size: 12.5px; color: #c3d0e2; cursor: pointer; white-space: nowrap;
+    transition: background .12s, color .12s;
+  }
+  .sel-opt:hover { background: rgba(76,201,240,.14); color: #fff; }
+  .sel-opt.selected { color: #7dd3fc; }
+  .sel-opt.selected::after {
+    content: ""; width: 5px; height: 9px;
+    border-right: 1.6px solid #7dd3fc; border-bottom: 1.6px solid #7dd3fc;
+    transform: rotate(45deg) translate(-1px, -1px); flex: 0 0 auto;
+  }
+
+  /* ============ 自绘复选框 ============ */
+  .chk {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 7px 12px 7px 10px; border-radius: 8px;
+    border: 1px solid rgba(90,130,190,.28);
+    background: rgba(30,45,70,.72); color: #c3d0e2;
+    font-size: 12.5px; cursor: pointer; user-select: none; -webkit-user-select: none;
+    transition: background .16s, border-color .16s, color .16s, box-shadow .16s;
+    white-space: nowrap; outline: none;
+  }
+  .chk:hover { background: rgba(45,68,104,.9); border-color: rgba(120,170,240,.5); color: #fff; }
+  .chk:focus-visible { border-color: rgba(76,201,240,.85); box-shadow: 0 0 0 3px rgba(76,201,240,.14); }
+  .chk-box {
+    width: 15px; height: 15px; flex: 0 0 auto; border-radius: 4px;
+    border: 1.6px solid rgba(120,170,240,.5);
+    background: rgba(8,13,22,.85);
+    display: flex; align-items: center; justify-content: center;
+    transition: background .18s, border-color .18s, box-shadow .18s;
+  }
+  .chk.checked .chk-box {
+    background: linear-gradient(135deg, rgba(29,78,216,.95), rgba(76,201,240,.95));
+    border-color: rgba(76,201,240,.9);
+    box-shadow: 0 0 12px -2px rgba(76,201,240,.65);
+  }
+  .chk-box svg { opacity: 0; transform: scale(.4); transition: opacity .16s, transform .16s; }
+  .chk.checked .chk-box svg { opacity: 1; transform: scale(1); }
+  .chk.checked { color: #fff; }
+
+  /* ============ 顶部栏 ============ */
   .top-bar {
     position: fixed; top: 0; left: 0; right: 0; z-index: 20;
     background: rgba(10,15,25,.86);
@@ -59,6 +136,7 @@
     display: flex; flex-direction: column; gap: 9px;
   }
   .y-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .y-actions { display: flex; gap: 8px; flex-shrink: 0; }
   .y-value {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 14.5px; line-height: 1.55; color: #7dd3fc;
@@ -79,7 +157,7 @@
   .mini-status.warn { color: #f0a04b; }
   .mini-status.err { color: #f87171; }
 
-  /* ---- 底部栏 ---- */
+  /* ============ 底部栏 ============ */
   .bottom-bar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
     background: rgba(10,15,25,.86);
@@ -90,29 +168,19 @@
     display: flex; flex-direction: column; gap: 9px;
   }
   .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .grow { flex: 1 1 180px; display: flex; gap: 8px; min-width: 0; }
+  .grow { flex: 1 1 180px; display: flex; gap: 8px; min-width: 0; align-items: center; }
   #textInput { flex: 1 1 auto; min-width: 0; font-size: 13px; padding: 8px 12px; }
-  #fontSel { font-size: 12.5px; padding: 8px 8px; }
   .spacer { flex: 1 1 0; min-width: 0; }
   .tool-group { display: flex; gap: 8px; flex-shrink: 0; }
 
-  #scaleSel { font-size: 12.5px; padding: 8px 8px; }
   #customScale { width: 72px; font-size: 12.5px; padding: 8px 10px; display: none; }
-  .scale-info {
-    font-size: 11.5px; color: #6b7d99;
-    font-variant-numeric: tabular-nums;
-    padding-left: 2px;
-  }
+  .scale-info { font-size: 11.5px; color: #6b7d99; font-variant-numeric: tabular-nums; padding-left: 2px; }
 
-  /* ---- 计算模式徽章 ---- */
   .mode-badge {
-    font-size: 11px;
-    letter-spacing: .06em;
-    padding: 4px 9px;
-    border-radius: 6px;
+    font-size: 11px; letter-spacing: .06em;
+    padding: 4px 9px; border-radius: 6px;
     border: 1px solid rgba(90,130,190,.28);
-    background: rgba(30,45,70,.5);
-    color: #8b98ad;
+    background: rgba(30,45,70,.5); color: #8b98ad;
     font-variant-numeric: tabular-nums;
     transition: color .2s, border-color .2s, background .2s;
     white-space: nowrap;
@@ -122,7 +190,6 @@
   .mode-badge.init   { color: #7dd3fc; border-color: rgba(125,211,252,.35); background: rgba(20,50,80,.35); }
   .mode-badge.dead   { color: #f87171; border-color: rgba(248,113,113,.35); background: rgba(80,20,20,.35); }
 
-  /* ---- 提示 ---- */
   .hint {
     position: fixed; left: 50%; transform: translateX(-50%); z-index: 9;
     color: rgba(160,185,220,.42); font-size: 12.5px; letter-spacing: .1em;
@@ -142,6 +209,10 @@
     .tool-group { width: 100%; justify-content: flex-end; }
     .hint { display: none; }
     .mode-badge { font-size: 10.5px; padding: 3px 7px; }
+    .sel-trigger { min-width: 96px; padding: 7px 9px 7px 11px; }
+    .sel-panel { max-height: 260px; overflow-y: auto; }
+    .chk { font-size: 12px; padding: 6px 10px 6px 9px; }
+    .y-actions button { padding: 6px 11px; font-size: 12px; }
   }
 </style>
 </head>
@@ -151,7 +222,10 @@
   <div class="top-bar" id="topBar">
     <div class="y-row">
       <span class="label">y 起始值 &nbsp;y₀</span>
-      <button class="primary" id="copyY">复制 y₀</button>
+      <div class="y-actions">
+        <button class="primary" id="copyY">复制 y₀</button>
+        <button id="btnDownload">下载 HTML</button>
+      </div>
     </div>
     <div class="y-value empty" id="yVal">0</div>
 
@@ -169,11 +243,22 @@
       <div class="grow">
         <input id="textInput" type="text" placeholder="输入文字后回车…"
                maxlength="20" autocomplete="off" spellcheck="false" />
-        <select id="fontSel" aria-label="字体">
-          <option value="sans">无衬线</option>
-          <option value="serif">衬线</option>
-          <option value="mono">等宽</option>
-        </select>
+
+        <div class="sel" id="fontSel" data-value="sans">
+          <button type="button" class="sel-trigger" aria-haspopup="listbox">
+            <span class="sel-label">无衬线</span>
+            <svg class="sel-arrow" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+              <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.6"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="sel-panel" role="listbox">
+            <div class="sel-opt selected" data-value="sans" role="option">无衬线</div>
+            <div class="sel-opt" data-value="serif" role="option">衬线</div>
+            <div class="sel-opt" data-value="mono" role="option">等宽</div>
+          </div>
+        </div>
+
         <button id="btnDraw" class="primary">画文字</button>
       </div>
       <div class="tool-group">
@@ -185,15 +270,38 @@
 
     <div class="row">
       <span class="label">分辨率</span>
-      <select id="scaleSel" aria-label="分辨率">
-        <option value="1">经典 ×1</option>
-        <option value="2">×2</option>
-        <option value="3">×3</option>
-        <option value="5">×5</option>
-        <option value="custom">自定义</option>
-      </select>
+
+      <div class="sel" id="scaleSel" data-value="1">
+        <button type="button" class="sel-trigger" aria-haspopup="listbox">
+          <span class="sel-label">经典 ×1</span>
+          <svg class="sel-arrow" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+            <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.6"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="sel-panel" role="listbox">
+          <div class="sel-opt selected" data-value="1" role="option">经典 ×1</div>
+          <div class="sel-opt" data-value="2" role="option">×2</div>
+          <div class="sel-opt" data-value="3" role="option">×3</div>
+          <div class="sel-opt" data-value="5" role="option">×5</div>
+          <div class="sel-opt" data-value="custom" role="option">自定义</div>
+        </div>
+      </div>
+
       <input id="customScale" type="number" min="1" max="10" value="4" />
       <span class="scale-info" id="scaleInfo">106 × 17</span>
+
+      <!-- 鼠标感应开关（默认勾选） -->
+      <div class="chk checked" id="mouseRepelChk" role="checkbox" aria-checked="true" tabindex="0">
+        <span class="chk-box">
+          <svg viewBox="0 0 12 10" width="10" height="8" fill="none" aria-hidden="true">
+            <path d="M1 5L4.5 8.5L11 1.5" stroke="#fff" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span>鼠标感应</span>
+      </div>
+
       <span class="mode-badge init" id="modeBadge">计算模式 · 初始化中</span>
     </div>
   </div>
@@ -238,12 +346,148 @@
   const mouse = { x: -9999, y: -9999, active: false };
   let rawY = "0";
 
-  /* ====================================================
-     纯计算函数（Worker 与降级路径共用同一套逻辑）
-     放在主线程里，Worker 里也保留一份字符串版本
-     ==================================================== */
+  // ★ 鼠标感应开关：默认开启
+  let mouseRepel = true;
 
-  // 编码：网格 → y₀ 字符串（主线程版）
+  /* ====================================================
+     自绘下拉组件
+     ==================================================== */
+  function closeAllSelects(except) {
+    const list = document.querySelectorAll(".sel.open");
+    for (let i = 0; i < list.length; i++) {
+      if (list[i] !== except) list[i].classList.remove("open");
+    }
+  }
+
+  function createSelect(rootEl, onChange) {
+    const trigger = rootEl.querySelector(".sel-trigger");
+    const labelEl = rootEl.querySelector(".sel-label");
+    const options = Array.prototype.slice.call(rootEl.querySelectorAll(".sel-opt"));
+
+    let value = rootEl.dataset.value || (options[0] && options[0].dataset.value) || "";
+
+    function render() {
+      for (let i = 0; i < options.length; i++) {
+        const opt = options[i];
+        const isSel = opt.dataset.value === value;
+        opt.classList.toggle("selected", isSel);
+        if (isSel) labelEl.textContent = opt.textContent.trim();
+      }
+      rootEl.dataset.value = value;
+    }
+
+    function setValue(v, silent) {
+      if (v === value) return;
+      value = v;
+      render();
+      if (!silent && onChange) onChange(v);
+    }
+
+    function open() {
+      closeAllSelects(rootEl);
+      rootEl.classList.add("open");
+      trigger.setAttribute("aria-expanded", "true");
+    }
+    function close() {
+      rootEl.classList.remove("open");
+      trigger.setAttribute("aria-expanded", "false");
+    }
+
+    trigger.addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (rootEl.classList.contains("open")) close();
+      else open();
+    });
+
+    for (let i = 0; i < options.length; i++) {
+      (function (opt) {
+        opt.addEventListener("click", function (e) {
+          e.stopPropagation();
+          const v = opt.dataset.value;
+          close();
+          setValue(v);
+        });
+      })(options[i]);
+    }
+
+    trigger.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        if (!rootEl.classList.contains("open")) { open(); return; }
+        let idx = options.findIndex(function (o) { return o.dataset.value === value; });
+        let next = e.key === "ArrowDown" ? idx + 1 : idx - 1;
+        if (next < 0) next = options.length - 1;
+        if (next >= options.length) next = 0;
+        setValue(options[next].dataset.value);
+      } else if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        if (rootEl.classList.contains("open")) close();
+        else open();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        close();
+      }
+    });
+
+    trigger.setAttribute("aria-expanded", "false");
+    render();
+
+    return {
+      get value() { return value; },
+      setValue: function (v) { setValue(v); },
+      close: close
+    };
+  }
+
+  document.addEventListener("click", function () { closeAllSelects(null); });
+  window.addEventListener("blur", function () { closeAllSelects(null); });
+
+  /* ====================================================
+     自绘复选框
+     ==================================================== */
+  function createCheckbox(rootEl, onChange) {
+    let checked = rootEl.classList.contains("checked");
+
+    function render() {
+      rootEl.classList.toggle("checked", checked);
+      rootEl.setAttribute("aria-checked", checked ? "true" : "false");
+    }
+
+    function toggle() {
+      checked = !checked;
+      render();
+      if (onChange) onChange(checked);
+    }
+
+    rootEl.addEventListener("click", function (e) {
+      e.preventDefault();
+      toggle();
+    });
+
+    rootEl.addEventListener("keydown", function (e) {
+      if (e.key === " " || e.key === "Enter") {
+        e.preventDefault();
+        toggle();
+      }
+    });
+
+    render();
+
+    return {
+      get checked() { return checked; },
+      setChecked: function (v) {
+        v = !!v;
+        if (v === checked) return;
+        checked = v;
+        render();
+        if (onChange) onChange(checked);
+      }
+    };
+  }
+
+  /* ====================================================
+     编解码
+     ==================================================== */
   function encodeGridMain(grid, cols, rows) {
     const total = cols * rows;
     const bits = new Array(total);
@@ -257,7 +501,6 @@
     return (BigInt("0b" + bin) * BigInt(rows)).toString();
   }
 
-  // 解码：y₀ 字符串 → { grid, alignedY0, wasAligned }（主线程版）
   function decodeYMain(y0Str, cols, rows) {
     const total = cols * rows;
     const H = BigInt(rows);
@@ -276,7 +519,7 @@
 
     const grid = new Uint8Array(total);
     for (let i = 0; i < total; i++) {
-      if (bin.charCodeAt(i) === 49) {  // '1'
+      if (bin.charCodeAt(i) === 49) {
         const bit = total - 1 - i;
         const c = Math.floor(bit / rows);
         const r = rows - 1 - (bit % rows);
@@ -287,9 +530,8 @@
   }
 
   /* ====================================================
-     Worker 初始化 + 健康检查 + 降级
+     Worker + 健康检查 + 降级
      ==================================================== */
-
   const workerSrc = [
     'self.onmessage = function(e) {',
     '  var d = e.data;',
@@ -336,14 +578,11 @@
     '};'
   ].join('\n');
 
-  // 计算模式：'init' | 'worker' | 'main'
   let computeMode = 'init';
-
   let worker = null;
   let workerUsable = false;
   let workerReadyTimer = null;
   let workerObjectUrl = null;
-
   let encodeReqId = 0;
   let decodeReqId = 0;
 
@@ -383,7 +622,6 @@
 
   function handleWorkerMessage(e) {
     const d = e.data;
-
     if (d.type === 'pong') {
       if (!workerUsable) {
         workerUsable = true;
@@ -392,14 +630,12 @@
       }
       return;
     }
-
     if (d.type === 'encoded') {
       if (d.reqId !== encodeReqId) return;
       rawY = d.y0;
       setYDisplay(d.y0);
       return;
     }
-
     if (d.type === 'decoded') {
       if (d.reqId !== decodeReqId) return;
       applyDecodedGrid(d.grid, d.alignedY0);
@@ -409,14 +645,11 @@
   }
 
   function initWorker() {
-    // 1) 环境完全不支持 Worker → 直接降级
     if (typeof Worker === 'undefined' || typeof Blob === 'undefined' ||
         typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
       workerFail('浏览器不支持 Worker/Blob/URL');
       return;
     }
-
-    // 2) 尝试创建
     try {
       const blob = new Blob([workerSrc], { type: 'application/javascript' });
       workerObjectUrl = URL.createObjectURL(blob);
@@ -425,41 +658,31 @@
       workerFail('Worker 创建抛异常：' + (e && e.message ? e.message : e));
       return;
     }
-
-    // 3) 挂错误处理（CSP 拦截、脚本加载失败都会走这里）
     worker.onerror = function (err) {
       workerFail('Worker onerror：' + (err && err.message ? err.message : '未知错误'));
     };
     worker.onmessage = handleWorkerMessage;
-
-    // 4) 发 ping 做健康检查
     try {
       worker.postMessage({ type: 'ping', reqId: 0 });
     } catch (e) {
       workerFail('Worker postMessage 失败：' + (e && e.message ? e.message : e));
       return;
     }
-
-    // 5) 超时保护：1.5 秒内没有 pong → 判定为不可用
     workerReadyTimer = setTimeout(function () {
       if (!workerUsable) workerFail('Worker 1.5s 内未响应（疑似 CSP 拦截）');
     }, 1500);
-
     setMode('init');
   }
 
   /* ====================================================
-     统一入口：自动选路
+     编解码入口
      ==================================================== */
-
   let encodeTimer = null;
 
   function requestEncode() {
     if (encodeTimer) clearTimeout(encodeTimer);
     encodeTimer = setTimeout(function () {
       encodeTimer = null;
-
-      // 优先 Worker
       if (worker && workerUsable && computeMode === 'worker') {
         encodeReqId++;
         const copy = new Uint8Array(gridData);
@@ -471,11 +694,8 @@
           return;
         } catch (e) {
           workerFail('encode postMessage 失败：' + (e && e.message ? e.message : e));
-          // 落到降级路径
         }
       }
-
-      // 降级：主线程计算
       const y0 = encodeGridMain(gridData, COLS, ROWS);
       rawY = y0;
       setYDisplay(y0);
@@ -493,11 +713,8 @@
         return;
       } catch (e) {
         workerFail('decode postMessage 失败：' + (e && e.message ? e.message : e));
-        // 落到降级路径
       }
     }
-
-    // 降级：主线程计算
     const r = decodeYMain(y0Str, COLS, ROWS);
     applyDecodedGrid(r.grid, r.alignedY0);
     setStatus(r.wasAligned ? "已还原 ✓" : "已按 ⌊y₀/H⌋×H 对齐", r.wasAligned ? "ok" : "warn");
@@ -714,7 +931,7 @@
     ctx.globalCompositeOperation = "lighter";
 
     const mr = REPEL_RADIUS, mr2 = mr * mr;
-    const active = mouse.active;
+    const active = mouseRepel && mouse.active;
     const mx = mouse.x, my = mouse.y;
 
     const baseR = Math.max(0.5, CELL * 0.11);
@@ -881,14 +1098,43 @@
     requestEncode();
   });
 
+  /* ==================== 自绘下拉初始化 ==================== */
+  const customScale = document.getElementById("customScale");
+
+  const scaleSelect = createSelect(document.getElementById("scaleSel"), function (v) {
+    if (v === "custom") {
+      customScale.style.display = "inline-block";
+      customScale.focus();
+      changeScale(parseInt(customScale.value, 10) || 4);
+    } else {
+      customScale.style.display = "none";
+      changeScale(parseInt(v, 10));
+    }
+  });
+
+  const fontSelect = createSelect(document.getElementById("fontSel"), function () {
+    if (textInput.value.trim()) applyText();
+  });
+
+  /* ==================== 自绘复选框（默认开启） ==================== */
+  const mouseRepelChk = createCheckbox(document.getElementById("mouseRepelChk"), function (checked) {
+    mouseRepel = checked;
+    if (!checked) {
+      mouse.active = false;
+      mouse.x = -9999;
+      mouse.y = -9999;
+    }
+  });
+  // 初始化状态
+  mouseRepel = mouseRepelChk.checked;   // 默认 true
+
   /* ==================== 文字输入 ==================== */
   const textInput = document.getElementById("textInput");
-  const fontSel   = document.getElementById("fontSel");
 
   function applyText() {
     const v = textInput.value.trim();
     if (!v) { textInput.focus(); return; }
-    buildFromText(v, fontSel.value);
+    buildFromText(v, fontSelect.value);
     clearStatus();
     textInput.blur();
   }
@@ -896,9 +1142,6 @@
   document.getElementById("btnDraw").addEventListener("click", applyText);
   textInput.addEventListener("keydown", function (e) {
     if (e.key === "Enter") { e.preventDefault(); applyText(); }
-  });
-  fontSel.addEventListener("change", function () {
-    if (textInput.value.trim()) applyText();
   });
 
   /* ==================== y₀ 输入框 ==================== */
@@ -915,9 +1158,6 @@
   });
 
   /* ==================== 分辨率切换 ==================== */
-  const scaleSel = document.getElementById("scaleSel");
-  const customScale = document.getElementById("customScale");
-
   function changeScale(k) {
     k = Math.max(1, Math.min(10, Math.round(k)));
     COLS = BASE_COLS * k;
@@ -934,24 +1174,17 @@
     resize();
   }
 
-  scaleSel.addEventListener("change", function () {
-    if (scaleSel.value === "custom") {
-      customScale.style.display = "inline-block";
-      customScale.focus();
-      changeScale(parseInt(customScale.value) || 4);
-    } else {
-      customScale.style.display = "none";
-      changeScale(parseInt(scaleSel.value));
-    }
-  });
-
   customScale.addEventListener("change", function () {
-    if (scaleSel.value === "custom") changeScale(parseInt(customScale.value) || 1);
+    if (scaleSelect.value === "custom") {
+      changeScale(parseInt(customScale.value, 10) || 1);
+    }
   });
   customScale.addEventListener("keydown", function (e) {
     if (e.key === "Enter") {
       e.preventDefault();
-      if (scaleSel.value === "custom") changeScale(parseInt(customScale.value) || 1);
+      if (scaleSelect.value === "custom") {
+        changeScale(parseInt(customScale.value, 10) || 1);
+      }
     }
   });
 
@@ -992,6 +1225,371 @@
     copyText(rawY, this);
   });
 
+  /* ====================================================
+     ★ 下载独立 HTML（不可更改 + 顶部 Y 轴 + 底部画布 + 鼠标感应）
+     ==================================================== */
+  document.getElementById("btnDownload").addEventListener("click", function () {
+    // 重新算一次，确保 y₀ 是最新的
+    const y0 = encodeGridMain(gridData, COLS, ROWS);
+    const cols = COLS;
+    const rows = ROWS;
+
+    const SCRIPT_END = "<" + "/script>";
+
+    const html = [
+'<!DOCTYPE html>',
+'<html lang="zh-CN">',
+'<head>',
+'<meta charset="UTF-8" />',
+'<meta name="viewport" content="width=device-width, initial-scale=1.0" />',
+'<title>万物自指公式 · 图案</title>',
+'<style>',
+'  * { margin: 0; padding: 0; box-sizing: border-box; }',
+'  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }',
+'  body {',
+'    font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;',
+'    color: #e6edf7; -webkit-font-smoothing: antialiased;',
+'  }',
+'  #scene { display: block; width: 100vw; height: 100vh; cursor: crosshair; touch-action: none; }',
+'  .top {',
+'    position: fixed; top: 0; left: 0; right: 0; z-index: 20;',
+'    background: rgba(10,15,25,.86);',
+'    border-bottom: 1px solid rgba(90,130,190,.22);',
+'    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);',
+'    box-shadow: 0 10px 34px -22px rgba(0,0,0,.95);',
+'    padding: 12px 18px 13px;',
+'    display: flex; flex-direction: column; gap: 9px;',
+'  }',
+'  .y-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }',
+'  .label { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #6b7d99; white-space: nowrap; }',
+'  .y-value {',
+'    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;',
+'    font-size: 14.5px; line-height: 1.55; color: #7dd3fc;',
+'    word-break: break-all; font-variant-numeric: tabular-nums;',
+'    text-shadow: 0 0 18px rgba(76,201,240,.35);',
+'    max-height: 132px; overflow-y: auto; overflow-x: hidden;',
+'    padding-right: 4px; letter-spacing: .2px;',
+'  }',
+'  .y-value.empty { color: #3f4c60; text-shadow: none; }',
+'  button {',
+'    font: inherit; font-size: 12.5px; padding: 7px 14px;',
+'    border-radius: 8px; border: 1px solid rgba(76,201,240,.8);',
+'    background: linear-gradient(135deg, rgba(29,78,216,.95), rgba(76,201,240,.95));',
+'    color: #fff; cursor: pointer; white-space: nowrap;',
+'    box-shadow: 0 0 22px -6px rgba(76,201,240,.7);',
+'    transition: filter .16s;',
+'  }',
+'  button:hover { filter: brightness(1.12); }',
+'  button.copied { background: rgba(20,83,45,.95); border-color: #22c55e; color: #86efac; }',
+'  .hint {',
+'    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);',
+'    color: rgba(160,185,220,.4); font-size: 12.5px; letter-spacing: .1em;',
+'    user-select: none; pointer-events: none; white-space: nowrap;',
+'    transition: opacity .7s;',
+'  }',
+'  .hint.fade { opacity: 0; }',
+'  @media (max-width: 720px) {',
+'    .top { padding: 10px 12px 11px; }',
+'    .y-value { font-size: 13px; max-height: 96px; }',
+'    .hint { display: none; }',
+'  }',
+'</style>',
+'</head>',
+'<body>',
+'  <canvas id="scene"></canvas>',
+'  <div class="top" id="topBar">',
+'    <div class="y-row">',
+'      <span class="label">y 起始值 &nbsp;y₀</span>',
+'      <button id="copyY">复制 y₀</button>',
+'    </div>',
+'    <div class="y-value" id="yVal"></div>',
+'  </div>',
+'  <div class="hint" id="hint">移动鼠标 / 滑动手指，让粒子散开又聚拢</div>',
+'<script>',
+'(function () {',
+'  "use strict";',
+'  var COLS = ' + cols + ';',
+'  var ROWS = ' + rows + ';',
+'  var Y0   = "' + y0 + '";',
+'  var TOTAL = COLS * ROWS;',
+'',
+'  var REPEL_RADIUS = 110;',
+'  var REPEL_FORCE  = 1.05;',
+'  var SPRING       = 0.021;',
+'  var FRICTION     = 0.865;',
+'',
+'  var canvas = document.getElementById("scene");',
+'  var ctx = canvas.getContext("2d", { alpha: false });',
+'  var hint = document.getElementById("hint");',
+'  var yValEl = document.getElementById("yVal");',
+'  var topBar = document.getElementById("topBar");',
+'',
+'  var DPR = Math.min(window.devicePixelRatio || 1, 2);',
+'  var W = 0, H = 0;',
+'  var CELL = 12, originX = 0, originY = 0;',
+'',
+'  // ---- 显示 y₀ ----',
+'  function group(s) { return s.replace(/\\B(?=(\\d{6})+(?!\\d))/g, " "); }',
+'  if (Y0 === "0") {',
+'    yValEl.textContent = "0";',
+'    yValEl.classList.add("empty");',
+'  } else {',
+'    var yStr = String(Y0);',
+'    if (yStr.length <= 2000) yValEl.textContent = group(yStr);',
+'    else yValEl.textContent = group(yStr.slice(0, 1200)) + "  …  " + group(yStr.slice(-500));',
+'  }',
+'',
+'  // ---- 从 y₀ 解码网格 ----',
+'  var grid = new Uint8Array(TOTAL);',
+'  (function () {',
+'    try {',
+'      var y = BigInt(Y0);',
+'      var Hb = BigInt(ROWS);',
+'      var m = y / Hb;',
+'      var bin = m.toString(2);',
+'      if (bin.length > TOTAL) bin = bin.slice(bin.length - TOTAL);',
+'      while (bin.length < TOTAL) bin = "0" + bin;',
+'      for (var i = 0; i < TOTAL; i++) {',
+'        if (bin.charCodeAt(i) === 49) {',
+'          var bit = TOTAL - 1 - i;',
+'          var c = Math.floor(bit / ROWS);',
+'          var r = ROWS - 1 - (bit % ROWS);',
+'          grid[r * COLS + c] = 1;',
+'        }',
+'      }',
+'    } catch (e) {}',
+'  })();',
+'',
+'  // ---- 粒子 ----',
+'  var particles = new Array(TOTAL).fill(null);',
+'  var mouse = { x: -9999, y: -9999, active: false };',
+'',
+'  function homeOf(col, row) {',
+'    return {',
+'      x: originX + col * CELL + CELL / 2,',
+'      y: originY + row * CELL + CELL / 2',
+'    };',
+'  }',
+'',
+'  function makeParticle(col, row) {',
+'    var h = homeOf(col, row);',
+'    return { col: col, row: row, homeX: h.x, homeY: h.y, x: h.x, y: h.y, vx: 0, vy: 0 };',
+'  }',
+'',
+'  function buildParticles() {',
+'    for (var i = 0; i < TOTAL; i++) {',
+'      if (grid[i]) {',
+'        var r = Math.floor(i / COLS);',
+'        var c = i % COLS;',
+'        particles[i] = makeParticle(c, r);',
+'      } else {',
+'        particles[i] = null;',
+'      }',
+'    }',
+'  }',
+'',
+'  function updateHomes(teleport) {',
+'    for (var i = 0; i < TOTAL; i++) {',
+'      var p = particles[i];',
+'      if (!p) continue;',
+'      var h = homeOf(p.col, p.row);',
+'      p.homeX = h.x; p.homeY = h.y;',
+'      if (teleport) { p.x = h.x; p.y = h.y; p.vx = 0; p.vy = 0; }',
+'    }',
+'  }',
+'',
+'  function computeLayout() {',
+'    var tb = topBar.getBoundingClientRect().height;',
+'    var isNarrow = W < 720;',
+'    var padX = isNarrow ? 14 : 50;',
+'    var padTop = tb + (isNarrow ? 14 : 26);',
+'    var padBottom = isNarrow ? 40 : 60;',
+'    var availW = W - padX * 2;',
+'    var availH = Math.max(50, H - padTop - padBottom);',
+'    CELL = Math.min(availW / COLS, availH / ROWS);',
+'    CELL = Math.max(0.8, Math.min(14, CELL));',
+'    var gw = CELL * COLS, gh = CELL * ROWS;',
+'    originX = (W - gw) / 2;',
+'    originY = padTop + (availH - gh) / 2;',
+'  }',
+'',
+'  function resize() {',
+'    DPR = Math.min(window.devicePixelRatio || 1, 2);',
+'    W = window.innerWidth; H = window.innerHeight;',
+'    canvas.width  = W * DPR;',
+'    canvas.height = H * DPR;',
+'    canvas.style.width  = W + "px";',
+'    canvas.style.height = H + "px";',
+'    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);',
+'    ctx.fillStyle = "#000";',
+'    ctx.fillRect(0, 0, W, H);',
+'    computeLayout();',
+'    updateHomes(true);',
+'  }',
+'',
+'  function render() {',
+'    ctx.globalCompositeOperation = "source-over";',
+'    ctx.fillStyle = "rgba(0,0,0,0.26)";',
+'    ctx.fillRect(0, 0, W, H);',
+'',
+'    if (CELL > 4) {',
+'      ctx.strokeStyle = "rgba(120,160,220,0.045)";',
+'      ctx.lineWidth = 1;',
+'      ctx.beginPath();',
+'      var gw = COLS * CELL, gh = ROWS * CELL;',
+'      for (var c = 0; c <= COLS; c++) {',
+'        var x = originX + c * CELL + 0.5;',
+'        ctx.moveTo(x, originY);',
+'        ctx.lineTo(x, originY + gh);',
+'      }',
+'      for (var r = 0; r <= ROWS; r++) {',
+'        var y = originY + r * CELL + 0.5;',
+'        ctx.moveTo(originX, y);',
+'        ctx.lineTo(originX + gw, y);',
+'      }',
+'      ctx.stroke();',
+'    }',
+'',
+'    ctx.globalCompositeOperation = "lighter";',
+'',
+'    var mr = REPEL_RADIUS, mr2 = mr * mr;',
+'    var active = mouse.active;',
+'    var mx = mouse.x, my = mouse.y;',
+'',
+'    var baseR = Math.max(0.5, CELL * 0.11);',
+'    var extraR = CELL * 0.30;',
+'    var dispScale = 1 / (CELL * 3.6);',
+'    var useRect = CELL < 3;',
+'',
+'    for (var i = 0; i < TOTAL; i++) {',
+'      var p = particles[i];',
+'      if (!p) continue;',
+'',
+'      if (active) {',
+'        var dx = p.x - mx, dy = p.y - my;',
+'        if (Math.abs(dx) < mr && Math.abs(dy) < mr) {',
+'          var d2 = dx * dx + dy * dy;',
+'          if (d2 < mr2 && d2 > 0.0001) {',
+'            var dist = Math.sqrt(d2);',
+'            var force = (mr - dist) / mr;',
+'            var k = (force * force * REPEL_FORCE) / dist;',
+'            p.vx += dx * k;',
+'            p.vy += dy * k;',
+'          }',
+'        }',
+'      }',
+'',
+'      p.vx += (p.homeX - p.x) * SPRING;',
+'      p.vy += (p.homeY - p.y) * SPRING;',
+'      p.vx *= FRICTION;',
+'      p.vy *= FRICTION;',
+'      p.x += p.vx;',
+'      p.y += p.vy;',
+'',
+'      var ddx = p.x - p.homeX, ddy = p.y - p.homeY;',
+'      var disp = Math.min(1, Math.sqrt(ddx * ddx + ddy * ddy) * dispScale);',
+'      var rr = baseR + disp * extraR;',
+'      var a = 0.55 + disp * 0.45;',
+'',
+'      if (useRect) {',
+'        ctx.fillStyle = "rgba(220,240,255," + a + ")";',
+'        ctx.fillRect(p.x - rr, p.y - rr, rr + rr, rr + rr);',
+'      } else {',
+'        ctx.beginPath();',
+'        ctx.fillStyle = "rgba(220,240,255," + a + ")";',
+'        ctx.arc(p.x, p.y, rr, 0, Math.PI * 2);',
+'        ctx.fill();',
+'      }',
+'',
+'      if (disp > 0.35 && !useRect) {',
+'        ctx.beginPath();',
+'        ctx.fillStyle = "rgba(120,200,255," + ((disp - 0.35) * 0.18) + ")";',
+'        ctx.arc(p.x, p.y, rr * 2.6, 0, Math.PI * 2);',
+'        ctx.fill();',
+'      }',
+'    }',
+'',
+'    ctx.globalCompositeOperation = "source-over";',
+'    requestAnimationFrame(render);',
+'  }',
+'',
+'  function setMouse(x, y) {',
+'    mouse.x = x; mouse.y = y; mouse.active = true;',
+'    if (hint && !hint.classList.contains("fade")) hint.classList.add("fade");',
+'  }',
+'',
+'  canvas.addEventListener("pointermove", function (e) { setMouse(e.clientX, e.clientY); });',
+'  canvas.addEventListener("pointerdown", function (e) { setMouse(e.clientX, e.clientY); });',
+'  window.addEventListener("pointerleave", function () {',
+'    mouse.active = false; mouse.x = -9999; mouse.y = -9999;',
+'  });',
+'  window.addEventListener("touchmove", function (e) {',
+'    if (e.touches[0]) setMouse(e.touches[0].clientX, e.touches[0].clientY);',
+'  }, { passive: true });',
+'  window.addEventListener("touchend", function () { mouse.active = false; });',
+'',
+'  var resizeTimer = null;',
+'  window.addEventListener("resize", function () {',
+'    clearTimeout(resizeTimer);',
+'    resizeTimer = setTimeout(function () { resize(); }, 120);',
+'  });',
+'',
+'  document.getElementById("copyY").addEventListener("click", function () {',
+'    var btn = this;',
+'    function done() {',
+'      var old = btn.textContent;',
+'      btn.textContent = "已复制 ✓";',
+'      btn.classList.add("copied");',
+'      setTimeout(function () {',
+'        btn.textContent = old; btn.classList.remove("copied");',
+'      }, 1200);',
+'    }',
+'    var text = Y0;',
+'    if (navigator.clipboard && navigator.clipboard.writeText) {',
+'      navigator.clipboard.writeText(text).then(done, function () {',
+'        var ta = document.createElement("textarea");',
+'        ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";',
+'        document.body.appendChild(ta); ta.select();',
+'        try { document.execCommand("copy"); done(); } catch (e) {}',
+'        document.body.removeChild(ta);',
+'      });',
+'    } else {',
+'      var ta = document.createElement("textarea");',
+'      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";',
+'      document.body.appendChild(ta); ta.select();',
+'      try { document.execCommand("copy"); done(); } catch (e) {}',
+'      document.body.removeChild(ta);',
+'    }',
+'  });',
+'',
+'  resize();',
+'  buildParticles();',
+'  updateHomes(true);',
+'  render();',
+'})();',
+SCRIPT_END,
+'</body>',
+'</html>'
+    ].join('\n');
+
+    // 触发下载
+    try {
+      var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = '万物自指-' + cols + 'x' + rows + '.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+      flash(this, '已下载 ✓');
+    } catch (err) {
+      console.error(err);
+      flash(this, '下载失败 ✗');
+    }
+  });
+
   /* ==================== 尺寸自适应 ==================== */
   function resize() {
     DPR = Math.min(window.devicePixelRatio || 1, 2);
@@ -1023,7 +1621,7 @@
   /* ==================== 启动 ==================== */
   resize();
   buildFromText("万物自指", "sans");
-  initWorker();          // 先渲染，再异步初始化 Worker
+  initWorker();
   render();
 
 })();
