@@ -3,176 +3,122 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BTC 模拟交易 · 共用钱包 + 动态授信 + 加密存档</title>
+<title>BTC 模拟交易 · 共用钱包 + 动态授信 + 加密存档 (Worker)</title>
 <style>
   :root{
-    --bg:#0b0e14;
-    --card:#131820;
-    --border:#212a36;
-    --text:#e8eef6;
-    --muted:#7d8998;
-    --up:#0ecb81;
-    --down:#f6465d;
-    --accent:#f0b90b;
+    --bg:#0b0e14; --card:#131820; --border:#212a36;
+    --text:#e8eef6; --muted:#7d8998; --up:#0ecb81; --down:#f6465d; --accent:#f0b90b;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
   body{
-    background:
-      radial-gradient(1200px 600px at 10% -10%, #16202e 0%, transparent 60%),
-      radial-gradient(900px 500px at 100% 0%, #1b1526 0%, transparent 55%),
-      var(--bg);
-    color:var(--text);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
-    font-size:14px;
-    padding:12px;
-    height:100vh;
-    overflow:hidden;
+    background:radial-gradient(1200px 600px at 10% -10%, #16202e 0%, transparent 60%),
+               radial-gradient(900px 500px at 100% 0%, #1b1526 0%, transparent 55%), var(--bg);
+    color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    font-size:14px; padding:12px; height:100vh; overflow:hidden;
     -webkit-font-smoothing:antialiased;
   }
   .hidden{display:none !important}
+  .app{max-width:1560px;margin:0 auto;height:100%;display:flex;flex-direction:column;gap:12px}
+  .card{background:linear-gradient(180deg,rgba(255,255,255,.022),rgba(255,255,255,0)),var(--card);
+        border:1px solid var(--border);border-radius:16px;padding:14px}
 
-  .app{
-    max-width:1560px;margin:0 auto;height:100%;
-    display:flex;flex-direction:column;gap:12px;
-  }
-
-  .card{
-    background:linear-gradient(180deg,rgba(255,255,255,.022),rgba(255,255,255,0)) , var(--card);
-    border:1px solid var(--border);
-    border-radius:16px;
-    padding:14px;
-  }
-
-  /* ===== 顶栏 ===== */
-  .topbar{
-    display:flex;align-items:center;gap:16px;flex-wrap:nowrap;
-    padding:12px 16px;flex-shrink:0;
-  }
+  .topbar{display:flex;align-items:center;gap:16px;flex-wrap:nowrap;padding:12px 16px;flex-shrink:0}
   .brand{display:flex;align-items:center;gap:10px;flex-shrink:0}
-  .logo{
-    width:38px;height:38px;border-radius:11px;
-    background:linear-gradient(135deg,#f7931a,#f0b90b);
-    display:grid;place-items:center;
-    font-size:20px;font-weight:800;color:#1b1300;
-    box-shadow:0 6px 20px rgba(247,147,26,.28);
-  }
+  .logo{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#f7931a,#f0b90b);
+        display:grid;place-items:center;font-size:20px;font-weight:800;color:#1b1300;
+        box-shadow:0 6px 20px rgba(247,147,26,.28)}
   .brand h1{font-size:14px;font-weight:700;letter-spacing:.3px;white-space:nowrap}
   .brand span{font-size:10px;color:var(--muted);letter-spacing:1px}
-
   .price-box{display:flex;align-items:baseline;gap:10px;flex-shrink:0}
-  .price{
-    font-size:26px;font-weight:700;letter-spacing:-.5px;
-    font-variant-numeric:tabular-nums;
-    font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
-    transition:color .25s;white-space:nowrap;
-  }
-  .change{
-    font-size:12.5px;font-weight:600;padding:3px 8px;border-radius:8px;
-    font-variant-numeric:tabular-nums;white-space:nowrap;
-  }
-
-  .mode-switch{
-    display:flex;gap:4px;background:#0e131b;padding:4px;border-radius:12px;
-    border:1px solid #1c2532;margin-left:auto;flex-shrink:0;
-  }
-  .mode-btn{
-    border:0;background:transparent;color:var(--muted);
-    padding:8px 18px;border-radius:9px;font-size:13px;font-weight:700;
-    cursor:pointer;font-family:inherit;transition:.18s;white-space:nowrap;
-  }
+  .price{font-size:26px;font-weight:700;letter-spacing:-.5px;font-variant-numeric:tabular-nums;
+         font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;transition:color .25s;white-space:nowrap}
+  .change{font-size:12.5px;font-weight:600;padding:3px 8px;border-radius:8px;
+          font-variant-numeric:tabular-nums;white-space:nowrap}
+  .mode-switch{display:flex;gap:4px;background:#0e131b;padding:4px;border-radius:12px;
+               border:1px solid #1c2532;margin-left:auto;flex-shrink:0}
+  .mode-btn{border:0;background:transparent;color:var(--muted);padding:8px 18px;border-radius:9px;
+            font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:.18s;white-space:nowrap}
   .mode-btn:hover{color:#b9c5d3}
   .mode-btn.active{background:#1e2733;color:var(--accent);box-shadow:0 2px 10px rgba(0,0,0,.35)}
-
   .acc-box{display:flex;gap:22px;flex-shrink:0}
   .acc-item .k{font-size:10.5px;color:var(--muted);margin-bottom:2px;letter-spacing:.4px;white-space:nowrap}
-  .acc-item .v{
-    font-size:15.5px;font-weight:700;font-variant-numeric:tabular-nums;
-    font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;white-space:nowrap;
-  }
+  .acc-item .v{font-size:15.5px;font-weight:700;font-variant-numeric:tabular-nums;
+               font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;white-space:nowrap}
 
-  /* ===== 主布局：存档 | 图表 | 交易 ===== */
-  .layout{
-    flex:1;min-height:0;
-    display:grid;
-    grid-template-columns: 190px minmax(0,1fr) 358px;
-    grid-template-rows: 1fr;
-    grid-template-areas: "save main side";
-    gap:12px;
-  }
-
-  .save-col{
-    grid-area: save;
-    min-height:0;overflow-y:auto;
-    display:flex;flex-direction:column;gap:12px;
-    padding-right:3px;
-  }
+  .layout{flex:1;min-height:0;display:grid;
+    grid-template-columns:230px minmax(0,1fr) 358px;
+    grid-template-rows:1fr;grid-template-areas:"save main side";gap:12px}
+  .save-col{grid-area:save;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding-right:3px}
   .save-col::-webkit-scrollbar{width:6px}
   .save-col::-webkit-scrollbar-thumb{background:#26303d;border-radius:3px}
+  .main-col{grid-area:main;min-height:0;display:flex;flex-direction:column;gap:12px}
+  .side-col{grid-area:side;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding-right:3px}
+  .side-col::-webkit-scrollbar,.bottom-body::-webkit-scrollbar{width:6px}
+  .side-col::-webkit-scrollbar-thumb,.bottom-body::-webkit-scrollbar-thumb{background:#26303d;border-radius:3px}
 
-  .main-col{
-    grid-area: main;
-    min-height:0;display:flex;flex-direction:column;gap:12px;
-  }
-
-  .side-col{
-    grid-area: side;
-    min-height:0;overflow-y:auto;
-    display:flex;flex-direction:column;gap:12px;
-    padding-right:3px;
-  }
-  .side-col::-webkit-scrollbar,
-  .bottom-body::-webkit-scrollbar{width:6px}
-  .side-col::-webkit-scrollbar-thumb,
-  .bottom-body::-webkit-scrollbar-thumb{background:#26303d;border-radius:3px}
-  .side-col::-webkit-scrollbar-track,
-  .bottom-body::-webkit-scrollbar-track{background:transparent}
-
-  /* ===== 存档侧栏 ===== */
   .save-card{padding:12px}
-  .save-title{
-    font-size:13px;font-weight:700;color:#c3cedb;
-    margin-bottom:12px;letter-spacing:.3px;display:flex;align-items:center;gap:6px;
-  }
-  .save-action{
-    width:100%;display:flex;align-items:center;gap:7px;
-    background:#0e131b;border:1px solid #263040;color:#c3cedb;
-    padding:9px 11px;border-radius:10px;font-size:12.5px;
-    font-family:inherit;font-weight:600;cursor:pointer;
-    transition:.16s;margin-bottom:7px;
-  }
-  .save-action:hover{background:#1a2230;color:#fff;border-color:#35435a}
-  .save-action .ico{font-size:14px}
-  .save-action:disabled{opacity:.45;cursor:not-allowed}
-
-  .save-divider{height:1px;background:var(--border);margin:10px 0}
-  .save-subtitle{font-size:11px;color:#7d8998;font-weight:700;margin-bottom:8px;letter-spacing:.4px}
-
+  .save-title{font-size:13px;font-weight:700;color:#c3cedb;margin-bottom:10px;letter-spacing:.3px;
+              display:flex;align-items:center;gap:6px;flex-wrap:wrap}
   .save-slot{
-    background:#0e131b;border:1px solid #1c2532;border-radius:10px;
-    padding:8px 9px;margin-bottom:6px;
+    background:#0e131b;border:1px solid #1c2532;border-radius:11px;
+    padding:9px 10px;margin-bottom:8px;
   }
-  .slot-info{margin-bottom:6px}
-  .slot-name{font-size:11.5px;font-weight:700;color:#b7c4d3;margin-bottom:1px}
-  .slot-time{font-size:10px;color:#5f6b7a;font-family:ui-monospace,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .slot-btns{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+  .slot-head{
+    display:flex;align-items:baseline;justify-content:space-between;
+    margin-bottom:8px;gap:6px;
+  }
+  .slot-name{font-size:12px;font-weight:700;color:#b7c4d3;flex-shrink:0}
+  .slot-time{
+    font-size:9.5px;color:#5f6b7a;font-family:ui-monospace,monospace;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right;
+  }
+
+  .slot-btns{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:4px;
+  }
   .slot-btn{
     background:#161d27;border:1px solid #2e3a4a;color:#9fb0c2;
-    padding:5px 0;border-radius:7px;font-size:11px;font-weight:700;
-    cursor:pointer;font-family:inherit;transition:.16s;
+    padding:7px 4px;border-radius:7px;
+    font-size:11px;font-weight:700;
+    cursor:pointer;font-family:inherit;
+    transition:.16s;line-height:1.15;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    letter-spacing:.1px;
   }
-  .slot-btn:hover{background:#243040;color:#fff}
-  .slot-btn[data-action="save"]{color:#4fe0a8}
-  .slot-btn[data-action="load"]{color:#8ec5ff}
+  .slot-btn:hover{background:#243040;color:#fff;border-color:#3d4c60}
+  .slot-btn[data-action="save"]{
+    color:#4fe0a8;background:rgba(14,203,129,.08);border-color:rgba(14,203,129,.28);
+  }
+  .slot-btn[data-action="save"]:hover{background:rgba(14,203,129,.2);color:#e8fff5}
+  .slot-btn[data-action="load"]{
+    color:#8ec5ff;background:rgba(111,180,255,.08);border-color:rgba(111,180,255,.28);
+  }
+  .slot-btn[data-action="load"]:hover{background:rgba(111,180,255,.2);color:#eaf4ff}
+  .slot-btn[data-action="export"]{
+    color:#f0b90b;background:rgba(240,185,11,.08);border-color:rgba(240,185,11,.3);
+  }
+  .slot-btn[data-action="export"]:hover{background:rgba(240,185,11,.2);color:#fff8e5}
+  .slot-btn[data-action="import"]{
+    color:#c084fc;background:rgba(192,132,252,.08);border-color:rgba(192,132,252,.3);
+  }
+  .slot-btn[data-action="import"]:hover{background:rgba(192,132,252,.2);color:#faf0ff}
   .slot-btn:disabled{opacity:.4;cursor:not-allowed}
 
-  .save-note{
-    font-size:10px;color:#5f6b7a;line-height:1.8;
-    text-align:center;font-family:ui-monospace,monospace;
-  }
+  .save-note{font-size:10px;color:#5f6b7a;line-height:1.8;text-align:center;
+             font-family:ui-monospace,monospace;margin-top:10px}
   .save-note b{color:#8b98a8;font-weight:700}
+  .worker-badge{
+    display:inline-flex;align-items:center;gap:4px;
+    font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;
+    background:rgba(79,224,168,.12);border:1px solid rgba(79,224,168,.3);color:#4fe0a8;
+  }
+  .worker-badge.loading{background:rgba(240,185,11,.12);border-color:rgba(240,185,11,.3);color:#f0b90b}
+  .worker-badge.err{background:rgba(246,70,93,.12);border-color:rgba(246,70,93,.3);color:#ff8b9b}
+  .save-divider{height:1px;background:var(--border);margin:9px 0}
 
-  /* ===== 图表卡片 ===== */
   .chart-card{flex:1;min-height:120px;display:flex;flex-direction:column}
   .chart-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-shrink:0}
   .chart-head .t{font-size:13px;font-weight:600;color:#c3cedb}
@@ -180,53 +126,32 @@
   .chart-wrap{flex:1;min-height:130px;position:relative}
   .chart-wrap canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 
-  /* ===== 银行 ===== */
   .bank-card{flex-shrink:0;padding:11px 14px;border-color:#2a3444}
   .bank-card.has-debt{border-color:rgba(246,70,93,.35)}
   .bank-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
   .bank-name{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:#c3cedb;white-space:nowrap;flex-wrap:wrap}
   .bank-name .icon{font-size:17px;line-height:1}
-  .bank-name .rate{
-    font-size:10px;font-weight:700;
-    padding:2px 7px;border-radius:6px;letter-spacing:.2px;
-    background:rgba(246,70,93,.1);border:1px solid rgba(246,70,93,.28);color:#ff8b9b;
-  }
-  .bank-name .rate.dep{
-    background:rgba(14,203,129,.1);border-color:rgba(14,203,129,.3);color:#4fe0a8;
-  }
-  .bank-name .rule{
-    font-size:10px;font-weight:600;
-    padding:2px 7px;border-radius:6px;letter-spacing:.2px;
-    background:rgba(111,180,255,.1);border:1px solid rgba(111,180,255,.28);color:#8ec5ff;
-  }
-
+  .bank-name .rate{font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;letter-spacing:.2px;
+                   background:rgba(246,70,93,.1);border:1px solid rgba(246,70,93,.28);color:#ff8b9b}
+  .bank-name .rate.dep{background:rgba(14,203,129,.1);border-color:rgba(14,203,129,.3);color:#4fe0a8}
+  .bank-name .rule{font-size:10px;font-weight:600;padding:2px 7px;border-radius:6px;letter-spacing:.2px;
+                   background:rgba(111,180,255,.1);border:1px solid rgba(111,180,255,.28);color:#8ec5ff}
   .bank-stats{display:flex;gap:14px;flex-wrap:wrap;flex:1;min-width:0}
   .bank-stats .bs{display:flex;flex-direction:column;gap:1px}
   .bank-stats .k{font-size:10px;color:var(--muted);white-space:nowrap;letter-spacing:.3px}
-  .bank-stats .v{
-    font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;
-    font-family:ui-monospace,Menlo,monospace;white-space:nowrap;color:#c3cedb;
-  }
-  .bank-stats .v.hot{color:#ff8b9b}
-  .bank-stats .v.good{color:#4fe0a8}
-  .bank-stats .v.blue{color:#8ec5ff}
-
+  .bank-stats .v{font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;
+                 font-family:ui-monospace,Menlo,monospace;white-space:nowrap;color:#c3cedb}
+  .bank-stats .v.hot{color:#ff8b9b} .bank-stats .v.good{color:#4fe0a8} .bank-stats .v.blue{color:#8ec5ff}
   .bank-actions{display:flex;gap:6px;align-items:center;flex-shrink:0;flex-wrap:wrap}
-  .bank-actions input{
-    width:112px;background:#0e131b;border:1px solid #263040;color:var(--text);
-    padding:8px 10px;border-radius:9px;font-size:13px;
-    font-family:ui-monospace,Menlo,monospace;outline:0;transition:.16s;
-  }
-  .bank-actions input::-webkit-outer-spin-button,
-  .bank-actions input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .bank-actions input{width:112px;background:#0e131b;border:1px solid #263040;color:var(--text);
+                      padding:8px 10px;border-radius:9px;font-size:13px;
+                      font-family:ui-monospace,Menlo,monospace;outline:0;transition:.16s}
+  .bank-actions input::-webkit-outer-spin-button,.bank-actions input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
   .bank-actions input[type=number]{-moz-appearance:textfield}
   .bank-actions input:focus{border-color:#3a4a60;box-shadow:0 0 0 3px rgba(80,120,180,.12)}
   .bank-actions input::placeholder{color:#4d5867}
-  .bank-btn{
-    border:1px solid transparent;padding:8px 12px;border-radius:9px;
-    font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;
-    transition:.16s;white-space:nowrap;
-  }
+  .bank-btn{border:1px solid transparent;padding:8px 12px;border-radius:9px;font-size:12.5px;
+            font-weight:700;cursor:pointer;font-family:inherit;transition:.16s;white-space:nowrap}
   .bank-btn.borrow{background:rgba(240,185,11,.14);color:var(--accent);border-color:rgba(240,185,11,.35)}
   .bank-btn.borrow:hover{background:rgba(240,185,11,.24)}
   .bank-btn.repay{background:#1a2230;color:#9fb0c2;border-color:#2e3a4a}
@@ -237,243 +162,130 @@
   .bank-btn.withdraw:hover{color:#fff;background:#243040;border-color:#3d4c60}
   .bank-btn:disabled{opacity:.38;cursor:not-allowed}
 
-  /* ===== 底部面板 ===== */
-  .bottom-card{
-    height:204px;flex-shrink:0;
-    display:flex;flex-direction:column;padding:12px 14px;
-  }
-  .bottom-head{
-    display:flex;align-items:center;justify-content:space-between;
-    margin-bottom:10px;flex-shrink:0;gap:10px;
-  }
+  .bottom-card{height:204px;flex-shrink:0;display:flex;flex-direction:column;padding:12px 14px}
+  .bottom-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-shrink:0;gap:10px}
   .btabs{display:flex;gap:4px;background:#0e131b;padding:3px;border-radius:9px}
-  .btab{
-    border:0;background:transparent;color:var(--muted);
-    padding:6px 14px;border-radius:7px;font-size:12px;font-weight:700;
-    cursor:pointer;font-family:inherit;transition:.16s;white-space:nowrap;
-  }
+  .btab{border:0;background:transparent;color:var(--muted);padding:6px 14px;border-radius:7px;
+        font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:.16s;white-space:nowrap}
   .btab:hover{color:#b9c5d3}
   .btab.active{background:#1e2733;color:var(--text)}
   .bcount{font-size:11px;color:var(--muted);white-space:nowrap}
   .bottom-body{flex:1;min-height:0;overflow-y:auto;margin:0 -4px;padding:0 4px}
 
-  /* ===== 交易面板 ===== */
-  .tabs{
-    display:grid;grid-template-columns:1fr 1fr;gap:6px;
-    background:#0e131b;padding:5px;border-radius:12px;margin-bottom:14px;
-  }
-  .tab{
-    border:0;background:transparent;color:var(--muted);
-    padding:10px;border-radius:9px;font-size:14px;font-weight:600;
-    cursor:pointer;transition:.18s;font-family:inherit;
-  }
+  .tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:#0e131b;padding:5px;
+        border-radius:12px;margin-bottom:14px}
+  .tab{border:0;background:transparent;color:var(--muted);padding:10px;border-radius:9px;
+       font-size:14px;font-weight:600;cursor:pointer;transition:.18s;font-family:inherit}
   .tab:hover{color:#b9c5d3}
   .tab.active{background:#1e2733;color:var(--text);box-shadow:0 2px 10px rgba(0,0,0,.3)}
-  .tab.active[data-side="buy"]{color:var(--up)}
-  .tab.active[data-side="sell"]{color:var(--down)}
+  .tab.active[data-side="buy"]{color:var(--up)} .tab.active[data-side="sell"]{color:var(--down)}
 
   .field-label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:7px}
   .field-label b{color:var(--accent);font-weight:700}
   .field-label .hint{color:#5f6b7a;font-size:11px}
-  .input-wrap{
-    display:flex;align-items:center;background:#0e131b;border:1px solid #263040;
-    border-radius:11px;padding:0 12px;transition:.18s;
-  }
+  .input-wrap{display:flex;align-items:center;background:#0e131b;border:1px solid #263040;
+              border-radius:11px;padding:0 12px;transition:.18s}
   .input-wrap:focus-within{border-color:#3a4a60;box-shadow:0 0 0 3px rgba(80,120,180,.12)}
-  .input-wrap input{
-    flex:1;background:transparent;border:0;outline:0;color:var(--text);
-    font-size:18px;font-weight:600;padding:12px 0;
-    font-variant-numeric:tabular-nums;
-    font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
-    min-width:0;width:100%;
-  }
-  .input-wrap input::-webkit-outer-spin-button,
-  .input-wrap input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .input-wrap input{flex:1;background:transparent;border:0;outline:0;color:var(--text);
+                    font-size:18px;font-weight:600;padding:12px 0;font-variant-numeric:tabular-nums;
+                    font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;min-width:0;width:100%}
+  .input-wrap input::-webkit-outer-spin-button,.input-wrap input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
   .input-wrap input[type=number]{-moz-appearance:textfield}
   .unit{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.5px}
 
   .quick{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:9px}
-  .quick button{
-    background:#0e131b;border:1px solid #263040;color:#93a3b6;
-    padding:8px 0;border-radius:9px;font-size:12px;cursor:pointer;
-    transition:.16s;font-family:inherit;font-weight:600;
-  }
+  .quick button{background:#0e131b;border:1px solid #263040;color:#93a3b6;padding:8px 0;
+                border-radius:9px;font-size:12px;cursor:pointer;transition:.16s;
+                font-family:inherit;font-weight:600}
   .quick button:hover{background:#1a2230;color:var(--text);border-color:#35435a}
-
   .avail{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-top:11px;gap:10px}
   .avail span b{color:#a9b8c9;font-variant-numeric:tabular-nums}
 
-  .submit{
-    width:100%;margin-top:13px;padding:13px;border:0;border-radius:12px;
-    font-size:15px;font-weight:700;cursor:pointer;color:#04140d;
-    background:linear-gradient(135deg,#12e39a,#0ecb81);
-    transition:.18s;font-family:inherit;letter-spacing:.5px;
-  }
+  .submit{width:100%;margin-top:13px;padding:13px;border:0;border-radius:12px;font-size:15px;
+          font-weight:700;cursor:pointer;color:#04140d;
+          background:linear-gradient(135deg,#12e39a,#0ecb81);transition:.18s;
+          font-family:inherit;letter-spacing:.5px}
   .submit:hover{filter:brightness(1.08);transform:translateY(-1px)}
   .submit:active{transform:translateY(0)}
   .submit.sell{color:#fff;background:linear-gradient(135deg,#ff5d72,#f6465d)}
 
-  /* ===== 合约专属 ===== */
-  .side-switch{
-    display:grid;grid-template-columns:1fr 1fr;gap:6px;
-    background:#0e131b;padding:5px;border-radius:12px;margin-bottom:14px;
-  }
-  .side-btn{
-    border:0;background:transparent;color:var(--muted);
-    padding:11px;border-radius:9px;font-size:14px;font-weight:700;
-    cursor:pointer;transition:.18s;font-family:inherit;
-  }
+  .side-switch{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:#0e131b;
+               padding:5px;border-radius:12px;margin-bottom:14px}
+  .side-btn{border:0;background:transparent;color:var(--muted);padding:11px;border-radius:9px;
+            font-size:14px;font-weight:700;cursor:pointer;transition:.18s;font-family:inherit}
   .side-btn:hover{color:#b9c5d3}
   .side-btn.active[data-side="long"]{background:rgba(14,203,129,.14);color:var(--up)}
   .side-btn.active[data-side="short"]{background:rgba(246,70,93,.14);color:var(--down)}
 
-  /* ===== 滑杆 ===== */
   .slider-wrap{margin-bottom:16px}
-  .slider-head{
-    display:flex;justify-content:space-between;align-items:baseline;
-    margin-bottom:10px;gap:10px;
-  }
+  .slider-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;gap:10px}
   .slider-head .label{font-size:12px;color:var(--muted);letter-spacing:.3px}
-  .slider-head .value{
-    font-size:22px;font-weight:800;letter-spacing:-.5px;
-    font-family:ui-monospace,Menlo,monospace;
-    line-height:1;
-    transition:color .2s;
-  }
-  .slider-head .value small{
-    font-size:11.5px;font-weight:700;margin-left:1px;opacity:.65;
-  }
-
-  .t-slider{
-    -webkit-appearance:none;
-    appearance:none;
-    width:100%;
-    height:6px;
-    border-radius:3px;
-    outline:none;
-    cursor:pointer;
-    display:block;
-  }
-  .t-slider::-webkit-slider-thumb{
-    -webkit-appearance:none;
-    appearance:none;
-    width:24px;height:24px;border-radius:50%;
-    background:#f0b90b;
-    border:3px solid #0b0e14;
-    box-shadow:0 0 0 2px rgba(240,185,11,.55), 0 4px 14px rgba(0,0,0,.5);
-    cursor:grab;
-    transition:transform .12s, background .2s, box-shadow .2s;
-  }
+  .slider-head .value{font-size:22px;font-weight:800;letter-spacing:-.5px;
+                      font-family:ui-monospace,Menlo,monospace;line-height:1;transition:color .2s}
+  .slider-head .value small{font-size:11.5px;font-weight:700;margin-left:1px;opacity:.65}
+  .t-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;
+            outline:none;cursor:pointer;display:block}
+  .t-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:24px;height:24px;
+    border-radius:50%;background:#f0b90b;border:3px solid #0b0e14;
+    box-shadow:0 0 0 2px rgba(240,185,11,.55),0 4px 14px rgba(0,0,0,.5);cursor:grab;
+    transition:transform .12s,background .2s,box-shadow .2s}
   .t-slider::-webkit-slider-thumb:hover{transform:scale(1.08)}
-  .t-slider::-webkit-slider-thumb:active{
-    cursor:grabbing;
-    transform:scale(1.16);
-  }
-  .t-slider::-moz-range-thumb{
-    width:24px;height:24px;border-radius:50%;
-    background:#f0b90b;
-    border:3px solid #0b0e14;
-    box-shadow:0 0 0 2px rgba(240,185,11,.55), 0 4px 14px rgba(0,0,0,.5);
-    cursor:grab;
-    transition:transform .12s, background .2s, box-shadow .2s;
-  }
-  .t-slider::-moz-range-track{
-    height:6px;border-radius:3px;background:transparent;
-  }
-
-  .lev-slider{
-    background:linear-gradient(90deg,
-      rgba(79,224,168,.65) 0%,
-      rgba(169,227,75,.65) 18%,
-      rgba(240,185,11,.7) 38%,
-      rgba(255,157,77,.7) 58%,
-      rgba(255,93,114,.75) 80%,
-      rgba(255,45,92,.8) 100%);
-  }
-  .margin-slider{
-    background:linear-gradient(90deg,
-      rgba(79,224,168,.5) 0%,
-      rgba(240,185,11,.6) 50%,
-      rgba(255,93,114,.65) 100%);
-  }
-
-  .slider-ticks{
-    position:relative;
-    height:14px;
-    margin-top:6px;
-    font-size:9.5px;font-weight:700;
-    color:#5f6b7a;
-    font-family:ui-monospace,Menlo,monospace;
-    letter-spacing:.2px;
-  }
-  .slider-ticks span{
-    position:absolute;
-    top:0;
-    transform:translateX(-50%);
-    white-space:nowrap;
-  }
-  .slider-ticks span:first-child{transform:translateX(0);}
-  .slider-ticks span:last-child{transform:translateX(-100%);}
-
-  .lev-meta{
-    display:flex;justify-content:space-between;align-items:center;
-    margin-top:8px;font-size:11px;gap:10px;
-  }
-  .lev-risk{
-    display:inline-flex;align-items:center;gap:5px;
-    font-weight:800;letter-spacing:.3px;
-    padding:3px 9px;border-radius:7px;
-    transition:.2s;
-  }
-  .lev-risk .dot{
-    width:6px;height:6px;border-radius:50%;
-    background:currentColor;
-    box-shadow:0 0 8px currentColor;
-  }
+  .t-slider::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.16)}
+  .t-slider::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:#f0b90b;
+    border:3px solid #0b0e14;box-shadow:0 0 0 2px rgba(240,185,11,.55),0 4px 14px rgba(0,0,0,.5);
+    cursor:grab;transition:transform .12s,background .2s,box-shadow .2s}
+  .t-slider::-moz-range-track{height:6px;border-radius:3px;background:transparent}
+  .lev-slider{background:linear-gradient(90deg,
+    rgba(79,224,168,.65) 0%, rgba(169,227,75,.65) 18%, rgba(240,185,11,.7) 38%,
+    rgba(255,157,77,.7) 58%, rgba(255,93,114,.75) 80%, rgba(255,45,92,.8) 100%)}
+  .margin-slider{background:linear-gradient(90deg,
+    rgba(79,224,168,.5) 0%, rgba(240,185,11,.6) 50%, rgba(255,93,114,.65) 100%)}
+  .slider-ticks{position:relative;height:14px;margin-top:6px;font-size:9.5px;font-weight:700;
+                color:#5f6b7a;font-family:ui-monospace,Menlo,monospace;letter-spacing:.2px}
+  .slider-ticks span{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap}
+  .slider-ticks span:first-child{transform:translateX(0)}
+  .slider-ticks span:last-child{transform:translateX(-100%)}
+  .lev-meta{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:11px;gap:10px}
+  .lev-risk{display:inline-flex;align-items:center;gap:5px;font-weight:800;letter-spacing:.3px;
+            padding:3px 9px;border-radius:7px;transition:.2s}
+  .lev-risk .dot{width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor}
   .lev-fee{color:#5f6b7a;font-weight:600;white-space:nowrap}
 
-  .preview{
-    margin-top:12px;padding:11px;background:#0e131b;border-radius:11px;
-    display:flex;flex-direction:column;gap:8px;
-  }
+  .preview{margin-top:12px;padding:11px;background:#0e131b;border-radius:11px;
+           display:flex;flex-direction:column;gap:8px}
   .preview .row{display:flex;justify-content:space-between;font-size:12.5px}
   .preview .k{color:var(--muted)}
-  .preview .v{font-weight:600;font-variant-numeric:tabular-nums;font-family:ui-monospace,Menlo,monospace;color:#b7c4d3}
+  .preview .v{font-weight:600;font-variant-numeric:tabular-nums;
+              font-family:ui-monospace,Menlo,monospace;color:#b7c4d3}
 
-  /* ===== 面板 / 列表 ===== */
-  .panel-title{
-    font-size:12.5px;font-weight:700;color:#c3cedb;margin-bottom:12px;
-    display:flex;justify-content:space-between;align-items:center;gap:8px;
-  }
-  .panel-title .reset{
-    font-size:11px;color:var(--muted);background:transparent;border:1px solid #263040;
-    padding:4px 10px;border-radius:7px;cursor:pointer;font-family:inherit;transition:.16s;
-    white-space:nowrap;
-  }
+  .panel-title{font-size:12.5px;font-weight:700;color:#c3cedb;margin-bottom:12px;
+               display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .panel-title .reset{font-size:11px;color:var(--muted);background:transparent;
+    border:1px solid #263040;padding:4px 10px;border-radius:7px;cursor:pointer;
+    font-family:inherit;transition:.16s;white-space:nowrap}
   .panel-title .reset:hover{color:#ff7a8a;border-color:#5b2a33}
-
   .rows{display:flex;flex-direction:column;gap:10px}
   .row{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;gap:8px}
   .row .k{color:var(--muted);white-space:nowrap}
-  .row .v{font-weight:600;font-variant-numeric:tabular-nums;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;white-space:nowrap}
+  .row .v{font-weight:600;font-variant-numeric:tabular-nums;
+          font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;white-space:nowrap}
   .divider{height:1px;background:var(--border);margin:1px 0}
-
   .up{color:var(--up)} .down{color:var(--down)} .flat{color:#93a3b6}
 
   .hist-empty{color:#5a6675;font-size:12.5px;text-align:center;padding:26px 0}
-  .hist-item{
-    display:grid;grid-template-columns:50px 1fr auto;gap:10px;align-items:center;
-    padding:8px 8px;border-radius:9px;font-size:12.5px;transition:.15s;
-  }
+  .hist-item{display:grid;grid-template-columns:50px 1fr auto;gap:10px;align-items:center;
+             padding:8px 8px;border-radius:9px;font-size:12.5px;transition:.15s}
   .hist-item:hover{background:#171e28}
   .side-tag{font-size:11px;font-weight:700;text-align:center;padding:3px 0;border-radius:6px;white-space:nowrap}
   .side-tag.buy{color:var(--up);background:rgba(14,203,129,.12)}
   .side-tag.sell{color:var(--down);background:rgba(246,70,93,.12)}
   .side-tag.liq{color:#ffb020;background:rgba(255,176,32,.14)}
   .hist-mid{min-width:0}
-  .hist-mid .l1{color:#b7c4d3;font-variant-numeric:tabular-nums;font-family:ui-monospace,Menlo,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hist-mid .l1{color:#b7c4d3;font-variant-numeric:tabular-nums;
+                font-family:ui-monospace,Menlo,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .hist-mid .l2{color:#5f6b7a;font-size:11px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .hist-right{text-align:right;font-variant-numeric:tabular-nums;font-family:ui-monospace,Menlo,monospace;white-space:nowrap}
+  .hist-right{text-align:right;font-variant-numeric:tabular-nums;
+              font-family:ui-monospace,Menlo,monospace;white-space:nowrap}
   .hist-right .p{color:#8b98a8;font-size:11px;margin-top:2px}
 
   .pos-list{display:flex;flex-direction:column;gap:9px}
@@ -481,92 +293,168 @@
   .pos-card.long{border-left:3px solid var(--up)}
   .pos-card.short{border-left:3px solid var(--down)}
   .pos-head{display:flex;align-items:center;gap:9px;margin-bottom:10px}
-  .pos-badge{font-size:11px;font-weight:800;padding:3px 9px;border-radius:7px;letter-spacing:.3px;white-space:nowrap}
+  .pos-badge{font-size:11px;font-weight:800;padding:3px 9px;border-radius:7px;
+             letter-spacing:.3px;white-space:nowrap}
   .pos-badge.long{color:var(--up);background:rgba(14,203,129,.13)}
   .pos-badge.short{color:var(--down);background:rgba(246,70,93,.13)}
-  .pos-qty{font-size:12px;color:#b7c4d3;font-family:ui-monospace,Menlo,monospace;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .close-btn{
-    font-size:11.5px;font-weight:700;padding:5px 12px;border-radius:8px;
-    border:1px solid #2e3a4a;background:#161d27;color:#9fb0c2;
-    cursor:pointer;font-family:inherit;transition:.16s;white-space:nowrap;
-  }
+  .pos-qty{font-size:12px;color:#b7c4d3;font-family:ui-monospace,Menlo,monospace;
+           flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .close-btn{font-size:11.5px;font-weight:700;padding:5px 12px;border-radius:8px;
+    border:1px solid #2e3a4a;background:#161d27;color:#9fb0c2;cursor:pointer;
+    font-family:inherit;transition:.16s;white-space:nowrap}
   .close-btn:hover{color:#fff;background:#243040;border-color:#3d4c60}
-
   .pos-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px 14px;margin-bottom:10px}
   .pos-grid .cell .k{font-size:10.5px;color:#66738a;margin-bottom:2px}
-  .pos-grid .cell .v{font-size:12px;font-weight:600;color:#c3cedb;font-variant-numeric:tabular-nums;font-family:ui-monospace,Menlo,monospace}
-
-  .pos-foot{display:flex;justify-content:space-between;align-items:baseline;padding-top:8px;border-top:1px solid #1c2532}
+  .pos-grid .cell .v{font-size:12px;font-weight:600;color:#c3cedb;
+                     font-variant-numeric:tabular-nums;font-family:ui-monospace,Menlo,monospace}
+  .pos-foot{display:flex;justify-content:space-between;align-items:baseline;
+            padding-top:8px;border-top:1px solid #1c2532}
   .pos-foot .k{font-size:11px;color:#66738a}
-  .pos-foot .v{font-size:14.5px;font-weight:800;font-variant-numeric:tabular-nums;font-family:ui-monospace,Menlo,monospace}
+  .pos-foot .v{font-size:14.5px;font-weight:800;font-variant-numeric:tabular-nums;
+               font-family:ui-monospace,Menlo,monospace}
   .pos-foot .pct{font-size:12px;font-weight:700;margin-left:6px}
 
-  /* ===== Toast ===== */
-  #toast{
-    position:fixed;left:50%;top:20px;transform:translate(-50%,-24px);
-    background:#1e2733;border:1px solid #35435a;color:#e8eef6;
-    padding:11px 20px;border-radius:11px;font-size:13px;font-weight:600;
-    opacity:0;pointer-events:none;transition:.28s;z-index:99;
-    box-shadow:0 12px 34px rgba(0,0,0,.5);max-width:88vw;text-align:center;
-  }
+  #toast{position:fixed;left:50%;top:20px;transform:translate(-50%,-24px);
+    background:#1e2733;border:1px solid #35435a;color:#e8eef6;padding:11px 20px;
+    border-radius:11px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;
+    transition:.28s;z-index:99;box-shadow:0 12px 34px rgba(0,0,0,.5);
+    max-width:88vw;text-align:center}
   #toast.show{opacity:1;transform:translate(-50%,0)}
   #toast.err{border-color:#5b2a33;color:#ff8b9b}
   #toast.ok{border-color:#1c5c45;color:#4fe0a8}
   #toast.warn{border-color:#5c4a1c;color:#ffc94d}
 
-  /* ===== 响应式 ===== */
-  @media (max-width:1150px){
-    .layout{
-      grid-template-columns: minmax(0,1fr) 358px;
-      grid-template-rows: auto 1fr;
-      grid-template-areas:
-        "save save"
-        "main side";
-    }
-    .save-col{
-      flex-direction: row;
-      overflow-x: auto;
-      overflow-y: hidden;
-      gap: 8px;
-      padding-bottom: 3px;
-    }
-    .save-card{
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      flex-shrink: 0;
-      min-width: max-content;
-    }
-    .save-title{margin:0;white-space:nowrap}
-    .save-action{width:auto;margin:0;white-space:nowrap}
-    .save-divider,
-    .save-subtitle,
-    .save-note{display:none}
-    .save-slot{
-      display:flex;align-items:center;gap:5px;margin:0;padding:6px 9px;white-space:nowrap;
-    }
-    .slot-info{margin:0}
-    .slot-name{font-size:11px;margin:0}
-    .slot-time{display:none}
-    .slot-btns{display:flex;gap:3px}
-    .slot-btn{padding:4px 8px;font-size:11px}
+  .sv-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.65);
+    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    display:none;align-items:center;justify-content:center;
+    z-index:9999;padding:20px;
+    animation:svFadeIn .2s ease;
+  }
+  .sv-overlay.show{display:flex}
+  @keyframes svFadeIn{from{opacity:0}to{opacity:1}}
+  .sv-box{
+    background:linear-gradient(180deg,#1a212c,#131820);
+    border:1px solid #2a3444;border-radius:18px;
+    max-width:520px;width:100%;
+    box-shadow:0 24px 64px rgba(0,0,0,.6);
+    animation:svSlideUp .25s cubic-bezier(.2,.9,.3,1);
+    overflow:hidden;max-height:88vh;
+    display:flex;flex-direction:column;
+  }
+  @keyframes svSlideUp{from{transform:translateY(24px);opacity:0}to{transform:translateY(0);opacity:1}}
+  .sv-head{
+    display:flex;align-items:center;gap:10px;
+    padding:16px 20px 14px;
+    border-bottom:1px solid #212a36;
+    background:linear-gradient(180deg,rgba(240,185,11,.06),transparent);
+  }
+  .sv-head .icon{font-size:22px;line-height:1}
+  .sv-head .title{
+    font-size:14px;font-weight:700;color:#e8eef6;letter-spacing:.3px;flex:1;
+  }
+  .sv-head .badge{
+    font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:6px;
+    background:rgba(240,185,11,.14);border:1px solid rgba(240,185,11,.35);color:#f0b90b;
+  }
+  .sv-body{
+    padding:16px 20px;overflow-y:auto;flex:1;
+  }
+  .sv-body::-webkit-scrollbar{width:6px}
+  .sv-body::-webkit-scrollbar-thumb{background:#26303d;border-radius:3px}
+
+  .sv-meta{
+    display:flex;justify-content:space-between;gap:12px;
+    padding:9px 12px;border-radius:10px;
+    background:#0e131b;border:1px solid #1c2532;margin-bottom:14px;
+    font-size:11.5px;
+  }
+  .sv-meta .k{color:#7d8998;white-space:nowrap}
+  .sv-meta .v{
+    color:#b7c4d3;font-family:ui-monospace,Menlo,monospace;
+    font-weight:600;text-align:right;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
 
+  .sv-section-title{
+    font-size:10.5px;font-weight:800;color:#7d8998;
+    letter-spacing:.8px;text-transform:uppercase;
+    margin:0 0 6px 4px;
+  }
+  .sv-section{margin-bottom:14px}
+
+  .sv-row{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:9px 12px;border-radius:9px;
+    background:#0e131b;border:1px solid #1c2532;
+    margin-bottom:5px;font-size:12.5px;gap:10px;
+  }
+  .sv-row:last-child{margin-bottom:0}
+  .sv-row .k{color:#8b98a8;display:flex;align-items:center;gap:7px}
+  .sv-row .k .emo{font-size:14px;line-height:1}
+  .sv-row .v{
+    font-family:ui-monospace,Menlo,monospace;font-weight:700;
+    white-space:nowrap;color:#e8eef6;
+  }
+  .sv-row .v.up{color:#4fe0a8}
+  .sv-row .v.down{color:#ff8b9b}
+  .sv-row .v.muted{color:#7d8998;font-weight:600}
+  .sv-row.highlight{
+    background:linear-gradient(135deg,rgba(14,203,129,.06),rgba(14,203,129,.02));
+    border-color:rgba(14,203,129,.25);
+  }
+  .sv-row.warn{
+    background:linear-gradient(135deg,rgba(246,70,93,.06),rgba(246,70,93,.02));
+    border-color:rgba(246,70,93,.25);
+  }
+
+  .sv-sub{
+    font-size:11px;color:#5f6b7a;margin:6px 0 0 4px;
+    font-family:ui-monospace,Menlo,monospace;
+  }
+  .sv-sub b{color:#8b98a8;font-weight:700}
+
+  .sv-actions{
+    display:flex;gap:10px;padding:14px 20px 16px;
+    border-top:1px solid #212a36;
+    background:rgba(0,0,0,.2);
+  }
+  .sv-btn{
+    flex:1;padding:12px;border:0;border-radius:11px;
+    font-size:14px;font-weight:700;cursor:pointer;
+    font-family:inherit;transition:.16s;letter-spacing:.3px;
+  }
+  .sv-btn.cancel{
+    background:#1a2230;color:#9fb0c2;border:1px solid #2e3a4a;
+  }
+  .sv-btn.cancel:hover{background:#243040;color:#fff;border-color:#3d4c60}
+  .sv-btn.confirm{
+    background:linear-gradient(135deg,#12e39a,#0ecb81);color:#04140d;
+  }
+  .sv-btn.confirm:hover{filter:brightness(1.08);transform:translateY(-1px)}
+  .sv-btn.confirm:active{transform:translateY(0)}
+
+  @media (max-width:1150px){
+    .layout{grid-template-columns:minmax(0,1fr) 358px;grid-template-rows:auto 1fr;
+            grid-template-areas:"save save" "main side"}
+    .save-col{flex-direction:row;overflow-x:auto;overflow-y:hidden;gap:8px;padding-bottom:3px}
+    .save-card{display:flex;align-items:center;gap:8px;padding:8px 12px;
+               flex-shrink:0;min-width:max-content}
+    .save-title{margin:0;white-space:nowrap}
+    .save-divider,.save-note{display:none}
+    .save-slot{display:flex;align-items:center;gap:8px;margin:0;padding:6px 9px;white-space:nowrap}
+    .slot-head{margin:0;flex-direction:column;align-items:flex-start;gap:1px;min-width:52px}
+    .slot-time{display:none}
+    .slot-btns{display:flex;gap:3px}
+    .slot-btn{padding:5px 8px;font-size:11px}
+  }
   @media (max-width:960px){
     body{height:auto;overflow:auto;padding:10px}
     .app{height:auto;min-height:100%}
-    .layout{
-      grid-template-columns: 1fr;
-      grid-template-rows: auto auto auto;
-      grid-template-areas:
-        "save"
-        "main"
-        "side";
-    }
+    .layout{grid-template-columns:1fr;grid-template-rows:auto auto auto;
+            grid-template-areas:"save" "main" "side"}
     .topbar{flex-wrap:wrap;gap:12px}
-    .mode-switch{margin-left:0;order:5;width:100%}
-    .mode-btn{flex:1}
+    .mode-switch{margin-left:0;order:5;width:100%} .mode-btn{flex:1}
     .acc-box{order:6;width:100%;justify-content:space-between;gap:14px}
     .price{font-size:22px}
     .chart-card{height:300px;flex:none}
@@ -575,8 +463,8 @@
     .bank-actions{margin-left:0;width:100%}
     .bank-actions input{flex:1;width:auto;min-width:90px}
     .save-col{overflow-x:auto;overflow-y:hidden}
+    .sv-box{max-width:100%}
   }
-
   @media (max-height:700px) and (min-width:961px){
     .bottom-card{height:170px}
   }
@@ -586,100 +474,83 @@
 
 <div class="app">
 
-  <!-- ===== 顶栏 ===== -->
   <header class="topbar card">
     <div class="brand">
       <div class="logo">₿</div>
-      <div>
-        <h1>BTC 模拟交易</h1>
-        <span>BITCOIN / CNY</span>
-      </div>
+      <div><h1>BTC 模拟交易</h1><span>BITCOIN / CNY</span></div>
     </div>
-
     <div class="price-box">
       <div class="price" id="priceEl">¥ --</div>
       <div class="change" id="changeEl">--</div>
     </div>
-
     <div class="acc-box">
-      <div class="acc-item">
-        <div class="k" id="accLabel1">总资产</div>
-        <div class="v" id="totalEl">¥1,000.00</div>
-      </div>
-      <div class="acc-item">
-        <div class="k" id="accLabel2">总收益</div>
-        <div class="v" id="pnlEl">¥0.00</div>
-      </div>
+      <div class="acc-item"><div class="k" id="accLabel1">总资产</div><div class="v" id="totalEl">¥1,000.00</div></div>
+      <div class="acc-item"><div class="k" id="accLabel2">总收益</div><div class="v" id="pnlEl">¥0.00</div></div>
     </div>
-
     <div class="mode-switch">
       <button class="mode-btn active" data-mode="spot">现货</button>
       <button class="mode-btn" data-mode="futures">合约</button>
     </div>
   </header>
 
-  <!-- ===== 主区域 ===== -->
   <div class="layout">
 
-    <!-- ---------- 左：存档 ---------- -->
     <aside class="save-col">
       <div class="card save-card">
-        <div class="save-title">💾 存档</div>
-
-        <button class="save-action" id="exportSaveBtn">
-          <span class="ico">📤</span> 导出加密存档
-        </button>
-        <button class="save-action" id="importSaveBtn">
-          <span class="ico">📥</span> 导入存档
-        </button>
-        <input type="file" id="importSaveInput" accept=".btcsav,.sav,application/octet-stream" style="display:none">
-
-        <div class="save-divider"></div>
-        <div class="save-subtitle">快捷存档</div>
+        <div class="save-title">💾 存档 <span id="workerBadge" class="worker-badge loading">Worker 启动中</span></div>
 
         <div class="save-slot" data-slot="1">
-          <div class="slot-info">
-            <div class="slot-name">槽位 1</div>
-            <div class="slot-time" id="slotTime1">空</div>
+          <div class="slot-head">
+            <span class="slot-name">槽位 1</span>
+            <span class="slot-time" id="slotTime1">空</span>
           </div>
           <div class="slot-btns">
-            <button class="slot-btn" data-action="save" data-slot="1">存</button>
-            <button class="slot-btn" data-action="load" data-slot="1">读</button>
+            <button class="slot-btn" data-action="save"   data-slot="1" title="把当前状态保存到槽位 1">保存</button>
+            <button class="slot-btn" data-action="load"   data-slot="1" title="把槽位 1 加载到当前（会先预览）">读取</button>
+            <button class="slot-btn" data-action="export" data-slot="1" title="把槽位 1 导出为 .aes 文件">导出</button>
+            <button class="slot-btn" data-action="import" data-slot="1" title="从 .aes 文件导入到槽位 1（会先预览）">导入</button>
           </div>
         </div>
 
         <div class="save-slot" data-slot="2">
-          <div class="slot-info">
-            <div class="slot-name">槽位 2</div>
-            <div class="slot-time" id="slotTime2">空</div>
+          <div class="slot-head">
+            <span class="slot-name">槽位 2</span>
+            <span class="slot-time" id="slotTime2">空</span>
           </div>
           <div class="slot-btns">
-            <button class="slot-btn" data-action="save" data-slot="2">存</button>
-            <button class="slot-btn" data-action="load" data-slot="2">读</button>
+            <button class="slot-btn" data-action="save"   data-slot="2" title="把当前状态保存到槽位 2">保存</button>
+            <button class="slot-btn" data-action="load"   data-slot="2" title="把槽位 2 加载到当前（会先预览）">读取</button>
+            <button class="slot-btn" data-action="export" data-slot="2" title="把槽位 2 导出为 .aes 文件">导出</button>
+            <button class="slot-btn" data-action="import" data-slot="2" title="从 .aes 文件导入到槽位 2（会先预览）">导入</button>
           </div>
         </div>
 
         <div class="save-slot" data-slot="3">
-          <div class="slot-info">
-            <div class="slot-name">槽位 3</div>
-            <div class="slot-time" id="slotTime3">空</div>
+          <div class="slot-head">
+            <span class="slot-name">槽位 3</span>
+            <span class="slot-time" id="slotTime3">空</span>
           </div>
           <div class="slot-btns">
-            <button class="slot-btn" data-action="save" data-slot="3">存</button>
-            <button class="slot-btn" data-action="load" data-slot="3">读</button>
+            <button class="slot-btn" data-action="save"   data-slot="3" title="把当前状态保存到槽位 3">保存</button>
+            <button class="slot-btn" data-action="load"   data-slot="3" title="把槽位 3 加载到当前（会先预览）">读取</button>
+            <button class="slot-btn" data-action="export" data-slot="3" title="把槽位 3 导出为 .aes 文件">导出</button>
+            <button class="slot-btn" data-action="import" data-slot="3" title="从 .aes 文件导入到槽位 3（会先预览）">导入</button>
           </div>
         </div>
+
+        <input type="file" id="slotImportInput" accept=".aes,.btcsav,.sav,application/octet-stream" style="display:none">
 
         <div class="save-divider"></div>
         <div class="save-note">
           <b>AES-256-GCM</b><br>
           PBKDF2 10万次<br>
-          密码已内置
+          密码 <b>123456</b><br>
+          JSON 缩进 2 空格<br>
+          <b>Web Worker 后台加密</b>
         </div>
       </div>
     </aside>
 
-    <!-- ---------- 中：图表 + 银行 + 底部 ---------- -->
     <div class="main-col">
 
       <div class="card chart-card">
@@ -687,12 +558,9 @@
           <div class="t" id="chartTitle">现货行情走势</div>
           <div class="sub" id="chartSub">近 200 个 tick · 现货与合约共用同一钱包</div>
         </div>
-        <div class="chart-wrap" id="chartWrap">
-          <canvas id="chart"></canvas>
-        </div>
+        <div class="chart-wrap" id="chartWrap"><canvas id="chart"></canvas></div>
       </div>
 
-      <!-- ===== 加密银行 ===== -->
       <div class="card bank-card" id="bankCard">
         <div class="bank-row">
           <div class="bank-name">
@@ -702,7 +570,6 @@
             <span class="rate dep">存 0.02%/日</span>
             <span class="rule">额度 = max(¥5,000, 净资产×2)</span>
           </div>
-
           <div class="bank-stats">
             <div class="bs"><span class="k">授信额度</span><span class="v blue" id="bankLimit">¥5,000.00</span></div>
             <div class="bs"><span class="k">净资产</span><span class="v" id="bankNetWorth">¥1,000.00</span></div>
@@ -713,7 +580,6 @@
             <div class="bs"><span class="k">存款利息</span><span class="v" id="depositInterestEl">¥0.00</span></div>
             <div class="bs"><span class="k">存款总额</span><span class="v" id="depositTotal">¥0.00</span></div>
           </div>
-
           <div class="bank-actions">
             <input type="number" id="bankInput" placeholder="金额（空=全额）" step="any" inputmode="decimal">
             <button class="bank-btn borrow" id="bankBorrowBtn">借款</button>
@@ -733,43 +599,34 @@
       </div>
     </div>
 
-    <!-- ---------- 右：交易 ---------- -->
     <aside class="side-col">
 
-      <!-- === 现货面板 === -->
       <div id="spotPanel">
         <div class="card" style="margin-bottom:12px">
           <div class="tabs">
             <button class="tab active" data-side="buy">买入</button>
             <button class="tab" data-side="sell">卖出</button>
           </div>
-
           <div class="field-label"><span id="spotInputLabel">买入金额</span></div>
           <div class="input-wrap">
             <input type="number" id="spotAmountInput" placeholder="0.00" step="any" inputmode="decimal">
             <span class="unit" id="spotInputUnit">CNY</span>
           </div>
-
           <div class="quick">
             <button data-spot-pct="0.25">25%</button>
             <button data-spot-pct="0.5">50%</button>
             <button data-spot-pct="0.75">75%</button>
             <button data-spot-pct="1">100%</button>
           </div>
-
           <div class="avail">
             <span>钱包余额 <b id="spotAvailCash">¥1,000.00</b></span>
             <span>可卖 <b id="spotAvailBtc">0 BTC</b></span>
           </div>
-
           <button class="submit" id="spotSubmitBtn">买入 BTC</button>
         </div>
 
         <div class="card">
-          <div class="panel-title">
-            现货持仓
-            <button class="reset" id="spotResetBtn">重置</button>
-          </div>
+          <div class="panel-title">现货持仓 <button class="reset" id="spotResetBtn" title="重置全部账户（含合约、银行）">重置全部</button></div>
           <div class="rows">
             <div class="row"><span class="k">持有数量</span><span class="v" id="spotPosBtc">0 BTC</span></div>
             <div class="row"><span class="k">持仓均价</span><span class="v" id="spotPosAvg">¥ --</span></div>
@@ -783,13 +640,9 @@
         </div>
       </div>
 
-      <!-- === 合约面板 === -->
       <div id="futuresPanel" class="hidden">
         <div class="card" style="margin-bottom:12px">
-          <div class="panel-title">
-            合约账户
-            <button class="reset" id="futResetBtn">重置</button>
-          </div>
+          <div class="panel-title">合约账户 <button class="reset" id="futResetBtn" title="清空所有合约仓位（保证金全额退回钱包）">清空仓位</button></div>
           <div class="rows">
             <div class="row"><span class="k">账户权益</span><span class="v" id="futEquity">¥1,000.00</span></div>
             <div class="row"><span class="k">钱包余额</span><span class="v" id="futBalance">¥1,000.00</span></div>
@@ -812,8 +665,7 @@
               <span class="label">杠杆倍数</span>
               <span class="value" id="levLabel" style="color:#a9e34b">10<small>x</small></span>
             </div>
-            <input type="range" class="t-slider lev-slider" id="levRange"
-                   min="0" max="1000" step="1" value="45">
+            <input type="range" class="t-slider lev-slider" id="levRange" min="0" max="1000" step="1" value="45">
             <div class="slider-ticks">
               <span style="left:0%">1x</span>
               <span style="left:22.1%">50x</span>
@@ -838,8 +690,7 @@
               <input type="number" id="futMarginInput" placeholder="0.00" step="any" inputmode="decimal">
               <span class="unit">CNY</span>
             </div>
-            <input type="range" class="t-slider margin-slider" id="marginRange"
-                   min="0" max="100" step="1" value="50">
+            <input type="range" class="t-slider margin-slider" id="marginRange" min="0" max="100" step="1" value="50">
             <div class="slider-ticks">
               <span style="left:0%">0%</span>
               <span style="left:25%">25%</span>
@@ -866,33 +717,45 @@
   </div>
 </div>
 
+<div class="sv-overlay" id="svOverlay">
+  <div class="sv-box">
+    <div class="sv-head">
+      <span class="icon">📦</span>
+      <span class="title" id="svTitle">存档预览</span>
+      <span class="badge" id="svBadge">.aes</span>
+    </div>
+    <div class="sv-body" id="svBody"></div>
+    <div class="sv-actions">
+      <button class="sv-btn cancel" id="svCancelBtn">取消</button>
+      <button class="sv-btn confirm" id="svConfirmBtn">确认加载</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
 (function(){
   'use strict';
 
-  /* ================= 配置 ================= */
-  const FEE_RATE     = 0.001;
-  const INIT_CASH    = 1000;
-  const MAX_POINTS   = 200;
-  const TICK_MS      = 600;
+  const FEE_RATE = 0.001;
+  const INIT_CASH = 1000;
+  const MAX_POINTS = 200;
+  const TICK_MS = 600;
 
   const BANK_BASE_LIMIT = 5000;
-  const BANK_LIQ_MULT   = 2;
-  const BANK_RATE_PER_TICK    = 0.000003;
+  const BANK_LIQ_MULT = 2;
+  const BANK_RATE_PER_TICK = 0.000003;
   const DEPOSIT_RATE_PER_TICK = 0.0000006;
 
   const LEV_MAX = 1000;
   const LEV_MIN = 1;
   const MARGIN_PCT_DEFAULT = 50;
 
-  /* ====== 加密存档配置 ====== */
-  const SAVE_PWD  = '123456';    // 硬编码密码
-  const SAVE_ITER = 100000;      // 10万次迭代
-  const SLOT_KEY  = 'btc_save_slot_';
+  const SAVE_PWD = '123456';
+  const SAVE_ITER = 100000;
+  const SLOT_KEY = 'btc_save_slot_';
 
-  /* ================= 状态 ================= */
   let price = 652340;
   let openPrice = price;
   let history = [];
@@ -909,16 +772,11 @@
   let futLeverage = 10;
   let marginPct = MARGIN_PCT_DEFAULT;
 
-  let bankDebt = 0;
-  let bankInterest = 0;
-  let deposit = 0;
-  let depositInterest = 0;
+  let bankDebt = 0, bankInterest = 0, deposit = 0, depositInterest = 0;
 
   let bottomTab = 'positions';
-
   let saveProcessing = false;
 
-  /* ================= 元素 ================= */
   const $ = id => document.getElementById(id);
 
   const priceEl = $('priceEl'), changeEl = $('changeEl');
@@ -926,25 +784,19 @@
   const accLabel1 = $('accLabel1'), accLabel2 = $('accLabel2');
   const chartTitle = $('chartTitle'), chartSub = $('chartSub');
   const chartWrap = $('chartWrap'), canvas = $('chart');
-
   const spotPanel = $('spotPanel'), futuresPanel = $('futuresPanel');
   const bottomTabs = $('bottomTabs'), bottomBody = $('bottomBody'), bottomCount = $('bottomCount');
-
   const bankCard = $('bankCard');
   const bankLimitEl = $('bankLimit'), bankNetWorthEl = $('bankNetWorth');
   const bankDebtEl = $('bankDebt'), bankOwedEl = $('bankOwed'), bankAvailEl = $('bankAvail');
-  const depositPrincipalEl = $('depositPrincipal');
-  const depositInterestEl = $('depositInterestEl');
-  const depositTotalEl = $('depositTotal');
-  const bankInput = $('bankInput');
-
+  const depositPrincipalEl = $('depositPrincipal'), depositInterestEl = $('depositInterestEl');
+  const depositTotalEl = $('depositTotal'), bankInput = $('bankInput');
   const spotAmountInput = $('spotAmountInput'), spotInputLabel = $('spotInputLabel');
   const spotInputUnit = $('spotInputUnit'), spotSubmitBtn = $('spotSubmitBtn');
   const spotAvailCash = $('spotAvailCash'), spotAvailBtc = $('spotAvailBtc');
   const spotPosBtc = $('spotPosBtc'), spotPosAvg = $('spotPosAvg'), spotPosValue = $('spotPosValue');
   const spotPosPnl = $('spotPosPnl'), spotRealPnl = $('spotRealPnl');
   const spotCashEl = $('spotCashEl'), spotDebtEl = $('spotDebtEl');
-
   const futEquity = $('futEquity'), futBalanceEl = $('futBalance'), futMarginEl = $('futMargin');
   const futUPnlEl = $('futUPnl'), futRealPnlEl = $('futRealPnl'), futDebtEl = $('futDebtEl');
   const futMarginInput = $('futMarginInput'), futSubmitBtn = $('futSubmitBtn');
@@ -953,8 +805,12 @@
   const marginRange = $('marginRange'), marginPctLabel = $('marginPctLabel');
   const maxMarginHint = $('maxMarginHint');
   const previewQty = $('previewQty'), previewLiq = $('previewLiq'), previewFee = $('previewFee');
+  const workerBadge = $('workerBadge');
+  const slotImportInput = $('slotImportInput');
+  const svOverlay = $('svOverlay');
+  const svTitle = $('svTitle'), svBadge = $('svBadge'), svBody = $('svBody');
+  const svCancelBtn = $('svCancelBtn'), svConfirmBtn = $('svConfirmBtn');
 
-  /* ================= 工具 ================= */
   const fmtMoney = n => '¥' + n.toLocaleString('zh-CN',{minimumFractionDigits:2, maximumFractionDigits:2});
   const fmtPrice = n => '¥' + n.toLocaleString('zh-CN',{minimumFractionDigits:2, maximumFractionDigits:2});
   const fmtSigned = n => (n >= 0 ? '+' : '-') + '¥' + Math.abs(n).toLocaleString('zh-CN',{minimumFractionDigits:2, maximumFractionDigits:2});
@@ -967,6 +823,7 @@
   }
   const timeStr = ts => new Date(ts).toLocaleTimeString('zh-CN',{hour12:false});
   const cls = n => n > 0.005 ? 'up' : n < -0.005 ? 'down' : 'flat';
+  const esc = s => String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 
   let toastTimer = null;
   function toast(msg, type){
@@ -977,9 +834,601 @@
     toastTimer = setTimeout(()=>{ el.className = ''; }, 2400);
   }
 
-  /* ================= 行情 ================= */
-  let trend = 0, trendLeft = 0;
+  /* ============================================================
+     存档预览模态框
+     ============================================================ */
+  let svResolve = null;
 
+  function fmtDateTime(ts){
+    if (!ts) return '未知';
+    const d = new Date(ts);
+    const pad = n => String(n).padStart(2, '0');
+    return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + ' ' +
+           pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+  }
+
+  function previewSaveState(state, opts){
+    return new Promise(resolve => {
+      svResolve = resolve;
+
+      const s = state || {};
+      const priceV = (typeof s.price === 'number' && isFinite(s.price)) ? s.price : 0;
+      const walletAmt = (typeof s.wallet === 'number') ? s.wallet : 0;
+      const spotBtcAmt = (typeof s.spotBtc === 'number') ? s.spotBtc : 0;
+      const spotAvg = (typeof s.spotAvgCost === 'number') ? s.spotAvgCost : 0;
+      const spotReal = (typeof s.spotRealized === 'number') ? s.spotRealized : 0;
+      const posArr = Array.isArray(s.positions) ? s.positions : [];
+      const bankDebtAmt = (typeof s.bankDebt === 'number') ? s.bankDebt : 0;
+      const bankIntAmt = (typeof s.bankInterest === 'number') ? s.bankInterest : 0;
+      const depositAmt = (typeof s.deposit === 'number') ? s.deposit : 0;
+      const depositIntAmt = (typeof s.depositInterest === 'number') ? s.depositInterest : 0;
+      const futReal = (typeof s.futRealized === 'number') ? s.futRealized : 0;
+      const modeV = s.mode === 'futures' ? '合约' : '现货';
+      const spotTradesLen = Array.isArray(s.spotTrades) ? s.spotTrades.length : 0;
+      const futTradesLen = Array.isArray(s.futTrades) ? s.futTrades.length : 0;
+
+      let futHoldVal = 0, futMarginSum = 0, futUPnlSum = 0;
+      posArr.forEach(p => {
+        if (!p || typeof p !== 'object') return;
+        const qty = (typeof p.qty === 'number') ? p.qty : 0;
+        const entry = (typeof p.entry === 'number') ? p.entry : 0;
+        const margin = (typeof p.margin === 'number') ? p.margin : 0;
+        const u = p.side === 'long' ? (priceV - entry) * qty : (entry - priceV) * qty;
+        futMarginSum += margin;
+        futUPnlSum += u;
+        futHoldVal += margin + u;
+      });
+
+      const owed = bankDebtAmt + bankIntAmt;
+      const depTotal = depositAmt + depositIntAmt;
+      const spotVal = spotBtcAmt * priceV;
+      const totalAssets = walletAmt + spotVal + futHoldVal + depTotal - owed;
+      const totalPnl = totalAssets - INIT_CASH;
+
+      svTitle.textContent = opts && opts.title ? opts.title : '存档预览';
+      svBadge.textContent = opts && opts.badge ? opts.badge : '预览';
+      svConfirmBtn.textContent = (opts && opts.confirmText) ? opts.confirmText : '确认加载';
+
+      let html = '';
+
+      html += '<div class="sv-meta">';
+      html += '<span class="k">📅 保存时间</span>';
+      html += '<span class="v">' + esc(fmtDateTime(s.ts)) + '</span>';
+      html += '</div>';
+
+      html += '<div class="sv-section">';
+      html += '<div class="sv-section-title">资产总览</div>';
+      html += '<div class="sv-row highlight"><span class="k"><span class="emo">📊</span>总资产</span>' +
+              '<span class="v ' + (totalPnl > 0.005 ? 'up' : totalPnl < -0.005 ? 'down' : '') + '">' +
+              fmtMoney(totalAssets) + '</span></div>';
+      html += '<div class="sv-row"><span class="k"><span class="emo">📈</span>总收益</span>' +
+              '<span class="v ' + (totalPnl > 0.005 ? 'up' : totalPnl < -0.005 ? 'down' : 'muted') + '">' +
+              fmtSigned(totalPnl) + '</span></div>';
+      html += '</div>';
+
+      html += '<div class="sv-section">';
+      html += '<div class="sv-section-title">钱包 & 现货</div>';
+      html += '<div class="sv-row"><span class="k"><span class="emo">💰</span>钱包余额</span>' +
+              '<span class="v">' + fmtMoney(walletAmt) + '</span></div>';
+      if (spotBtcAmt > 1e-12) {
+        html += '<div class="sv-row"><span class="k"><span class="emo">🪙</span>现货持仓</span>' +
+                '<span class="v">' + fmtBtc(spotBtcAmt) + ' BTC</span></div>';
+        html += '<div class="sv-row"><span class="k"><span class="emo">💵</span>现货市值</span>' +
+                '<span class="v">' + fmtMoney(spotVal) + '</span></div>';
+        html += '<div class="sv-row"><span class="k"><span class="emo">📌</span>持仓均价</span>' +
+                '<span class="v muted">' + fmtPrice(spotAvg) + '</span></div>';
+      } else {
+        html += '<div class="sv-row"><span class="k"><span class="emo">🪙</span>现货持仓</span>' +
+                '<span class="v muted">无持仓</span></div>';
+      }
+      if (spotReal !== 0) {
+        html += '<div class="sv-row"><span class="k"><span class="emo">✅</span>现货已实现盈亏</span>' +
+                '<span class="v ' + (spotReal > 0.005 ? 'up' : spotReal < -0.005 ? 'down' : 'muted') + '">' +
+                fmtSigned(spotReal) + '</span></div>';
+      }
+      html += '<div class="sv-sub">现货成交记录 <b>' + spotTradesLen + '</b> 笔</div>';
+      html += '</div>';
+
+      if (posArr.length > 0 || futTradesLen > 0 || futReal !== 0) {
+        html += '<div class="sv-section">';
+        html += '<div class="sv-section-title">合约</div>';
+        if (posArr.length > 0) {
+          html += '<div class="sv-row"><span class="k"><span class="emo">⚡</span>持仓数量</span>' +
+                  '<span class="v">' + posArr.length + ' 个</span></div>';
+          html += '<div class="sv-row"><span class="k"><span class="emo">🔒</span>占用保证金</span>' +
+                  '<span class="v">' + fmtMoney(futMarginSum) + '</span></div>';
+          html += '<div class="sv-row"><span class="k"><span class="emo">' +
+                  (futUPnlSum > 0.005 ? '📈' : futUPnlSum < -0.005 ? '📉' : '➖') +
+                  '</span>未实现盈亏</span>' +
+                  '<span class="v ' + (futUPnlSum > 0.005 ? 'up' : futUPnlSum < -0.005 ? 'down' : 'muted') + '">' +
+                  fmtSigned(futUPnlSum) + '</span></div>';
+          let posLines = [];
+          posArr.slice(0, 3).forEach(p => {
+            const side = p.side === 'long' ? '多' : '空';
+            const lev = p.leverage || 0;
+            posLines.push(side + lev + 'x');
+          });
+          if (posArr.length > 3) posLines.push('...');
+          html += '<div class="sv-sub">方向：<b>' + esc(posLines.join(' · ')) + '</b></div>';
+        } else {
+          html += '<div class="sv-row"><span class="k"><span class="emo">⚡</span>持仓数量</span>' +
+                  '<span class="v muted">无持仓</span></div>';
+        }
+        if (futReal !== 0) {
+          html += '<div class="sv-row"><span class="k"><span class="emo">✅</span>合约已实现盈亏</span>' +
+                  '<span class="v ' + (futReal > 0.005 ? 'up' : futReal < -0.005 ? 'down' : 'muted') + '">' +
+                  fmtSigned(futReal) + '</span></div>';
+        }
+        html += '<div class="sv-sub">合约成交记录 <b>' + futTradesLen + '</b> 笔</div>';
+        html += '</div>';
+      }
+
+      if (owed > 0.005 || depTotal > 0.005) {
+        html += '<div class="sv-section">';
+        html += '<div class="sv-section-title">加密银行</div>';
+        if (owed > 0.005) {
+          html += '<div class="sv-row warn"><span class="k"><span class="emo">🏦</span>银行负债</span>' +
+                  '<span class="v down">' + fmtMoney(owed) + '</span></div>';
+          html += '<div class="sv-sub">本金 <b>' + fmtMoney(bankDebtAmt) + '</b> · 利息 <b>' + fmtMoney(bankIntAmt) + '</b></div>';
+        }
+        if (depTotal > 0.005) {
+          html += '<div class="sv-row"><span class="k"><span class="emo">💎</span>银行存款</span>' +
+                  '<span class="v up">' + fmtMoney(depTotal) + '</span></div>';
+          html += '<div class="sv-sub">本金 <b>' + fmtMoney(depositAmt) + '</b> · 利息 <b>' + fmtMoney(depositIntAmt) + '</b></div>';
+        }
+        html += '</div>';
+      }
+
+      html += '<div class="sv-section">';
+      html += '<div class="sv-section-title">其他</div>';
+      html += '<div class="sv-row"><span class="k"><span class="emo">💱</span>保存时价格</span>' +
+              '<span class="v muted">' + fmtPrice(priceV) + '</span></div>';
+      html += '<div class="sv-row"><span class="k"><span class="emo">🖥️</span>界面状态</span>' +
+              '<span class="v muted">' + esc(modeV) + '视图</span></div>';
+      html += '</div>';
+
+      svBody.innerHTML = html;
+
+      svOverlay.classList.add('show');
+    });
+  }
+
+  function closeSavePreview(result){
+    svOverlay.classList.remove('show');
+    if (svResolve){
+      const r = svResolve;
+      svResolve = null;
+      r(result);
+    }
+  }
+
+  svCancelBtn.addEventListener('click', () => closeSavePreview(false));
+  svConfirmBtn.addEventListener('click', () => closeSavePreview(true));
+  svOverlay.addEventListener('click', e => {
+    if (e.target === svOverlay) closeSavePreview(false);
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && svOverlay.classList.contains('show')) closeSavePreview(false);
+  });
+
+  /* ============================================================
+     Web Worker 加解密
+     ============================================================ */
+
+  let cryptoWorker = null;
+  let workerTaskId = 0;
+  const workerCallbacks = new Map();
+  let workerReady = false;
+
+  function createCryptoWorker(){
+    const code = `
+      'use strict';
+
+      async function deriveSaveKey(password, salt, iterations){
+        const enc = new TextEncoder();
+        const pwdBuf = enc.encode(password);
+        try {
+          const base = await crypto.subtle.importKey('raw', pwdBuf, { name: 'PBKDF2' }, false, ['deriveKey']);
+          return await crypto.subtle.deriveKey(
+            { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+            base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
+          );
+        } finally { pwdBuf.fill(0); }
+      }
+
+      async function encryptSave(plainBytes, pwd, iter){
+        const salt = crypto.getRandomValues(new Uint8Array(16));
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const version = new Uint8Array([0x01]);
+        const iterBytes = new Uint8Array(4);
+        new DataView(iterBytes.buffer).setUint32(0, iter, false);
+        const aad = new Uint8Array(1 + 4 + 16 + 12);
+        let o = 0;
+        aad.set(version, o); o += 1;
+        aad.set(iterBytes, o); o += 4;
+        aad.set(salt, o); o += 16;
+        aad.set(iv, o);
+        const key = await deriveSaveKey(pwd, salt, iter);
+        const ct = await crypto.subtle.encrypt(
+          { name: 'AES-GCM', iv, tagLength: 128, additionalData: aad },
+          key, plainBytes
+        );
+        const ctArr = new Uint8Array(ct);
+        const out = new Uint8Array(aad.length + ctArr.length);
+        out.set(aad, 0);
+        out.set(ctArr, aad.length);
+        return out;
+      }
+
+      async function decryptSave(combined, pwd){
+        if (combined.length < 49) throw new Error('存档格式错误');
+        if (combined[0] !== 0x01) throw new Error('不支持的存档版本');
+        const dv = new DataView(combined.buffer, combined.byteOffset, combined.byteLength);
+        const iter = dv.getUint32(1, false);
+        const salt = combined.slice(5, 21);
+        const iv = combined.slice(21, 33);
+        const aad = combined.slice(0, 33);
+        const ct = combined.slice(33);
+        const key = await deriveSaveKey(pwd, salt, iter);
+        try {
+          const plain = await crypto.subtle.decrypt(
+            { name: 'AES-GCM', iv, tagLength: 128, additionalData: aad },
+            key, ct
+          );
+          return new Uint8Array(plain);
+        } catch (e){
+          throw new Error('存档解密失败：文件可能已损坏');
+        }
+      }
+
+      self.onmessage = async function(e){
+        const { id, type, pwd, iter, bytes } = e.data;
+        try {
+          let result;
+          if (type === 'encrypt'){
+            result = await encryptSave(new Uint8Array(bytes), pwd, iter);
+          } else if (type === 'decrypt'){
+            result = await decryptSave(new Uint8Array(bytes), pwd);
+          } else {
+            throw new Error('未知任务类型: ' + type);
+          }
+          self.postMessage({ id, success: true, result }, [result.buffer]);
+        } catch (err){
+          self.postMessage({
+            id, success: false,
+            error: err && err.message ? err.message : String(err)
+          });
+        }
+      };
+    `;
+
+    const blob = new Blob([code], { type: 'application/javascript' });
+    const url = URL.createObjectURL(blob);
+    const w = new Worker(url);
+    URL.revokeObjectURL(url);
+
+    w.onmessage = (e) => {
+      const { id, success, result, error } = e.data;
+      const cb = workerCallbacks.get(id);
+      if (!cb) return;
+      workerCallbacks.delete(id);
+      if (success) cb.resolve(result);
+      else cb.reject(new Error(error || '未知错误'));
+    };
+
+    w.onerror = (e) => {
+      console.error('[Worker error]', e);
+      workerCallbacks.forEach(cb => cb.reject(new Error('Worker 内部错误')));
+      workerCallbacks.clear();
+    };
+
+    return w;
+  }
+
+  function initWorker(){
+    if (cryptoWorker) return;
+    try {
+      cryptoWorker = createCryptoWorker();
+      workerReady = true;
+      workerBadge.textContent = 'Worker 就绪';
+      workerBadge.className = 'worker-badge';
+    } catch (e){
+      console.warn('Web Worker 初始化失败:', e);
+      workerReady = false;
+      workerBadge.textContent = '主线程回退';
+      workerBadge.className = 'worker-badge err';
+    }
+  }
+
+  function callCryptoWorker(type, bytes){
+    return new Promise((resolve, reject) => {
+      if (!workerReady || !cryptoWorker){
+        fallbackCrypto(type, bytes).then(resolve).catch(reject);
+        return;
+      }
+      const id = ++workerTaskId;
+      workerCallbacks.set(id, { resolve, reject });
+      cryptoWorker.postMessage({
+        id, type,
+        pwd: SAVE_PWD,
+        iter: SAVE_ITER,
+        bytes
+      });
+    });
+  }
+
+  async function fallbackCrypto(type, bytes){
+    async function deriveSaveKey(password, salt, iterations){
+      const enc = new TextEncoder();
+      const pwdBuf = enc.encode(password);
+      try {
+        const base = await crypto.subtle.importKey('raw', pwdBuf, { name: 'PBKDF2' }, false, ['deriveKey']);
+        return await crypto.subtle.deriveKey(
+          { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+          base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
+        );
+      } finally { pwdBuf.fill(0); }
+    }
+
+    if (type === 'encrypt'){
+      const salt = crypto.getRandomValues(new Uint8Array(16));
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const version = new Uint8Array([0x01]);
+      const iterBytes = new Uint8Array(4);
+      new DataView(iterBytes.buffer).setUint32(0, SAVE_ITER, false);
+      const aad = new Uint8Array(1 + 4 + 16 + 12);
+      let o = 0;
+      aad.set(version, o); o += 1;
+      aad.set(iterBytes, o); o += 4;
+      aad.set(salt, o); o += 16;
+      aad.set(iv, o);
+      const key = await deriveSaveKey(SAVE_PWD, salt, SAVE_ITER);
+      const ct = await crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv, tagLength: 128, additionalData: aad },
+        key, bytes
+      );
+      const ctArr = new Uint8Array(ct);
+      const out = new Uint8Array(aad.length + ctArr.length);
+      out.set(aad, 0);
+      out.set(ctArr, aad.length);
+      return out;
+    } else if (type === 'decrypt'){
+      const combined = new Uint8Array(bytes);
+      if (combined.length < 49) throw new Error('存档格式错误');
+      if (combined[0] !== 0x01) throw new Error('不支持的存档版本');
+      const dv = new DataView(combined.buffer, combined.byteOffset, combined.byteLength);
+      const iter = dv.getUint32(1, false);
+      const salt = combined.slice(5, 21);
+      const iv = combined.slice(21, 33);
+      const aad = combined.slice(0, 33);
+      const ct = combined.slice(33);
+      const key = await deriveSaveKey(SAVE_PWD, salt, iter);
+      try {
+        const plain = await crypto.subtle.decrypt(
+          { name: 'AES-GCM', iv, tagLength: 128, additionalData: aad },
+          key, ct
+        );
+        return new Uint8Array(plain);
+      } catch (e){
+        throw new Error('存档解密失败：文件可能已损坏');
+      }
+    }
+    throw new Error('未知任务类型');
+  }
+
+  function bufToB64(buf){
+    const bytes = new Uint8Array(buf);
+    let binary = '';
+    const chunk = 8192;
+    for (let i = 0; i < bytes.length; i += chunk){
+      const slice = bytes.subarray(i, Math.min(i + chunk, bytes.length));
+      let s = '';
+      for (let j = 0; j < slice.length; j++) s += String.fromCharCode(slice[j]);
+      binary += s;
+    }
+    return btoa(binary);
+  }
+  function b64ToBuf(b64){
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+  }
+
+  /* ============================================================
+     状态收集 / 应用
+     ============================================================ */
+
+  function collectState(){
+    return {
+      v: 1,
+      ts: Date.now(),
+      price, openPrice,
+      history: history.slice(-MAX_POINTS),
+      wallet,
+      spotBtc, spotAvgCost, spotRealized, spotTrades, spotSide,
+      futRealized, futTrades, positions, posSeq, futSide, futLeverage, marginPct,
+      bankDebt, bankInterest, deposit, depositInterest,
+      mode, bottomTab
+    };
+  }
+
+  function applyState(s){
+    if (!s || typeof s !== 'object') throw new Error('存档内容无效');
+    if (typeof s.price === 'number' && isFinite(s.price) && s.price > 0) price = s.price;
+    if (typeof s.openPrice === 'number' && isFinite(s.openPrice) && s.openPrice > 0) openPrice = s.openPrice;
+    if (Array.isArray(s.history) && s.history.length > 1){
+      history = s.history.filter(n => typeof n === 'number' && isFinite(n) && n > 0).slice(-MAX_POINTS);
+      if (history.length < 2) seedHistory();
+    }
+    if (typeof s.wallet === 'number' && isFinite(s.wallet)) wallet = s.wallet;
+    if (typeof s.spotBtc === 'number' && isFinite(s.spotBtc)) spotBtc = s.spotBtc;
+    if (typeof s.spotAvgCost === 'number' && isFinite(s.spotAvgCost)) spotAvgCost = s.spotAvgCost;
+    if (typeof s.spotRealized === 'number' && isFinite(s.spotRealized)) spotRealized = s.spotRealized;
+    if (Array.isArray(s.spotTrades)) spotTrades = s.spotTrades.slice(0, 200);
+    if (s.spotSide === 'buy' || s.spotSide === 'sell') spotSide = s.spotSide;
+    if (typeof s.futRealized === 'number' && isFinite(s.futRealized)) futRealized = s.futRealized;
+    if (Array.isArray(s.futTrades)) futTrades = s.futTrades.slice(0, 200);
+    if (Array.isArray(s.positions)) positions = s.positions.filter(p => p && typeof p === 'object');
+    if (typeof s.posSeq === 'number' && s.posSeq >= 0) posSeq = s.posSeq;
+    if (s.futSide === 'long' || s.futSide === 'short') futSide = s.futSide;
+    if (typeof s.futLeverage === 'number' && s.futLeverage >= 1) futLeverage = Math.min(LEV_MAX, Math.round(s.futLeverage));
+    if (typeof s.marginPct === 'number' && isFinite(s.marginPct)) marginPct = Math.max(0, Math.min(100, s.marginPct));
+    if (typeof s.bankDebt === 'number' && isFinite(s.bankDebt)) bankDebt = Math.max(0, s.bankDebt);
+    if (typeof s.bankInterest === 'number' && isFinite(s.bankInterest)) bankInterest = Math.max(0, s.bankInterest);
+    if (typeof s.deposit === 'number' && isFinite(s.deposit)) deposit = Math.max(0, s.deposit);
+    if (typeof s.depositInterest === 'number' && isFinite(s.depositInterest)) depositInterest = Math.max(0, s.depositInterest);
+    if (s.mode === 'spot' || s.mode === 'futures') mode = s.mode;
+    if (typeof s.bottomTab === 'string') bottomTab = s.bottomTab;
+
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+    spotPanel.classList.toggle('hidden', mode !== 'spot');
+    futuresPanel.classList.toggle('hidden', mode !== 'futures');
+    chartTitle.textContent = mode === 'spot' ? '现货行情走势' : '合约行情走势';
+    chartSub.textContent = mode === 'spot'
+      ? '近 200 个 tick · 现货与合约共用同一钱包'
+      : '黄线 = 开仓价 · 红线 = 强平价 · 现货与合约共用同一钱包';
+
+    document.querySelectorAll('#spotPanel .tab').forEach(b => b.classList.toggle('active', b.dataset.side === spotSide));
+    if (spotSide === 'buy'){
+      spotInputLabel.textContent = '买入金额';
+      spotInputUnit.textContent = 'CNY';
+      spotAmountInput.placeholder = '0.00';
+      spotAmountInput.step = 'any';
+      spotSubmitBtn.textContent = '买入 BTC';
+      spotSubmitBtn.classList.remove('sell');
+    } else {
+      spotInputLabel.textContent = '卖出数量';
+      spotInputUnit.textContent = 'BTC';
+      spotAmountInput.placeholder = '0.00000000';
+      spotAmountInput.step = '0.00000001';
+      spotSubmitBtn.textContent = '卖出 BTC';
+      spotSubmitBtn.classList.add('sell');
+    }
+    document.querySelectorAll('.side-btn').forEach(b => b.classList.toggle('active', b.dataset.side === futSide));
+    levRange.value = levToSlider(futLeverage);
+    marginRange.value = Math.round(marginPct);
+    updateLevUI();
+    syncMarginFromPct();
+    updateFutSubmitText();
+    render();
+    requestAnimationFrame(drawChart);
+  }
+
+  /* ---------- 槽位：保存 / 读取 / 导出 / 导入 ---------- */
+  async function saveToSlot(n){
+    if (saveProcessing) return;
+    saveProcessing = true;
+    try {
+      const state = collectState();
+      const json = JSON.stringify(state, null, 2);
+      const bytes = new TextEncoder().encode(json);
+      const combined = await callCryptoWorker('encrypt', bytes);
+      const b64 = bufToB64(combined);
+      try {
+        localStorage.setItem(SLOT_KEY + n, b64);
+        localStorage.setItem(SLOT_KEY + n + '_time', new Date().toLocaleString('zh-CN', {hour12:false}));
+      } catch (e){ throw new Error('本地存储空间不足'); }
+      updateSlotUI();
+      toast(`当前状态已保存到槽位 ${n}`, 'ok');
+    } catch (e){
+      toast('保存失败：' + (e.message || '未知错误'), 'err');
+    } finally { saveProcessing = false; }
+  }
+
+  async function loadFromSlot(n){
+    if (saveProcessing) return;
+    saveProcessing = true;
+    try {
+      const b64 = localStorage.getItem(SLOT_KEY + n);
+      if (!b64){ toast('槽位为空', 'err'); return; }
+      const combined = b64ToBuf(b64);
+      const plain = await callCryptoWorker('decrypt', combined);
+      const json = new TextDecoder().decode(plain);
+      const state = JSON.parse(json);
+
+      const ok = await previewSaveState(state, {
+        title: `槽位 ${n} 存档预览`,
+        badge: 'localStorage',
+        confirmText: '确认加载到当前'
+      });
+      if (!ok){
+        toast('已取消加载', 'warn');
+        return;
+      }
+
+      applyState(state);
+      toast(`槽位 ${n} 已加载到当前`, 'ok');
+    } catch (e){
+      toast('读取失败：' + (e.message || '未知错误'), 'err');
+    } finally { saveProcessing = false; }
+  }
+
+  function exportSlotToFile(n){
+    const b64 = localStorage.getItem(SLOT_KEY + n);
+    if (!b64){ toast('槽位为空', 'err'); return; }
+    const bytes = b64ToBuf(b64);
+    const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+    downloadBytes(bytes, `btc_slot${n}_${ts}.aes`);
+    toast(`槽位 ${n} 已导出`, 'ok');
+  }
+
+  async function importSlotFromFile(n, file){
+    if (saveProcessing) return;
+    saveProcessing = true;
+    try {
+      const buf = await file.arrayBuffer();
+      const combined = new Uint8Array(buf);
+      const plain = await callCryptoWorker('decrypt', combined);
+      const state = JSON.parse(new TextDecoder().decode(plain));
+
+      const ok = await previewSaveState(state, {
+        title: `导入到槽位 ${n}`,
+        badge: '外部文件',
+        confirmText: `确认存入槽位 ${n}`
+      });
+      if (!ok){
+        toast('已取消导入', 'warn');
+        return;
+      }
+
+      const b64 = bufToB64(combined);
+      try {
+        localStorage.setItem(SLOT_KEY + n, b64);
+        localStorage.setItem(SLOT_KEY + n + '_time',
+          new Date().toLocaleString('zh-CN', {hour12:false}) + ' · 外部导入');
+      } catch (e){ throw new Error('本地存储空间不足'); }
+      updateSlotUI();
+      toast(`文件已导入到槽位 ${n}`, 'ok');
+    } catch (e){
+      toast('导入失败：' + (e.message || '未知错误'), 'err');
+    } finally { saveProcessing = false; }
+  }
+
+  function updateSlotUI(){
+    for (let i = 1; i <= 3; i++){
+      const t = localStorage.getItem(SLOT_KEY + i + '_time');
+      const el = document.getElementById('slotTime' + i);
+      if (el) el.textContent = t || '空';
+    }
+  }
+
+  function downloadBytes(bytes, filename){
+    const blob = new Blob([bytes], { type: 'application/octet-stream' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+  }
+
+  /* ============================================================
+     行情 / 银行 / 交易 / 渲染
+     ============================================================ */
+
+  let trend = 0, trendLeft = 0;
   function nextPrice(){
     if (trendLeft <= 0){
       trend = (Math.random() - 0.5) * 0.0016;
@@ -989,7 +1438,6 @@
     price = Math.max(1000, price * (1 + trend + (Math.random() - 0.5) * 0.0024));
     return price;
   }
-
   function seedHistory(){
     const arr = [price];
     let p = price;
@@ -1000,148 +1448,102 @@
     history = arr.reverse();
   }
 
-  /* ================= 杠杆映射 ================= */
   function sliderToLev(v){
     v = Math.max(0, Math.min(1000, v));
-    if (v <= 500){
-      return Math.max(1, Math.round(1 + (v / 500) * 99));
-    }
+    if (v <= 500) return Math.max(1, Math.round(1 + (v / 500) * 99));
     const t = (v - 500) / 500;
     return Math.round(100 + t * (LEV_MAX - 100));
   }
-
   function levToSlider(lev){
     lev = Math.max(1, Math.min(LEV_MAX, lev));
-    if (lev <= 100){
-      return Math.round((lev - 1) / 99 * 500);
-    }
+    if (lev <= 100) return Math.round((lev - 1) / 99 * 500);
     const t = (lev - 100) / (LEV_MAX - 100);
     return Math.round(500 + t * 500);
   }
 
-  /* ================= 银行 ================= */
-  const bankOwed     = () => bankDebt + bankInterest;
+  const bankOwed = () => bankDebt + bankInterest;
   const depositTotal = () => deposit + depositInterest;
-
   function futHoldingsValue(){
     return positions.reduce((s,p) => s + p.margin + positionUPnl(p), 0);
   }
-
   function netWorth(){
     return wallet + spotBtc * price + futHoldingsValue() + depositTotal() - bankOwed();
   }
-
-  function bankLimit(){
-    return Math.max(BANK_BASE_LIMIT, netWorth() * BANK_LIQ_MULT);
-  }
-
-  function bankAvail(){
-    return Math.max(0, bankLimit() - bankOwed());
-  }
-
+  function bankLimit(){ return Math.max(BANK_BASE_LIMIT, netWorth() * BANK_LIQ_MULT); }
+  function bankAvail(){ return Math.max(0, bankLimit() - bankOwed()); }
   function accrueInterest(){
     if (bankDebt > 0) bankInterest += bankDebt * BANK_RATE_PER_TICK;
     if (deposit > 0) depositInterest += deposit * DEPOSIT_RATE_PER_TICK;
   }
-
   function borrow(){
     let amt = parseFloat(bankInput.value);
     const avail = bankAvail();
     if (avail <= 0.01){ toast('可借额度已用尽', 'err'); return; }
-
     if (!isFinite(amt) || amt <= 0) amt = avail;
     if (amt < 0.01){ toast('金额过小', 'err'); return; }
     if (amt > avail + 1e-9){ toast('超出可借额度 ' + fmtMoney(avail), 'err'); return; }
-
-    bankDebt += amt;
-    wallet += amt;
-    bankInput.value = '';
-    render();
-    toast('借款 ' + fmtMoney(amt) + ' 已到账钱包', 'ok');
+    bankDebt += amt; wallet += amt; bankInput.value = '';
+    render(); toast('借款 ' + fmtMoney(amt) + ' 已到账钱包', 'ok');
   }
-
   function repay(){
     const owed = bankOwed();
     if (owed <= 0.005){ toast('当前无负债', 'err'); return; }
-
     let amt = parseFloat(bankInput.value);
     if (!isFinite(amt) || amt <= 0) amt = Math.min(wallet, owed);
     if (amt <= 0){ toast('钱包余额不足', 'err'); return; }
-
     const pay = Math.min(amt, owed, wallet);
     if (pay < 0.005){ toast('钱包余额不足', 'err'); return; }
-
     wallet -= pay;
     const payInterest = Math.min(bankInterest, pay);
     bankInterest -= payInterest;
     bankDebt -= (pay - payInterest);
     if (bankDebt < 1e-9) bankDebt = 0;
     if (bankInterest < 1e-9) bankInterest = 0;
-
     bankInput.value = '';
-    render();
-    toast('还款成功 ' + fmtMoney(pay), 'ok');
+    render(); toast('还款成功 ' + fmtMoney(pay), 'ok');
   }
-
   function doDeposit(){
     let amt = parseFloat(bankInput.value);
     if (!isFinite(amt) || amt <= 0) amt = wallet;
     if (amt < 0.01){ toast('金额过小', 'err'); return; }
     if (amt > wallet + 1e-9){ toast('钱包余额不足', 'err'); return; }
-
-    wallet -= amt;
-    deposit += amt;
-    bankInput.value = '';
-    render();
-    toast('存入 ' + fmtMoney(amt) + ' · 开始生息', 'ok');
+    wallet -= amt; deposit += amt; bankInput.value = '';
+    render(); toast('存入 ' + fmtMoney(amt) + ' · 开始生息', 'ok');
   }
-
   function withdraw(){
     const total = depositTotal();
     if (total <= 0.005){ toast('没有存款', 'err'); return; }
-
     let amt = parseFloat(bankInput.value);
     if (!isFinite(amt) || amt <= 0) amt = total;
-
     const take = Math.min(amt, total);
     if (take < 0.005){ toast('金额过小', 'err'); return; }
-
     const takeInterest = Math.min(depositInterest, take);
     depositInterest -= takeInterest;
     deposit -= (take - takeInterest);
     if (deposit < 1e-9) deposit = 0;
     if (depositInterest < 1e-9) depositInterest = 0;
-
-    wallet += take;
-    bankInput.value = '';
-    render();
-    toast('取出 ' + fmtMoney(take) + ' 已到账钱包', 'ok');
+    wallet += take; bankInput.value = '';
+    render(); toast('取出 ' + fmtMoney(take) + ' 已到账钱包', 'ok');
   }
 
-  /* ================= 现货 ================= */
   function spotBuy(amount){
     const qty = amount * (1 - FEE_RATE) / price;
     const newBtc = spotBtc + qty;
     spotAvgCost = newBtc > 0 ? (spotAvgCost * spotBtc + amount) / newBtc : 0;
-    spotBtc = newBtc;
-    wallet -= amount;
+    spotBtc = newBtc; wallet -= amount;
     spotTrades.unshift({ side:'buy', price, qty, amount, time:Date.now() });
     if (spotTrades.length > 200) spotTrades.pop();
     toast('买入 ' + fmtBtc(qty) + ' BTC', 'ok');
   }
-
   function spotSell(qty){
     const proceeds = qty * price * (1 - FEE_RATE);
     const pnl = (price * (1 - FEE_RATE) - spotAvgCost) * qty;
-    spotRealized += pnl;
-    wallet += proceeds;
-    spotBtc -= qty;
+    spotRealized += pnl; wallet += proceeds; spotBtc -= qty;
     if (spotBtc < 1e-10){ spotBtc = 0; spotAvgCost = 0; }
     spotTrades.unshift({ side:'sell', price, qty, amount:proceeds, pnl, time:Date.now() });
     if (spotTrades.length > 200) spotTrades.pop();
     toast('卖出 ' + fmtBtc(qty) + ' BTC · ' + fmtSigned(pnl), pnl >= 0 ? 'ok' : 'err');
   }
-
   function spotSubmit(){
     const val = parseFloat(spotAmountInput.value);
     if (!isFinite(val) || val <= 0){ toast('请输入有效数值', 'err'); return; }
@@ -1152,64 +1554,44 @@
       if (val > spotBtc + 1e-12){ toast('持仓不足', 'err'); return; }
       spotSell(val);
     }
-    spotAmountInput.value = '';
-    render();
+    spotAmountInput.value = ''; render();
   }
 
-  /* ================= 合约 ================= */
   const calcLiqPrice = (side, entry, lev) =>
     side === 'long' ? entry * (1 - 1/lev) : entry * (1 + 1/lev);
-
   const positionUPnl = p =>
     p.side === 'long' ? (price - p.entry) * p.qty : (p.entry - price) * p.qty;
-
-  function maxFutMargin(lev){
-    return wallet / (1 + lev * FEE_RATE);
-  }
-
+  function maxFutMargin(lev){ return wallet / (1 + lev * FEE_RATE); }
   function currentMarginAmount(){
     const maxM = maxFutMargin(futLeverage);
     return maxM * marginPct / 100;
   }
-
   function openPosition(side, margin, lev){
     if (margin <= 0.005){ toast('保证金过小', 'err'); return; }
-
     const maxM = maxFutMargin(lev);
     if (maxM <= 0.005){ toast('钱包余额不足', 'err'); return; }
-
     let adjusted = false;
-    if (margin > maxM + 1e-9){
-      margin = maxM;
-      adjusted = true;
-    }
-
+    if (margin > maxM + 1e-9){ margin = maxM; adjusted = true; }
     const entry = price;
     const qty = margin * lev / entry;
     const openFee = margin * lev * FEE_RATE;
-
     wallet -= margin + openFee;
     futRealized -= openFee;
-
     positions.push({
       id: ++posSeq, side, margin, leverage: lev, entry, qty,
       liqPrice: calcLiqPrice(side, entry, lev), openTime: Date.now()
     });
-
     futTrades.unshift({
       type: side === 'long' ? 'open_long' : 'open_short',
       price: entry, qty, amount: margin, leverage: lev, time: Date.now()
     });
     if (futTrades.length > 200) futTrades.pop();
-
     bottomTab = 'positions';
-    if (adjusted){
-      toast('已按最大可用 ' + fmtMoney(margin) + ' 开仓（手续费已含）', 'warn');
-    } else {
-      toast((side === 'long' ? '开多' : '开空') + ' ' + fmtBtc(qty) + ' BTC · ' + lev + 'x', 'ok');
-    }
+    if (adjusted) toast('已按最大可用 ' + fmtMoney(margin) + ' 开仓（手续费已含）', 'warn');
+    else toast((side === 'long' ? '开多' : '开空') + ' ' + fmtBtc(qty) + ' BTC · ' + lev + 'x', 'ok');
   }
 
+  // ✅ 修复：爆仓不再重复扣 closeFee
   function closePosition(id, reason){
     const idx = positions.findIndex(p => p.id === id);
     if (idx < 0) return;
@@ -1221,21 +1603,30 @@
       : (p.entry - exitPrice) * p.qty;
     const closeFee = p.qty * exitPrice * FEE_RATE;
 
-    let refund = reason === 'liq' ? 0 : Math.max(0, p.margin + uPnl - closeFee);
+    let refund, realizedDelta;
+    if (reason === 'liq'){
+      // 爆仓：保证金全部损失（uPnl 数学上等于 -margin），不再额外扣 closeFee
+      refund = 0;
+      realizedDelta = uPnl;
+    } else {
+      // 手动平仓：保证金 + 未实现盈亏 - 平仓手续费
+      refund = Math.max(0, p.margin + uPnl - closeFee);
+      realizedDelta = uPnl - closeFee;
+    }
     wallet += refund;
-    futRealized += uPnl - closeFee;
+    futRealized += realizedDelta;
 
     positions.splice(idx, 1);
 
     futTrades.unshift({
       type: reason === 'liq' ? 'liq' : (p.side === 'long' ? 'close_long' : 'close_short'),
-      price: exitPrice, qty: p.qty, amount: refund, pnl: uPnl - closeFee,
+      price: exitPrice, qty: p.qty, amount: refund, pnl: realizedDelta,
       leverage: p.leverage, time: Date.now()
     });
     if (futTrades.length > 200) futTrades.pop();
 
     if (reason === 'liq') toast('💥 ' + p.leverage + 'x 仓位爆仓，保证金归零', 'warn');
-    else toast('平仓 ' + fmtBtc(p.qty) + ' BTC · ' + fmtSigned(uPnl - closeFee), (uPnl - closeFee) >= 0 ? 'ok' : 'err');
+    else toast('平仓 ' + fmtBtc(p.qty) + ' BTC · ' + fmtSigned(realizedDelta), realizedDelta >= 0 ? 'ok' : 'err');
   }
 
   function checkLiquidation(){
@@ -1246,99 +1637,75 @@
     });
     hit.forEach(id => closePosition(id, 'liq'));
   }
-
   function futSubmit(){
     const amt = currentMarginAmount();
     if (amt < 0.01){ toast('保证金过小，请检查钱包或滑杆', 'err'); return; }
-    openPosition(futSide, amt, futLeverage);
-    render();
+    openPosition(futSide, amt, futLeverage); render();
   }
 
-  /* ================= 渲染 ================= */
+  // ✅ 修复：总资产统一用净资产，与总收益基准一致
   function renderHeader(){
     const chg = (price - openPrice) / openPrice * 100;
     const up = chg >= 0;
-
     priceEl.textContent = fmtPrice(price);
     priceEl.style.color = up ? 'var(--up)' : 'var(--down)';
     changeEl.textContent = (up ? '▲ +' : '▼ ') + chg.toFixed(2) + '%';
     changeEl.style.color = up ? 'var(--up)' : 'var(--down)';
     changeEl.style.background = up ? 'rgba(14,203,129,.12)' : 'rgba(246,70,93,.12)';
 
+    // 总资产 = 钱包 + 现货市值 + 合约持仓价值 + 存款 - 负债
+    // 与 pnlEl 基准一致（都是 netWorth）
     const nw = netWorth();
     const pnl = nw - INIT_CASH;
-
-    if (mode === 'spot'){
-      accLabel1.textContent = '总资产';
-      totalEl.textContent = fmtMoney(wallet + spotBtc * price + depositTotal() - bankOwed());
-    } else {
-      accLabel1.textContent = '合约账户权益';
-      totalEl.textContent = fmtMoney(wallet + futHoldingsValue());
-    }
-
+    accLabel1.textContent = '总资产';
+    totalEl.textContent = fmtMoney(nw);
     pnlEl.textContent = fmtSigned(pnl);
     pnlEl.className = 'v ' + cls(pnl);
   }
-
   function renderBank(){
-    const owed = bankOwed();
-    const avail = bankAvail();
-    const limit = bankLimit();
-    const nw = netWorth();
-    const dTotal = depositTotal();
-
+    const owed = bankOwed(), avail = bankAvail(), limit = bankLimit();
+    const nw = netWorth(), dTotal = depositTotal();
     bankLimitEl.textContent = fmtMoney(limit);
     bankNetWorthEl.textContent = fmtMoney(nw);
     bankNetWorthEl.className = 'v ' + (nw > 0.005 ? 'good' : nw < -0.005 ? 'hot' : '');
-
     bankDebtEl.textContent = fmtMoney(bankDebt);
     bankOwedEl.textContent = fmtMoney(owed);
     bankOwedEl.className = 'v' + (owed > 0.005 ? ' hot' : '');
     bankAvailEl.textContent = fmtMoney(avail);
     bankAvailEl.className = 'v' + (avail > 0.01 ? ' blue' : '');
-
     depositPrincipalEl.textContent = fmtMoney(deposit);
     depositInterestEl.textContent = fmtMoney(depositInterest);
     depositInterestEl.className = 'v' + (depositInterest > 0.005 ? ' good' : '');
     depositTotalEl.textContent = fmtMoney(dTotal);
     depositTotalEl.className = 'v' + (dTotal > 0.005 ? ' good' : '');
-
     bankCard.classList.toggle('has-debt', owed > 0.005);
-
     $('bankBorrowBtn').disabled = avail <= 0.01;
     $('bankRepayBtn').disabled = owed <= 0.005;
     $('depositBtn').disabled = wallet <= 0.01;
     $('withdrawBtn').disabled = dTotal <= 0.005;
   }
-
   function renderSpot(){
     const posVal = spotBtc * price;
     const floatPnl = spotBtc > 0 ? (price - spotAvgCost) * spotBtc : 0;
     const owed = bankOwed();
-
     spotAvailCash.textContent = fmtMoney(wallet);
     spotAvailBtc.textContent = spotBtc > 0 ? fmtBtc(spotBtc) + ' BTC' : '0 BTC';
     spotPosBtc.textContent = spotBtc > 0 ? fmtBtc(spotBtc) + ' BTC' : '0 BTC';
     spotPosAvg.textContent = spotBtc > 0 ? fmtPrice(spotAvgCost) : '¥ --';
     spotPosValue.textContent = fmtMoney(posVal);
     spotCashEl.textContent = fmtMoney(wallet);
-
     spotDebtEl.textContent = fmtMoney(owed);
     spotDebtEl.className = 'v ' + (owed > 0.005 ? 'down' : 'flat');
-
     spotPosPnl.textContent = spotBtc > 0 ? fmtSigned(floatPnl) : '¥0.00';
     spotPosPnl.className = 'v ' + (spotBtc <= 0 ? 'flat' : cls(floatPnl));
-
     spotRealPnl.textContent = fmtSigned(spotRealized);
     spotRealPnl.className = 'v ' + cls(spotRealized);
   }
-
   function renderFutures(){
     let totalMargin = 0, totalUPnl = 0;
     positions.forEach(p => { totalMargin += p.margin; totalUPnl += positionUPnl(p); });
     const equity = wallet + totalMargin + totalUPnl;
     const owed = bankOwed();
-
     futEquity.textContent = fmtMoney(equity);
     futBalanceEl.textContent = fmtMoney(wallet);
     futMarginEl.textContent = fmtMoney(totalMargin);
@@ -1346,27 +1713,20 @@
     futUPnlEl.className = 'v ' + cls(totalUPnl);
     futRealPnlEl.textContent = fmtSigned(futRealized);
     futRealPnlEl.className = 'v ' + cls(futRealized);
-
     futDebtEl.textContent = fmtMoney(owed);
     futDebtEl.className = 'v ' + (owed > 0.005 ? 'down' : 'flat');
-
     const maxM = maxFutMargin(futLeverage);
     maxMarginHint.textContent = '最大 ' + fmtMoney(Math.max(0, maxM));
   }
-
   function renderBottom(){
     const isFut = mode === 'futures';
-
     const tabs = isFut
       ? [{id:'positions', label:'当前仓位'}, {id:'trades', label:'合约记录'}]
       : [{id:'trades', label:'现货记录'}];
-
     if (!tabs.some(t => t.id === bottomTab)) bottomTab = tabs[0].id;
-
     bottomTabs.innerHTML = tabs.map(t =>
       '<button class="btab' + (t.id === bottomTab ? ' active' : '') + '" data-tab="' + t.id + '">' + t.label + '</button>'
     ).join('');
-
     if (isFut && bottomTab === 'positions'){
       bottomCount.textContent = positions.length + ' 个仓位';
       if (!positions.length){
@@ -1400,15 +1760,12 @@
       }).join('') + '</div>';
       return;
     }
-
     const list = isFut ? futTrades : spotTrades;
     bottomCount.textContent = list.length + ' 笔';
-
     if (!list.length){
       bottomBody.innerHTML = '<div class="hist-empty">暂无成交记录</div>';
       return;
     }
-
     if (!isFut){
       bottomBody.innerHTML = list.map(t => {
         const isBuy = t.side === 'buy';
@@ -1442,20 +1799,16 @@
       }).join('');
     }
   }
-
   function updatePreview(){
     const amt = currentMarginAmount();
     if (amt < 0.005){
-      previewQty.textContent = '--';
-      previewLiq.textContent = '--';
-      previewFee.textContent = '--';
+      previewQty.textContent = '--'; previewLiq.textContent = '--'; previewFee.textContent = '--';
       return;
     }
     previewQty.textContent = fmtBtc(amt * futLeverage / price) + ' BTC';
     previewLiq.textContent = fmtPrice(calcLiqPrice(futSide, price, futLeverage));
     previewFee.textContent = fmtMoney(amt * futLeverage * FEE_RATE);
   }
-
   function levRiskInfo(lev){
     if (lev <= 5)    return {text:'低风险',    color:'#4fe0a8', rgb:'79,224,168'};
     if (lev <= 20)   return {text:'中低风险',  color:'#a9e34b', rgb:'169,227,75'};
@@ -1465,19 +1818,15 @@
     if (lev <= 600)  return {text:'疯狂',      color:'#ff2d5c', rgb:'255,45,92'};
     return {text:'爆仓级',  color:'#ff1744', rgb:'255,23,68'};
   }
-
   function updateLevUI(){
     const v = parseInt(levRange.value, 10);
     futLeverage = sliderToLev(v);
-
     levLabel.innerHTML = futLeverage + '<small>x</small>';
-
     const risk = levRiskInfo(futLeverage);
     levLabel.style.color = risk.color;
     levRisk.style.color = risk.color;
     levRisk.style.background = 'rgba(' + risk.rgb + ',.12)';
     levRiskText.textContent = risk.text;
-
     let styleEl = document.getElementById('levThumbStyle');
     if (!styleEl){
       styleEl = document.createElement('style');
@@ -1486,11 +1835,10 @@
     }
     styleEl.textContent =
       '.lev-slider::-webkit-slider-thumb{background:' + risk.color + ';' +
-      'box-shadow:0 0 0 2px rgba(' + risk.rgb + ',.6), 0 4px 14px rgba(0,0,0,.5);}' +
+      'box-shadow:0 0 0 2px rgba(' + risk.rgb + ',.6),0 4px 14px rgba(0,0,0,.5);}' +
       '.lev-slider::-moz-range-thumb{background:' + risk.color + ';' +
-      'box-shadow:0 0 0 2px rgba(' + risk.rgb + ',.6), 0 4px 14px rgba(0,0,0,.5);}';
+      'box-shadow:0 0 0 2px rgba(' + risk.rgb + ',.6),0 4px 14px rgba(0,0,0,.5);}';
   }
-
   function syncMarginFromPct(){
     if (document.activeElement === futMarginInput) return;
     const maxM = maxFutMargin(futLeverage);
@@ -1499,30 +1847,21 @@
     marginPctLabel.innerHTML = Math.round(marginPct) + '<small>%</small>';
     marginRange.value = Math.round(marginPct);
   }
-
   function syncMarginFromInput(){
     const maxM = maxFutMargin(futLeverage);
     let amt = parseFloat(futMarginInput.value);
     if (!isFinite(amt) || amt < 0) amt = 0;
-
     if (maxM <= 0.005){
-      marginPct = 0;
-      marginRange.value = 0;
+      marginPct = 0; marginRange.value = 0;
       marginPctLabel.innerHTML = '0<small>%</small>';
-      updatePreview();
-      return;
+      updatePreview(); return;
     }
-
-    if (amt > maxM){
-      amt = maxM;
-      futMarginInput.value = amt.toFixed(2);
-    }
+    if (amt > maxM){ amt = maxM; futMarginInput.value = amt.toFixed(2); }
     marginPct = amt / maxM * 100;
     marginRange.value = Math.round(marginPct);
     marginPctLabel.innerHTML = Math.round(marginPct) + '<small>%</small>';
     updatePreview();
   }
-
   function syncMarginFromRange(){
     marginPct = parseInt(marginRange.value, 10);
     const maxM = maxFutMargin(futLeverage);
@@ -1531,23 +1870,15 @@
     marginPctLabel.innerHTML = marginPct + '<small>%</small>';
     updatePreview();
   }
-
   function updateFutSubmitText(){
     futSubmitBtn.textContent = (futSide === 'long' ? '开多 ' : '开空 ') + futLeverage + 'x';
     futSubmitBtn.classList.toggle('sell', futSide === 'short');
   }
-
   function render(){
-    renderHeader();
-    renderBank();
-    renderSpot();
-    renderFutures();
-    renderBottom();
-    syncMarginFromPct();
-    updatePreview();
+    renderHeader(); renderBank(); renderSpot(); renderFutures(); renderBottom();
+    syncMarginFromPct(); updatePreview();
   }
 
-  /* ================= 图表 ================= */
   function roundRect(c, x, y, w, h, r){
     c.beginPath();
     c.moveTo(x + r, y);
@@ -1561,12 +1892,10 @@
     c.quadraticCurveTo(x, y, x + r, y);
     c.closePath();
   }
-
   function drawChart(){
     const rect = chartWrap.getBoundingClientRect();
     const w = rect.width, h = rect.height;
     if (w < 10 || h < 10) return;
-
     const dpr = window.devicePixelRatio || 1;
     if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)){
       canvas.width = Math.round(w * dpr);
@@ -1575,22 +1904,18 @@
     const ctx = canvas.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
-
     const data = history;
     if (data.length < 2) return;
-
     const padL = 4, padR = 76, padT = 16, padB = 22;
     const cw = w - padL - padR;
     const ch = h - padT - padB;
-
     const posLines = [];
     if (mode === 'futures'){
       positions.forEach(p => {
-        posLines.push({ price: p.entry,    color: 'rgba(240,185,11,.62)', label: '开仓 ' + fmtPrice(p.entry) });
-        posLines.push({ price: p.liqPrice, color: 'rgba(246,70,93,.55)',  label: '强平 ' + fmtPrice(p.liqPrice) });
+        posLines.push({ price: p.entry, color: 'rgba(240,185,11,.62)', label: '开仓 ' + fmtPrice(p.entry) });
+        posLines.push({ price: p.liqPrice, color: 'rgba(246,70,93,.55)', label: '强平 ' + fmtPrice(p.liqPrice) });
       });
     }
-
     let min = Math.min.apply(null, data);
     let max = Math.max.apply(null, data);
     posLines.forEach(l => {
@@ -1599,14 +1924,11 @@
     const pad = (max - min) * 0.14 || max * 0.0008;
     min -= pad; max += pad;
     const range = max - min || 1;
-
     const X = i => padL + (i / (data.length - 1)) * cw;
     const Y = v => padT + (1 - (v - min) / range) * ch;
-
     const rising = data[data.length - 1] >= data[0];
     const lineColor = rising ? '#0ecb81' : '#f6465d';
     const rgb = rising ? '14,203,129' : '246,70,93';
-
     ctx.font = '11px ui-monospace, Menlo, monospace';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
@@ -1631,11 +1953,9 @@
       ctx.lineTo(Math.round(x) + 0.5, padT + ch);
       ctx.stroke();
     }
-
     const grad = ctx.createLinearGradient(0, padT, 0, padT + ch);
     grad.addColorStop(0, 'rgba(' + rgb + ',0.26)');
     grad.addColorStop(1, 'rgba(' + rgb + ',0)');
-
     ctx.beginPath();
     ctx.moveTo(X(0), Y(data[0]));
     for (let i = 1; i < data.length; i++){
@@ -1649,7 +1969,6 @@
     ctx.closePath();
     ctx.fillStyle = grad;
     ctx.fill();
-
     ctx.beginPath();
     ctx.moveTo(X(0), Y(data[0]));
     for (let i = 1; i < data.length; i++){
@@ -1666,7 +1985,6 @@
     ctx.shadowBlur = 10;
     ctx.stroke();
     ctx.shadowBlur = 0;
-
     if (posLines.length){
       ctx.font = '10px ui-monospace, Menlo, monospace';
       posLines.forEach(l => {
@@ -1685,10 +2003,8 @@
         ctx.fillText(l.label, padL + 6, y - 8);
       });
     }
-
     const lastY = Y(data[data.length - 1]);
     const lastX = X(data.length - 1);
-
     ctx.setLineDash([4, 4]);
     ctx.strokeStyle = 'rgba(' + rgb + ',0.45)';
     ctx.lineWidth = 1;
@@ -1697,7 +2013,6 @@
     ctx.lineTo(padL + cw, lastY);
     ctx.stroke();
     ctx.setLineDash([]);
-
     const labelTxt = '¥' + Math.round(price).toLocaleString('zh-CN');
     ctx.font = 'bold 11px ui-monospace, Menlo, monospace';
     const tw = ctx.measureText(labelTxt).width;
@@ -1711,7 +2026,6 @@
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     ctx.fillText(labelTxt, bx + 7, by + 10.5);
-
     ctx.beginPath();
     ctx.arc(lastX, lastY, 4, 0, Math.PI * 2);
     ctx.fillStyle = lineColor;
@@ -1722,272 +2036,7 @@
     ctx.fill();
   }
 
-  /* ============================================================
-     AES-256-GCM 加密存档系统
-     格式: version(1) + iterations(4, BE) + salt(16) + iv(12) + ciphertext+tag
-     ============================================================ */
-
-  async function deriveSaveKey(password, salt, iterations){
-    const enc = new TextEncoder();
-    const pwdBuf = enc.encode(password);
-    try {
-      const base = await crypto.subtle.importKey('raw', pwdBuf, { name: 'PBKDF2' }, false, ['deriveKey']);
-      return await crypto.subtle.deriveKey(
-        { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
-        base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
-      );
-    } finally {
-      pwdBuf.fill(0);
-    }
-  }
-
-  async function encryptSave(plainBytes){
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const version = new Uint8Array([0x01]);
-    const iterBytes = new Uint8Array(4);
-    new DataView(iterBytes.buffer).setUint32(0, SAVE_ITER, false);
-    const aad = new Uint8Array(1 + 4 + 16 + 12);
-    let o = 0;
-    aad.set(version, o); o += 1;
-    aad.set(iterBytes, o); o += 4;
-    aad.set(salt, o); o += 16;
-    aad.set(iv, o);
-    const key = await deriveSaveKey(SAVE_PWD, salt, SAVE_ITER);
-    const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, tagLength: 128, additionalData: aad }, key, plainBytes);
-    const ctArr = new Uint8Array(ct);
-    const out = new Uint8Array(aad.length + ctArr.length);
-    out.set(aad, 0);
-    out.set(ctArr, aad.length);
-    return out;
-  }
-
-  async function decryptSave(combined){
-    if (combined.length < 49) throw new Error('存档格式错误');
-    if (combined[0] !== 0x01) throw new Error('不支持的存档版本');
-    const dv = new DataView(combined.buffer, combined.byteOffset, combined.byteLength);
-    const iter = dv.getUint32(1, false);
-    const salt = combined.slice(5, 21);
-    const iv = combined.slice(21, 33);
-    const aad = combined.slice(0, 33);
-    const ct = combined.slice(33);
-    const key = await deriveSaveKey(SAVE_PWD, salt, iter);
-    try {
-      const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv, tagLength: 128, additionalData: aad }, key, ct);
-      return new Uint8Array(plain);
-    } catch (e){
-      throw new Error('存档解密失败：文件可能已损坏');
-    }
-  }
-
-  function bufToB64(buf){
-    const bytes = new Uint8Array(buf);
-    let binary = '';
-    const chunk = 8192;
-    for (let i = 0; i < bytes.length; i += chunk){
-      const slice = bytes.subarray(i, Math.min(i + chunk, bytes.length));
-      let s = '';
-      for (let j = 0; j < slice.length; j++) s += String.fromCharCode(slice[j]);
-      binary += s;
-    }
-    return btoa(binary);
-  }
-
-  function b64ToBuf(b64){
-    const bin = atob(b64);
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    return bytes;
-  }
-
-  /* ---------- 状态收集 / 应用 ---------- */
-  function collectState(){
-    return {
-      v: 1,
-      ts: Date.now(),
-      price,
-      openPrice,
-      history: history.slice(-MAX_POINTS),
-      wallet,
-      spotBtc, spotAvgCost, spotRealized, spotTrades, spotSide,
-      futRealized, futTrades, positions, posSeq, futSide, futLeverage, marginPct,
-      bankDebt, bankInterest, deposit, depositInterest,
-      mode, bottomTab
-    };
-  }
-
-  function applyState(s){
-    if (!s || typeof s !== 'object') throw new Error('存档内容无效');
-
-    if (typeof s.price === 'number' && isFinite(s.price) && s.price > 0) price = s.price;
-    if (typeof s.openPrice === 'number' && isFinite(s.openPrice) && s.openPrice > 0) openPrice = s.openPrice;
-    if (Array.isArray(s.history) && s.history.length > 1){
-      history = s.history.filter(n => typeof n === 'number' && isFinite(n) && n > 0).slice(-MAX_POINTS);
-      if (history.length < 2) seedHistory();
-    }
-
-    if (typeof s.wallet === 'number' && isFinite(s.wallet)) wallet = s.wallet;
-
-    if (typeof s.spotBtc === 'number' && isFinite(s.spotBtc)) spotBtc = s.spotBtc;
-    if (typeof s.spotAvgCost === 'number' && isFinite(s.spotAvgCost)) spotAvgCost = s.spotAvgCost;
-    if (typeof s.spotRealized === 'number' && isFinite(s.spotRealized)) spotRealized = s.spotRealized;
-    if (Array.isArray(s.spotTrades)) spotTrades = s.spotTrades.slice(0, 200);
-    if (s.spotSide === 'buy' || s.spotSide === 'sell') spotSide = s.spotSide;
-
-    if (typeof s.futRealized === 'number' && isFinite(s.futRealized)) futRealized = s.futRealized;
-    if (Array.isArray(s.futTrades)) futTrades = s.futTrades.slice(0, 200);
-    if (Array.isArray(s.positions)) positions = s.positions.filter(p => p && typeof p === 'object');
-    if (typeof s.posSeq === 'number' && s.posSeq >= 0) posSeq = s.posSeq;
-    if (s.futSide === 'long' || s.futSide === 'short') futSide = s.futSide;
-    if (typeof s.futLeverage === 'number' && s.futLeverage >= 1) futLeverage = Math.min(LEV_MAX, Math.round(s.futLeverage));
-    if (typeof s.marginPct === 'number' && isFinite(s.marginPct)) marginPct = Math.max(0, Math.min(100, s.marginPct));
-
-    if (typeof s.bankDebt === 'number' && isFinite(s.bankDebt)) bankDebt = Math.max(0, s.bankDebt);
-    if (typeof s.bankInterest === 'number' && isFinite(s.bankInterest)) bankInterest = Math.max(0, s.bankInterest);
-    if (typeof s.deposit === 'number' && isFinite(s.deposit)) deposit = Math.max(0, s.deposit);
-    if (typeof s.depositInterest === 'number' && isFinite(s.depositInterest)) depositInterest = Math.max(0, s.depositInterest);
-
-    if (s.mode === 'spot' || s.mode === 'futures') mode = s.mode;
-    if (typeof s.bottomTab === 'string') bottomTab = s.bottomTab;
-
-    // 更新 UI 状态
-    document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
-    spotPanel.classList.toggle('hidden', mode !== 'spot');
-    futuresPanel.classList.toggle('hidden', mode !== 'futures');
-
-    chartTitle.textContent = mode === 'spot' ? '现货行情走势' : '合约行情走势';
-    chartSub.textContent = mode === 'spot'
-      ? '近 200 个 tick · 现货与合约共用同一钱包'
-      : '黄线 = 开仓价 · 红线 = 强平价 · 现货与合约共用同一钱包';
-
-    document.querySelectorAll('#spotPanel .tab').forEach(b => b.classList.toggle('active', b.dataset.side === spotSide));
-    if (spotSide === 'buy'){
-      spotInputLabel.textContent = '买入金额';
-      spotInputUnit.textContent = 'CNY';
-      spotAmountInput.placeholder = '0.00';
-      spotAmountInput.step = 'any';
-      spotSubmitBtn.textContent = '买入 BTC';
-      spotSubmitBtn.classList.remove('sell');
-    } else {
-      spotInputLabel.textContent = '卖出数量';
-      spotInputUnit.textContent = 'BTC';
-      spotAmountInput.placeholder = '0.00000000';
-      spotAmountInput.step = '0.00000001';
-      spotSubmitBtn.textContent = '卖出 BTC';
-      spotSubmitBtn.classList.add('sell');
-    }
-
-    document.querySelectorAll('.side-btn').forEach(b => b.classList.toggle('active', b.dataset.side === futSide));
-
-    levRange.value = levToSlider(futLeverage);
-    marginRange.value = Math.round(marginPct);
-    updateLevUI();
-    syncMarginFromPct();
-    updateFutSubmitText();
-
-    render();
-    requestAnimationFrame(drawChart);
-  }
-
-  /* ---------- 文件导出 / 导入 ---------- */
-  async function exportSaveToFile(){
-    if (saveProcessing) return;
-    saveProcessing = true;
-    try {
-      const state = collectState();
-      const json = JSON.stringify(state);
-      const bytes = new TextEncoder().encode(json);
-      const combined = await encryptSave(bytes);
-
-      const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
-      const blob = new Blob([combined], { type: 'application/octet-stream' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = `btc_save_${ts}.btcsav`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(link.href);
-
-      toast('存档已加密导出', 'ok');
-    } catch (e){
-      toast('导出失败：' + (e.message || '未知错误'), 'err');
-    } finally {
-      saveProcessing = false;
-    }
-  }
-
-  async function importSaveFromFile(file){
-    if (saveProcessing) return;
-    saveProcessing = true;
-    try {
-      const buf = await file.arrayBuffer();
-      const combined = new Uint8Array(buf);
-      const plain = await decryptSave(combined);
-      const json = new TextDecoder().decode(plain);
-      const state = JSON.parse(json);
-      applyState(state);
-      toast('存档已加载', 'ok');
-    } catch (e){
-      toast('导入失败：' + (e.message || '未知错误'), 'err');
-    } finally {
-      saveProcessing = false;
-    }
-  }
-
-  /* ---------- localStorage 快捷存档 ---------- */
-  async function saveToSlot(n){
-    if (saveProcessing) return;
-    saveProcessing = true;
-    try {
-      const state = collectState();
-      const json = JSON.stringify(state);
-      const bytes = new TextEncoder().encode(json);
-      const combined = await encryptSave(bytes);
-      const b64 = bufToB64(combined);
-      try {
-        localStorage.setItem(SLOT_KEY + n, b64);
-        localStorage.setItem(SLOT_KEY + n + '_time', new Date().toLocaleString('zh-CN', {hour12:false}));
-      } catch (e){
-        throw new Error('本地存储空间不足');
-      }
-      updateSlotUI();
-      toast(`已保存到槽位 ${n}`, 'ok');
-    } catch (e){
-      toast('保存失败：' + (e.message || '未知错误'), 'err');
-    } finally {
-      saveProcessing = false;
-    }
-  }
-
-  async function loadFromSlot(n){
-    if (saveProcessing) return;
-    saveProcessing = true;
-    try {
-      const b64 = localStorage.getItem(SLOT_KEY + n);
-      if (!b64){ toast('槽位为空', 'err'); return; }
-      const combined = b64ToBuf(b64);
-      const plain = await decryptSave(combined);
-      const json = new TextDecoder().decode(plain);
-      const state = JSON.parse(json);
-      applyState(state);
-      toast(`槽位 ${n} 已加载`, 'ok');
-    } catch (e){
-      toast('读取失败：' + (e.message || '未知错误'), 'err');
-    } finally {
-      saveProcessing = false;
-    }
-  }
-
-  function updateSlotUI(){
-    for (let i = 1; i <= 3; i++){
-      const t = localStorage.getItem(SLOT_KEY + i + '_time');
-      const el = document.getElementById('slotTime' + i);
-      if (el) el.textContent = t || '空';
-    }
-  }
-
-  /* ================= 交互绑定 ================= */
+  /* ================= 交互 ================= */
   document.querySelectorAll('.mode-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       mode = btn.dataset.mode;
@@ -1999,10 +2048,7 @@
         ? '近 200 个 tick · 现货与合约共用同一钱包'
         : '黄线 = 开仓价 · 红线 = 强平价 · 现货与合约共用同一钱包';
       bottomTab = mode === 'spot' ? 'trades' : 'positions';
-      renderHeader();
-      renderBank();
-      renderBottom();
-      renderFutures();
+      renderHeader(); renderBank(); renderBottom(); renderFutures();
       requestAnimationFrame(drawChart);
     });
   });
@@ -2078,83 +2124,78 @@
     btn.addEventListener('click', () => {
       futSide = btn.dataset.side;
       document.querySelectorAll('.side-btn').forEach(b => b.classList.toggle('active', b === btn));
-      updatePreview();
-      updateFutSubmitText();
+      updatePreview(); updateFutSubmitText();
     });
   });
 
   levRange.addEventListener('input', () => {
-    updateLevUI();
-    renderFutures();
-    syncMarginFromPct();
-    updatePreview();
-    updateFutSubmitText();
+    updateLevUI(); renderFutures();
+    syncMarginFromPct(); updatePreview(); updateFutSubmitText();
   });
 
   marginRange.addEventListener('input', syncMarginFromRange);
-
   futMarginInput.addEventListener('input', syncMarginFromInput);
   futMarginInput.addEventListener('keydown', e => { if (e.key === 'Enter') futSubmit(); });
   futMarginInput.addEventListener('blur', syncMarginFromPct);
-
   futSubmitBtn.addEventListener('click', futSubmit);
 
+  // ✅ 修复：重置全部（含合约、银行、钱包），避免现货重置后钱包凭空多出钱
   $('spotResetBtn').addEventListener('click', () => {
-    if (!confirm('确定重置现货账户吗？\n持仓、记录、银行负债与存款都会清空。')) return;
+    if (!confirm('确定重置全部账户吗？\n\n会清空：\n• 钱包恢复 ¥1,000\n• 现货持仓与记录\n• 合约所有仓位与记录\n• 银行负债与存款\n\n此操作不可撤销。')) return;
     wallet = INIT_CASH;
-    spotBtc = 0; spotAvgCost = 0; spotRealized = 0; spotTrades = [];
+    spotBtc = 0; spotAvgCost = 0; spotRealized = 0; spotTrades = []; spotSide = 'buy';
+    futRealized = 0; futTrades = []; positions = []; posSeq = 0;
     bankDebt = 0; bankInterest = 0; deposit = 0; depositInterest = 0;
     spotAmountInput.value = ''; bankInput.value = '';
-    render();
-    toast('现货账户与银行已重置为 ¥1,000.00', 'ok');
+    render(); toast('全部账户已重置为 ¥1,000.00', 'ok');
   });
 
+  // ✅ 修复：合约重置只平仓位，保留 futRealized 作为历史累计
   $('futResetBtn').addEventListener('click', () => {
-    if (!confirm('确定重置合约账户吗？所有仓位将按开仓价平仓，保证金退回钱包。')) return;
+    if (!confirm('确定清空所有合约仓位吗？\n\n所有仓位将按开仓价平仓，保证金全额退回钱包，合约成交记录会被清空。\n已实现盈亏（历史累计）会保留。')) return;
     positions.forEach(p => { wallet += p.margin; });
-    positions = [];
-    futRealized = 0; futTrades = [];
-    render();
-    toast('合约仓位已清空，保证金退回钱包', 'ok');
+    positions = []; futTrades = [];
+    render(); toast('合约仓位已清空，保证金退回钱包', 'ok');
   });
 
-  /* ---------- 存档按钮绑定 ---------- */
-  $('exportSaveBtn').addEventListener('click', exportSaveToFile);
-  $('importSaveBtn').addEventListener('click', () => $('importSaveInput').click());
-  $('importSaveInput').addEventListener('change', async e => {
-    const f = e.target.files[0];
-    if (f) await importSaveFromFile(f);
-    e.target.value = '';
-  });
-
+  // 槽位：保存 / 读取 / 导出 / 导入
+  let importTargetSlot = 0;
   document.querySelectorAll('.slot-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
+      if (saveProcessing) return;
       const action = btn.dataset.action;
       const n = parseInt(btn.dataset.slot, 10);
-      if (action === 'save') await saveToSlot(n);
-      else await loadFromSlot(n);
+      if (action === 'save')        await saveToSlot(n);
+      else if (action === 'load')   await loadFromSlot(n);
+      else if (action === 'export') exportSlotToFile(n);
+      else if (action === 'import'){
+        importTargetSlot = n;
+        slotImportInput.click();
+      }
     });
   });
 
-  /* ================= 尺寸自适应 ================= */
+  slotImportInput.addEventListener('change', async e => {
+    const f = e.target.files[0];
+    const n = importTargetSlot;
+    e.target.value = '';
+    importTargetSlot = 0;
+    if (f && n) await importSlotFromFile(n, f);
+  });
+
   let rafId = null;
   function scheduleDraw(){
     if (rafId) return;
     rafId = requestAnimationFrame(() => { rafId = null; drawChart(); });
   }
-
-  if (window.ResizeObserver){
-    new ResizeObserver(scheduleDraw).observe(chartWrap);
-  }
+  if (window.ResizeObserver) new ResizeObserver(scheduleDraw).observe(chartWrap);
   window.addEventListener('resize', scheduleDraw);
   window.addEventListener('orientationchange', scheduleDraw);
 
-  /* ================= 主循环 ================= */
   function tick(){
     nextPrice();
     history.push(price);
     if (history.length > MAX_POINTS) history.shift();
-
     accrueInterest();
     checkLiquidation();
     render();
@@ -2162,18 +2203,12 @@
   }
 
   /* ================= 启动 ================= */
+  initWorker();
   seedHistory();
-
-  levRange.min = 0;
-  levRange.max = 1000;
-  levRange.step = 1;
+  levRange.min = 0; levRange.max = 1000; levRange.step = 1;
   levRange.value = levToSlider(10);
-
-  marginRange.min = 0;
-  marginRange.max = 100;
-  marginRange.step = 1;
+  marginRange.min = 0; marginRange.max = 100; marginRange.step = 1;
   marginRange.value = marginPct;
-
   updateLevUI();
   syncMarginFromPct();
   updateSlotUI();
