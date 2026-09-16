@@ -92,11 +92,21 @@
         .log-panel .log-type.warning { color: #e5c07b; }
         .log-panel .log-type.error { color: #e06c75; }
         .log-panel .log-msg { word-break: break-word; flex: 1; }
-        .textarea-wrapper { position: relative; margin-bottom: 14px; }
+        .textarea-wrapper {
+            position: relative;
+            margin-bottom: 14px;
+            transition: border-color 0.2s;
+        }
         .textarea-wrapper textarea {
             width: 100%; padding: 12px 50px 12px 12px;
-            font-family: monospace; font-size: 14px; border: 1px solid #ccc;
+            font-family: monospace; font-size: 14px; border: 2px solid #ccc;
             border-radius: 12px; resize: vertical; min-height: 60px;
+            transition: border-color 0.2s;
+            background: white;
+        }
+        .textarea-wrapper.drag-over textarea {
+            border-color: #1890ff;
+            background: #f0f7ff;
         }
         .copy-btn {
             position: absolute; top: 8px; right: 8px;
@@ -268,12 +278,15 @@
     <div id="envWarning" class="env-warning" style="display: none;"></div>
     <div id="topStatus" class="top-status" style="display: none;"></div>
 
-    <div class="textarea-wrapper">
-        <textarea id="plaintext" rows="3" placeholder="明文（要加密的内容）"></textarea>
+    <!-- 明文 -->
+    <div class="textarea-wrapper" id="plainWrapper">
+        <textarea id="plaintext" rows="3" placeholder="明文（要加密的内容）&#10;📁 支持拖拽 .txt 等文本文件到此"></textarea>
         <button class="copy-btn" id="copyPlainBtn">📋 复制</button>
     </div>
-    <div class="textarea-wrapper">
-        <textarea id="ciphertext" rows="3" placeholder="密文（Base64格式）"></textarea>
+
+    <!-- 密文 -->
+    <div class="textarea-wrapper" id="cipherWrapper">
+        <textarea id="ciphertext" rows="3" placeholder="密文（Base64格式）&#10;📁 支持拖拽 .txt 密文文件到此"></textarea>
         <button class="copy-btn" id="copyCipherBtn">📋 复制</button>
     </div>
 
@@ -388,7 +401,8 @@
         • 密码强度建议达到“中等”以上。<br>
         • 超大文件（>50MB）可能导致浏览器卡顿或崩溃，请谨慎操作。<br>
         • 点击“⚡ 校准”可基于您的设备精确估算耗时。<br>
-        • 自定义迭代次数过高可能导致严重卡顿，请合理设置。
+        • 自定义迭代次数过高可能导致严重卡顿，请合理设置。<br>
+        • 📁 支持拖拽文本文件到明文/密文框自动填充。
     </div>
 </div>
 
@@ -558,6 +572,8 @@
         const logEntries = document.getElementById('logEntries');
         const clearLogBtn = document.getElementById('clearLogBtn');
         const logScrollLock = document.getElementById('logScrollLock');
+        const plainWrapper = document.getElementById('plainWrapper');
+        const cipherWrapper = document.getElementById('cipherWrapper');
 
         let statusTimeout = null;
         let processing = false;
@@ -675,6 +691,72 @@
                 .replace(/["']/g, m => m === '"' ? '&quot;' : '&#39;');
         }
 
+        // ----- 拖拽上传功能 -----
+        function setupDropTarget(wrapper, textarea, targetName) {
+            const dropTarget = wrapper;
+
+            dropTarget.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.classList.add('drag-over');
+            });
+
+            dropTarget.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                this.classList.remove('drag-over');
+            });
+
+            dropTarget.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.classList.remove('drag-over');
+                const files = e.dataTransfer.files;
+                if (files.length === 0) {
+                    showTopStatus('未检测到文件', 'error');
+                    return;
+                }
+                const file = files[0];
+                // 检查文件大小，若太大则警告
+                if (file.size > 10 * 1024 * 1024) {
+                    confirmDialog(
+                        `文件大小为 ${(file.size / (1024 * 1024)).toFixed(1)} MB，读取大文件可能影响性能。\n确定继续吗？`,
+                        '大文件警告',
+                        '⚠️'
+                    ).then(ok => {
+                        if (ok) {
+                            readFileIntoTextarea(file, textarea, targetName);
+                        }
+                    });
+                } else {
+                    readFileIntoTextarea(file, textarea, targetName);
+                }
+            });
+        }
+
+        function readFileIntoTextarea(file, textarea, targetName) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const content = e.target.result;
+                    textarea.value = content;
+                    // 触发 input 事件以更新估算
+                    textarea.dispatchEvent(new Event('input'));
+                    showTopStatus(`已从 ${file.name} 导入${targetName}`, 'success');
+                    addLog('info', `拖拽导入 ${targetName}：${file.name}（${(file.size / 1024).toFixed(1)} KB）`);
+                } catch (err) {
+                    showTopStatus(`读取文件失败：${err.message}`, 'error');
+                    addLog('error', `拖拽读取失败：${err.message}`);
+                }
+            };
+            reader.onerror = function() {
+                showTopStatus('读取文件失败，请确认文件可读', 'error');
+                addLog('error', '拖拽读取失败：文件不可读');
+            };
+            reader.readAsText(file);
+        }
+
+        // 初始化拖拽目标
+        setupDropTarget(plainWrapper, plaintextEl, '明文');
+        setupDropTarget(cipherWrapper, ciphertextEl, '密文');
+
         function toggleCustomIter(show) {
             show ? customIterContainer.classList.add('show') : customIterContainer.classList.remove('show');
             updateEstimate();
@@ -696,7 +778,6 @@
                     throw new Error('自定义迭代次数必须为正数');
                 }
                 const unit = parseInt(customIterUnit.value, 10);
-                // 浮点数乘以单位后四舍五入取整，确保为正整数
                 val = Math.round(num * unit);
                 if (val < 1) {
                     throw new Error('迭代次数必须大于等于 1');
@@ -704,7 +785,6 @@
             } else {
                 val = parseInt(iterSelect.value, 10);
             }
-            // 检查 Web Crypto API 上限（unsigned long 最大值）
             if (val > 4294967295) {
                 throw new Error('迭代次数超过 Web Crypto API 支持的上限（42.9亿次），请减小数值或单位。');
             }
