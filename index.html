@@ -631,6 +631,12 @@
             return c.toDataURL();
         }
 
+        function buildDisplacementOnlyFilter(dispUrl, scale, w, h) {
+            return '<feImage href="' + dispUrl + '" x="0" y="0" width="' + w + '" height="' + h + '" result="disp_map" />' +
+                   '<feDisplacementMap in="SourceGraphic" in2="disp_map" scale="' + scale +
+                   '" xChannelSelector="R" yChannelSelector="G" />';
+        }
+
         function buildSVGFilter(dispUrl, specUrl, scale, w, h, specOpacity) {
             specOpacity = specOpacity != null ? specOpacity : 0.3;
             var fc = '';
@@ -707,26 +713,12 @@
             BEZEL_RATIO: 0.55,
             BEZEL_MAX: 16,
             SPECULAR_OPACITY: 0.26,
-            SPECULAR_ANGLE: Math.PI * 0.75,   // 按钮仍用固定角度
+            SPECULAR_ANGLE: Math.PI * 0.75,
             BLUR: 0.4,
             SCALE_RATIO: 0.55
         };
 
-        /* ============================================================
-           虚拟光源：位于视口左上角外侧，用户不可见。
-           小球的高光方向按此光源位置实时计算 —— 每个球根据自己
-           在屏幕中的位置，指向光源的方向不同，高光位置也不同。
-           想调整光源位置：改这两个数值即可（相对视口左上角）。
-           ============================================================ */
-        const LIGHT_SOURCE = { x: -800, y: -800 };
-
-        // 高光贴图缓存（以量化角度 + 尺寸为键，避免重复生成）
-        const specularCache = new Map();
-        const SPECULAR_QUANT_STEPS = 72;      // 360° 分 72 档，每档 5°
-        // 位移贴图缓存（以尺寸 + bezel 为键）
         const dispCache = new Map();
-        // 每个球的高光状态（记录上次生成时的角度/尺寸/时间，用于节流）
-        const ballGlassState = new Map();
 
         function getCachedDisplacement(w, h, radius, bezel) {
             const key = w + '|' + h + '|' + bezel.toFixed(2);
@@ -745,16 +737,6 @@
             const result = { url: url, scale: scale };
             dispCache.set(key, result);
             return result;
-        }
-
-        function getCachedSpecularUrl(angle, w, h, radius, bezel) {
-            const step = (Math.PI * 2) / SPECULAR_QUANT_STEPS;
-            const quantized = Math.round(angle / step) * step;
-            const key = quantized.toFixed(4) + '|' + w + '|' + h;
-            if (specularCache.has(key)) return specularCache.get(key);
-            const url = generateSpecularMap(w, h, radius, bezel * 2.2, quantized);
-            specularCache.set(key, url);
-            return url;
         }
 
         function buildLiquidGlass() {
@@ -919,72 +901,42 @@
         });
 
         document.querySelector('.main-container').addEventListener('scroll', () => {
+            updateButtonRects();
             if (managePanel.classList.contains('show')) {
                 positionManagePanel();
             }
         }, { passive: true });
 
         /* ============================================================
-           第五部分：小球液态玻璃滤镜（基于虚拟光源动态计算高光）
+           第五部分：小球液态玻璃（只有折射，无高光）
            ============================================================ */
-        function refreshBallGlass(ballEl) {
-            if (!ballEl || ballEl.hasAttribute('data-frag')) return;
-            const p = physics.find(pp => pp.id === ballEl.id);
-            if (!p) return;
+        function buildBallRefraction() {
+            const sample = document.querySelector('.ball-liquid');
+            if (!sample) return;
+            const w = Math.round(sample.offsetWidth);
+            const h = Math.round(sample.offsetHeight);
+            if (w < 8 || h < 8) return;
 
-            const w = Math.round(p.radius * 2);
-            const h = w;
-            if (w < 8) return;
-
-            const radius = p.radius;
+            const radius = Math.min(w, h) / 2;
             const bezel = Math.min(radius * GLASS.BEZEL_RATIO, GLASS.BEZEL_MAX, radius - 1);
             if (bezel <= 1) return;
 
-            // 球中心坐标
-            const cx = p.x + radius;
-            const cy = p.y + radius;
-            // 从球中心指向虚拟光源的方向
-            const angle = Math.atan2(LIGHT_SOURCE.y - cy, LIGHT_SOURCE.x - cx);
-
-            const state = ballGlassState.get(ballEl.id) || {
-                lastAngle: null, lastW: 0, lastH: 0, filterId: null, lastRefresh: 0
-            };
-
-            const now = performance.now();
-            const sizeChanged = state.lastW !== w;
-            const angleChanged = state.lastAngle === null || Math.abs(state.lastAngle - angle) > 0.1;
-            const timeOk = now - state.lastRefresh > 120;
-
-            // 未达到刷新条件：尺寸没变 & 角度没变 → 跳过
-            if (!sizeChanged && !angleChanged) return;
-            // 尺寸没变但角度变了 → 时间节流（避免高速移动时每帧重建）
-            if (!sizeChanged && !timeOk) return;
-
             const disp = getCachedDisplacement(w, h, radius, bezel);
-            const specUrl = getCachedSpecularUrl(angle, w, h, radius, bezel);
-
-            const filterId = 'ball-glass-' + ballEl.id.replace(/[^a-zA-Z0-9]/g, '_');
-            writeFilter(filterId, buildSVGFilter(disp.url, specUrl, disp.scale, w, h, GLASS.SPECULAR_OPACITY));
+            const filterId = 'ball-refraction-' + w + '_' + h;
+            writeFilter(filterId, buildDisplacementOnlyFilter(disp.url, disp.scale, w, h));
 
             let bf = 'url(#' + filterId + ')';
             if (GLASS.BLUR > 0) bf += ' blur(' + GLASS.BLUR.toFixed(1) + 'px)';
-            ballEl.style.setProperty('backdrop-filter', bf, 'important');
-            ballEl.style.setProperty('-webkit-backdrop-filter', bf, 'important');
 
-            state.lastAngle = angle;
-            state.lastW = w;
-            state.lastH = h;
-            state.filterId = filterId;
-            state.lastRefresh = now;
-            ballGlassState.set(ballEl.id, state);
-        }
-
-        function refreshAllBallGlass() {
-            document.querySelectorAll('.ball-liquid:not([data-frag])').forEach(refreshBallGlass);
+            document.querySelectorAll('.ball-liquid:not([data-frag])').forEach(function (el) {
+                el.style.setProperty('backdrop-filter', bf, 'important');
+                el.style.setProperty('-webkit-backdrop-filter', bf, 'important');
+            });
         }
 
         /* ============================================================
            第六部分：小球物理引擎（dt 驱动）
+           p.x / p.y 统一为「球心」坐标（视口坐标系）
            ============================================================ */
         const BASE_GRAVITY = 1080;
         const GRAVITY_SENSITIVITY = 0.2;
@@ -1002,6 +954,12 @@
 
         const physics = [];
         let deleteMode = false;
+
+        /* 把 p.x / p.y（球心）写回 DOM（left/top 是左上角） */
+        function syncBallDom(ballEl, p) {
+            ballEl.style.left = (p.x - p.radius) + 'px';
+            ballEl.style.top  = (p.y - p.radius) + 'px';
+        }
 
         function initBallPositions() {
             const vw = window.innerWidth;
@@ -1039,9 +997,10 @@
                 if (existingIds.has(ball.id)) return;
                 const rect = ball.getBoundingClientRect();
                 const radius = rect.width / 2;
+                // rect.left/top 是视口坐标下的左上角，加 radius 得到球心视口坐标
                 physics.push(Object.assign({
-                    x: parseFloat(ball.style.left) || rect.left,
-                    y: parseFloat(ball.style.top) || rect.top,
+                    x: rect.left + radius,
+                    y: rect.top + radius,
                     vx: (Math.random() - 0.5) * 120,
                     vy: Math.random() * 120,
                     radius: radius,
@@ -1061,27 +1020,35 @@
         function updateButtonRects() {
             buttonRects = Array.from(collidableBtns()).map(btn => {
                 const rect = btn.getBoundingClientRect();
+                const capRadius = rect.height / 2;
                 return {
                     left: rect.left,
                     top: rect.top,
                     right: rect.right,
                     bottom: rect.bottom,
                     width: rect.width,
-                    height: rect.height
+                    height: rect.height,
+                    capRadius: capRadius,
+                    leftCenterX: rect.left + capRadius,
+                    rightCenterX: rect.right - capRadius,
+                    centerY: rect.top + capRadius
                 };
             });
         }
 
-        function handleCollisionWithButton(p, rect) {
+        /* p.x / p.y 是球心，直接用 */
+        function handleCollisionWithButton(p, cap) {
             if (p.fixed) return false;
 
-            const closestX = Math.max(rect.left, Math.min(p.x, rect.right));
-            const closestY = Math.max(rect.top, Math.min(p.y, rect.bottom));
+            let closestX = p.x;
+            if (closestX < cap.leftCenterX) closestX = cap.leftCenterX;
+            else if (closestX > cap.rightCenterX) closestX = cap.rightCenterX;
+            const closestY = cap.centerY;
 
             const dx = p.x - closestX;
             const dy = p.y - closestY;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            const minDist = p.radius;
+            const minDist = p.radius + cap.capRadius;
 
             if (dist < minDist && dist > 0.001) {
                 const nx = dx / dist;
@@ -1109,7 +1076,7 @@
             const height = window.innerHeight;
             const friction = Math.pow(FRICTION_BASE, dt * FRICTION_FPS);
 
-            // 1) 积分 + 边界
+            // 1) 积分 + 边界（p.x/p.y 是球心）
             physics.forEach((p) => {
                 if (p.dragging) return;
                 if (p.fixed) {
@@ -1132,6 +1099,7 @@
 
                 const r = p.radius;
                 const bounceFactor = p.noDamping ? 1.0 : BOUNCE;
+                // 圆心 < r 即左边缘越界；圆心 > width-r 即右边缘越界
                 if (newX < r) { newX = r; p.vx = -p.vx * bounceFactor; }
                 if (newX > width - r) { newX = width - r; p.vx = -p.vx * bounceFactor; }
                 if (newY < r) { newY = r; p.vy = -p.vy * bounceFactor; }
@@ -1141,7 +1109,7 @@
                 p.y = newY;
             });
 
-            // 2) 球-球碰撞
+            // 2) 球-球碰撞（p.x/p.y 是球心）
             for (let i = 0; i < physics.length; i++) {
                 for (let j = i + 1; j < physics.length; j++) {
                     const p1 = physics[i];
@@ -1199,21 +1167,16 @@
                 }
             }
 
-            // 3) 球-按钮碰撞 + 写回 DOM + 刷新高光
+            // 3) 球-按钮碰撞（胶囊形） + 写回 DOM
             physics.forEach(p => {
                 if (!p.dragging && !p.noCollision && !p.fixed) {
-                    buttonRects.forEach(rect => {
-                        handleCollisionWithButton(p, rect);
+                    buttonRects.forEach(cap => {
+                        handleCollisionWithButton(p, cap);
                     });
                 }
                 const ball = document.getElementById(p.id);
                 if (ball && !p.dragging) {
-                    ball.style.left = p.x + 'px';
-                    ball.style.top = p.y + 'px';
-                }
-                // 动态刷新液态球的高光（内部有节流）
-                if (ball && ball.classList.contains('ball-liquid') && !ball.hasAttribute('data-frag')) {
-                    refreshBallGlass(ball);
+                    syncBallDom(ball, p);
                 }
             });
         }
@@ -1339,11 +1302,11 @@
             const isLiquid = ballElement.classList.contains('ball-liquid');
             const type = isLiquid ? 'liquid' : 'frosted';
 
+            // p.x / p.y 是球心
             const x = p.x, y = p.y, vx = p.vx, vy = p.vy;
             const originalRadius = p.radius;
 
             physics.splice(pIndex, 1);
-            ballGlassState.delete(ballElement.id);
             ballElement.remove();
 
             const fragmentCount = 4 + Math.floor(Math.random() * 3);
@@ -1351,6 +1314,7 @@
                 const fragRadius = originalRadius * (0.2 + Math.random() * 0.2);
                 const angle = Math.random() * Math.PI * 2;
                 const dist = originalRadius * 0.5 * Math.random();
+                // 碎片球心
                 const fragX = x + Math.cos(angle) * dist;
                 const fragY = y + Math.sin(angle) * dist;
                 const fragVx = vx + (Math.random() - 0.5) * 240;
@@ -1362,12 +1326,12 @@
                 fragDiv.setAttribute('data-frag', '1');
                 fragDiv.style.width = (fragRadius * 2) + 'px';
                 fragDiv.style.height = (fragRadius * 2) + 'px';
-                fragDiv.style.left = fragX + 'px';
-                fragDiv.style.top = fragY + 'px';
+                fragDiv.style.left = (fragX - fragRadius) + 'px';
+                fragDiv.style.top = (fragY - fragRadius) + 'px';
                 document.body.appendChild(fragDiv);
 
                 physics.push(Object.assign({
-                    x: fragX, y: fragY,
+                    x: fragX, y: fragY,   // 球心
                     vx: fragVx, vy: fragVy,
                     radius: fragRadius,
                     dragging: false,
@@ -1381,7 +1345,6 @@
                 setTimeout(() => {
                     const idx = physics.findIndex(fp => fp.id === fragId);
                     if (idx !== -1) physics.splice(idx, 1);
-                    ballGlassState.delete(fragId);
                     const fragElem = document.getElementById(fragId);
                     if (fragElem) fragElem.remove();
                 }, 2000);
@@ -1398,15 +1361,16 @@
             const rect = ballDiv.getBoundingClientRect();
             const ballSize = rect.width || (window.innerWidth < 680 ? 60 : 80);
             const maxLeft = window.innerWidth - ballSize;
-            const left = Math.random() * Math.max(maxLeft, 1);
-            const top = -100;
+            const left = Math.random() * Math.max(maxLeft, 1);   // 左上角
+            const top = -100;                                     // 左上角（屏幕外）
 
             ballDiv.style.left = left + 'px';
             ballDiv.style.top = top + 'px';
 
             const radius = ballSize / 2;
             physics.push(Object.assign({
-                x: left, y: top,
+                x: left + radius,   // 球心
+                y: top + radius,    // 球心
                 vx: (Math.random() - 0.5) * 120,
                 vy: Math.random() * 120,
                 radius: radius,
@@ -1419,7 +1383,7 @@
             }, createDefaultProps()));
 
             if (type === 'liquid') {
-                requestAnimationFrame(() => refreshBallGlass(ballDiv));
+                requestAnimationFrame(buildBallRefraction);
             }
         }
 
@@ -1453,6 +1417,7 @@
             }
 
             const rect = target.getBoundingClientRect();
+            // dragOffset 是鼠标相对元素左上角的偏移（不变）
             p.dragOffsetX = pointer.clientX - rect.left;
             p.dragOffsetY = pointer.clientY - rect.top;
 
@@ -1482,7 +1447,7 @@
                     const ball = document.getElementById(p.id);
                     if (!ball) return;
 
-                    let newLeft = matchedTouch.clientX - p.dragOffsetX;
+                    let newLeft = matchedTouch.clientX - p.dragOffsetX;   // 左上角
                     let newTop = matchedTouch.clientY - p.dragOffsetY;
 
                     const ballSize = ball.offsetWidth;
@@ -1491,8 +1456,9 @@
                     newLeft = Math.max(0, Math.min(newLeft, maxLeft));
                     newTop = Math.max(0, Math.min(newTop, maxTop));
 
-                    p.x = newLeft;
-                    p.y = newTop;
+                    // 更新球心
+                    p.x = newLeft + p.radius;
+                    p.y = newTop + p.radius;
                     ball.style.left = newLeft + 'px';
                     ball.style.top = newTop + 'px';
 
@@ -1507,8 +1473,6 @@
                             p.lastMouseTime = now;
                         }
                     }
-                    // 拖动时也刷新高光
-                    if (ball.classList.contains('ball-liquid')) refreshBallGlass(ball);
                 } else if (!e.touches) {
                     const ball = document.getElementById(p.id);
                     if (!ball) return;
@@ -1522,8 +1486,8 @@
                     newLeft = Math.max(0, Math.min(newLeft, maxLeft));
                     newTop = Math.max(0, Math.min(newTop, maxTop));
 
-                    p.x = newLeft;
-                    p.y = newTop;
+                    p.x = newLeft + p.radius;
+                    p.y = newTop + p.radius;
                     ball.style.left = newLeft + 'px';
                     ball.style.top = newTop + 'px';
 
@@ -1538,7 +1502,6 @@
                             p.lastMouseTime = now;
                         }
                     }
-                    if (ball.classList.contains('ball-liquid')) refreshBallGlass(ball);
                 }
             });
         }
@@ -1879,14 +1842,12 @@
                 if (!ball) return;
                 const ballSize = ball.offsetWidth || p.radius * 2;
                 p.radius = ballSize / 2;
-                const maxLeft = window.innerWidth - ballSize;
-                const maxTop = window.innerHeight - ballSize;
-                p.x = Math.max(0, Math.min(p.x, maxLeft));
-                p.y = Math.max(0, Math.min(p.y, maxTop));
-                ball.style.left = p.x + 'px';
-                ball.style.top = p.y + 'px';
+                // 球心约束在 [r, W-r] 内
+                p.x = Math.max(p.radius, Math.min(p.x, window.innerWidth  - p.radius));
+                p.y = Math.max(p.radius, Math.min(p.y, window.innerHeight - p.radius));
+                syncBallDom(ball, p);
             });
-            requestAnimationFrame(refreshAllBallGlass);
+            requestAnimationFrame(buildBallRefraction);
             scheduleRebuild();
             if (ballContextMenu.classList.contains('show')) {
                 hideBallContextMenu();
@@ -1915,7 +1876,7 @@
             updateButtonRects();
             requestAnimationFrame(function () {
                 initPhysics();
-                refreshAllBallGlass();
+                buildBallRefraction();
                 requestAnimationFrame(animatePhysics);
             });
 
@@ -1965,7 +1926,7 @@
                 });
             }
 
-            console.log('✨ 星星的网页已启动 | 虚拟光源高光 + 液态玻璃 + 磨砂小球 ✨');
+            console.log('✨ 星星的网页已启动 | 球心坐标统一 + 胶囊碰撞箱 ✨');
         }
 
         init();
