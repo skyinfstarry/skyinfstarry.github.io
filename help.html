@@ -1,0 +1,1717 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>系统诊断 · 环境检测报告</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#060910;
+  --panel:rgba(255,255,255,.045);
+  --border:rgba(255,255,255,.10);
+  --text:#e9eef8;
+  --muted:#8b9ab0;
+  --pass:#34d399;
+  --warn:#fbbf24;
+  --fail:#f87171;
+  --info:#60a5fa;
+}
+html,body{min-height:100%}
+body{
+  background:
+    radial-gradient(900px 500px at 15% -10%, #12203a 0%, transparent 60%),
+    radial-gradient(700px 400px at 100% 0%, #1c1430 0%, transparent 55%),
+    var(--bg);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+  line-height:1.6;
+  padding:28px 16px 90px;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1020px;margin:0 auto}
+
+.hero{text-align:center;margin-bottom:30px}
+.hero h1{
+  font-size:clamp(1.5rem,4vw,2.2rem);font-weight:800;letter-spacing:1px;
+  background:linear-gradient(135deg,#fff,#bcd6ff,#9fb8ff);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  margin-bottom:8px;
+}
+.hero p{color:var(--muted);font-size:.92rem}
+.bar{
+  margin:22px auto 8px;height:6px;width:100%;max-width:520px;
+  background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden;
+}
+.bar-fill{
+  height:100%;width:0%;border-radius:99px;
+  background:linear-gradient(90deg,#60a5fa,#a78bfa,#34d399);
+  transition:width .35s cubic-bezier(.3,.9,.4,1);
+}
+.bar-text{font-size:.82rem;color:var(--muted);letter-spacing:.5px;min-height:20px}
+
+.overview{
+  display:flex;flex-wrap:wrap;gap:14px;justify-content:center;
+  margin:26px 0 8px;
+}
+.ov-card{
+  flex:1 1 150px;min-width:140px;
+  background:var(--panel);border:1px solid var(--border);border-radius:16px;
+  padding:16px 18px;text-align:center;
+}
+.ov-num{font-size:1.9rem;font-weight:800;line-height:1.2;font-variant-numeric:tabular-nums}
+.ov-num.pass{color:var(--pass)}
+.ov-num.warn{color:var(--warn)}
+.ov-num.fail{color:var(--fail)}
+.ov-num.info{color:var(--info)}
+.ov-label{font-size:.76rem;color:var(--muted);letter-spacing:1px;margin-top:2px}
+
+.section{margin-top:30px}
+.sec-title{
+  font-size:1.05rem;font-weight:700;letter-spacing:1px;
+  padding-left:12px;margin-bottom:12px;position:relative;
+  display:flex;align-items:center;gap:10px;
+}
+.sec-title::before{
+  content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+  width:3px;height:16px;border-radius:3px;
+  background:linear-gradient(180deg,#60a5fa,#a78bfa);
+}
+.sec-count{
+  font-size:.72rem;font-weight:600;color:var(--muted);
+  background:rgba(255,255,255,.06);padding:1px 9px;border-radius:20px;letter-spacing:0;
+}
+
+.list{display:flex;flex-direction:column;gap:8px}
+.row{
+  display:flex;gap:12px;align-items:flex-start;
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:14px;padding:12px 16px;
+  transition:background .2s;
+}
+.row:hover{background:rgba(255,255,255,.065)}
+.dot{
+  width:9px;height:9px;border-radius:50%;flex:none;margin-top:7px;
+  box-shadow:0 0 10px currentColor;
+}
+.row.pass .dot{background:var(--pass);color:var(--pass)}
+.row.warn .dot{background:var(--warn);color:var(--warn)}
+.row.fail .dot{background:var(--fail);color:var(--fail)}
+.row.info .dot{background:var(--info);color:var(--info)}
+.row-main{flex:1;min-width:0}
+.row-head{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline}
+.row-name{font-size:.9rem;font-weight:600;flex:none}
+.row-msg{font-size:.84rem;color:var(--muted);word-break:break-word}
+.row.pass .row-msg{color:#9fd8bd}
+.row.warn .row-msg{color:#e8cf92}
+.row.fail .row-msg{color:#f0a3a3}
+.row-sol{
+  margin-top:7px;font-size:.79rem;line-height:1.65;
+  color:#a9c2e8;background:rgba(96,165,250,.08);
+  border-left:2px solid rgba(96,165,250,.5);
+  border-radius:0 8px 8px 0;padding:7px 12px;
+  word-break:break-word;
+}
+
+.tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.tool{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:16px;padding:14px 16px;position:relative;overflow:hidden;
+}
+.tool::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+}
+.tool.pass::before{background:var(--pass)}
+.tool.warn::before{background:var(--warn)}
+.tool.fail::before{background:var(--fail)}
+.tool-head{display:flex;align-items:center;gap:8px;margin-bottom:3px;flex-wrap:wrap}
+.tool-name{font-size:.92rem;font-weight:700}
+.tool-badge{
+  font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:20px;
+  letter-spacing:.5px;
+}
+.tool.pass .tool-badge{background:rgba(52,211,153,.16);color:#6ee7b7}
+.tool.warn .tool-badge{background:rgba(251,191,36,.16);color:#fcd34d}
+.tool.fail .tool-badge{background:rgba(248,113,113,.16);color:#fca5a5}
+.tool-path{
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+  font-size:.72rem;color:var(--muted);margin-bottom:9px;
+  word-break:break-all;
+}
+.tool-deps{display:flex;flex-wrap:wrap;gap:5px}
+.chip{
+  font-size:.7rem;padding:3px 9px;border-radius:20px;
+  border:1px solid transparent;white-space:nowrap;
+  display:inline-flex;align-items:center;gap:4px;
+}
+.chip.ok{background:rgba(52,211,153,.10);border-color:rgba(52,211,153,.30);color:#6ee7b7}
+.chip.bad{background:rgba(248,113,113,.10);border-color:rgba(248,113,113,.35);color:#fca5a5}
+.chip.warn{background:rgba(251,191,36,.10);border-color:rgba(251,191,36,.32);color:#fcd34d}
+.chip.na{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12);color:var(--muted)}
+.tool-note{
+  margin-top:9px;font-size:.75rem;line-height:1.6;color:#a9c2e8;
+  background:rgba(96,165,250,.07);border-radius:8px;padding:7px 10px;
+}
+
+.actions{
+  display:flex;gap:10px;justify-content:center;flex-wrap:wrap;
+  margin-top:34px;
+}
+.btn{
+  padding:11px 26px;border-radius:40px;border:1px solid var(--border);
+  background:rgba(255,255,255,.06);color:var(--text);
+  font-family:inherit;font-size:.88rem;font-weight:600;cursor:pointer;
+  transition:all .2s;
+}
+.btn:hover:not(:disabled){background:rgba(255,255,255,.13);transform:translateY(-1px)}
+.btn.primary{
+  background:linear-gradient(135deg,#2563eb,#60a5fa);
+  border-color:rgba(96,165,250,.6);color:#fff;
+  box-shadow:0 6px 22px -6px rgba(96,165,250,.6);
+}
+.btn.primary:hover:not(:disabled){filter:brightness(1.1)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+.footer{
+  text-align:center;margin-top:44px;font-size:.74rem;color:#5b6a80;
+  border-top:1px solid rgba(255,255,255,.06);padding-top:20px;
+}
+
+@media (max-width:640px){
+  body{padding:18px 10px 70px}
+  .row{padding:11px 13px}
+  .tools{grid-template-columns:1fr}
+  .ov-card{flex:1 1 120px;padding:13px 12px}
+  .ov-num{font-size:1.5rem}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <h1>🔍 系统诊断报告</h1>
+    <p>自动检测当前运行环境，评估站内全部工具的可用性</p>
+    <div class="bar"><div class="bar-fill" id="barFill"></div></div>
+    <div class="bar-text" id="barText">准备开始检测…</div>
+  </div>
+
+  <div class="overview" id="overview"></div>
+  <div id="report"></div>
+
+  <div class="actions">
+    <button class="btn primary" id="btnRerun">🔄 重新检测</button>
+    <button class="btn" id="btnCopy">📋 复制报告</button>
+    <button class="btn" id="btnDownload">⬇️ 下载报告</button>
+  </div>
+
+  <div class="footer">
+    诊断工具 · 本地运行 · 不上传任何数据
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ============================================================
+     全局状态
+     ============================================================ */
+  const R    = [];
+  const FEAT = {};
+  // NET[key] = { ok, uncertain, status }
+  const NET  = {};
+  let   isRunning = false;
+
+  const $ = id => document.getElementById(id);
+  // esc() 现在也转义单引号，防止未来在单引号属性里拼接时出问题
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m =>
+    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]));
+
+  function add(cat, name, status, msg, sol) {
+    R.push({ cat, name, status, msg: msg || '', sol: sol || '' });
+  }
+  function setFeat(key, ok, label, msg) {
+    FEAT[key] = { ok: !!ok, label: label || key, msg: msg || '' };
+  }
+
+  // progress() 简化：所有调用都显式传 pct，stepCount 已删
+  function progress(text, pct) {
+    $('barFill').style.width = pct + '%';
+    $('barText').textContent = text;
+  }
+
+  const _warnedKeys = new Set();
+  function warnOnce(key, toolTitle) {
+    if (_warnedKeys.has(key)) return;
+    _warnedKeys.add(key);
+    console.warn('[诊断] 未定义的依赖 key：' + key + '（首次出现于：' + toolTitle + '）');
+  }
+
+  /* ============================================================
+     工具函数
+     ============================================================ */
+
+  // 补充 iOS Chrome (CriOS) / iOS Firefox (FxiOS) / Samsung Internet。
+  // 这三者的 UA 里也包含 Chrome 或 Safari，必须在通用 Chrome / Safari 之前匹配。
+  function detectBrowser() {
+    const ua = navigator.userAgent;
+    const list = [
+      ['iOS Chrome',       /CriOS\/([\d.]+)/],
+      ['iOS Firefox',      /FxiOS\/([\d.]+)/],
+      ['Samsung Internet', /SamsungBrowser\/([\d.]+)/],
+      ['微信内置浏览器',   /MicroMessenger\/([\d.]+)/],
+      ['QQ 浏览器',        /QQBrowser\/([\d.]+)/],
+      ['UC 浏览器',        /UCBrowser\/([\d.]+)/],
+      ['Microsoft Edge',   /Edg\/([\d.]+)/],
+      ['Opera',            /OPR\/([\d.]+)/],
+      ['Firefox',          /Firefox\/([\d.]+)/],
+      ['Chrome',           /Chrome\/([\d.]+)/],
+      ['Safari',           /Version\/([\d.]+).*Safari/]
+    ];
+    for (const [name, re] of list) {
+      const m = ua.match(re);
+      if (m) return { name, version: m[1] };
+    }
+    return { name: '未知浏览器', version: '-' };
+  }
+
+  /* ------------------------------------------------------------
+     资源探测（统一 finish 模式，任何路径退出都会清理 timer）
+     - probeFetch 两阶段共享一个 deadline，整体最坏 = timeout
+     - probeUrl 直接接 url 字符串
+     - AbortController guard：无 AC 时不带 signal，仍然走 fetch
+     - 所有同步/异步异常都被吞掉，probeFetch 永不 reject
+     ------------------------------------------------------------ */
+
+  async function probeFetch(url, timeout) {
+    const t0 = Date.now();
+    const remain = () => Math.max(500, timeout - (Date.now() - t0));
+    const hasAC = (typeof AbortController !== 'undefined');
+
+    const corsResult = await new Promise(resolve => {
+      let done = false;
+      let timer = null;
+      let ctrl = null;
+      const finish = result => {
+        if (done) return;
+        done = true;
+        if (timer !== null) { clearTimeout(timer); timer = null; }
+        resolve(result);
+      };
+
+      timer = setTimeout(() => {
+        if (ctrl) { try { ctrl.abort(); } catch (e) {} }
+        finish({ fallback: true });
+      }, remain());
+
+      try {
+        const opts = {
+          mode: 'cors', cache: 'no-store',
+          credentials: 'omit', redirect: 'follow'
+        };
+        if (hasAC) {
+          ctrl = new AbortController();
+          opts.signal = ctrl.signal;
+        }
+        fetch(url, opts).then(res => {
+          finish({ ok: res.ok, status: res.status, uncertain: false });
+        }).catch(() => {
+          finish({ fallback: true });
+        });
+      } catch (e) {
+        finish({ fallback: true });
+      }
+    });
+    if (!corsResult.fallback) return corsResult;
+
+    return await new Promise(resolve => {
+      let done = false;
+      let timer = null;
+      let ctrl = null;
+      const finish = result => {
+        if (done) return;
+        done = true;
+        if (timer !== null) { clearTimeout(timer); timer = null; }
+        resolve(result);
+      };
+
+      timer = setTimeout(() => {
+        if (ctrl) { try { ctrl.abort(); } catch (e) {} }
+        finish({ ok: false, status: 0, uncertain: false, error: '超时' });
+      }, remain());
+
+      try {
+        const opts = {
+          mode: 'no-cors', cache: 'no-store',
+          credentials: 'omit', redirect: 'follow'
+        };
+        if (hasAC) {
+          ctrl = new AbortController();
+          opts.signal = ctrl.signal;
+        }
+        fetch(url, opts).then(() => {
+          finish({ ok: true, status: 0, uncertain: true });
+        }).catch(err => {
+          finish({ ok: false, status: 0, uncertain: false, error: err && err.message });
+        });
+      } catch (e) {
+        finish({ ok: false, status: 0, uncertain: false, error: e && e.message });
+      }
+    });
+  }
+
+  function probeUrl(url, timeout) {
+    return probeFetch(url, timeout || 5000);
+  }
+
+  function cssSupports(prop, val) {
+    try {
+      if (!window.CSS || !CSS.supports) return false;
+      return CSS.supports(prop, val);
+    } catch (e) { return false; }
+  }
+
+  /* ============================================================
+     1. 运行环境
+     ============================================================ */
+  function checkEnvironment() {
+    const br = detectBrowser();
+    const ua = navigator.userAgent;
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(ua);
+
+    const platform = (navigator.userAgentData && navigator.userAgentData.platform)
+      || navigator.platform || '未提供';
+
+    add('运行环境', '浏览器内核', 'info', `${br.name} ${br.version}`);
+    add('运行环境', '设备类型', 'info', isMobile ? '移动设备 / 触屏' : '桌面设备');
+    add('运行环境', '操作系统', 'info', platform);
+    add('运行环境', '界面语言', 'info', navigator.language || '未提供');
+    add('运行环境', '屏幕分辨率', 'info',
+      `${screen.width}×${screen.height} @ ${(window.devicePixelRatio || 1).toFixed(2)}x`);
+    add('运行环境', '视口尺寸', 'info', `${window.innerWidth}×${window.innerHeight}`);
+
+    if (navigator.onLine === false) {
+      add('运行环境', '网络状态', 'info',
+        '系统报告离线（仅供参考，实际以 CDN 探测结果为准）');
+    } else {
+      add('运行环境', '网络状态', 'info', '系统报告在线（仅供参考）');
+    }
+
+    // 网络质量（如果浏览器提供）
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (conn && conn.effectiveType) {
+      const et = conn.effectiveType;
+      let desc = '有效连接类型：' + et;
+      if (conn.downlink) desc += ' · 下行 ~' + conn.downlink + ' Mbps';
+      if (conn.rtt) desc += ' · RTT ~' + conn.rtt + ' ms';
+      add('运行环境', '网络质量', 'info', desc);
+    }
+
+    const proto = location.protocol;
+    if (proto === 'https:') {
+      add('运行环境', '页面协议', 'pass', 'HTTPS（安全上下文）');
+    } else if (proto === 'http:') {
+      const isLocal = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+      if (isLocal) {
+        add('运行环境', '页面协议', 'pass', 'HTTP（本地回环，等同安全上下文）');
+      } else {
+        add('运行环境', '页面协议', 'warn', 'HTTP（非安全上下文）',
+          '非 localhost 的 HTTP 不是安全上下文，crypto.subtle 不可用，' +
+          'AES 加密 / BTC 模拟交易 / 暴力破解器都会失效。请改用 HTTPS。');
+      }
+    } else if (proto === 'file:') {
+      add('运行环境', '页面协议', 'fail', 'file:// 直接打开',
+        '把网站直接双击打开的，几乎所有依赖 Web API 的功能都废了：' +
+        'Web Worker / crypto.subtle / fetch / localStorage 全部不可用。' +
+        '部署到服务器用 http(s) 访问。');
+    }
+
+    let inIframe = false;
+    try { inIframe = window.self !== window.top; } catch (e) { inIframe = true; }
+    if (inIframe) {
+      add('运行环境', '运行位置', 'warn', '当前页面被嵌套在 iframe 中',
+        '部分功能（剪贴板、全屏、下载）在 iframe 中可能被限制，建议直接在新标签页打开。');
+    }
+
+    add('运行环境', '外部站点 iframe 嵌入限制', 'info',
+      '百度、GitHub、Wikipedia 等站点普遍设置 X-Frame-Options / CSP frame-ancestors 拒绝被第三方 iframe 嵌入',
+      '这不是浏览器能力问题，而是目标网站的主动策略。受影响工具：网页模拟浏览器（llq.html）—— 已标记为「功能受限」，无法通过代码绕过。');
+
+    // 无障碍 / 动效偏好：影响粒子海洋、物理沙盒、星空画板这类高密度动画工具
+    try {
+      const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reduce) {
+        add('运行环境', '动效偏好', 'info',
+          '系统开启了「减弱动效」偏好（prefers-reduced-motion: reduce）',
+          '粒子海洋、物理沙盒、星空画板、万物自指等动画密集的工具，可能在高强度动画下让您不适。\n' +
+          '这些工具目前未做自动降级，如感到不适请手动停止或避免使用。');
+      }
+    } catch (e) { /* 忽略 */ }
+  }
+
+  /* ============================================================
+     2. 核心能力
+     ============================================================ */
+  async function checkCore() {
+    /* Web Crypto */
+    if (window.crypto && window.crypto.subtle) {
+      try {
+        const enc = new TextEncoder();
+        const baseKey = await crypto.subtle.importKey(
+          'raw', enc.encode('diag'), { name: 'PBKDF2' }, false, ['deriveKey']);
+        const key = await crypto.subtle.deriveKey(
+          { name: 'PBKDF2', salt: new Uint8Array(16), iterations: 1000, hash: 'SHA-256' },
+          baseKey, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+        const iv = new Uint8Array(12);
+        const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode('hello'));
+        const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+        if (new TextDecoder().decode(pt) === 'hello') {
+          add('核心能力', 'Web Crypto API', 'pass', '可用（AES-256-GCM 加解密测试通过）');
+          setFeat('crypto', true, 'Web Crypto');
+        } else throw new Error('解密结果不匹配');
+      } catch (e) {
+        add('核心能力', 'Web Crypto API', 'fail', '存在但测试失败：' + e.message,
+          '请更换较新版本的 Chrome / Edge / Firefox / Safari。');
+        setFeat('crypto', false, 'Web Crypto', e.message);
+      }
+    } else {
+      add('核心能力', 'Web Crypto API', 'fail', '不可用',
+        'crypto.subtle 只在安全上下文（https:// 或 http://localhost）下可用。\n' +
+        '受影响：AES-256-GCM 加密工具、AES 暴力破解器、BTC 模拟交易。');
+      setFeat('crypto', false, 'Web Crypto', '需要安全上下文');
+    }
+
+    /* TextEncoder / TextDecoder —— 显式检测（加密工具、万物自指依赖） */
+    if (typeof TextEncoder === 'function' && typeof TextDecoder === 'function') {
+      try {
+        const enc = new TextEncoder();
+        const dec = new TextDecoder();
+        if (dec.decode(enc.encode('测试')) === '测试') {
+          setFeat('textEncoder', true, 'TextEncoder');
+        } else {
+          throw new Error('编解码不一致');
+        }
+      } catch (e) {
+        add('核心能力', 'TextEncoder / TextDecoder', 'fail', '编解码异常：' + e.message,
+          '受影响：AES 加密工具、万物自指公式、BTC 模拟交易。请升级浏览器。');
+        setFeat('textEncoder', false, 'TextEncoder', e.message);
+      }
+    } else {
+      add('核心能力', 'TextEncoder / TextDecoder', 'fail', '不可用',
+        '受影响：AES 加密工具、万物自指公式、BTC 模拟交易。请升级到现代浏览器。');
+      setFeat('textEncoder', false, 'TextEncoder', '不支持');
+    }
+
+    /* Web Worker */
+    const workerOk = await new Promise(resolve => {
+      if (typeof Worker === 'undefined') return resolve({ ok: false, msg: '浏览器不支持 Worker' });
+      let done = false;
+      let w = null;
+      let blobUrl = null;
+      let wTimer = null;
+      const finish = (ok, msg) => {
+        if (done) return; done = true;
+        if (wTimer !== null) { clearTimeout(wTimer); wTimer = null; }
+        if (w) { try { w.terminate(); } catch (e) {} }
+        if (blobUrl) { try { URL.revokeObjectURL(blobUrl); } catch (e) {} }
+        resolve({ ok, msg });
+      };
+      try {
+        const code = 'self.onmessage = function(e){ self.postMessage("pong:" + e.data); };';
+        const blob = new Blob([code], { type: 'application/javascript' });
+        blobUrl = URL.createObjectURL(blob);
+        w = new Worker(blobUrl);
+
+        w.onmessage = e => {
+          if (e.data === 'pong:ping') {
+            finish(true, '可用（双向通信正常）');
+          } else {
+            finish(false, '响应异常：' + String(e.data).slice(0, 40));
+          }
+        };
+        w.onerror = e => {
+          finish(false, '运行错误：' + (e.message || '未知'));
+        };
+        w.postMessage('ping');
+        wTimer = setTimeout(() => finish(false, '超时未响应（可能被 CSP 拦截）'), 3000);
+      } catch (e) {
+        finish(false, '异常：' + e.message);
+      }
+    });
+
+    if (workerOk.ok) {
+      add('核心能力', 'Web Worker', 'pass', workerOk.msg);
+      setFeat('worker', true, 'Web Worker');
+    } else {
+      add('核心能力', 'Web Worker', 'fail', workerOk.msg,
+        '受影响：AES 加密、暴力破解、BTC 存档、科拉兹猜想、万物自指公式（降级到主线程，高迭代卡顿）。\n' +
+        '解决：检查浏览器是否禁用，或 CSP 是否限制 blob:。');
+      setFeat('worker', false, 'Web Worker', workerOk.msg);
+    }
+
+    /* Canvas 2D */
+    try {
+      const c = document.createElement('canvas');
+      c.width = 32; c.height = 32;
+      const ctx = c.getContext('2d');
+      if (!ctx) throw new Error('无法获取 2D 上下文');
+      ctx.fillStyle = '#ff0000';
+      ctx.fillRect(0, 0, 16, 16);
+      const px = ctx.getImageData(0, 0, 1, 1).data;
+      if (px[0] !== 255 || px[3] !== 255) throw new Error('像素读写结果异常');
+      const url = c.toDataURL('image/png');
+      if (!url || url.indexOf('data:image/png') !== 0) throw new Error('toDataURL 异常');
+      add('核心能力', 'Canvas 2D', 'pass', '绘制 / 像素读写 / 导出图片均正常');
+      setFeat('canvas', true, 'Canvas 2D');
+    } catch (e) {
+      add('核心能力', 'Canvas 2D', 'fail', '不可用：' + e.message,
+        '受影响：星空画板、颜色浏览器、五子棋、科拉兹猜想、BTC 图表、Unicode 卡片、物理沙盒、粒子海洋等几乎所有工具。');
+      setFeat('canvas', false, 'Canvas 2D', e.message);
+    }
+
+    /* WebGL / WebGL2 —— 当前网站未使用，作为信息上报 */
+    try {
+      const wc = document.createElement('canvas');
+      const gl2 = wc.getContext('webgl2');
+      const gl1 = gl2 || wc.getContext('webgl') || wc.getContext('experimental-webgl');
+      if (gl2) {
+        add('核心能力', 'WebGL2', 'info', '可用（当前站点未使用，未来 3D 工具可依赖）');
+      } else if (gl1) {
+        add('核心能力', 'WebGL', 'info', '可用（WebGL1；WebGL2 不可用）');
+      } else {
+        add('核心能力', 'WebGL / WebGL2', 'info', '不可用（当前站点未使用）');
+      }
+    } catch (e) {
+      add('核心能力', 'WebGL / WebGL2', 'info', '检测异常（当前站点未使用）');
+    }
+
+    /* BigInt */
+    try {
+      const b = BigInt('123456789012345678901234567890') * 2n;
+      if (b.toString().length !== 30) throw new Error('计算异常');
+      add('核心能力', 'BigInt 大整数', 'pass', '可用');
+      setFeat('bigint', true, 'BigInt');
+    } catch (e) {
+      add('核心能力', 'BigInt 大整数', 'fail', '不可用',
+        '受影响：科拉兹猜想可视化、万物自指公式。请使用 Chrome 67+ / Firefox 68+ / Safari 14+。');
+      setFeat('bigint', false, 'BigInt', '不支持');
+    }
+
+    /* WebAssembly */
+    if (typeof WebAssembly === 'object' && WebAssembly !== null) {
+      add('核心能力', 'WebAssembly', 'info', '可用');
+    } else {
+      add('核心能力', 'WebAssembly', 'info', '不可用（当前站点未使用）');
+    }
+
+    /* Blob / URL */
+    try {
+      const blob = new Blob(['test'], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const okUrl = typeof url === 'string' && url.length > 0;
+      URL.revokeObjectURL(url);
+      const a = document.createElement('a');
+      if (!okUrl) throw new Error('createObjectURL 异常');
+      if (!('download' in a)) throw new Error('不支持 a[download] 属性');
+      add('核心能力', 'Blob / 文件下载', 'pass', 'Blob 创建与 a[download] 下载可用');
+      setFeat('blob', true, 'Blob 下载');
+    } catch (e) {
+      add('核心能力', 'Blob / 文件下载', 'fail', '不可用：' + e.message,
+        '所有「下载」类功能将失效。请升级浏览器。');
+      setFeat('blob', false, 'Blob 下载', e.message);
+    }
+
+    /* FileReader */
+    if (typeof FileReader !== 'undefined') {
+      add('核心能力', 'FileReader', 'pass', '可用');
+      setFeat('fileReader', true, 'FileReader');
+    } else {
+      add('核心能力', 'FileReader', 'fail', '不可用',
+        '受影响：AES 加密工具（文件加解密）、星空画板（打开图片）。');
+      setFeat('fileReader', false, 'FileReader', '不支持');
+    }
+
+    /* fetch */
+    if (typeof fetch === 'function') {
+      add('核心能力', 'fetch API', 'pass', '可用');
+      setFeat('fetch', true, 'fetch');
+    } else {
+      add('核心能力', 'fetch API', 'fail', '不可用', '受影响：在线 C++ 编译器。');
+      setFeat('fetch', false, 'fetch', '不支持');
+    }
+
+    /* AbortController */
+    if (typeof AbortController !== 'undefined') {
+      setFeat('abortController', true, 'AbortController');
+    } else {
+      add('核心能力', 'AbortController', 'warn', '不可用',
+        '在线 C++ 编译器的「停止编译」功能会失效。\n' +
+        '此外，CDN 探测会退化为「不带超时信号的 fetch」，遇到无响应服务器时可能等待较久，但不会导致整个诊断失败。');
+      setFeat('abortController', false, 'AbortController', '不支持');
+    }
+
+    /* Web Audio API */
+    if (window.AudioContext || window.webkitAudioContext) {
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        const ac = new AC();
+        try { ac.close().catch(() => {}); } catch (e) {}
+        add('核心能力', 'Web Audio API', 'pass', '可用（AudioContext 创建成功）');
+        setFeat('audioContext', true, 'Web Audio');
+      } catch (e) {
+        add('核心能力', 'Web Audio API', 'warn', '构造失败：' + e.message,
+          '受影响：粒子海洋（现场合成海浪/海啸/龙卷风音效）、首页小球点击音效。功能正常但无声。');
+        setFeat('audioContext', false, 'Web Audio', e.message);
+      }
+    } else {
+      add('核心能力', 'Web Audio API', 'warn', '不可用',
+        '受影响：粒子海洋（现场合成海浪/海啸/龙卷风音效）、首页小球点击音效。\n' +
+        '功能正常，只是没有声音。请使用较新版本的现代浏览器。');
+      setFeat('audioContext', false, 'Web Audio', '不支持');
+    }
+
+    /* Fullscreen API */
+    if (document.fullscreenEnabled || document.webkitFullscreenEnabled ||
+        document.mozFullScreenEnabled || document.msFullscreenEnabled) {
+      add('核心能力', 'Fullscreen API', 'pass', '可用');
+      setFeat('fullscreen', true, 'Fullscreen');
+    } else {
+      add('核心能力', 'Fullscreen API', 'warn', '不可用或被禁用',
+        '受影响：粒子海洋（右上角全屏按钮）、网页模拟浏览器（全屏按钮）。\n' +
+        '页面本身仍可正常使用，只是不能进入全屏。');
+      setFeat('fullscreen', false, 'Fullscreen', '禁用');
+    }
+
+    /* Clipboard */
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      add('核心能力', '剪贴板 API', 'pass', '可用（navigator.clipboard）');
+      setFeat('clipboard', true, '剪贴板');
+    } else {
+      add('核心能力', '剪贴板 API', 'warn', 'navigator.clipboard 不可用，将使用 execCommand 降级方案',
+        '在 HTTP 或 file:// 下剪贴板 API 可能被禁用。多数情况下降级方案仍可复制。');
+      setFeat('clipboard', false, '剪贴板', '降级方案');
+    }
+
+    /* Pointer Events */
+    if (window.PointerEvent) {
+      add('核心能力', 'Pointer Events', 'pass', '可用（触屏 + 鼠标统一事件）');
+      setFeat('pointerEvents', true, 'Pointer Events');
+    } else {
+      add('核心能力', 'Pointer Events', 'warn', '不可用',
+        '星空画板、物理沙盒、粒子海洋的指针交互可能异常。请使用 Chrome 55+ / Safari 13+。');
+      setFeat('pointerEvents', false, 'Pointer Events', '不支持');
+    }
+
+    /* 设备方向 */
+    if (typeof DeviceOrientationEvent !== 'undefined') {
+      const needPerm = typeof DeviceOrientationEvent.requestPermission === 'function';
+      add('核心能力', '设备方向感应', 'pass',
+        needPerm ? '可用（iOS 需用户授权后生效）' : '可用');
+      setFeat('deviceOrientation', true, '设备方向');
+    } else {
+      add('核心能力', '设备方向感应', 'warn', '不可用',
+        '首页小球的「重力感应」会失效，鼠标/触屏拖拽不受影响。桌面浏览器通常不支持此 API。');
+      setFeat('deviceOrientation', false, '设备方向', '不支持');
+    }
+
+    /* IntersectionObserver */
+    if (typeof IntersectionObserver !== 'undefined') {
+      setFeat('intersectionObserver', true, 'IntersectionObserver');
+    } else {
+      add('核心能力', 'IntersectionObserver', 'warn', '不可用',
+        '液态玻璃展示页的滚动入场动画不会触发，元素可能一直保持透明。');
+      setFeat('intersectionObserver', false, 'IntersectionObserver', '不支持');
+    }
+
+    /* ResizeObserver */
+    if (typeof ResizeObserver !== 'undefined') {
+      setFeat('resizeObserver', true, 'ResizeObserver');
+    } else {
+      add('核心能力', 'ResizeObserver', 'warn', '不可用',
+        '液态玻璃按钮、粒子海洋等依赖元素尺寸监听的功能可能无法自适应窗口变化。\n' +
+        '请升级到 Chrome 64+ / Firefox 69+ / Safari 13.1+。');
+      setFeat('resizeObserver', false, 'ResizeObserver', '不支持');
+    }
+
+    /* matchMedia */
+    if (typeof matchMedia === 'function') {
+      setFeat('matchMedia', true, 'matchMedia');
+    } else {
+      add('核心能力', 'matchMedia', 'warn', '不可用',
+        '无法响应 prefers-reduced-motion 等媒体查询偏好。请升级浏览器。');
+      setFeat('matchMedia', false, 'matchMedia', '不支持');
+    }
+
+    /* structuredClone（现代深拷贝，用于状态存档） */
+    if (typeof structuredClone === 'function') {
+      add('核心能力', 'structuredClone', 'info', '可用');
+    } else {
+      add('核心能力', 'structuredClone', 'info', '不可用（当前站点未使用）');
+    }
+
+    /* requestIdleCallback */
+    if (typeof requestIdleCallback === 'function') {
+      add('核心能力', 'requestIdleCallback', 'info', '可用');
+    } else {
+      add('核心能力', 'requestIdleCallback', 'info', '不可用（当前站点未使用）');
+    }
+
+    /* OffscreenCanvas */
+    if (typeof OffscreenCanvas !== 'undefined') {
+      add('核心能力', 'OffscreenCanvas', 'info', '可用（Worker 中做 Canvas 渲染）');
+    } else {
+      add('核心能力', 'OffscreenCanvas', 'info', '不可用（当前站点未在 Worker 中使用 Canvas）');
+    }
+
+    /* IndexedDB */
+    if (typeof indexedDB !== 'undefined' && indexedDB !== null) {
+      add('核心能力', 'IndexedDB', 'info', '可用');
+    } else {
+      add('核心能力', 'IndexedDB', 'info', '不可用（当前站点用 localStorage，未使用 IndexedDB）');
+    }
+
+    /* Intl.DateTimeFormat（北京时间时钟间接依赖，但用的是 UTC 时间戳） */
+    if (typeof Intl === 'object' && typeof Intl.DateTimeFormat === 'function') {
+      add('核心能力', 'Intl.DateTimeFormat', 'info', '可用');
+    } else {
+      add('核心能力', 'Intl.DateTimeFormat', 'info', '不可用（网站使用 UTC 时间戳 + 偏移，不受影响）');
+    }
+
+    /* history.pushState（SPA 路由能力） */
+    if (typeof history !== 'undefined' && typeof history.pushState === 'function') {
+      add('核心能力', 'history.pushState', 'info', '可用');
+    } else {
+      add('核心能力', 'history.pushState', 'info', '不可用');
+    }
+
+    /* localStorage */
+    try {
+      const k = '__diag_test__' + Date.now();
+      localStorage.setItem(k, '1');
+      const v = localStorage.getItem(k);
+      localStorage.removeItem(k);
+      if (v !== '1') throw new Error('读写不一致');
+      add('核心能力', 'localStorage', 'pass', '可用');
+      setFeat('localStorage', true, 'localStorage');
+    } catch (e) {
+      add('核心能力', 'localStorage', 'fail', '不可用：' + e.message,
+        '受影响：BTC 模拟交易（存档）、AES 加密工具（会话缓存）。\n' +
+        '可能原因：① 无痕模式；② 站点存储被禁用；③ 存储配额已满。');
+      setFeat('localStorage', false, 'localStorage', e.message);
+    }
+
+    /* sessionStorage */
+    try {
+      sessionStorage.setItem('__diag__', '1');
+      sessionStorage.removeItem('__diag__');
+      setFeat('sessionStorage', true, 'sessionStorage');
+    } catch (e) {
+      add('核心能力', 'sessionStorage', 'warn', '不可用：' + e.message,
+        'AES 加密工具将无法缓存性能校准结果，每次刷新都会重新校准。');
+      setFeat('sessionStorage', false, 'sessionStorage', e.message);
+    }
+
+    /* SVG 滤镜
+       检查分三级：
+       1) 接口存在性 —— SVGFEDisplacementMapElement / SVGFEImageElement 未定义则肯定不能工作；
+       2) createElementNS 方式构造 filter 元素；
+       3) 通过 getComputedStyle 判断 CSS filter 属性是否保留 url(#...) 引用。
+
+       注意：这是语法 + 接口级检查，不能证明 feImage + feDisplacementMap 实际渲染成功——
+       部分旧版 Safari 在 feImage + data URI 上有已知兼容问题，本检测无法覆盖。
+       报告里会明确标注这个局限性。
+    */
+    let svgEl = null;
+    let probeEl = null;
+    try {
+      if (typeof SVGFEDisplacementMapElement === 'undefined' ||
+          typeof SVGFEImageElement === 'undefined') {
+        throw new Error('缺少 SVGFEDisplacementMapElement / SVGFEImageElement 接口');
+      }
+
+      const NS = 'http://www.w3.org/2000/svg';
+      const XLINK_NS = 'http://www.w3.org/1999/xlink';
+      const svg = document.createElementNS(NS, 'svg');
+      const filter = document.createElementNS(NS, 'filter');
+      filter.setAttribute('id', '__diag_f__');
+
+      const dataUri = 'data:image/gif;base64,R0lGODlhAQABAAAAACw=';
+      const feImage = document.createElementNS(NS, 'feImage');
+      feImage.setAttribute('href', dataUri);
+      try { feImage.setAttributeNS(XLINK_NS, 'xlink:href', dataUri); } catch (e) {}
+      feImage.setAttribute('result', 'i');
+
+      const feDisp = document.createElementNS(NS, 'feDisplacementMap');
+      feDisp.setAttribute('in', 'SourceGraphic');
+      feDisp.setAttribute('in2', 'i');
+      feDisp.setAttribute('scale', '5');
+      feDisp.setAttribute('xChannelSelector', 'R');
+      feDisp.setAttribute('yChannelSelector', 'G');
+
+      filter.appendChild(feImage);
+      filter.appendChild(feDisp);
+      svg.appendChild(filter);
+      svg.setAttribute('style', 'position:absolute;width:0;height:0;');
+      document.body.appendChild(svg);
+      svgEl = svg;
+
+      const el = document.createElement('div');
+      el.style.cssText = 'width:10px;height:10px;filter:url(#__diag_f__)';
+      document.body.appendChild(el);
+      probeEl = el;
+
+      const cs = getComputedStyle(el).filter || '';
+      if (cs && cs.indexOf('url') !== -1) {
+        add('核心能力', 'SVG 滤镜（液态玻璃折射）', 'pass',
+          'feDisplacementMap 语法解析正常（接口 + CSS 属性均可用）',
+          '注：这是语法级检查。部分旧版 Safari 在 feImage + data URI 上有已知兼容问题，本检测无法覆盖——' +
+          '若液态玻璃按钮的折射实际看起来是普通模糊，请使用 Chrome / Edge 获得最佳效果。');
+        setFeat('svgFilter', true, 'SVG 滤镜');
+      } else {
+        add('核心能力', 'SVG 滤镜（液态玻璃折射）', 'warn', 'SVG 滤镜可能未生效',
+          '液态玻璃按钮的折射会退化为普通模糊。建议使用 Chrome / Edge。');
+        setFeat('svgFilter', false, 'SVG 滤镜', '未生效');
+      }
+    } catch (e) {
+      add('核心能力', 'SVG 滤镜（液态玻璃折射）', 'warn', '检测异常：' + e.message,
+        '推荐使用 Chrome / Edge 最新版。');
+      setFeat('svgFilter', false, 'SVG 滤镜', e.message);
+    } finally {
+      if (probeEl && probeEl.parentNode) probeEl.parentNode.removeChild(probeEl);
+      if (svgEl && svgEl.parentNode) svgEl.parentNode.removeChild(svgEl);
+    }
+  }
+
+  /* ============================================================
+     3. CSS 特性
+     ============================================================ */
+  function checkCSS() {
+    const list = [
+      { prop: 'backdrop-filter', val: 'blur(4px)', key: 'backdrop',
+        label: 'backdrop-filter 毛玻璃',
+        tools: '首页小球、导航按钮、公告卡片、液态玻璃展示',
+        tip: '几乎所有页面的「液态玻璃」质感都依赖它。Chrome 76+ / Safari 9+ / Firefox 103+ 支持。' },
+      { prop: 'clip-path', val: 'circle(50%)', key: 'clipPath',
+        label: 'clip-path 圆形裁剪',
+        tools: '液态玻璃展示页的主题扩散动画',
+        tip: '不支持时主题切换直接跳变，功能正常。' },
+      { prop: 'color', val: 'color-mix(in srgb, red, blue)', key: 'colorMix',
+        label: 'color-mix() 颜色混合',
+        tools: '公告中心的标签配色',
+        tip: '不支持时公告标签背景色缺失（文字仍可读）。Chrome 111+ / Safari 16.2+ / Firefox 113+。' },
+      { prop: 'aspect-ratio', val: '1 / 1', key: null,
+        label: 'aspect-ratio 宽高比',
+        tools: '五子棋棋盘、颜色浏览器',
+        tip: '不支持时棋盘可能变形。Chrome 88+ / Safari 15+ 支持。' }
+    ];
+
+    list.forEach(item => {
+      const ok = cssSupports(item.prop, item.val);
+      if (item.key) setFeat(item.key, ok, item.label);
+      if (ok) {
+        add('CSS 特性', item.label, 'pass', '支持');
+      } else {
+        add('CSS 特性', item.label, 'warn', '不支持',
+          '受影响：' + item.tools + '\n' + item.tip);
+      }
+    });
+  }
+
+  /* ============================================================
+     4. 外部 CDN
+     ============================================================ */
+  const CDN_LIST = [
+    { key: 'JSZip',
+      url: 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+      tool: 'AES-256 加密工具（文件夹加密）', critical: false },
+    { key: 'Ace 编辑器',
+      url: 'https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ace.js',
+      tool: '在线 C++ 编译器', critical: true },
+    { key: 'Ace 补全',
+      url: 'https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ext-language_tools.js',
+      tool: '在线 C++ 编译器', critical: true },
+    { key: 'Ace 样式',
+      url: 'https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ace.min.css',
+      tool: '在线 C++ 编译器', critical: true },
+    { key: 'diff_match_patch',
+      url: 'https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js',
+      tool: '文本差异对比', critical: true },
+    { key: 'html2canvas',
+      url: 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
+      tool: '手写体工坊（保存图片）', critical: false },
+    { key: 'Google Fonts',
+      url: 'https://fonts.googleapis.com/css2?family=Caveat&display=swap',
+      tool: '手写体工坊 / 五子棋（字体）', critical: false },
+    { key: '不蒜子统计',
+      url: 'https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js',
+      tool: '首页访问计数', critical: false },
+    { key: 'Wandbox 服务',
+      url: 'https://wandbox.org/api/list.json',
+      tool: '在线 C++ 编译器（编译执行）', critical: true,
+      note: '仅探测服务器与 API 列表端点可达性；实际编译功能仍需在 c.html 里实测。' }
+  ];
+
+  async function checkNetwork() {
+    const settled = await Promise.allSettled(
+      CDN_LIST.map(item => probeUrl(item.url).then(r => ({ item, r })))
+    );
+
+    settled.forEach((res, i) => {
+      const item = CDN_LIST[i];
+
+      // 纯防御：probeFetch 内部已经用 try/catch + finish() 保证永不 reject，
+      // 外层 .then 也不会抛异常，这条分支理论上永远不会命中。保留是为了防
+      // 未来改动引入新异常路径时能优雅降级，而不是整个 CDN 分类消失。
+      if (res.status === 'rejected') {
+        NET[item.key] = { ok: false, uncertain: false, status: 0 };
+        const reason = (res.reason && res.reason.message) || res.reason || '未知错误';
+        add('外部 CDN', item.key, item.critical ? 'fail' : 'warn',
+          '探测异常：' + reason + '（' + item.tool + '）',
+          '该条目无法判断可达性。建议用浏览器或 curl 手动访问以下地址确认：\n' +
+          item.url + '\n' +
+          '受影响：' + item.tool);
+        return;
+      }
+
+      const r = res.value.r;
+      NET[item.key] = {
+        ok: !!r.ok,
+        uncertain: !!r.uncertain,
+        status: r.status || 0
+      };
+
+      if (r.ok && !r.uncertain) {
+        add('外部 CDN', item.key, 'pass',
+          '可访问（HTTP ' + r.status + '）');
+      } else if (r.ok && r.uncertain) {
+        add('外部 CDN', item.key, 'warn',
+          '网络层可达（跨域策略受限，无法确认 HTTP 状态码）',
+          (item.note ? item.note + '\n' : '') +
+          '浏览器跨域策略不允许读取响应状态码，此处仅能确认服务器在线并响应了请求。\n' +
+          '若实际使用异常（例如返回 404），请用 curl / 浏览器开发者工具查看真实状态码。\n' +
+          '受影响：' + item.tool);
+      } else {
+        const sol = item.critical
+          ? '⚠️ 必需依赖，缺失会导致「' + item.tool + '」完全不可用。\n' +
+            '解决：① 检查网络/代理；② 若网络不稳定，可将文件下载到本地改为相对路径引用。'
+          : '增强依赖，缺失时「' + item.tool + '」降级但不影响主要功能。\n' +
+            '解决：检查网络，或下载到本地引用。';
+        add('外部 CDN', item.key, item.critical ? 'fail' : 'warn',
+          '无法访问（' + item.tool + '）', sol);
+      }
+    });
+  }
+
+  /* ============================================================
+     5. 存储与性能
+     ============================================================ */
+  async function checkPerf() {
+    if (navigator.storage && navigator.storage.estimate) {
+      try {
+        const est = await navigator.storage.estimate();
+        const usage = (est.usage / 1048576).toFixed(2);
+        const quota = (est.quota / 1048576).toFixed(0);
+        add('存储与性能', '存储配额', 'info',
+          '已用 ' + usage + ' MB / 可用约 ' + quota + ' MB');
+      } catch (e) {
+        add('存储与性能', '存储配额', 'info', '无法获取（不影响使用）');
+      }
+    } else {
+      add('存储与性能', '存储配额', 'info', '当前浏览器不提供配额查询接口');
+    }
+
+    const cores = navigator.hardwareConcurrency;
+    if (cores) {
+      const lvl = cores >= 4 ? 'pass' : 'warn';
+      add('存储与性能', 'CPU 逻辑核心', lvl, cores + ' 核',
+        cores < 4
+          ? '核心数较少，PBKDF2 高迭代次数（500 万次以上）会明显变慢；粒子海洋 / 物理沙盒等 Canvas 重度工具可能掉帧。建议 AES 加密时选 10 万 ~ 100 万次。'
+          : '');
+    } else {
+      add('存储与性能', 'CPU 逻辑核心', 'info', '浏览器未提供该信息');
+    }
+
+    const mem = navigator.deviceMemory;
+    if (mem) {
+      const lvl = mem >= 4 ? 'pass' : 'warn';
+      add('存储与性能', '设备内存', lvl, '约 ' + mem + ' GB',
+        mem < 4 ? '内存偏小，处理大于 50MB 的文件（AES 加密、星空画板打开大图）以及物理沙盒的复杂场景可能卡顿或崩溃。' : '');
+    } else {
+      add('存储与性能', '设备内存', 'info', '浏览器未提供（Chrome / Edge 支持）');
+    }
+
+    if (window.crypto && window.crypto.subtle) {
+      const benchPromise = (async () => {
+        const enc = new TextEncoder();
+        const baseKey = await crypto.subtle.importKey(
+          'raw', enc.encode('bench'), { name: 'PBKDF2' }, false, ['deriveKey']);
+        const t0 = performance.now();
+        await crypto.subtle.deriveKey(
+          { name: 'PBKDF2', salt: new Uint8Array(16), iterations: 100000, hash: 'SHA-256' },
+          baseKey, { name: 'AES-GCM', length: 256 }, false, ['encrypt']);
+        return performance.now() - t0;
+      })();
+
+      let benchTimer = null;
+      const dt = await Promise.race([
+        benchPromise.catch(() => null),
+        new Promise(resolve => {
+          benchTimer = setTimeout(() => resolve('timeout'), 4000);
+        })
+      ]);
+      if (benchTimer !== null) { clearTimeout(benchTimer); benchTimer = null; }
+
+      if (dt === 'timeout') {
+        add('存储与性能', 'PBKDF2 基准（10 万次）', 'fail',
+          '> 4 秒（超时）',
+          '设备性能极弱，10 万次 PBKDF2 都无法在 4 秒内完成。\n' +
+          '强烈建议在 AES 加密工具中选择 10 万次以下迭代（如 5 万次），或更换设备。');
+      } else if (dt === null) {
+        add('存储与性能', 'PBKDF2 基准', 'info', '无法测量（执行异常）');
+      } else {
+        let lvl, tip;
+        if (dt < 120)      { lvl = 'pass'; tip = '性能优秀，可使用 200 万次以上迭代。'; }
+        else if (dt < 400) { lvl = 'pass'; tip = '性能良好，建议迭代次数 100 万 ~ 200 万次。'; }
+        else if (dt < 1200){ lvl = 'warn'; tip = '性能偏弱，建议迭代不超过 100 万次，否则加密会明显等待。'; }
+        else               { lvl = 'fail'; tip = '性能很弱，强烈建议使用 10 万 ~ 50 万次迭代，或更换设备。'; }
+
+        add('存储与性能', 'PBKDF2 基准（10 万次）', lvl, dt.toFixed(0) + ' ms', tip);
+      }
+    }
+
+    if (document.hidden) {
+      add('存储与性能', '渲染帧率（粗测）', 'info', '页面在后台，跳过检测',
+        '浏览器暂停了后台标签页的 requestAnimationFrame，无法测量帧率。请保持本页在前台后重新检测。');
+    } else {
+      // 采样窗口从 500ms 提升到 1200ms：减少首帧渲染开销和瞬时 GC 造成的抖动。
+      // 超时保护从 3000ms 提到 2500ms（> 1200ms 采样 + 缓冲）。
+      const fpsResult = await measureFPS(2500);
+      if (fpsResult.fps === null) {
+        add('存储与性能', '渲染帧率（粗测）', 'info', '无法测量（' + fpsResult.reason + '）');
+      } else {
+        const fps = fpsResult.fps;
+        const lvl = fps >= 50 ? 'pass' : fps >= 30 ? 'warn' : 'fail';
+        const tip = fps >= 50 ? ''
+          : fps >= 30 ? '动画流畅度一般，星空 + 粒子 + 液态玻璃同时开启时可能掉帧。'
+          : '动画明显卡顿，粒子海洋 / 物理沙盒等高密度场景可能无法正常运行。建议关闭部分粒子效果，或更换设备 / 开启硬件加速。';
+        add('存储与性能', '渲染帧率（粗测）', lvl, fps + ' FPS', tip);
+      }
+    }
+  }
+
+  // FPS 采样：窗口 1200ms，超时兜底
+  function measureFPS(timeoutMs) {
+    const SAMPLE_MS = 1200;
+    return new Promise(resolve => {
+      let timer = null;
+      let resolved = false;
+      const finish = result => {
+        if (resolved) return;
+        resolved = true;
+        if (timer !== null) { clearTimeout(timer); timer = null; }
+        resolve(result);
+      };
+
+      timer = setTimeout(
+        () => finish({ fps: null, reason: '测量超时（可能页面被切到后台）' }),
+        timeoutMs
+      );
+
+      let frames = 0;
+      const t0 = performance.now();
+      function loop() {
+        if (resolved) return;
+        frames++;
+        const dt = performance.now() - t0;
+        if (dt >= SAMPLE_MS) {
+          finish({ fps: Math.round(frames / (dt / 1000)) });
+          return;
+        }
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(loop);
+    });
+  }
+
+  /* ============================================================
+     6. 工具依赖矩阵
+     ============================================================ */
+  const TOOL_MATRIX = [
+    { file:'index.html',         title:'首页 · 星星的网页',
+      require:['canvas','backdrop'],
+      optional:['worker','localStorage','pointerEvents','deviceOrientation','blob','svgFilter'] },
+    { file:'gg.html',            title:'公告中心',
+      require:['canvas','backdrop'],
+      optional:['colorMix','blob'] },
+    { file:'fz.html',            title:'星际导航 · 第 1 页',
+      require:['backdrop','blob'],
+      optional:['worker','svgFilter'] },
+    { file:'fz2.html',           title:'星际导航 · 第 2 页',
+      require:['backdrop','blob'],
+      optional:['worker','svgFilter'] },
+    { file:'fz3.html',           title:'星际导航 · 第 3 页',
+      require:['backdrop','blob'],
+      optional:['worker','svgFilter'] },
+
+    { file:'fz/AES256.html',     title:'AES-256-GCM 加密工具',
+      require:['crypto','fileReader','textEncoder'],
+      optional:['worker','canvas','localStorage','blob'],
+      optionalNet:['JSZip'],
+      note:'文件夹加密需要 JSZip；高迭代次数需要 Web Worker 才不会卡界面。' },
+    { file:'fz/PJAES256.html',   title:'AES 暴力破解器',
+      require:['crypto','textEncoder'],
+      optional:['worker'],
+      note:'Web Crypto 是硬性前提，缺失则完全无法运行。暴力枚举组合数极易爆炸，请务必先看估算。' },
+    { file:'fz/wb.html',         title:'文本差异对比',
+      require:['blob'],
+      optional:['clipboard'],
+      requireNet:['diff_match_patch'],
+      note:'diff 算法库从 CDN 加载，加载失败则核心功能不可用。' },
+    { file:'fz/Unicode.html',    title:'Unicode 字符浏览器',
+      require:['canvas'],
+      optional:['clipboard'],
+      note:'BMP 区域分块加载，性能友好。' },
+    { file:'fz/gp.html',         title:'BTC 模拟交易',
+      require:['crypto','worker','canvas','textEncoder'],
+      optional:['localStorage','blob'],
+      note:'存档加密依赖 Web Crypto，后台加密依赖 Web Worker。' },
+    { file:'fz/lssc.html',       title:'流式输出 · 导出增强',
+      require:['blob'],
+      optional:['clipboard'] },
+    { file:'fz/css.html',        title:'丝滑控件展示',
+      require:[],
+      optional:['backdrop'] },
+    { file:'fz/ztzh.html',       title:'手写体工坊',
+      require:['canvas'],
+      optional:['clipboard'],
+      optionalNet:['html2canvas','Google Fonts'],
+      note:'Google Fonts 不可达时自动隐藏在线字体选项，本地字体不受影响。' },
+    { file:'fz/c.html',          title:'在线 C++ 编译器',
+      require:['fetch'],
+      optional:['abortController','blob'],
+      requireNet:['Ace 编辑器','Ace 补全','Ace 样式','Wandbox 服务'],
+      note:'完全依赖外网服务，离线或网络异常时不可用。' },
+
+    { file:'fz2/llq.html',       title:'网页模拟浏览器',
+      require:['canvas','blob'],
+      optional:['fullscreen'],
+      restricted: true,
+      note:'⚠️ 百度、GitHub、维基百科等站点通过 X-Frame-Options / CSP 禁止被 iframe 嵌入，实际只能显示空白或错误页。这是外部站点的限制，无法通过代码绕过。' },
+    { file:'fz2/ytbl.html',      title:'液态玻璃效果展示',
+      require:['canvas','backdrop'],
+      optional:['intersectionObserver','worker','resizeObserver'] },
+    { file:'fz2/hb.html',        title:'星空画板',
+      require:['canvas','pointerEvents'],
+      optional:['fileReader','blob'] },
+    { file:'fz2/ysckq.html',     title:'全色域颜色浏览器',
+      require:['canvas'],
+      optional:[] },
+    { file:'fz2/klzcx.html',     title:'科拉兹猜想可视化',
+      require:['canvas','worker','bigint'],
+      optional:[] },
+    { file:'fz2/sj.html',        title:'北京时间时钟',
+      require:[],
+      optional:[] },
+    { file:'fz2/wzq.html',       title:'AI 五子棋',
+      require:['canvas'],
+      optional:['localStorage'],
+      optionalNet:['Google Fonts'] },
+    { file:'fz2/wwzz.html',      title:'万物自指公式',
+      require:['canvas','worker','bigint','blob','textEncoder'],
+      optional:['svgFilter'] },
+    { file:'fz2/uno/index.html', title:'UNO 在线游玩',
+      require:[],
+      optional:[] },
+
+    { file:'fz3/wlsh.html',      title:'物理沙盒 · m g a v r',
+      require:['canvas','pointerEvents'],
+      optional:['clipboard'],
+      note:'纯本地 Canvas + DOM 混合渲染的字母物理沙盒：拖拽 / 抛掷 / 组合 / 力学模拟。实时计算量大，对 CPU 和帧率有较高要求。' },
+    { file:'fz3/lzh.html',       title:'粒子海洋 · Particle Ocean',
+      require:['canvas','pointerEvents'],
+      optional:['audioContext','fullscreen','resizeObserver'],
+      note:'Web Audio 现场合成海浪 / 海啸 / 龙卷风音效，不支持时静默降级。高粒子密度 + 实时折射遮挡对 CPU / GPU 有要求。' }
+  ];
+
+  function evaluateTools() {
+    TOOL_MATRIX.forEach(tool => {
+      const reqChips = [];
+      const optChips = [];
+      let hardFail = false;
+      let undefinedDep = false;
+
+      (tool.require || []).forEach(k => {
+        const f = FEAT[k];
+        if (!f) {
+          warnOnce('FEAT:' + k, tool.title);
+          undefinedDep = true;
+          reqChips.push({ label: k + '（未检测）', state: 'warn' });
+          return;
+        }
+        if (f.ok === false) hardFail = true;
+        reqChips.push({ label: f.label, state: f.ok ? 'ok' : 'bad' });
+      });
+
+      (tool.optional || []).forEach(k => {
+        const f = FEAT[k];
+        if (!f) {
+          warnOnce('FEAT:' + k, tool.title);
+          undefinedDep = true;
+          optChips.push({ label: k + '（未检测）', state: 'warn' });
+          return;
+        }
+        optChips.push({ label: f.label, state: f.ok ? 'ok' : 'warn' });
+      });
+
+      (tool.requireNet || []).forEach(n => {
+        const v = NET[n];
+        if (!v) {
+          warnOnce('NET:' + n, tool.title);
+          undefinedDep = true;
+          reqChips.push({ label: n + ' ·CDN（未检测）', state: 'warn' });
+          return;
+        }
+        let state;
+        if (!v.ok) { state = 'bad'; hardFail = true; }
+        else if (v.uncertain) { state = 'warn'; }
+        else { state = 'ok'; }
+        reqChips.push({ label: n + ' ·CDN', state });
+      });
+
+      (tool.optionalNet || []).forEach(n => {
+        const v = NET[n];
+        if (!v) {
+          warnOnce('NET:' + n, tool.title);
+          undefinedDep = true;
+          optChips.push({ label: n + ' ·CDN（未检测）', state: 'warn' });
+          return;
+        }
+        let state;
+        if (!v.ok) state = 'warn';
+        else if (v.uncertain) state = 'warn';
+        else state = 'ok';
+        optChips.push({ label: n + ' ·CDN', state });
+      });
+
+      const hasWarn = reqChips.some(c => c.state === 'warn')
+                   || optChips.some(c => c.state === 'warn');
+
+      let level = 'pass';
+      if (hardFail) level = 'fail';
+      else if (hasWarn || undefinedDep || tool.restricted) level = 'warn';
+
+      tool._level = level;
+      tool._req   = reqChips;
+      tool._opt   = optChips;
+    });
+  }
+
+  /* ============================================================
+     渲染
+     ============================================================ */
+  function renderOverview() {
+    const counts = { pass:0, warn:0, fail:0, info:0 };
+    R.forEach(r => { counts[r.status] = (counts[r.status] || 0) + 1; });
+
+    const toolsPass = TOOL_MATRIX.filter(t => t._level === 'pass').length;
+    const toolsWarn = TOOL_MATRIX.filter(t => t._level === 'warn').length;
+    const toolsFail = TOOL_MATRIX.filter(t => t._level === 'fail').length;
+
+    $('overview').innerHTML =
+      ovCard(counts.pass, '通过', 'pass') +
+      ovCard(counts.warn, '警告', 'warn') +
+      ovCard(counts.fail, '失败', 'fail') +
+      ovCard(toolsPass, '工具可用', 'pass') +
+      ovCard(toolsWarn + toolsFail, '工具受限', toolsFail > 0 ? 'fail' : 'warn');
+  }
+
+  function ovCard(num, label, cls) {
+    return '<div class="ov-card"><div class="ov-num ' + cls + '">' + num +
+           '</div><div class="ov-label">' + label + '</div></div>';
+  }
+
+  const PREFERRED_CATS = ['运行环境', '核心能力', 'CSS 特性', '外部 CDN', '存储与性能'];
+  function getCategoryOrder() {
+    const allCats = [];
+    R.forEach(r => { if (allCats.indexOf(r.cat) === -1) allCats.push(r.cat); });
+    const head = PREFERRED_CATS.filter(c => allCats.indexOf(c) !== -1);
+    const tail = allCats.filter(c => PREFERRED_CATS.indexOf(c) === -1);
+    return head.concat(tail);
+  }
+
+  function toolBadgeText(level, tool) {
+    if (level === 'pass') return '可正常使用';
+    if (level === 'fail') return '无法使用';
+    if (tool && tool.restricted) return '功能受限';
+    return '部分功能降级';
+  }
+
+  function categorySummary(items) {
+    const failCount = items.filter(i => i.status === 'fail').length;
+    const warnCount = items.filter(i => i.status === 'warn').length;
+    const passCount = items.filter(i => i.status === 'pass').length;
+    const infoCount = items.filter(i => i.status === 'info').length;
+
+    if (failCount)
+      return '<span style="color:#fca5a5">' + failCount + ' 项失败</span>';
+    if (warnCount)
+      return '<span style="color:#fcd34d">' + warnCount + ' 项警告</span>';
+    if (infoCount && passCount)
+      return '<span style="color:#6ee7b7">' + passCount + ' 项通过</span>' +
+             ' · <span style="color:#8b9ab0">' + infoCount + ' 项信息</span>';
+    if (passCount)
+      return '<span style="color:#6ee7b7">全部通过</span>';
+    return '<span style="color:#8b9ab0">' + infoCount + ' 项信息</span>';
+  }
+
+  function renderReport() {
+    const root = $('report');
+    root.innerHTML = '';
+
+    const order = getCategoryOrder();
+
+    order.forEach(cat => {
+      const items = R.filter(r => r.cat === cat);
+      if (!items.length) return;
+
+      const sec = document.createElement('section');
+      sec.className = 'section';
+
+      sec.innerHTML =
+        '<h2 class="sec-title">' + esc(cat) +
+        '<span class="sec-count">' + items.length + ' 项 · ' + categorySummary(items) + '</span></h2>' +
+        '<div class="list"></div>';
+
+      const list = sec.querySelector('.list');
+      items.forEach(it => {
+        const row = document.createElement('div');
+        row.className = 'row ' + it.status;
+        row.innerHTML =
+          '<span class="dot"></span>' +
+          '<div class="row-main">' +
+            '<div class="row-head">' +
+              '<span class="row-name">' + esc(it.name) + '</span>' +
+              '<span class="row-msg">' + esc(it.msg) + '</span>' +
+            '</div>' +
+            (it.sol ? '<div class="row-sol">💡 ' + esc(it.sol).replace(/\n/g, '<br>') + '</div>' : '') +
+          '</div>';
+        list.appendChild(row);
+      });
+
+      root.appendChild(sec);
+    });
+
+    const sec = document.createElement('section');
+    sec.className = 'section';
+    sec.innerHTML = '<h2 class="sec-title">工具可用性评估' +
+      '<span class="sec-count">共 ' + TOOL_MATRIX.length + ' 个工具</span></h2>' +
+      '<div class="tools" id="toolGrid"></div>';
+    root.appendChild(sec);
+
+    const grid = sec.querySelector('#toolGrid');
+
+    TOOL_MATRIX.forEach(tool => {
+      const level = tool._level || 'warn';
+      const req   = tool._req  || [];
+      const opt   = tool._opt  || [];
+
+      const card = document.createElement('div');
+      card.className = 'tool ' + level;
+
+      let chips = '';
+      req.forEach(c => {
+        chips += '<span class="chip ' + c.state + '">' +
+          (c.state === 'bad' ? '✕ ' : c.state === 'warn' ? '⚠ ' : '✓ ') + esc(c.label) + '</span>';
+      });
+      opt.forEach(c => {
+        chips += '<span class="chip ' + (c.state === 'warn' ? 'warn' : 'ok') + '">' +
+          (c.state === 'warn' ? '⚠ ' : '✓ ') + esc(c.label) + '</span>';
+      });
+      if (!chips) chips = '<span class="chip na">无特殊依赖</span>';
+
+      let noteHtml = '';
+      if (tool.note) {
+        noteHtml = '<div class="tool-note">' + esc(tool.note) + '</div>';
+      }
+
+      card.innerHTML =
+        '<div class="tool-head">' +
+          '<span class="tool-name">' + esc(tool.title) + '</span>' +
+          '<span class="tool-badge">' + toolBadgeText(level, tool) + '</span>' +
+        '</div>' +
+        '<div class="tool-path">' + esc(tool.file) + '</div>' +
+        '<div class="tool-deps">' + chips + '</div>' +
+        noteHtml;
+
+      grid.appendChild(card);
+    });
+
+    const sumSec = document.createElement('section');
+    sumSec.className = 'section';
+    sumSec.innerHTML = '<h2 class="sec-title">结论与修复建议</h2>' +
+      '<div id="summaryBox"></div>';
+    root.appendChild(sumSec);
+
+    const fails = R.filter(r => r.status === 'fail');
+    const warns = R.filter(r => r.status === 'warn');
+    const box = sumSec.querySelector('#summaryBox');
+
+    const lines = [];
+
+    if (fails.length === 0 && warns.length === 0) {
+      lines.push('🎉 <b style="color:#6ee7b7">当前环境完全通过检测</b>，站内所有工具都可以正常使用。');
+    } else {
+      if (fails.length) {
+        lines.push('🚨 <b style="color:#fca5a5">发现 ' + fails.length + ' 项致命问题</b>，会导致部分工具无法使用：');
+        fails.forEach(f => lines.push('&nbsp;&nbsp;• <b>' + esc(f.name) + '</b> — ' + esc(f.msg)));
+      }
+      if (warns.length) {
+        lines.push('');
+        lines.push('⚠️ <b style="color:#fcd34d">发现 ' + warns.length + ' 项警告</b>，功能会降级但不致命：');
+        warns.forEach(w => lines.push('&nbsp;&nbsp;• <b>' + esc(w.name) + '</b> — ' + esc(w.msg)));
+      }
+    }
+
+    lines.push('');
+    lines.push('<b>📌 通用最佳实践</b>');
+    lines.push('&nbsp;&nbsp;1. 若在国内网络环境，建议把 CDN 资源（JSZip、Ace、diff_match_patch、html2canvas、Google Fonts）' +
+      '下载到本地，改为相对路径引用，可彻底摆脱网络波动影响。');
+
+    const toolFails = TOOL_MATRIX.filter(t => t._level === 'fail');
+    if (toolFails.length) {
+      lines.push('&nbsp;&nbsp;2. 受影响无法使用的工具：' +
+        toolFails.map(t => '<b>' + esc(t.title) + '</b>').join('、'));
+    }
+
+    box.innerHTML = '<div style="background:rgba(96,165,250,.07);' +
+      'border:1px solid rgba(96,165,250,.25);color:#c9dcf7;padding:14px 18px;border-radius:14px;' +
+      'font-size:.82rem;line-height:1.8">' +
+      lines.join('<br>') + '</div>';
+  }
+
+  /* ============================================================
+     报告导出
+     ============================================================ */
+  function buildTextReport() {
+    const lines = [];
+    lines.push('═══════════════════════════════════════════');
+    lines.push('  系统诊断报告');
+    lines.push('  生成时间：' + new Date().toLocaleString('zh-CN'));
+    lines.push('  页面地址：' + location.href);
+    lines.push('═══════════════════════════════════════════');
+    lines.push('');
+
+    const order = getCategoryOrder();
+    order.forEach(cat => {
+      const items = R.filter(r => r.cat === cat);
+      if (!items.length) return;
+      lines.push('【' + cat + '】');
+      items.forEach(it => {
+        const icon = it.status === 'pass' ? '[✓]'
+                   : it.status === 'warn' ? '[!]'
+                   : it.status === 'fail' ? '[✗]' : '[i]';
+        lines.push('  ' + icon + ' ' + it.name + '：' + it.msg);
+        if (it.sol && typeof it.sol === 'string' && it.sol.length > 0) {
+          it.sol.split('\n').forEach(s => lines.push('      ↳ ' + s));
+        }
+      });
+      lines.push('');
+    });
+
+    lines.push('【工具可用性】');
+    TOOL_MATRIX.forEach(t => {
+      const level = t._level || 'warn';
+      const icon = level === 'pass' ? '[✓]'
+                 : level === 'warn' ? '[!]' : '[✗]';
+      const tag = t.restricted ? '  ⟪功能受限：外部站点策略⟫' : '';
+      lines.push('  ' + icon + ' ' + t.title + '（' + t.file + '）' + tag);
+      if (t.note) lines.push('      ↳ ' + t.note);
+    });
+    lines.push('');
+
+    lines.push('【总结】');
+    const fails = R.filter(r => r.status === 'fail');
+    const warns = R.filter(r => r.status === 'warn');
+    lines.push('  失败项：' + fails.length + '  警告项：' + warns.length +
+               '  通过项：' + R.filter(r => r.status === 'pass').length);
+    if (fails.length === 0 && warns.length === 0) {
+      lines.push('  ✅ 当前环境完全通过检测。');
+    } else {
+      if (fails.length) {
+        lines.push('  致命问题：');
+        fails.forEach(f => lines.push('    • ' + f.name + ' — ' + f.msg));
+      }
+      if (warns.length) {
+        lines.push('  警告项：');
+        warns.forEach(w => lines.push('    • ' + w.name + ' — ' + w.msg));
+      }
+    }
+    lines.push('');
+    lines.push('═══════════════════════════════════════════');
+    return lines.join('\n');
+  }
+
+  function copyReport() {
+    const text = buildTextReport();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        () => flashBtn($('btnCopy'), '✅ 已复制'),
+        () => fallbackCopy(text)
+      );
+    } else {
+      fallbackCopy(text);
+    }
+  }
+
+  function fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+      flashBtn($('btnCopy'), '✅ 已复制');
+    } catch (e) {
+      alert('复制失败，请手动选择文本');
+    }
+    document.body.removeChild(ta);
+  }
+
+  // 加 Blob / URL.createObjectURL 守卫：环境中没有 Blob 时直接提示，
+  // 不要抛出未捕获异常，也不要让 URL.revokeObjectURL 空引用。
+  function downloadReport() {
+    if (typeof Blob === 'undefined' ||
+        typeof URL === 'undefined' ||
+        typeof URL.createObjectURL !== 'function') {
+      flashBtn($('btnDownload'), '❌ 不支持下载');
+      return;
+    }
+    try {
+      const text = buildTextReport();
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = '诊断报告_' +
+        new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 500);
+      flashBtn($('btnDownload'), '✅ 已下载');
+    } catch (e) {
+      console.error('[诊断] 下载失败：', e);
+      flashBtn($('btnDownload'), '❌ 下载失败');
+    }
+  }
+
+  // flashBtn 恢复 disabled 时尊重 isRunning：
+  // 避免"运行中点了复制 → 1.4 秒后按钮被 flashBtn 解锁 → 又能在 run 进行中复制半成品报告"。
+  function flashBtn(btn, text) {
+    if (btn._flashTimer) {
+      clearTimeout(btn._flashTimer);
+      btn._flashTimer = null;
+      if (btn._flashOriginal != null) btn.textContent = btn._flashOriginal;
+    } else {
+      btn._flashOriginal = btn.textContent;
+    }
+    btn.textContent = text;
+    btn.disabled = true;
+    btn._flashTimer = setTimeout(() => {
+      btn.textContent = btn._flashOriginal;
+      btn.disabled = isRunning;
+      btn._flashTimer = null;
+      btn._flashOriginal = null;
+    }, 1400);
+  }
+
+  /* ============================================================
+     主流程
+     ============================================================ */
+  const ALL_BTN_IDS = ['btnRerun', 'btnCopy', 'btnDownload'];
+
+  function setAllBtnsDisabled(disabled) {
+    ALL_BTN_IDS.forEach(id => { $(id).disabled = disabled; });
+  }
+
+  async function run() {
+    if (isRunning) return;
+    isRunning = true;
+    setAllBtnsDisabled(true);
+
+    R.length = 0;
+    Object.keys(FEAT).forEach(k => delete FEAT[k]);
+    Object.keys(NET).forEach(k => delete NET[k]);
+    _warnedKeys.clear();
+    $('barFill').style.width = '0%';
+    $('report').innerHTML = '';
+    $('overview').innerHTML = '';
+
+    try {
+      progress('正在检测运行环境…', 10);
+      checkEnvironment();
+
+      progress('正在检测 CSS 特性…', 20);
+      checkCSS();
+
+      progress('正在并行测试核心 API / 外部 CDN / 性能…', 35);
+
+      const tasks = [
+        { name: '核心能力检测', promise: checkCore()    },
+        { name: '外部 CDN 检测', promise: checkNetwork() },
+        { name: '性能检测',     promise: checkPerf()    }
+      ];
+      const settled = await Promise.allSettled(tasks.map(t => t.promise));
+      settled.forEach((r, i) => {
+        if (r.status === 'rejected') {
+          const reason = (r.reason && r.reason.message) || r.reason || '未知错误';
+          add('运行环境', tasks[i].name + '异常', 'fail',
+            '检测过程抛出异常：' + reason,
+            '该分类的部分数据可能缺失。请刷新页面后重试；若反复出现，请更换浏览器并在控制台查看完整堆栈。');
+          console.error('[诊断] ' + tasks[i].name + ' reject：', r.reason);
+        }
+      });
+
+      progress('正在评估各工具可用性…', 85);
+      evaluateTools();
+
+      progress('正在生成诊断报告…', 95);
+      renderOverview();
+      renderReport();
+
+      $('barFill').style.width = '100%';
+      const fails = R.filter(r => r.status === 'fail').length;
+      const warns = R.filter(r => r.status === 'warn').length;
+      $('barText').textContent = fails === 0 && warns === 0
+        ? '✅ 检测完成 · 环境完全正常'
+        : '✅ 检测完成 · ' + fails + ' 项失败 / ' + warns + ' 项警告';
+
+    } catch (e) {
+      $('barText').textContent = '❌ 诊断过程出错：' + (e.message || e);
+      add('运行环境', '诊断流程', 'fail', e.message || String(e),
+        '请刷新页面后重试。若反复出现，请更换浏览器。');
+      renderOverview();
+      renderReport();
+    } finally {
+      isRunning = false;
+      setAllBtnsDisabled(false);
+    }
+  }
+
+  $('btnRerun').addEventListener('click', run);
+  $('btnCopy').addEventListener('click', copyReport);
+  $('btnDownload').addEventListener('click', downloadReport);
+
+  if (document.readyState === 'complete') {
+    setTimeout(run, 0);
+  } else {
+    window.addEventListener('load', run, { once: true });
+  }
+
+})();
+</script>
+</body>
+</html>
