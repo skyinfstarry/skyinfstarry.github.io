@@ -7,89 +7,126 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --bg:#060910;
+  --bg:#03050b;
   --panel:rgba(255,255,255,.045);
-  --border:rgba(255,255,255,.10);
-  --text:#e9eef8;
-  --muted:#8b9ab0;
+  --panel-hover:rgba(255,255,255,.085);
+  --border:rgba(255,255,255,.09);
+  --border-strong:rgba(255,255,255,.20);
+  --text:#e9efff;
+  --muted:#93a3c4;
+
   --pass:#34d399;
+  --pass-soft:#6ee7b7;
+  --pass-bg:rgba(52,211,153,.11);
+  --pass-border:rgba(52,211,153,.34);
+
   --warn:#fbbf24;
+  --warn-soft:#fcd34d;
+  --warn-bg:rgba(251,191,36,.11);
+  --warn-border:rgba(251,191,36,.34);
+
   --fail:#f87171;
+  --fail-soft:#fca5a5;
+  --fail-bg:rgba(248,113,113,.11);
+  --fail-border:rgba(248,113,113,.34);
+
   --info:#60a5fa;
+  --info-soft:#bfdbfe;
+  --info-bg:rgba(96,165,250,.10);
+  --info-border:rgba(96,165,250,.32);
 }
 html,body{min-height:100%}
 body{
-  background:
-    radial-gradient(900px 500px at 15% -10%, #12203a 0%, transparent 60%),
-    radial-gradient(700px 400px at 100% 0%, #1c1430 0%, transparent 55%),
-    var(--bg);
+  background-color:var(--bg);
+  background-image:
+    radial-gradient(1200px 800px at 12% -8%, rgba(59,130,246,.22), transparent 62%),
+    radial-gradient(1000px 700px at 92% 6%,  rgba(139,92,246,.20), transparent 60%),
+    radial-gradient(900px 900px at 50% 110%, rgba(16,185,129,.12), transparent 65%);
+  background-attachment:fixed;
   color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
   line-height:1.6;
   padding:28px 16px 90px;
   -webkit-font-smoothing:antialiased;
 }
-.wrap{max-width:1020px;margin:0 auto}
+#bgCanvas{
+  position:fixed;inset:0;width:100%;height:100%;
+  display:block;z-index:0;pointer-events:none;
+}
+.wrap{position:relative;z-index:2;max-width:1020px;margin:0 auto}
 
+/* ================= 顶部 ================= */
 .hero{text-align:center;margin-bottom:30px}
 .hero h1{
   font-size:clamp(1.5rem,4vw,2.2rem);font-weight:800;letter-spacing:1px;
-  background:linear-gradient(135deg,#fff,#bcd6ff,#9fb8ff);
-  -webkit-background-clip:text;background-clip:text;color:transparent;
+  color:var(--text);
   margin-bottom:8px;
+  filter:drop-shadow(0 0 18px rgba(96,165,250,.35));
 }
 .hero p{color:var(--muted);font-size:.92rem}
 .bar{
   margin:22px auto 8px;height:6px;width:100%;max-width:520px;
-  background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden;
+  background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:99px;overflow:hidden;
 }
 .bar-fill{
   height:100%;width:0%;border-radius:99px;
-  background:linear-gradient(90deg,#60a5fa,#a78bfa,#34d399);
+  background:linear-gradient(90deg,#3b82f6,#8b5cf6,#10b981);
+  box-shadow:0 0 16px rgba(96,165,250,.7);
   transition:width .35s cubic-bezier(.3,.9,.4,1);
 }
 .bar-text{font-size:.82rem;color:var(--muted);letter-spacing:.5px;min-height:20px}
 
-.overview{
-  display:flex;flex-wrap:wrap;gap:14px;justify-content:center;
-  margin:26px 0 8px;
-}
+/* ================= 概览卡 ================= */
+.overview{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin:26px 0 8px}
 .ov-card{
   flex:1 1 150px;min-width:140px;
-  background:var(--panel);border:1px solid var(--border);border-radius:16px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:16px;
   padding:16px 18px;text-align:center;
+  box-shadow:
+    inset 0 .5px 0 0 rgba(255,255,255,.18),
+    0 10px 26px rgba(0,0,0,.35);
 }
 .ov-num{font-size:1.9rem;font-weight:800;line-height:1.2;font-variant-numeric:tabular-nums}
-.ov-num.pass{color:var(--pass)}
-.ov-num.warn{color:var(--warn)}
-.ov-num.fail{color:var(--fail)}
-.ov-num.info{color:var(--info)}
+.ov-num.pass{color:var(--pass);text-shadow:0 0 18px rgba(52,211,153,.45)}
+.ov-num.warn{color:var(--warn);text-shadow:0 0 18px rgba(251,191,36,.45)}
+.ov-num.fail{color:var(--fail);text-shadow:0 0 18px rgba(248,113,113,.45)}
+.ov-num.info{color:var(--info);text-shadow:0 0 18px rgba(96,165,250,.45)}
 .ov-label{font-size:.76rem;color:var(--muted);letter-spacing:1px;margin-top:2px}
 
+/* ================= 分区 ================= */
 .section{margin-top:30px}
 .sec-title{
   font-size:1.05rem;font-weight:700;letter-spacing:1px;
   padding-left:12px;margin-bottom:12px;position:relative;
-  display:flex;align-items:center;gap:10px;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
 }
 .sec-title::before{
   content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
   width:3px;height:16px;border-radius:3px;
-  background:linear-gradient(180deg,#60a5fa,#a78bfa);
+  background:linear-gradient(180deg,#3b82f6,#8b5cf6);
+  box-shadow:0 0 12px rgba(96,165,250,.8);
 }
 .sec-count{
   font-size:.72rem;font-weight:600;color:var(--muted);
-  background:rgba(255,255,255,.06);padding:1px 9px;border-radius:20px;letter-spacing:0;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.08);
+  padding:1px 9px;border-radius:20px;letter-spacing:0;
 }
 
+/* ================= 检测项（纯 backdrop blur，不折射，性能友好）================= */
 .list{display:flex;flex-direction:column;gap:8px}
 .row{
   display:flex;gap:12px;align-items:flex-start;
-  background:var(--panel);border:1px solid var(--border);
+  background:var(--panel);
+  border:1px solid var(--border);
   border-radius:14px;padding:12px 16px;
-  transition:background .2s;
+  transition:background .2s,border-color .2s;
 }
-.row:hover{background:rgba(255,255,255,.065)}
+.row:hover{background:var(--panel-hover);border-color:rgba(255,255,255,.18)}
 .dot{
   width:9px;height:9px;border-radius:50%;flex:none;margin-top:7px;
   box-shadow:0 0 10px currentColor;
@@ -102,37 +139,43 @@ body{
 .row-head{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline}
 .row-name{font-size:.9rem;font-weight:600;flex:none}
 .row-msg{font-size:.84rem;color:var(--muted);word-break:break-word}
-.row.pass .row-msg{color:#9fd8bd}
-.row.warn .row-msg{color:#e8cf92}
-.row.fail .row-msg{color:#f0a3a3}
+.row.pass .row-msg{color:var(--pass-soft)}
+.row.warn .row-msg{color:var(--warn-soft)}
+.row.fail .row-msg{color:var(--fail-soft)}
 .row-sol{
   margin-top:7px;font-size:.79rem;line-height:1.65;
-  color:#a9c2e8;background:rgba(96,165,250,.08);
-  border-left:2px solid rgba(96,165,250,.5);
+  color:#cfe0ff;
+  background:var(--info-bg);
+  border-left:2px solid rgba(96,165,250,.65);
   border-radius:0 8px 8px 0;padding:7px 12px;
   word-break:break-word;
 }
 
+/* ================= 工具矩阵（折射卡片）================= */
 .tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
 .tool{
-  background:var(--panel);border:1px solid var(--border);
+  background:var(--panel);
+  border:1px solid var(--border);
   border-radius:16px;padding:14px 16px;position:relative;overflow:hidden;
+  box-shadow:inset 0 .5px 0 0 rgba(255,255,255,.14);
+  transition:background .2s,border-color .2s;
 }
+.tool:hover{background:var(--panel-hover);border-color:rgba(255,255,255,.18)}
 .tool::before{
-  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;z-index:2;
 }
-.tool.pass::before{background:var(--pass)}
-.tool.warn::before{background:var(--warn)}
-.tool.fail::before{background:var(--fail)}
+.tool.pass::before{background:var(--pass);box-shadow:0 0 16px rgba(52,211,153,.7)}
+.tool.warn::before{background:var(--warn);box-shadow:0 0 16px rgba(251,191,36,.7)}
+.tool.fail::before{background:var(--fail);box-shadow:0 0 16px rgba(248,113,113,.7)}
 .tool-head{display:flex;align-items:center;gap:8px;margin-bottom:3px;flex-wrap:wrap}
 .tool-name{font-size:.92rem;font-weight:700}
 .tool-badge{
   font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:20px;
   letter-spacing:.5px;
 }
-.tool.pass .tool-badge{background:rgba(52,211,153,.16);color:#6ee7b7}
-.tool.warn .tool-badge{background:rgba(251,191,36,.16);color:#fcd34d}
-.tool.fail .tool-badge{background:rgba(248,113,113,.16);color:#fca5a5}
+.tool.pass .tool-badge{background:var(--pass-bg);color:var(--pass-soft);border:1px solid var(--pass-border)}
+.tool.warn .tool-badge{background:var(--warn-bg);color:var(--warn-soft);border:1px solid var(--warn-border)}
+.tool.fail .tool-badge{background:var(--fail-bg);color:var(--fail-soft);border:1px solid var(--fail-border)}
 .tool-path{
   font-family:ui-monospace,Menlo,Consolas,monospace;
   font-size:.72rem;color:var(--muted);margin-bottom:9px;
@@ -144,37 +187,52 @@ body{
   border:1px solid transparent;white-space:nowrap;
   display:inline-flex;align-items:center;gap:4px;
 }
-.chip.ok{background:rgba(52,211,153,.10);border-color:rgba(52,211,153,.30);color:#6ee7b7}
-.chip.bad{background:rgba(248,113,113,.10);border-color:rgba(248,113,113,.35);color:#fca5a5}
-.chip.warn{background:rgba(251,191,36,.10);border-color:rgba(251,191,36,.32);color:#fcd34d}
-.chip.na{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12);color:var(--muted)}
+.chip.ok{background:var(--pass-bg);border-color:var(--pass-border);color:var(--pass-soft)}
+.chip.bad{background:var(--fail-bg);border-color:var(--fail-border);color:var(--fail-soft)}
+.chip.warn{background:var(--warn-bg);border-color:var(--warn-border);color:var(--warn-soft)}
+.chip.na{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);color:var(--muted)}
 .tool-note{
-  margin-top:9px;font-size:.75rem;line-height:1.6;color:#a9c2e8;
-  background:rgba(96,165,250,.07);border-radius:8px;padding:7px 10px;
+  margin-top:9px;font-size:.75rem;line-height:1.6;color:#cfe0ff;
+  background:var(--info-bg);
+  border:1px solid rgba(96,165,250,.18);
+  border-radius:8px;padding:7px 10px;
 }
 
-.actions{
-  display:flex;gap:10px;justify-content:center;flex-wrap:wrap;
-  margin-top:34px;
-}
+/* ================= 按钮（折射）================= */
+.actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:34px}
 .btn{
-  padding:11px 26px;border-radius:40px;border:1px solid var(--border);
-  background:rgba(255,255,255,.06);color:var(--text);
+  padding:11px 26px;border-radius:40px;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.06);
+  color:var(--text);
   font-family:inherit;font-size:.88rem;font-weight:600;cursor:pointer;
   transition:all .2s;
 }
-.btn:hover:not(:disabled){background:rgba(255,255,255,.13);transform:translateY(-1px)}
+.btn:hover:not(:disabled){
+  background:rgba(255,255,255,.13);
+  border-color:rgba(255,255,255,.32);
+  transform:translateY(-1px);
+  box-shadow:0 10px 26px rgba(0,0,0,.4);
+}
 .btn.primary{
-  background:linear-gradient(135deg,#2563eb,#60a5fa);
-  border-color:rgba(96,165,250,.6);color:#fff;
-  box-shadow:0 6px 22px -6px rgba(96,165,250,.6);
+  background:linear-gradient(135deg,rgba(37,99,235,.75),rgba(59,130,246,.75));
+  border-color:rgba(96,165,250,.7);color:#fff;
+  box-shadow:0 8px 24px -6px rgba(37,99,235,.75), 0 0 22px rgba(59,130,246,.3);
 }
 .btn.primary:hover:not(:disabled){filter:brightness(1.1)}
-.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+
+/* ================= 降级 ================= */
+.no-glass .ov-card,
+.no-glass .tool,
+.no-glass .btn{
+  background:rgba(30,45,75,.55);
+}
+.no-glass .btn.primary{background:linear-gradient(135deg,#2563eb,#3b82f6)}
 
 .footer{
-  text-align:center;margin-top:44px;font-size:.74rem;color:#5b6a80;
-  border-top:1px solid rgba(255,255,255,.06);padding-top:20px;
+  text-align:center;margin-top:44px;font-size:.74rem;color:var(--muted);
+  border-top:1px solid var(--border);padding-top:20px;
 }
 
 @media (max-width:640px){
@@ -187,6 +245,9 @@ body{
 </style>
 </head>
 <body>
+
+<canvas id="bgCanvas"></canvas>
+
 <div class="wrap">
 
   <div class="hero">
@@ -200,9 +261,9 @@ body{
   <div id="report"></div>
 
   <div class="actions">
-    <button class="btn primary" id="btnRerun">🔄 重新检测</button>
-    <button class="btn" id="btnCopy">📋 复制报告</button>
-    <button class="btn" id="btnDownload">⬇️ 下载报告</button>
+    <button class="btn primary glass-target" id="btnRerun">🔄 重新检测</button>
+    <button class="btn glass-target" id="btnCopy">📋 复制报告</button>
+    <button class="btn glass-target" id="btnDownload">⬇️ 下载报告</button>
   </div>
 
   <div class="footer">
@@ -210,21 +271,586 @@ body{
   </div>
 </div>
 
+<!-- ============================================================
+     星空背景
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+
+  const canvas = document.getElementById('bgCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  let W = 0, H = 0, dpr = 1;
+  let stars = [];
+  const meteors = [];
+  const STAR_COUNT = 240;
+  const MAX_METEORS = 3;
+
+  let nextMeteorTime = 0;
+  let burstRemaining = 0;
+  let nextBurstShotTime = 0;
+  let nextBurstCheckTime = 0;
+  let lastFrameTime = 0;
+
+  function scheduleNextMeteor(now) {
+    nextMeteorTime = now + 2600 + Math.random() * 6000;
+  }
+  function scheduleNextBurstShot(now) {
+    nextBurstShotTime = now + 200 + Math.random() * 600;
+  }
+
+  function initStars() {
+    stars = [];
+    for (let i = 0; i < STAR_COUNT; i++) {
+      stars.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        radius: Math.random() * 1.6 + 0.5,
+        alpha: Math.random() * 0.5 + 0.3,
+        speed: 0.002 + Math.random() * 0.008,
+        offset: Math.random() * Math.PI * 2
+      });
+    }
+  }
+
+  function resize() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.max(1, Math.round(W * dpr));
+    canvas.height = Math.max(1, Math.round(H * dpr));
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    initStars();
+  }
+
+  function spawnMeteor(speedBoost, now) {
+    if (meteors.length >= MAX_METEORS) return;
+
+    const baseSpeed = 300 + Math.random() * 400;
+    const speed = speedBoost ? baseSpeed * 1.4 : baseSpeed;
+    const pad = 120;
+
+    const edge = Math.floor(Math.random() * 4);
+    let startX, startY;
+    if (edge === 0) {
+      startX = Math.random() * W;  startY = -pad;
+    } else if (edge === 1) {
+      startX = W + pad;            startY = Math.random() * H;
+    } else if (edge === 2) {
+      startX = Math.random() * W;  startY = H + pad;
+    } else {
+      startX = -pad;               startY = Math.random() * H;
+    }
+
+    const targetX = W * (0.1 + Math.random() * 0.8);
+    const targetY = H * (0.1 + Math.random() * 0.8);
+    const dx = targetX - startX;
+    const dy = targetY - startY;
+    const d = Math.sqrt(dx * dx + dy * dy) || 1;
+
+    const warm = Math.random() < 0.22;
+    meteors.push({
+      x: startX,
+      y: startY,
+      vx: (dx / d) * speed,
+      vy: (dy / d) * speed,
+      len: 90 + Math.random() * 200,
+      width: 0.8 + Math.random() * 1.4,
+      bornAt: now,
+      fadeIn: 60 + Math.random() * 80,
+      hue: warm ? '255, 240, 220' : '198, 224, 255'
+    });
+  }
+
+  function updateMeteors(now, dtSec) {
+    if (now >= nextMeteorTime) {
+      spawnMeteor(false, now);
+      scheduleNextMeteor(now);
+    }
+
+    if (burstRemaining === 0 && now >= nextBurstCheckTime) {
+      if (Math.random() < 0.5) {
+        burstRemaining = 2 + Math.floor(Math.random() * 2);
+        nextBurstShotTime = now;
+      }
+      nextBurstCheckTime = now + 30000 + Math.random() * 60000;
+    }
+    if (burstRemaining > 0 && now >= nextBurstShotTime) {
+      spawnMeteor(true, now);
+      burstRemaining--;
+      if (burstRemaining > 0) scheduleNextBurstShot(now);
+    }
+
+    const pad = 100;
+    for (let i = meteors.length - 1; i >= 0; i--) {
+      const m = meteors[i];
+      m.x += m.vx * dtSec;
+      m.y += m.vy * dtSec;
+      const offDist = Math.max(
+        -m.x - pad, m.x - W - pad,
+        -m.y - pad, m.y - H - pad,
+        0
+      );
+      if (offDist > 320) meteors.splice(i, 1);
+    }
+  }
+
+  function drawMeteors(now) {
+    const pad = 100;
+    for (let i = 0; i < meteors.length; i++) {
+      const m = meteors[i];
+
+      const d = Math.sqrt(m.vx * m.vx + m.vy * m.vy) || 1;
+      const ux = m.vx / d;
+      const uy = m.vy / d;
+      const tailX = m.x - ux * m.len;
+      const tailY = m.y - uy * m.len;
+
+      let a = 1;
+      const age = now - m.bornAt;
+      if (age < m.fadeIn) a = age / m.fadeIn;
+
+      const offDist = Math.max(
+        -m.x - pad, m.x - W - pad,
+        -m.y - pad, m.y - H - pad,
+        0
+      );
+      a *= 1 - Math.min(1, offDist / 250);
+      if (a <= 0.02) continue;
+
+      const grad = ctx.createLinearGradient(m.x, m.y, tailX, tailY);
+      grad.addColorStop(0,    'rgba(255, 255, 255, ' + (a * 0.95) + ')');
+      grad.addColorStop(0.12, 'rgba(' + m.hue + ', ' + (a * 0.72) + ')');
+      grad.addColorStop(0.55, 'rgba(' + m.hue + ', ' + (a * 0.20) + ')');
+      grad.addColorStop(1,    'rgba(' + m.hue + ', 0)');
+
+      ctx.save();
+      ctx.lineCap = 'round';
+
+      ctx.strokeStyle = grad;
+      ctx.globalAlpha = 0.35;
+      ctx.lineWidth = m.width * 3.2;
+      ctx.beginPath();
+      ctx.moveTo(m.x, m.y);
+      ctx.lineTo(tailX, tailY);
+      ctx.stroke();
+
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = m.width;
+      ctx.beginPath();
+      ctx.moveTo(m.x, m.y);
+      ctx.lineTo(tailX, tailY);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(m.x, m.y, m.width * 3.4, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(' + m.hue + ', ' + (a * 0.13) + ')';
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(m.x, m.y, m.width * 0.9, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 255, 255, ' + (a * 0.92) + ')';
+      ctx.fill();
+
+      ctx.restore();
+    }
+  }
+
+  function renderLoop(now) {
+    if (lastFrameTime === 0) lastFrameTime = now;
+    const dt = Math.min(now - lastFrameTime, 100);
+    lastFrameTime = now;
+    const dtSec = dt / 1000;
+
+    ctx.clearRect(0, 0, W, H);
+
+    const nowSec = now / 1000;
+    for (let i = 0; i < stars.length; i++) {
+      const star = stars[i];
+      const twinkle = 0.5 + 0.5 * Math.sin(nowSec * star.speed * 2.5 + star.offset);
+      const alpha = Math.min(star.alpha * (0.6 + twinkle * 0.5), 0.95);
+
+      ctx.beginPath();
+      ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(225, 235, 255, ' + alpha + ')';
+      ctx.fill();
+
+      if (star.radius > 1.2 && twinkle > 0.72) {
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.radius * 1.6, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(160, 200, 255, ' + (alpha * 0.18) + ')';
+        ctx.fill();
+      }
+    }
+
+    updateMeteors(now, dtSec);
+    drawMeteors(now);
+
+    requestAnimationFrame(renderLoop);
+  }
+
+  window.addEventListener('resize', resize, { passive: true });
+
+  resize();
+  const t0 = performance.now();
+  nextMeteorTime = t0 + 900 + Math.random() * 1600;
+  nextBurstCheckTime = t0 + 30000 + Math.random() * 30000;
+  requestAnimationFrame(renderLoop);
+})();
+</script>
+
+<!-- ============================================================
+     Snell 折射引擎（液态玻璃核心）
+     ============================================================ -->
 <script>
 (function () {
   'use strict';
 
   /* ============================================================
-     全局状态
+     配置
      ============================================================ */
+  const GLASS = {
+    THICKNESS: 62,
+    IOR: 2.4,
+    BEZEL_RATIO: 0.55,
+    BEZEL_MAX: 18,
+    SPECULAR_OPACITY: 0.24,
+    SPECULAR_ANGLE: Math.PI * 0.75,
+    BLUR: 0.4,
+    SCALE_RATIO: 0.55,
+    MAX_PIXELS: 280000      // 超过这个像素数就跳过，防止大卡片拖慢
+  };
+
+  let defsEl = null;
+
+  /* ============================================================
+     Snell 折射剖面
+     ============================================================ */
+  function calculateRefractionProfile(glassThickness, bezelWidth, heightFn, ior, samples) {
+    samples = samples || 128;
+    var eta = 1 / ior;
+    function refract(nx, ny) {
+      var dot = ny;
+      var k = 1 - eta * eta * (1 - dot * dot);
+      if (k < 0) return null;
+      var sq = Math.sqrt(k);
+      return [-(eta * dot + sq) * nx, eta - (eta * dot + sq) * ny];
+    }
+    var profile = new Float64Array(samples);
+    for (var i = 0; i < samples; i++) {
+      var x = i / samples;
+      var y = heightFn(x);
+      var dx = x < 1 ? 0.0001 : -0.0001;
+      var y2 = heightFn(x + dx);
+      var deriv = (y2 - y) / dx;
+      var mag = Math.sqrt(deriv * deriv + 1);
+      var ref = refract(-deriv / mag, -1 / mag);
+      if (!ref) { profile[i] = 0; continue; }
+      profile[i] = ref[0] * ((y * bezelWidth + glassThickness) / ref[1]);
+    }
+    return profile;
+  }
+
+  function squircleSurface(t) {
+    return Math.pow(1 - Math.pow(1 - t, 4), 0.25);
+  }
+
+  /* ============================================================
+     位移贴图（R/G 通道编码 x/y 位移量）
+     ============================================================ */
+  function generateDisplacementMap(w, h, radius, bezelWidth, profile, maxDisp) {
+    var c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    var ctx = c.getContext('2d');
+    var img = ctx.createImageData(w, h);
+    var d = img.data;
+    for (var i = 0; i < d.length; i += 4) {
+      d[i] = 128; d[i + 1] = 128; d[i + 2] = 0; d[i + 3] = 255;
+    }
+    var r = Math.min(radius, Math.min(w, h) / 2 - 1);
+    if (r <= 0) return c.toDataURL();
+    var clampedBezel = Math.min(bezelWidth, r - 1);
+    if (clampedBezel <= 1) return c.toDataURL();
+    var rSq = r * r;
+    var r1Sq = (r + 1) * (r + 1);
+    var rBSq = Math.max(r - clampedBezel, 0) * Math.max(r - clampedBezel, 0);
+    var wB = w - r * 2;
+    var hB = h - r * 2;
+    var S = profile.length;
+    if (wB < 0 || hB < 0) return c.toDataURL();
+
+    for (var y1 = 0; y1 < h; y1++) {
+      for (var x1 = 0; x1 < w; x1++) {
+        var dx, dy;
+        if (x1 < r) { dx = x1 - r; }
+        else if (x1 >= w - r) { dx = x1 - r - wB; }
+        else { dx = 0; }
+        if (y1 < r) { dy = y1 - r; }
+        else if (y1 >= h - r) { dy = y1 - r - hB; }
+        else { dy = 0; }
+        var dSq = dx * dx + dy * dy;
+        if (dSq > r1Sq || dSq < rBSq) continue;
+        var dist = Math.sqrt(dSq);
+        var fromSide = r - dist;
+        var op = dSq < rSq ? 1 : 1 - (dist - Math.sqrt(rSq)) / (Math.sqrt(r1Sq) - Math.sqrt(rSq));
+        if (op <= 0 || dist === 0) continue;
+        var cos = dx / dist;
+        var sin = dy / dist;
+        var bi = Math.min(Math.floor((fromSide / clampedBezel) * S), S - 1);
+        var disp = profile[bi] || 0;
+        var dX = (-cos * disp) / maxDisp;
+        var dY = (-sin * disp) / maxDisp;
+        var idx = (y1 * w + x1) * 4;
+        d[idx]     = Math.min(255, Math.max(0, (128 + dX * 127 * op + 0.5) | 0));
+        d[idx + 1] = Math.min(255, Math.max(0, (128 + dY * 127 * op + 0.5) | 0));
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    return c.toDataURL();
+  }
+
+  /* ============================================================
+     镜面高光贴图（沿光方向的高光弧）
+     ============================================================ */
+  function generateSpecularMap(w, h, radius, bezelWidth, angle) {
+    angle = angle != null ? angle : Math.PI / 3;
+    var c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    var ctx = c.getContext('2d');
+    var img = ctx.createImageData(w, h);
+    var d = img.data;
+    for (var i = 0; i < d.length; i += 4) {
+      d[i] = 0; d[i + 1] = 0; d[i + 2] = 0; d[i + 3] = 0;
+    }
+    var r = Math.min(radius, Math.min(w, h) / 2 - 1);
+    if (r <= 0) return c.toDataURL();
+    var clampedBezel = Math.min(bezelWidth, r - 1);
+    if (clampedBezel <= 1) return c.toDataURL();
+    var rSq = r * r;
+    var r1Sq = (r + 1) * (r + 1);
+    var rBSq = Math.max(r - clampedBezel, 0) * Math.max(r - clampedBezel, 0);
+    var wB = w - r * 2;
+    var hB = h - r * 2;
+    var lightVec = [Math.cos(angle), Math.sin(angle)];
+
+    for (var y1 = 0; y1 < h; y1++) {
+      for (var x1 = 0; x1 < w; x1++) {
+        var dx, dy;
+        if (x1 < r) { dx = x1 - r; }
+        else if (x1 >= w - r) { dx = x1 - r - wB; }
+        else { dx = 0; }
+        if (y1 < r) { dy = y1 - r; }
+        else if (y1 >= h - r) { dy = y1 - r - hB; }
+        else { dy = 0; }
+        var dSq = dx * dx + dy * dy;
+        if (dSq > r1Sq || dSq < rBSq) continue;
+        var dist = Math.sqrt(dSq);
+        var fromSide = r - dist;
+        var op = dSq < rSq ? 1 : 1 - (dist - Math.sqrt(rSq)) / (Math.sqrt(r1Sq) - Math.sqrt(rSq));
+        if (op <= 0 || dist === 0) continue;
+        var cos = dx / dist;
+        var sin = -dy / dist;
+        var dot = Math.abs(cos * lightVec[0] + sin * lightVec[1]);
+        var edge = Math.sqrt(Math.max(0, 1 - Math.pow(1 - fromSide, 2)));
+        var coeff = dot * edge;
+        var col = (255 * coeff) | 0;
+        var alpha = Math.min(255, Math.max(0, (col * coeff * op * 0.85) | 0));
+        var idx = (y1 * w + x1) * 4;
+        d[idx] = col; d[idx + 1] = col; d[idx + 2] = col; d[idx + 3] = alpha;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    return c.toDataURL();
+  }
+
+  /* ============================================================
+     组装 SVG 滤镜链
+     ============================================================ */
+  function buildSVGFilter(filterId, dispUrl, specUrl, scale, w, h, specOpacity) {
+    specOpacity = specOpacity != null ? specOpacity : 0.3;
+    var fc = '';
+    fc += '<feImage href="' + dispUrl + '" x="0" y="0" width="' + w + '" height="' + h + '" result="disp_map" />';
+    fc += '<feDisplacementMap in="SourceGraphic" in2="disp_map" scale="' + scale +
+          '" xChannelSelector="R" yChannelSelector="G" result="displaced" />';
+    if (specUrl) {
+      fc += '<feImage href="' + specUrl + '" x="0" y="0" width="' + w + '" height="' + h + '" result="spec_layer" />';
+      fc += '<feComposite in="displaced" in2="spec_layer" operator="in" result="spec_masked" />';
+      fc += '<feComponentTransfer in="spec_layer" result="spec_faded">' +
+            '<feFuncA type="linear" slope="' + specOpacity + '" /></feComponentTransfer>';
+      fc += '<feBlend in="spec_masked" in2="displaced" mode="screen" result="with_spec" />';
+      fc += '<feBlend in="spec_faded" in2="with_spec" mode="screen" />';
+    }
+    return fc;
+  }
+
+  /* ============================================================
+     SVG defs 管理
+     ============================================================ */
+  function ensureSVG() {
+    let svg = document.getElementById('lg-svg');
+    if (!svg) {
+      svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('id', 'lg-svg');
+      svg.setAttribute('width', '0');
+      svg.setAttribute('height', '0');
+      svg.setAttribute('style', 'position:absolute;width:0;height:0;overflow:hidden;pointer-events:none;');
+      svg.setAttribute('color-interpolation-filters', 'sRGB');
+      svg.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(svg);
+    }
+    defsEl = svg.querySelector('defs');
+    if (!defsEl) {
+      defsEl = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      svg.appendChild(defsEl);
+    }
+  }
+
+  function writeFilter(id, html) {
+    if (!defsEl) return;
+    const old = defsEl.querySelector('#' + id);
+    if (old) old.remove();
+    if (!html) return;
+    const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+    filter.setAttribute('id', id);
+    filter.setAttribute('x', '0%');
+    filter.setAttribute('y', '0%');
+    filter.setAttribute('width', '100%');
+    filter.setAttribute('height', '100%');
+    filter.innerHTML = html;
+    defsEl.appendChild(filter);
+  }
+
+  /* ============================================================
+     应用到单个元素
+     ============================================================ */
+  function applyGlass(el, index) {
+    const w = Math.round(el.offsetWidth);
+    const h = Math.round(el.offsetHeight);
+    if (w < 14 || h < 14) return;
+    if (w * h > GLASS.MAX_PIXELS) return;
+
+    const maxRadius = Math.min(w, h) / 2 - 1;
+    let radius = parseFloat(el.dataset.glassRadius || '0');
+    if (!radius || isNaN(radius)) radius = maxRadius;
+    radius = Math.min(radius, maxRadius);
+    if (radius <= 1.5) return;
+
+    const bezel = Math.min(radius * GLASS.BEZEL_RATIO, GLASS.BEZEL_MAX, radius - 1);
+    if (bezel <= 1) return;
+
+    let profile, maxDisp = 0;
+    try {
+      profile = calculateRefractionProfile(GLASS.THICKNESS, bezel, squircleSurface, GLASS.IOR, 128);
+      for (let k = 0; k < profile.length; k++) {
+        const a = Math.abs(profile[k]);
+        if (a > maxDisp) maxDisp = a;
+      }
+      if (maxDisp < 0.001) maxDisp = 1;
+    } catch (e) { return; }
+    const scale = maxDisp * GLASS.SCALE_RATIO;
+
+    let dispUrl, specUrl = '';
+    try {
+      dispUrl = generateDisplacementMap(w, h, radius, bezel, profile, maxDisp);
+      if (GLASS.SPECULAR_OPACITY > 0.001) {
+        specUrl = generateSpecularMap(w, h, radius, bezel * 2.2, GLASS.SPECULAR_ANGLE);
+      }
+    } catch (e) { return; }
+
+    const id = 'lg-f-' + index;
+    writeFilter(id, buildSVGFilter(id, dispUrl, specUrl, scale, w, h, GLASS.SPECULAR_OPACITY));
+
+    let bf = 'url(#' + id + ')';
+    if (GLASS.BLUR > 0) bf += ' blur(' + GLASS.BLUR.toFixed(1) + 'px)';
+
+    el.style.setProperty('backdrop-filter', bf, 'important');
+    el.style.setProperty('-webkit-backdrop-filter', bf, 'important');
+  }
+
+  /* ============================================================
+     全量重建
+     ============================================================ */
+  function buildLiquidGlass() {
+    if (!defsEl) return;
+    // 清掉旧滤镜，防止累积
+    defsEl.innerHTML = '';
+    const els = document.querySelectorAll('.glass-target');
+    for (let i = 0; i < els.length; i++) {
+      try { applyGlass(els[i], i); } catch (e) { /* 单个失败不影响其他 */ }
+    }
+  }
+
+  /* 尺寸签名——避免无意义重建 */
+  let glassSig = '';
+  let glassTimer = null;
+
+  function scheduleGlass(force) {
+    clearTimeout(glassTimer);
+    glassTimer = setTimeout(function () {
+      const els = document.querySelectorAll('.glass-target');
+      let sig = '';
+      for (let i = 0; i < els.length; i++) {
+        sig += Math.round(els[i].offsetWidth) + 'x' + Math.round(els[i].offsetHeight) + '|';
+      }
+      if (!force && sig === glassSig) return;
+      glassSig = sig;
+      buildLiquidGlass();
+    }, 90);
+  }
+
+  /* ============================================================
+     对外接口
+     ============================================================ */
+  window.__lgEngine = {
+    ensureSVG: ensureSVG,
+    build: buildLiquidGlass,
+    schedule: scheduleGlass,
+    supported: function () {
+      return !!(window.CSS && window.CSS.supports) &&
+        (window.CSS.supports('backdrop-filter', 'blur(2px)') ||
+         window.CSS.supports('-webkit-backdrop-filter', 'blur(2px)'));
+    }
+  };
+
+  // 窗口尺寸变化时重建
+  window.addEventListener('resize', function () { scheduleGlass(true); }, { passive: true });
+
+  // 字体加载完成后重建（尺寸可能变化）
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function () { scheduleGlass(true); });
+  }
+
+  // 初始化
+  ensureSVG();
+  if (!window.__lgEngine.supported()) {
+    document.body.classList.add('no-glass');
+  } else {
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { scheduleGlass(true); });
+    });
+  }
+})();
+</script>
+
+<!-- ============================================================
+     诊断主逻辑
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+
   const R    = [];
   const FEAT = {};
-  // NET[key] = { ok, uncertain, status }
   const NET  = {};
   let   isRunning = false;
 
   const $ = id => document.getElementById(id);
-  // esc() 现在也转义单引号，防止未来在单引号属性里拼接时出问题
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m =>
     ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]));
 
@@ -235,7 +861,6 @@ body{
     FEAT[key] = { ok: !!ok, label: label || key, msg: msg || '' };
   }
 
-  // progress() 简化：所有调用都显式传 pct，stepCount 已删
   function progress(text, pct) {
     $('barFill').style.width = pct + '%';
     $('barText').textContent = text;
@@ -248,12 +873,13 @@ body{
     console.warn('[诊断] 未定义的依赖 key：' + key + '（首次出现于：' + toolTitle + '）');
   }
 
-  /* ============================================================
-     工具函数
-     ============================================================ */
+  function refreshGlass(force) {
+    if (window.__lgEngine) window.__lgEngine.schedule(!!force);
+  }
 
-  // 补充 iOS Chrome (CriOS) / iOS Firefox (FxiOS) / Samsung Internet。
-  // 这三者的 UA 里也包含 Chrome 或 Safari，必须在通用 Chrome / Safari 之前匹配。
+  /* ============================================================
+     浏览器探测
+     ============================================================ */
   function detectBrowser() {
     const ua = navigator.userAgent;
     const list = [
@@ -276,14 +902,9 @@ body{
     return { name: '未知浏览器', version: '-' };
   }
 
-  /* ------------------------------------------------------------
-     资源探测（统一 finish 模式，任何路径退出都会清理 timer）
-     - probeFetch 两阶段共享一个 deadline，整体最坏 = timeout
-     - probeUrl 直接接 url 字符串
-     - AbortController guard：无 AC 时不带 signal，仍然走 fetch
-     - 所有同步/异步异常都被吞掉，probeFetch 永不 reject
-     ------------------------------------------------------------ */
-
+  /* ============================================================
+     CDN 探测
+     ============================================================ */
   async function probeFetch(url, timeout) {
     const t0 = Date.now();
     const remain = () => Math.max(500, timeout - (Date.now() - t0));
@@ -398,7 +1019,6 @@ body{
       add('运行环境', '网络状态', 'info', '系统报告在线（仅供参考）');
     }
 
-    // 网络质量（如果浏览器提供）
     const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
     if (conn && conn.effectiveType) {
       const et = conn.effectiveType;
@@ -438,7 +1058,6 @@ body{
       '百度、GitHub、Wikipedia 等站点普遍设置 X-Frame-Options / CSP frame-ancestors 拒绝被第三方 iframe 嵌入',
       '这不是浏览器能力问题，而是目标网站的主动策略。受影响工具：网页模拟浏览器（llq.html）—— 已标记为「功能受限」，无法通过代码绕过。');
 
-    // 无障碍 / 动效偏好：影响粒子海洋、物理沙盒、星空画板这类高密度动画工具
     try {
       const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (reduce) {
@@ -482,7 +1101,7 @@ body{
       setFeat('crypto', false, 'Web Crypto', '需要安全上下文');
     }
 
-    /* TextEncoder / TextDecoder —— 显式检测（加密工具、万物自指依赖） */
+    /* TextEncoder / TextDecoder */
     if (typeof TextEncoder === 'function' && typeof TextDecoder === 'function') {
       try {
         const enc = new TextEncoder();
@@ -570,7 +1189,7 @@ body{
       setFeat('canvas', false, 'Canvas 2D', e.message);
     }
 
-    /* WebGL / WebGL2 —— 当前网站未使用，作为信息上报 */
+    /* WebGL / WebGL2 */
     try {
       const wc = document.createElement('canvas');
       const gl2 = wc.getContext('webgl2');
@@ -736,14 +1355,14 @@ body{
 
     /* matchMedia */
     if (typeof matchMedia === 'function') {
-      setFeat('matchMedia', true, 'matchMedia');
+      add('核心能力', 'matchMedia', 'info',
+        '可用（用于响应 prefers-reduced-motion / prefers-color-scheme 等媒体查询）');
     } else {
       add('核心能力', 'matchMedia', 'warn', '不可用',
         '无法响应 prefers-reduced-motion 等媒体查询偏好。请升级浏览器。');
-      setFeat('matchMedia', false, 'matchMedia', '不支持');
     }
 
-    /* structuredClone（现代深拷贝，用于状态存档） */
+    /* structuredClone */
     if (typeof structuredClone === 'function') {
       add('核心能力', 'structuredClone', 'info', '可用');
     } else {
@@ -771,18 +1390,96 @@ body{
       add('核心能力', 'IndexedDB', 'info', '不可用（当前站点用 localStorage，未使用 IndexedDB）');
     }
 
-    /* Intl.DateTimeFormat（北京时间时钟间接依赖，但用的是 UTC 时间戳） */
+    /* Intl.DateTimeFormat */
     if (typeof Intl === 'object' && typeof Intl.DateTimeFormat === 'function') {
       add('核心能力', 'Intl.DateTimeFormat', 'info', '可用');
     } else {
       add('核心能力', 'Intl.DateTimeFormat', 'info', '不可用（网站使用 UTC 时间戳 + 偏移，不受影响）');
     }
 
-    /* history.pushState（SPA 路由能力） */
-    if (typeof history !== 'undefined' && typeof history.pushState === 'function') {
-      add('核心能力', 'history.pushState', 'info', '可用');
+    /* Intl.NumberFormat */
+    if (typeof Intl === 'object' && typeof Intl.NumberFormat === 'function') {
+      add('核心能力', 'Intl.NumberFormat', 'info', '可用（数字千分位格式化，BTC 模拟交易等展示场景可用）');
     } else {
-      add('核心能力', 'history.pushState', 'info', '不可用');
+      add('核心能力', 'Intl.NumberFormat', 'info', '不可用（BTC 模拟交易等仍可显示数字，只是缺千分位）');
+    }
+
+    /* history.pushState —— file:// 下调用会抛 SecurityError */
+    if (typeof history !== 'undefined' && typeof history.pushState === 'function') {
+      if (location.protocol === 'file:') {
+        add('核心能力', 'history.pushState', 'warn',
+          '接口存在，但 file:// 下调用会抛 SecurityError（origin 为 null）',
+          '当前站点未使用 SPA 路由，无实际影响。如需使用，请用 http(s) 协议访问。');
+      } else {
+        add('核心能力', 'history.pushState', 'info', '可用');
+      }
+    } else {
+      add('核心能力', 'history.pushState', 'info', '不可用（当前站点未使用 SPA 路由）');
+    }
+
+    /* Web Share API */
+    if (navigator.share && typeof navigator.share === 'function') {
+      add('核心能力', 'Web Share API', 'info',
+        '可用（移动端原生分享，未来可加"分享结果"按钮）');
+    } else {
+      add('核心能力', 'Web Share API', 'info',
+        '不可用（当前站点未使用；桌面浏览器普遍不支持）');
+    }
+
+    /* Gamepad API */
+    if ('getGamepads' in navigator && typeof navigator.getGamepads === 'function') {
+      add('核心能力', 'Gamepad API', 'info',
+        '可用（未来游戏类工具可用手柄输入）');
+    } else {
+      add('核心能力', 'Gamepad API', 'info', '不可用（当前站点未使用）');
+    }
+
+    /* prefers-color-scheme —— 三态检测（dark / light / no-preference） */
+    try {
+      if (typeof matchMedia === 'function') {
+        const mqDark  = matchMedia('(prefers-color-scheme: dark)');
+        const mqLight = matchMedia('(prefers-color-scheme: light)');
+        let pref;
+        if (mqDark.matches)       pref = '系统偏好深色主题';
+        else if (mqLight.matches) pref = '系统偏好浅色主题';
+        else                      pref = '系统未设置主题偏好（跟随浏览器默认）';
+        add('核心能力', 'prefers-color-scheme', 'info', pref,
+          '当前站点固定深色主题，未适配系统偏好；若未来加入浅色主题，可用此 API 自动跟随。');
+      } else {
+        add('核心能力', 'prefers-color-scheme', 'info', 'matchMedia 不可用，无法读取系统主题偏好');
+      }
+    } catch (e) {
+      add('核心能力', 'prefers-color-scheme', 'info', '检测异常');
+    }
+
+    /* performance.now() 计时精度 */
+    try {
+      const samples = [];
+      for (let i = 0; i < 20; i++) samples.push(performance.now());
+      const deltas = [];
+      for (let i = 1; i < samples.length; i++) {
+        const d = samples[i] - samples[i - 1];
+        if (d > 0) deltas.push(d);
+      }
+      if (deltas.length > 0) {
+        const precision = Math.min.apply(null, deltas);
+        if (precision < 0.1) {
+          add('核心能力', 'performance.now() 计时精度', 'info',
+            '高精度（< 0.1ms），浏览器未做精度削减');
+        } else if (precision < 0.5) {
+          add('核心能力', 'performance.now() 计时精度', 'info',
+            '中等精度（约 ' + precision.toFixed(2) + ' ms），可能因隐私设置做了轻度削减');
+        } else {
+          add('核心能力', 'performance.now() 计时精度', 'info',
+            '低精度（约 ' + precision.toFixed(2) + ' ms），浏览器因隐私模式或 Spectre 缓解措施做了时间戳粒度取整',
+            '这会让 PBKDF2 基准和 FPS 粗测出现轻微偏差，但不影响实际功能。');
+        }
+      } else {
+        add('核心能力', 'performance.now() 计时精度', 'info',
+          '无法测量（同步循环内时间戳未推进，浏览器可能对同执行栈调用做了钳制）');
+      }
+    } catch (e) {
+      add('核心能力', 'performance.now() 计时精度', 'info', '检测异常');
     }
 
     /* localStorage */
@@ -812,16 +1509,7 @@ body{
       setFeat('sessionStorage', false, 'sessionStorage', e.message);
     }
 
-    /* SVG 滤镜
-       检查分三级：
-       1) 接口存在性 —— SVGFEDisplacementMapElement / SVGFEImageElement 未定义则肯定不能工作；
-       2) createElementNS 方式构造 filter 元素；
-       3) 通过 getComputedStyle 判断 CSS filter 属性是否保留 url(#...) 引用。
-
-       注意：这是语法 + 接口级检查，不能证明 feImage + feDisplacementMap 实际渲染成功——
-       部分旧版 Safari 在 feImage + data URI 上有已知兼容问题，本检测无法覆盖。
-       报告里会明确标注这个局限性。
-    */
+    /* SVG 滤镜 */
     let svgEl = null;
     let probeEl = null;
     try {
@@ -890,7 +1578,7 @@ body{
     const list = [
       { prop: 'backdrop-filter', val: 'blur(4px)', key: 'backdrop',
         label: 'backdrop-filter 毛玻璃',
-        tools: '首页小球、导航按钮、公告卡片、液态玻璃展示',
+        tools: '首页小球、导航按钮、公告卡片、液态玻璃展示、本诊断报告',
         tip: '几乎所有页面的「液态玻璃」质感都依赖它。Chrome 76+ / Safari 9+ / Firefox 103+ 支持。' },
       { prop: 'clip-path', val: 'circle(50%)', key: 'clipPath',
         label: 'clip-path 圆形裁剪',
@@ -960,9 +1648,6 @@ body{
     settled.forEach((res, i) => {
       const item = CDN_LIST[i];
 
-      // 纯防御：probeFetch 内部已经用 try/catch + finish() 保证永不 reject，
-      // 外层 .then 也不会抛异常，这条分支理论上永远不会命中。保留是为了防
-      // 未来改动引入新异常路径时能优雅降级，而不是整个 CDN 分类消失。
       if (res.status === 'rejected') {
         NET[item.key] = { ok: false, uncertain: false, status: 0 };
         const reason = (res.reason && res.reason.message) || res.reason || '未知错误';
@@ -1084,8 +1769,6 @@ body{
       add('存储与性能', '渲染帧率（粗测）', 'info', '页面在后台，跳过检测',
         '浏览器暂停了后台标签页的 requestAnimationFrame，无法测量帧率。请保持本页在前台后重新检测。');
     } else {
-      // 采样窗口从 500ms 提升到 1200ms：减少首帧渲染开销和瞬时 GC 造成的抖动。
-      // 超时保护从 3000ms 提到 2500ms（> 1200ms 采样 + 缓冲）。
       const fpsResult = await measureFPS(2500);
       if (fpsResult.fps === null) {
         add('存储与性能', '渲染帧率（粗测）', 'info', '无法测量（' + fpsResult.reason + '）');
@@ -1100,7 +1783,6 @@ body{
     }
   }
 
-  // FPS 采样：窗口 1200ms，超时兜底
   function measureFPS(timeoutMs) {
     const SAMPLE_MS = 1200;
     return new Promise(resolve => {
@@ -1145,14 +1827,14 @@ body{
       require:['canvas','backdrop'],
       optional:['colorMix','blob'] },
     { file:'fz.html',            title:'星际导航 · 第 1 页',
-      require:['backdrop','blob'],
-      optional:['worker','svgFilter'] },
+      require:['backdrop','blob','svgFilter'],
+      optional:['worker'] },
     { file:'fz2.html',           title:'星际导航 · 第 2 页',
-      require:['backdrop','blob'],
-      optional:['worker','svgFilter'] },
+      require:['backdrop','blob','svgFilter'],
+      optional:['worker'] },
     { file:'fz3.html',           title:'星际导航 · 第 3 页',
-      require:['backdrop','blob'],
-      optional:['worker','svgFilter'] },
+      require:['backdrop','blob','svgFilter'],
+      optional:['worker'] },
 
     { file:'fz/AES256.html',     title:'AES-256-GCM 加密工具',
       require:['crypto','fileReader','textEncoder'],
@@ -1199,7 +1881,7 @@ body{
       restricted: true,
       note:'⚠️ 百度、GitHub、维基百科等站点通过 X-Frame-Options / CSP 禁止被 iframe 嵌入，实际只能显示空白或错误页。这是外部站点的限制，无法通过代码绕过。' },
     { file:'fz2/ytbl.html',      title:'液态玻璃效果展示',
-      require:['canvas','backdrop'],
+      require:['canvas','backdrop','svgFilter'],
       optional:['intersectionObserver','worker','resizeObserver'] },
     { file:'fz2/hb.html',        title:'星空画板',
       require:['canvas','pointerEvents'],
@@ -1327,8 +2009,10 @@ body{
   }
 
   function ovCard(num, label, cls) {
-    return '<div class="ov-card"><div class="ov-num ' + cls + '">' + num +
-           '</div><div class="ov-label">' + label + '</div></div>';
+    // 每一张概览卡都是液态玻璃折射目标
+    return '<div class="ov-card glass-target" data-glass-radius="16">' +
+           '<div class="ov-num ' + cls + '">' + num + '</div>' +
+           '<div class="ov-label">' + label + '</div></div>';
   }
 
   const PREFERRED_CATS = ['运行环境', '核心能力', 'CSS 特性', '外部 CDN', '存储与性能'];
@@ -1359,10 +2043,10 @@ body{
       return '<span style="color:#fcd34d">' + warnCount + ' 项警告</span>';
     if (infoCount && passCount)
       return '<span style="color:#6ee7b7">' + passCount + ' 项通过</span>' +
-             ' · <span style="color:#8b9ab0">' + infoCount + ' 项信息</span>';
+             ' · <span style="color:#93a3c4">' + infoCount + ' 项信息</span>';
     if (passCount)
       return '<span style="color:#6ee7b7">全部通过</span>';
-    return '<span style="color:#8b9ab0">' + infoCount + ' 项信息</span>';
+    return '<span style="color:#93a3c4">' + infoCount + ' 项信息</span>';
   }
 
   function renderReport() {
@@ -1386,6 +2070,7 @@ body{
       const list = sec.querySelector('.list');
       items.forEach(it => {
         const row = document.createElement('div');
+        // 检测行不加折射（行数多、圆角小、折射效果不明显），保留纯半透明
         row.className = 'row ' + it.status;
         row.innerHTML =
           '<span class="dot"></span>' +
@@ -1417,7 +2102,9 @@ body{
       const opt   = tool._opt  || [];
 
       const card = document.createElement('div');
-      card.className = 'tool ' + level;
+      // 工具卡片走折射
+      card.className = 'tool ' + level + ' glass-target';
+      card.dataset.glassRadius = '16';
 
       let chips = '';
       req.forEach(c => {
@@ -1484,9 +2171,9 @@ body{
         toolFails.map(t => '<b>' + esc(t.title) + '</b>').join('、'));
     }
 
-    box.innerHTML = '<div style="background:rgba(96,165,250,.07);' +
-      'border:1px solid rgba(96,165,250,.25);color:#c9dcf7;padding:14px 18px;border-radius:14px;' +
-      'font-size:.82rem;line-height:1.8">' +
+    box.innerHTML = '<div style="background:rgba(96,165,250,.10);' +
+      'border:1px solid rgba(96,165,250,.30);color:#cfe0ff;padding:16px 20px;border-radius:16px;' +
+      'font-size:.82rem;line-height:1.9;box-shadow:inset 0 .5px 0 0 rgba(255,255,255,.12)">' +
       lines.join('<br>') + '</div>';
   }
 
@@ -1580,8 +2267,6 @@ body{
     document.body.removeChild(ta);
   }
 
-  // 加 Blob / URL.createObjectURL 守卫：环境中没有 Blob 时直接提示，
-  // 不要抛出未捕获异常，也不要让 URL.revokeObjectURL 空引用。
   function downloadReport() {
     if (typeof Blob === 'undefined' ||
         typeof URL === 'undefined' ||
@@ -1608,8 +2293,6 @@ body{
     }
   }
 
-  // flashBtn 恢复 disabled 时尊重 isRunning：
-  // 避免"运行中点了复制 → 1.4 秒后按钮被 flashBtn 解锁 → 又能在 run 进行中复制半成品报告"。
   function flashBtn(btn, text) {
     if (btn._flashTimer) {
       clearTimeout(btn._flashTimer);
@@ -1625,6 +2308,8 @@ body{
       btn.disabled = isRunning;
       btn._flashTimer = null;
       btn._flashOriginal = null;
+      // 按钮文字恢复后重建玻璃（宽度可能微变）
+      refreshGlass(true);
     }, 1400);
   }
 
@@ -1682,6 +2367,13 @@ body{
       renderOverview();
       renderReport();
 
+      // 报告卡片渲染完成后，构建液态玻璃折射
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          refreshGlass(true);
+        });
+      });
+
       $('barFill').style.width = '100%';
       const fails = R.filter(r => r.status === 'fail').length;
       const warns = R.filter(r => r.status === 'warn').length;
@@ -1695,9 +2387,12 @@ body{
         '请刷新页面后重试。若反复出现，请更换浏览器。');
       renderOverview();
       renderReport();
+      requestAnimationFrame(function () { refreshGlass(true); });
     } finally {
       isRunning = false;
       setAllBtnsDisabled(false);
+      // 按钮从禁用恢复后重建
+      setTimeout(function () { refreshGlass(true); }, 60);
     }
   }
 
