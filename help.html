@@ -55,13 +55,84 @@ body{
 }
 .wrap{position:relative;z-index:2;max-width:1020px;margin:0 auto}
 
+/* ================= FPS 监视器 ================= */
+#fpsMonitor{
+  position:fixed;
+  top:14px;
+  right:14px;
+  z-index:9999;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 12px;
+  border-radius:999px;
+  background:rgba(10,16,28,.62);
+  border:1px solid rgba(255,255,255,.14);
+  backdrop-filter:blur(14px) saturate(140%);
+  -webkit-backdrop-filter:blur(14px) saturate(140%);
+  box-shadow:
+    inset 0 .5px 0 0 rgba(255,255,255,.20),
+    0 6px 18px rgba(0,0,0,.45);
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+  font-size:.76rem;
+  font-weight:700;
+  letter-spacing:.5px;
+  color:#dfeaff;
+  pointer-events:none;
+  user-select:none;
+  transition:color .25s, border-color .25s, box-shadow .25s;
+}
+#fpsMonitor .fps-dot{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:currentColor;
+  box-shadow:0 0 10px currentColor;
+  flex:none;
+}
+#fpsMonitor .fps-num{
+  min-width:3ch;
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+  color:inherit;
+}
+#fpsMonitor .fps-unit{
+  opacity:.55;
+  font-weight:500;
+}
+#fpsMonitor.fps-good{
+  color:#34d399;
+  border-color:rgba(52,211,153,.35);
+  box-shadow:
+    inset 0 .5px 0 0 rgba(255,255,255,.20),
+    0 6px 18px rgba(0,0,0,.45),
+    0 0 14px rgba(52,211,153,.25);
+}
+#fpsMonitor.fps-mid{
+  color:#fbbf24;
+  border-color:rgba(251,191,36,.35);
+  box-shadow:
+    inset 0 .5px 0 0 rgba(255,255,255,.20),
+    0 6px 18px rgba(0,0,0,.45),
+    0 0 14px rgba(251,191,36,.25);
+}
+#fpsMonitor.fps-bad{
+  color:#f87171;
+  border-color:rgba(248,113,113,.4);
+  box-shadow:
+    inset 0 .5px 0 0 rgba(255,255,255,.20),
+    0 6px 18px rgba(0,0,0,.45),
+    0 0 14px rgba(248,113,113,.3);
+}
+
 /* ================= 顶部 ================= */
 .hero{text-align:center;margin-bottom:30px}
 .hero h1{
-  font-size:clamp(1.5rem,4vw,2.2rem);font-weight:800;letter-spacing:1px;
-  color:var(--text);
+  font-size:clamp(1.5rem,4vw,2.2rem);
+  font-weight:800;
+  letter-spacing:1px;
+  color:#e9efff;
   margin-bottom:8px;
-  filter:drop-shadow(0 0 18px rgba(96,165,250,.35));
 }
 .hero p{color:var(--muted);font-size:.92rem}
 .bar{
@@ -241,12 +312,25 @@ body{
   .tools{grid-template-columns:1fr}
   .ov-card{flex:1 1 120px;padding:13px 12px}
   .ov-num{font-size:1.5rem}
+  #fpsMonitor{
+    top:10px;
+    right:10px;
+    padding:5px 10px;
+    font-size:.7rem;
+  }
 }
 </style>
 </head>
 <body>
 
 <canvas id="bgCanvas"></canvas>
+
+<!-- FPS 监视器（右上角常驻，每帧刷新） -->
+<div id="fpsMonitor" class="fps-good" aria-label="当前帧率" title="实时帧率">
+  <span class="fps-dot"></span>
+  <span class="fps-num">--</span>
+  <span class="fps-unit">FPS</span>
+</div>
 
 <div class="wrap">
 
@@ -502,6 +586,64 @@ body{
   nextMeteorTime = t0 + 900 + Math.random() * 1600;
   nextBurstCheckTime = t0 + 30000 + Math.random() * 30000;
   requestAnimationFrame(renderLoop);
+})();
+</script>
+
+<!-- ============================================================
+     FPS 监视器（右上角常驻，每帧刷新）
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+
+  const el = document.getElementById('fpsMonitor');
+  if (!el) return;
+
+  const numEl = el.querySelector('.fps-num');
+  if (!numEl) return;
+
+  // 用指数移动平均平滑瞬时帧率，每帧都刷新数字，但不会剧烈跳动
+  const SMOOTH = 0.12;   // 0 = 完全不平滑（剧烈抖动），1 = 完全不动
+  let ema = 60;          // 初值随便，几帧内就会收敛到真实值
+  let last = performance.now();
+  let lastShown = -1;    // 避免每帧都写 DOM，只在整数变化时更新
+
+  function setLevel(fps) {
+    el.classList.remove('fps-good', 'fps-mid', 'fps-bad');
+    if (fps >= 55) el.classList.add('fps-good');
+    else if (fps >= 30) el.classList.add('fps-mid');
+    else el.classList.add('fps-bad');
+  }
+
+  function loop(now) {
+    const dt = now - last;
+    last = now;
+
+    // 只对合理的帧间隔采样（排除后台恢复、断点调试等异常大值）
+    if (dt > 0 && dt < 500) {
+      const instant = 1000 / dt;              // 瞬时帧率
+      ema += (instant - ema) * SMOOTH;        // 指数移动平均
+      const fps = Math.round(ema);
+      if (fps !== lastShown) {
+        lastShown = fps;
+        numEl.textContent = fps;
+        setLevel(fps);
+      }
+    }
+
+    requestAnimationFrame(loop);
+  }
+
+  // 页面切回前台时重置基准，避免一帧巨大的 dt 污染 EMA
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) {
+      last = performance.now();
+      ema = 60;
+      lastShown = -1;
+    }
+  });
+
+  requestAnimationFrame(loop);
 })();
 </script>
 
@@ -1619,9 +1761,6 @@ body{
     { key: 'Ace 补全',
       url: 'https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ext-language_tools.js',
       tool: '在线 C++ 编译器', critical: true },
-    { key: 'Ace 样式',
-      url: 'https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ace.min.css',
-      tool: '在线 C++ 编译器', critical: true },
     { key: 'diff_match_patch',
       url: 'https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js',
       tool: '文本差异对比', critical: true },
@@ -1872,8 +2011,8 @@ body{
     { file:'fz/c.html',          title:'在线 C++ 编译器',
       require:['fetch'],
       optional:['abortController','blob'],
-      requireNet:['Ace 编辑器','Ace 补全','Ace 样式','Wandbox 服务'],
-      note:'完全依赖外网服务，离线或网络异常时不可用。' },
+      requireNet:['Ace 编辑器','Ace 补全','Wandbox 服务'],
+      note:'完全依赖外网服务，离线或网络异常时不可用。Ace 编辑器的所有样式由 ace.js 运行时动态注入，无需外部 CSS 文件。' },
 
     { file:'fz2/llq.html',       title:'网页模拟浏览器',
       require:['canvas','blob'],
