@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
+<title>Base64 编解码工具</title>
+<style>
+    * { box-sizing: border-box; }
+    body {
+        background: #f0f2f5;
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        min-height: 100vh;
+        margin: 0;
+        padding: 16px;
+    }
+    .container {
+        max-width: 1100px;
+        width: 100%;
+        background: white;
+        border-radius: 24px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        padding: 20px;
+        position: relative;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 16px; color: #1a2c3e; text-align: center; }
+
+    /* ---------- 顶部状态 ---------- */
+    .top-status {
+        position: sticky; top: 0; background: white; z-index: 10;
+        padding: 8px 16px; margin: -12px -12px 16px -12px;
+        border-radius: 40px; text-align: center; font-weight: 500;
+        transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        overflow: hidden;
+    }
+    .top-status.processing { background: #e6f7ff; color: #0050b3; border-left: 4px solid #1890ff; }
+    .top-status.success { background: #e6f9e6; color: #237804; border-left: 4px solid #52c41a; }
+    .top-status.error { background: #fff1f0; color: #a8071a; border-left: 4px solid #ff4d4f; }
+    .top-status.warning { background: #fff7e6; color: #ad6800; border-left: 4px solid #faad14; }
+    .top-status .message { display: inline-block; }
+    .top-status .spinner {
+        display: inline-block; width: 16px; height: 16px;
+        border: 2px solid #1890ff; border-top-color: transparent;
+        border-radius: 50%; animation: spin 0.8s linear infinite;
+        vertical-align: middle; margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .indeterminate-progress {
+        width: 100%; height: 3px; background-color: #e6f7ff;
+        margin-top: 8px; border-radius: 3px; overflow: hidden; position: relative;
+    }
+    .indeterminate-progress::after {
+        content: ''; position: absolute; top: 0; left: 0;
+        width: 30%; height: 100%; background: #1890ff;
+        border-radius: 3px; animation: progress 1.2s infinite ease-in-out;
+    }
+    @keyframes progress { 0% { left: -30%; width: 30%; } 50% { left: 35%; width: 30%; } 100% { left: 100%; width: 30%; } }
+
+    /* ---------- 文本框 ---------- */
+    .textarea-wrapper {
+        position: relative;
+        margin-bottom: 6px;
+        transition: border-color 0.2s;
+    }
+    .textarea-wrapper textarea {
+        width: 100%; padding: 12px 92px 12px 12px;
+        font-family: 'Courier New', ui-monospace, monospace; font-size: 14px;
+        border: 2px solid #ccc; border-radius: 12px; resize: vertical;
+        min-height: 110px; transition: border-color 0.2s; background: white;
+        line-height: 1.55; word-break: break-all; outline: none;
+    }
+    .textarea-wrapper textarea:focus { border-color: #1890ff; }
+    .textarea-wrapper.drag-over textarea {
+        border-color: #1890ff;
+        background: #f0f7ff;
+    }
+    .copy-btn {
+        position: absolute; top: 8px; right: 8px;
+        background: #e9ecef; border: none; border-radius: 20px;
+        padding: 4px 12px; font-size: 0.75rem; cursor: pointer;
+        color: #1a2c3e; transition: 0.2s; min-height: 28px;
+    }
+    .copy-btn:hover { background: #d0d4d8; }
+    .field-meta {
+        font-size: 0.72rem; color: #6c757d; margin: 0 0 14px 6px;
+        display: flex; gap: 14px; flex-wrap: wrap;
+    }
+    .field-meta b { color: #1a2c3e; font-weight: 600; }
+
+    /* ---------- 选项行 ---------- */
+    .flex-center {
+        display: flex; align-items: center; gap: 16px;
+        flex-wrap: wrap; margin-bottom: 8px; justify-content: center;
+    }
+    .checkbox-group {
+        display: flex; align-items: center; gap: 6px;
+        font-size: 0.85rem; color: #2c3e50;
+    }
+    .checkbox-group input { width: 18px; height: 18px; cursor: pointer; }
+    .checkbox-group label { cursor: pointer; user-select: none; }
+
+    /* ---------- 按钮 ---------- */
+    .buttons, .file-group, .download-group {
+        display: flex; gap: 12px; flex-wrap: wrap;
+        justify-content: center; margin: 12px 0;
+    }
+    button {
+        padding: 12px 24px; font-size: 0.95rem; font-weight: 600;
+        border: none; border-radius: 40px; cursor: pointer;
+        background: #1a2c3e; color: white; transition: 0.2s;
+        min-height: 44px; min-width: 48px; touch-action: manipulation;
+    }
+    button:hover:not(:disabled) { background: #2c4c6e; transform: translateY(-1px); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .secondary { background: #e9ecef; color: #1a2c3e; }
+    .secondary:hover:not(:disabled) { background: #d5d8dd; }
+    .file-group input[type="file"] { display: none; }
+
+    /* ---------- 分隔标题 ---------- */
+    .section-label {
+        font-size: 0.78rem; font-weight: 700; color: #8899aa;
+        letter-spacing: .5px; margin: 6px 4px 8px; text-transform: uppercase;
+    }
+
+    /* ---------- 日志 ---------- */
+    .log-panel {
+        background: #1e1e2e; border: 1px solid #333; border-radius: 12px;
+        padding: 8px 12px; margin-top: 16px; margin-bottom: 16px;
+        max-height: 200px; overflow-y: auto; font-size: 0.8rem;
+        font-family: 'Courier New', monospace; line-height: 1.6; color: #e0e0e0;
+    }
+    .log-panel .log-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 4px; color: #aaa; font-weight: 600; font-size: 0.75rem;
+        border-bottom: 1px solid #333; padding-bottom: 4px;
+    }
+    .log-panel .log-header .log-controls {
+        display: flex; align-items: center; gap: 12px;
+    }
+    .log-panel .log-header .log-controls label {
+        font-weight: normal; color: #888; font-size: 0.7rem;
+        display: flex; align-items: center; gap: 4px; cursor: pointer;
+    }
+    .log-panel .log-header .log-controls input[type="checkbox"] {
+        width: 14px; height: 14px; cursor: pointer;
+    }
+    .log-panel .log-header button {
+        background: none; border: none; color: #888; padding: 0 6px;
+        cursor: pointer; font-size: 0.7rem; min-height: auto; font-weight: normal;
+    }
+    .log-panel .log-header button:hover { color: #fff; background: none; transform: none; }
+    .log-panel .log-entry {
+        display: flex; gap: 10px; padding: 1px 0; border-bottom: 1px solid #2a2a3a;
+    }
+    .log-panel .log-entry:last-child { border-bottom: none; }
+    .log-panel .log-time { color: #6c7a89; white-space: nowrap; min-width: 70px; }
+    .log-panel .log-type { font-weight: 600; min-width: 50px; }
+    .log-panel .log-type.info { color: #61afef; }
+    .log-panel .log-type.success { color: #98c379; }
+    .log-panel .log-type.warning { color: #e5c07b; }
+    .log-panel .log-type.error { color: #e06c75; }
+    .log-panel .log-msg { word-break: break-word; flex: 1; }
+
+    /* ---------- 提示 ---------- */
+    .note {
+        font-size: 0.7rem; color: #6c757d; text-align: center; margin-top: 20px;
+        line-height: 1.8;
+    }
+    .env-warning {
+        background: #fff3e0; border-left: 4px solid #faad14;
+        padding: 8px 12px; border-radius: 8px; margin-bottom: 16px;
+        font-size: 0.8rem; color: #ad6800;
+    }
+
+    /* ---------- 弹窗 ---------- */
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+        display: none; align-items: center; justify-content: center;
+        z-index: 9999; padding: 20px;
+        animation: fadeIn 0.2s ease;
+    }
+    .modal-overlay.active { display: flex; }
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    .modal-box {
+        background: white; border-radius: 24px; max-width: 480px; width: 100%;
+        padding: 28px 32px 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        position: relative; animation: slideUp 0.25s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .modal-icon { font-size: 3rem; text-align: center; margin-bottom: 12px; }
+    .modal-title { font-size: 1.2rem; font-weight: 700; text-align: center; color: #1a2c3e; margin-bottom: 8px; }
+    .modal-message { font-size: 0.95rem; color: #4a5568; text-align: center; line-height: 1.6; margin-bottom: 20px; white-space: pre-wrap; word-break: break-word; }
+    .modal-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .modal-actions button { padding: 10px 28px; border: none; border-radius: 40px; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: 0.2s; min-width: 80px; }
+    .modal-actions .btn-primary { background: #1a2c3e; color: white; }
+    .modal-actions .btn-primary:hover { background: #2c4c6e; }
+    .modal-actions .btn-secondary { background: #e9ecef; color: #1a2c3e; }
+    .modal-actions .btn-secondary:hover { background: #d5d8dd; }
+    .modal-actions .btn-danger { background: #ff4d4f; color: white; }
+    .modal-actions .btn-danger:hover { background: #d9363e; }
+
+    /* ---------- 移动端 ---------- */
+    @media (max-width: 600px) {
+        .container { padding: 16px; }
+        h1 { font-size: 1.3rem; }
+        .top-status { font-size: 0.85rem; padding: 6px 12px; }
+        .copy-btn { font-size: 0.7rem; padding: 2px 10px; }
+        button { font-size: 0.85rem; padding: 10px 16px; min-height: 44px; }
+        .textarea-wrapper textarea { font-size: 13px; padding: 10px 78px 10px 10px; }
+        .log-panel { max-height: 150px; font-size: 0.7rem; }
+        .log-panel .log-time { min-width: 50px; }
+        .log-panel .log-header .log-controls { flex-wrap: wrap; gap: 4px; }
+        .modal-box { padding: 20px; }
+        .modal-icon { font-size: 2.5rem; }
+        .buttons button { flex: 1; min-width: 100px; }
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>🔤 Base64 编解码工具</h1>
+
+    <div id="envWarning" class="env-warning" style="display: none;"></div>
+    <div id="topStatus" class="top-status" style="display: none;"></div>
+
+    <!-- ============ 文本 ============ -->
+    <div class="section-label">📝 原始文本（UTF-8）</div>
+    <div class="textarea-wrapper" id="plainWrapper">
+        <textarea id="plaintext" rows="5"
+            placeholder="在此输入文本，例如：你好，世界 🌍&#10;📁 支持拖拽 .txt 等文本文件到此自动填充"></textarea>
+        <button class="copy-btn" id="copyPlainBtn">📋 复制</button>
+    </div>
+    <div class="field-meta" id="plainMeta"></div>
+
+    <!-- ============ 操作按钮 ============ -->
+    <div class="buttons">
+        <button id="encodeBtn">🔒 编码 → Base64</button>
+        <button id="decodeBtn">🔓 解码 → 文本</button>
+        <button id="swapBtn" class="secondary">⇅ 交换两侧</button>
+    </div>
+
+    <!-- ============ Base64 ============ -->
+    <div class="section-label">🔑 Base64 字符串</div>
+    <div class="textarea-wrapper" id="b64Wrapper">
+        <textarea id="base64text" rows="5"
+            placeholder="在此输入 Base64 字符串…&#10;📁 支持拖拽 .txt 密文文件到此自动填充"></textarea>
+        <button class="copy-btn" id="copyB64Btn">📋 复制</button>
+    </div>
+    <div class="field-meta" id="b64Meta"></div>
+
+    <!-- ============ 选项 ============ -->
+    <div class="flex-center">
+        <div class="checkbox-group">
+            <input type="checkbox" id="autoCheck" checked>
+            <label for="autoCheck">⚡ 自动转换</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="urlSafeCheck">
+            <label for="urlSafeCheck">🔗 URL 安全字符集（-_ 无填充）</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="lineBreakCheck">
+            <label for="lineBreakCheck">↩️ 每 76 字符换行</label>
+        </div>
+    </div>
+
+    <!-- ============ 文件操作 ============ -->
+    <div class="file-group">
+        <button id="importPlainBtn" class="secondary">📂 导入文本文件</button>
+        <button id="importB64Btn" class="secondary">📂 导入 Base64 文件</button>
+        <button id="downloadB64Btn" class="secondary">📥 下载 Base64 (.txt)</button>
+        <button id="downloadPlainBtn" class="secondary">📥 下载解码文本 (.txt)</button>
+        <input type="file" id="plainFileInput" accept=".txt,text/*">
+        <input type="file" id="b64FileInput" accept=".txt,text/*">
+    </div>
+
+    <div class="download-group">
+        <button id="clearPlainBtn" class="secondary">🗑️ 清空文本</button>
+        <button id="clearB64Btn" class="secondary">🗑️ 清空 Base64</button>
+        <button id="clearAllBtn" class="secondary">🧹 清空全部</button>
+    </div>
+
+    <!-- ============ 日志 ============ -->
+    <div id="logPanel" class="log-panel">
+        <div class="log-header">
+            <span>📋 运行日志</span>
+            <div class="log-controls">
+                <label>
+                    <input type="checkbox" id="logScrollLock"> ⏸️ 暂停滚动
+                </label>
+                <button id="clearLogBtn">清空日志</button>
+            </div>
+        </div>
+        <div id="logEntries"></div>
+    </div>
+
+    <div class="note">
+        ⚠️ 使用提示：<br>
+        • 文本按 UTF-8 编码后转为 Base64，支持中文、Emoji 等任意字符。<br>
+        • 解码时自动忽略换行与空白，兼容 URL 安全字符集及缺失的 <code>=</code> 填充。<br>
+        • 内容不是有效 UTF-8 时（二进制数据）会给出警告，但仍以替换字符呈现。<br>
+        • 📁 支持将文本文件直接拖拽到上方输入框自动填充。<br>
+        • 所有转换均在本地浏览器完成，数据不会上传到任何服务器。
+    </div>
+</div>
+
+<!-- ============ 弹窗 ============ -->
+<div id="modalOverlay" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-icon" id="modalIcon">ℹ️</div>
+        <div class="modal-title" id="modalTitle">提示</div>
+        <div class="modal-message" id="modalMessage">消息内容</div>
+        <div class="modal-actions" id="modalActions">
+            <button class="btn-primary" id="modalConfirmBtn">确定</button>
+            <button class="btn-secondary" id="modalCancelBtn" style="display:none;">取消</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    /* ===================== 元素引用 ===================== */
+    const plaintextEl   = document.getElementById('plaintext');
+    const base64El      = document.getElementById('base64text');
+    const plainMeta     = document.getElementById('plainMeta');
+    const b64Meta       = document.getElementById('b64Meta');
+    const plainWrapper  = document.getElementById('plainWrapper');
+    const b64Wrapper    = document.getElementById('b64Wrapper');
+
+    const encodeBtn     = document.getElementById('encodeBtn');
+    const decodeBtn     = document.getElementById('decodeBtn');
+    const swapBtn       = document.getElementById('swapBtn');
+
+    const autoCheck     = document.getElementById('autoCheck');
+    const urlSafeCheck  = document.getElementById('urlSafeCheck');
+    const lineBreakCheck= document.getElementById('lineBreakCheck');
+
+    const copyPlainBtn  = document.getElementById('copyPlainBtn');
+    const copyB64Btn    = document.getElementById('copyB64Btn');
+    const clearPlainBtn = document.getElementById('clearPlainBtn');
+    const clearB64Btn   = document.getElementById('clearB64Btn');
+    const clearAllBtn   = document.getElementById('clearAllBtn');
+
+    const importPlainBtn= document.getElementById('importPlainBtn');
+    const importB64Btn  = document.getElementById('importB64Btn');
+    const downloadB64Btn= document.getElementById('downloadB64Btn');
+    const downloadPlainBtn = document.getElementById('downloadPlainBtn');
+    const plainFileInput= document.getElementById('plainFileInput');
+    const b64FileInput  = document.getElementById('b64FileInput');
+
+    const topStatusDiv  = document.getElementById('topStatus');
+    const envWarningDiv = document.getElementById('envWarning');
+
+    const logEntries    = document.getElementById('logEntries');
+    const clearLogBtn   = document.getElementById('clearLogBtn');
+    const logScrollLock = document.getElementById('logScrollLock');
+
+    let silent = false;          // 程序赋值时屏蔽 input 事件
+    let statusTimeout = null;
+    let logUserScrolledUp = false;
+
+    /* ===================== 弹窗 ===================== */
+    const modalOverlay    = document.getElementById('modalOverlay');
+    const modalIcon       = document.getElementById('modalIcon');
+    const modalTitle      = document.getElementById('modalTitle');
+    const modalMessage    = document.getElementById('modalMessage');
+    const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+    const modalCancelBtn  = document.getElementById('modalCancelBtn');
+    let modalResolve = null;
+
+    function showModal(options) {
+        return new Promise((resolve) => {
+            const {
+                icon = 'ℹ️', title = '提示', message = '',
+                confirmText = '确定', cancelText = '取消',
+                showCancel = false, type = 'info', closeOnOverlay = true
+            } = options;
+
+            modalIcon.textContent = icon;
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            modalConfirmBtn.textContent = confirmText;
+
+            if (showCancel) {
+                modalCancelBtn.style.display = 'inline-block';
+                modalCancelBtn.textContent = cancelText;
+            } else {
+                modalCancelBtn.style.display = 'none';
+            }
+
+            let cls = 'btn-primary';
+            if (type === 'warning' || type === 'error') cls = 'btn-danger';
+            else if (type === 'success') cls = 'btn-success';
+            modalConfirmBtn.className = cls;
+
+            modalOverlay.classList.add('active');
+            modalResolve = resolve;
+
+            // 重新绑定，避免多次监听叠加
+            const newConfirm = modalConfirmBtn.cloneNode(true);
+            const newCancel  = modalCancelBtn.cloneNode(true);
+            modalConfirmBtn.parentNode.replaceChild(newConfirm, modalConfirmBtn);
+            modalCancelBtn.parentNode.replaceChild(newCancel, modalCancelBtn);
+
+            function close(result) {
+                modalOverlay.classList.remove('active');
+                document.removeEventListener('keydown', escHandler);
+                if (modalResolve) modalResolve(result);
+                modalResolve = null;
+            }
+            function escHandler(e) { if (e.key === 'Escape') close(false); }
+
+            newConfirm.addEventListener('click', () => close(true));
+            newCancel.addEventListener('click', () => close(false));
+            if (closeOnOverlay) {
+                modalOverlay.addEventListener('click', function handler(e) {
+                    if (e.target === modalOverlay) {
+                        modalOverlay.removeEventListener('click', handler);
+                        close(false);
+                    }
+                });
+            }
+            document.addEventListener('keydown', escHandler);
+        });
+    }
+
+    /* ===================== 日志 ===================== */
+    function escapeHtml(str) {
+        return String(str == null ? '' : str).replace(/[&<>"']/g, m => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[m]));
+    }
+
+    function addLog(type, message) {
+        const time = new Date().toLocaleTimeString();
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        const typeMap = { info: '信息', success: '成功', warning: '警告', error: '错误' };
+        entry.innerHTML =
+            '<span class="log-time">' + time + '</span>' +
+            '<span class="log-type ' + type + '">' + (typeMap[type] || type) + '</span>' +
+            '<span class="log-msg">' + escapeHtml(message) + '</span>';
+        logEntries.appendChild(entry);
+        while (logEntries.children.length > 100) {
+            logEntries.removeChild(logEntries.firstChild);
+        }
+        const panel = logEntries.parentElement;
+        if (!logScrollLock.checked && !logUserScrolledUp) {
+            panel.scrollTop = panel.scrollHeight;
+        }
+    }
+
+    logEntries.parentElement.addEventListener('scroll', function () {
+        const panel = this;
+        const atBottom = panel.scrollTop + panel.clientHeight >= panel.scrollHeight - 2;
+        if (!logScrollLock.checked) logUserScrolledUp = !atBottom;
+    });
+
+    logScrollLock.addEventListener('change', function () {
+        if (!this.checked) {
+            const panel = logEntries.parentElement;
+            panel.scrollTop = panel.scrollHeight;
+            logUserScrolledUp = false;
+        }
+    });
+
+    clearLogBtn.addEventListener('click', function () {
+        logEntries.innerHTML = '';
+        addLog('info', '日志已清空。');
+    });
+
+    /* ===================== 顶部状态 ===================== */
+    function showTopStatus(message, type, autoHide, timeout) {
+        type = type || 'info';
+        if (autoHide === undefined) autoHide = true;
+        if (timeout === undefined) timeout = 4000;
+
+        if (statusTimeout) clearTimeout(statusTimeout);
+        topStatusDiv.style.display = 'block';
+        topStatusDiv.className = 'top-status ' + type;
+
+        if (type === 'processing') {
+            topStatusDiv.innerHTML =
+                '<div class="message"><span class="spinner"></span><span>' +
+                escapeHtml(message) + '</span></div><div class="indeterminate-progress"></div>';
+        } else {
+            topStatusDiv.innerHTML = '<div class="message">' + escapeHtml(message) + '</div>';
+            addLog(type, message);
+        }
+
+        if (autoHide && type !== 'processing') {
+            statusTimeout = setTimeout(function () {
+                topStatusDiv.style.display = 'none';
+                statusTimeout = null;
+            }, timeout);
+        }
+    }
+
+    function hideTopStatus() {
+        if (statusTimeout) clearTimeout(statusTimeout);
+        topStatusDiv.style.display = 'none';
+        statusTimeout = null;
+    }
+
+    /* ===================== 核心：编解码 ===================== */
+    function bytesToBinary(bytes) {
+        let bin = '';
+        const CHUNK = 0x8000;
+        for (let i = 0; i < bytes.length; i += CHUNK) {
+            bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+        }
+        return bin;
+    }
+
+    /** 文本 → Base64 */
+    function encodeText(text) {
+        const bytes = new TextEncoder().encode(text);
+        let out = btoa(bytesToBinary(bytes));
+
+        if (urlSafeCheck.checked) {
+            out = out.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        }
+        if (lineBreakCheck.checked && out.length > 0) {
+            out = out.match(/.{1,76}/g).join('\n');
+        }
+        return out;
+    }
+
+    /** Base64 → 文本（返回 { text, warning }） */
+    function decodeText(input) {
+        let s = input.replace(/\s+/g, '');
+        if (s === '') return { text: '', warning: '' };
+
+        // 兼容 URL 安全字符集
+        s = s.replace(/-/g, '+').replace(/_/g, '/');
+
+        if (/[^A-Za-z0-9+/=]/.test(s)) {
+            throw new Error('包含非法字符（仅允许 A-Z a-z 0-9 + / = 及空白）');
+        }
+        const firstEq = s.indexOf('=');
+        if (firstEq !== -1 && /[^=]/.test(s.slice(firstEq))) {
+            throw new Error('填充符 "=" 只能出现在末尾');
+        }
+
+        const rem = s.length % 4;
+        if (rem === 1) throw new Error('Base64 长度不合法（不能为 4n+1）');
+        if (rem) s += '='.repeat(4 - rem);
+
+        let bin;
+        try { bin = atob(s); }
+        catch (e) { throw new Error('不是有效的 Base64 字符串'); }
+
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+
+        let text, warning = '';
+        try {
+            text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+        } catch (e) {
+            text = new TextDecoder('utf-8').decode(bytes);
+            warning = '解码完成，但内容不是有效的 UTF-8 文本（可能是二进制数据）';
+        }
+        return { text: text, warning: warning };
+    }
+
+    /* ===================== 元信息 ===================== */
+    function updateMeta() {
+        const t = plaintextEl.value;
+        const tBytes = new TextEncoder().encode(t).length;
+        plainMeta.innerHTML =
+            '<span>字符 <b>' + t.length + '</b></span>' +
+            '<span>UTF-8 字节 <b>' + tBytes + '</b></span>' +
+            '<span>Base64 预计 <b>' + (tBytes === 0 ? 0 : Math.ceil(tBytes / 3) * 4) + '</b></span>';
+
+        const raw = base64El.value;
+        const compact = raw.replace(/\s+/g, '');
+        b64Meta.innerHTML =
+            '<span>字符 <b>' + raw.length + '</b></span>' +
+            '<span>去空白 <b>' + compact.length + '</b></span>' +
+            '<span>解码后约 <b>' + Math.floor(compact.length * 3 / 4) + '</b> 字节</span>';
+    }
+
+    function setValue(el, value) {
+        silent = true;
+        el.value = value;
+        silent = false;
+    }
+
+    /* ===================== 转换入口 ===================== */
+    function runEncode(fromUser) {
+        try {
+            const out = encodeText(plaintextEl.value);
+            setValue(base64El, out);
+            updateMeta();
+            if (fromUser) {
+                if (out) showTopStatus('编码完成（' + out.replace(/\s+/g, '').length + ' 字符）', 'success');
+                else showTopStatus('文本为空', 'warning', true, 2000);
+            }
+        } catch (e) {
+            updateMeta();
+            showTopStatus('编码失败：' + e.message, 'error');
+        }
+    }
+
+    function runDecode(fromUser) {
+        if (base64El.value.trim() === '') {
+            setValue(plaintextEl, '');
+            updateMeta();
+            if (fromUser) showTopStatus('Base64 为空', 'warning', true, 2000);
+            return;
+        }
+        try {
+            const res = decodeText(base64El.value);
+            setValue(plaintextEl, res.text);
+            updateMeta();
+            if (fromUser || res.warning) {
+                if (res.warning) showTopStatus(res.warning, 'warning', true, 5000);
+                else showTopStatus('解码完成（' + res.text.length + ' 字符）', 'success');
+            }
+        } catch (e) {
+            updateMeta();
+            showTopStatus('解码失败：' + e.message, 'error');
+        }
+    }
+
+    /* ===================== 事件绑定 ===================== */
+    plaintextEl.addEventListener('input', function () {
+        updateMeta();
+        if (silent) return;
+        if (autoCheck.checked) runEncode(false);
+        else showTopStatus('内容已修改，点击「编码 → Base64」转换', 'info', true, 2500);
+    });
+
+    base64El.addEventListener('input', function () {
+        updateMeta();
+        if (silent) return;
+        if (autoCheck.checked) runDecode(false);
+        else showTopStatus('内容已修改，点击「解码 → 文本」转换', 'info', true, 2500);
+    });
+
+    encodeBtn.addEventListener('click', function () { runEncode(true); });
+    decodeBtn.addEventListener('click', function () { runDecode(true); });
+
+    swapBtn.addEventListener('click', function () {
+        const tmp = plaintextEl.value;
+        setValue(plaintextEl, base64El.value);
+        setValue(base64El, tmp);
+        updateMeta();
+        showTopStatus('已交换两侧内容', 'success');
+    });
+
+    urlSafeCheck.addEventListener('change', function () {
+        if (autoCheck.checked) runEncode(false);
+        showTopStatus(
+            urlSafeCheck.checked
+                ? '已启用 URL 安全字符集（使用 - _ 并去除 = 填充）'
+                : '已恢复标准字符集（使用 + / 并带 = 填充）',
+            'info', true, 3000
+        );
+    });
+
+    lineBreakCheck.addEventListener('change', function () {
+        if (autoCheck.checked) runEncode(false);
+        showTopStatus(
+            lineBreakCheck.checked ? '已启用每 76 字符换行' : '已关闭换行（输出单行）',
+            'info', true, 2500
+        );
+    });
+
+    autoCheck.addEventListener('change', function () {
+        if (autoCheck.checked) {
+            runEncode(false);
+            showTopStatus('已开启自动转换', 'success', true, 2000);
+        } else {
+            showTopStatus('已关闭自动转换，请手动点击按钮', 'info', true, 2500);
+        }
+    });
+
+    /* ---------- 复制 ---------- */
+    function copyToClipboard(text, successMsg) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () {
+                showTopStatus(successMsg, 'success');
+            }).catch(function () { fallbackCopy(text, successMsg); });
+        } else {
+            fallbackCopy(text, successMsg);
+        }
+    }
+
+    function fallbackCopy(text, successMsg) {
+        try {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            ta.style.left = '-9999px';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showTopStatus(successMsg, 'success');
+        } catch (e) {
+            showTopStatus('复制失败，请手动选择内容', 'error');
+        }
+    }
+
+    copyPlainBtn.addEventListener('click', function () {
+        if (!plaintextEl.value) { showTopStatus('文本为空', 'warning', true, 2000); return; }
+        copyToClipboard(plaintextEl.value, '文本已复制到剪贴板');
+    });
+
+    copyB64Btn.addEventListener('click', function () {
+        if (!base64El.value) { showTopStatus('Base64 为空', 'warning', true, 2000); return; }
+        copyToClipboard(base64El.value, 'Base64 已复制到剪贴板');
+    });
+
+    /* ---------- 清空 ---------- */
+    clearPlainBtn.addEventListener('click', function () {
+        setValue(plaintextEl, '');
+        updateMeta();
+        showTopStatus('文本已清空', 'success', true, 2000);
+    });
+
+    clearB64Btn.addEventListener('click', function () {
+        setValue(base64El, '');
+        updateMeta();
+        showTopStatus('Base64 已清空', 'success', true, 2000);
+    });
+
+    clearAllBtn.addEventListener('click', async function () {
+        const ok = await showModal({
+            icon: '🗑️', title: '清空全部',
+            message: '将清空文本、Base64 与日志内容，且无法撤销。确定继续吗？',
+            confirmText: '确定清空', cancelText: '取消',
+            showCancel: true, type: 'warning'
+        });
+        if (!ok) return;
+        setValue(plaintextEl, '');
+        setValue(base64El, '');
+        logEntries.innerHTML = '';
+        updateMeta();
+        hideTopStatus();
+        showTopStatus('所有内容已清空', 'success');
+    });
+
+    /* ---------- 下载 ---------- */
+    function downloadFile(content, filename) {
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+        addLog('info', '下载文件：' + filename);
+    }
+
+    function timestamp() {
+        return new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+    }
+
+    downloadB64Btn.addEventListener('click', function () {
+        if (!base64El.value) { showTopStatus('没有可下载的 Base64 内容', 'warning', true, 2500); return; }
+        downloadFile(base64El.value, 'base64_' + timestamp() + '.txt');
+        showTopStatus('Base64 已下载', 'success');
+    });
+
+    downloadPlainBtn.addEventListener('click', function () {
+        if (!plaintextEl.value) { showTopStatus('没有可下载的文本内容', 'warning', true, 2500); return; }
+        downloadFile(plaintextEl.value, 'text_' + timestamp() + '.txt');
+        showTopStatus('文本已下载', 'success');
+    });
+
+    /* ---------- 导入文件 ---------- */
+    importPlainBtn.addEventListener('click', function () { plainFileInput.click(); });
+    importB64Btn.addEventListener('click', function () { b64FileInput.click(); });
+
+    plainFileInput.addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        readFileInto(file, plaintextEl, '文本');
+        plainFileInput.value = '';
+    });
+
+    b64FileInput.addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        readFileInto(file, base64El, 'Base64');
+        b64FileInput.value = '';
+    });
+
+    function readFileInto(file, targetEl, label) {
+        if (file.size > 10 * 1024 * 1024) {
+            showModal({
+                icon: '⚠️', title: '大文件警告',
+                message: '文件大小 ' + (file.size / (1024 * 1024)).toFixed(1) +
+                    ' MB，导入后可能影响页面性能。确定继续吗？',
+                confirmText: '继续导入', cancelText: '取消',
+                showCancel: true, type: 'warning'
+            }).then(function (ok) {
+                if (ok) doRead(file, targetEl, label);
+            });
+        } else {
+            doRead(file, targetEl, label);
+        }
+    }
+
+    function doRead(file, targetEl, label) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            setValue(targetEl, e.target.result);
+            updateMeta();
+            if (targetEl === base64El && autoCheck.checked) runDecode(false);
+            if (targetEl === plaintextEl && autoCheck.checked) runEncode(false);
+            showTopStatus('已从 ' + file.name + ' 导入' + label, 'success');
+            addLog('info', '导入' + label + '：' + file.name +
+                '（' + (file.size / 1024).toFixed(1) + ' KB）');
+        };
+        reader.onerror = function () {
+            showTopStatus('读取文件失败，请确认文件可读', 'error');
+        };
+        reader.readAsText(file, 'utf-8');
+    }
+
+    /* ---------- 拖拽上传 ---------- */
+    function setupDropTarget(wrapper, textarea, label) {
+        wrapper.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            wrapper.classList.add('drag-over');
+        });
+        wrapper.addEventListener('dragleave', function (e) {
+            e.preventDefault();
+            wrapper.classList.remove('drag-over');
+        });
+        wrapper.addEventListener('drop', function (e) {
+            e.preventDefault();
+            wrapper.classList.remove('drag-over');
+            const files = e.dataTransfer.files;
+            if (!files || files.length === 0) {
+                showTopStatus('未检测到文件', 'error');
+                return;
+            }
+            readFileInto(files[0], textarea, label);
+        });
+    }
+
+    setupDropTarget(plainWrapper, plaintextEl, '文本');
+    setupDropTarget(b64Wrapper, base64El, 'Base64');
+
+    /* ---------- 环境检查 ---------- */
+    if (!window.TextEncoder || !window.TextDecoder || !window.btoa || !window.atob) {
+        envWarningDiv.style.display = 'block';
+        envWarningDiv.textContent = '⚠️ 当前浏览器缺少 TextEncoder/TextDecoder 或 Base64 支持，工具可能无法正常工作，请升级浏览器。';
+        addLog('error', '浏览器不支持必要的编码 API。');
+    }
+
+    /* ---------- 快捷键 ---------- */
+    document.addEventListener('keydown', function (e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            if (document.activeElement === base64El) runDecode(true);
+            else runEncode(true);
+        }
+    });
+
+    /* ===================== 初始化 ===================== */
+    updateMeta();
+    showTopStatus('就绪 · 输入内容即可实时转换（Ctrl+Enter 手动触发）', 'success', true, 3500);
+    addLog('info', 'Base64 编解码工具已就绪。');
+    addLog('info', '快捷键：Ctrl / Cmd + Enter 立即执行当前侧转换。');
+
+})();
+</script>
+</body>
+</html>
