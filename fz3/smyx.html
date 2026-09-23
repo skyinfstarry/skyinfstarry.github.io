@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>康威生命游戏 · Conway's Game of Life</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { min-height: 100%; }
+  body {
+    background: radial-gradient(1100px 620px at 50% -8%, #16222e, #070a0e 62%) fixed;
+    color: #e6edf3;
+    font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    display: flex; justify-content: center;
+    padding: 26px 18px 56px;
+    min-height: 100vh;
+  }
+
+  /* ---------- 页面主体 ---------- */
+  .wrap {
+    width: 100%; max-width: 900px;
+    opacity: 0; transform: translateY(10px);
+    transition: opacity .8s ease, transform .8s cubic-bezier(.2,.8,.2,1);
+  }
+  .wrap.ready { opacity: 1; transform: none; }
+
+  .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
+  h1 { font-size: 20px; font-weight: 600; letter-spacing: .4px; }
+  .sub { margin-top: 5px; font-size: 13px; color: #7d8b99; line-height: 1.6; }
+
+  .tool-btn {
+    flex: 0 0 auto; width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.16);
+    color: rgba(255,255,255,.75);
+    font-size: 16px; font-weight: 700; cursor: pointer;
+    transition: .18s; font-family: inherit;
+  }
+  .tool-btn:hover { background: rgba(127,216,255,.16); border-color: rgba(127,216,255,.5); color: #cdefff; }
+
+  canvas#board {
+    display: block; width: 100%; height: auto;
+    border-radius: 14px;
+    border: 1px solid #1e2a35;
+    background: #080c11;
+    cursor: crosshair;
+    touch-action: none;
+    box-shadow: 0 20px 60px -24px rgba(0,0,0,.95);
+  }
+
+  .bar { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; margin-top: 16px; }
+  .btn {
+    font: inherit; font-size: 13px;
+    padding: 9px 16px; border-radius: 10px;
+    border: 1px solid #24313d; background: #131b23; color: #e6edf3;
+    cursor: pointer; transition: .15s;
+  }
+  .btn:hover:not(:disabled) { background: #1a2531; border-color: #334455; }
+  .btn:active:not(:disabled) { transform: translateY(1px); }
+  .btn:disabled { opacity: .38; cursor: not-allowed; }
+  .btn.primary { background: #10342a; border-color: #1f6b4a; color: #6ee7b7; }
+  .btn.primary:hover:not(:disabled) { background: #164a37; }
+
+  .speed { display: flex; align-items: center; gap: 9px; font-size: 13px; color: #7d8b99; margin-left: auto; }
+  input[type=range] { width: 132px; accent-color: #7fd8ff; }
+
+  .stats { margin-top: 14px; font-size: 13px; color: #7d8b99; }
+  .stats b { color: #cfe3d8; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+  /* ---------- 加载画面 ---------- */
+  #loading {
+    position: fixed; inset: 0; z-index: 60;
+    display: flex; align-items: center; justify-content: center;
+    background: #070a0e;
+    color: #4a5764;
+    font-family: system-ui, sans-serif;
+    font-size: 12px; letter-spacing: .5em; text-indent: .5em;
+    transition: opacity .6s ease;
+  }
+  #loading.out { opacity: 0; pointer-events: none; }
+
+  /* ---------- 欢迎页 ---------- */
+  #welcome {
+    position: fixed; inset: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    background: rgba(4, 7, 11, .62);
+    backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+    font-family: system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
+    opacity: 0; visibility: hidden;
+    transition: opacity .6s ease, visibility .6s;
+  }
+  #welcome.show { opacity: 1; visibility: visible; }
+
+  .welcome-card {
+    width: min(430px, 100%);
+    padding: 34px 30px 26px;
+    background: rgba(10, 15, 22, .94);
+    border: 1px solid rgba(127, 216, 255, .16);
+    border-radius: 22px;
+    box-shadow: 0 30px 90px -24px rgba(0, 0, 0, .95), inset 0 1px 0 rgba(255, 255, 255, .05);
+    text-align: center;
+    transform: translateY(18px) scale(.97);
+    transition: transform .65s cubic-bezier(.2,.8,.2,1);
+  }
+  #welcome.show .welcome-card { transform: translateY(0) scale(1); }
+
+  .welcome-mark { width: 62px; height: 62px; display: block; margin: 0 auto 18px; }
+  .welcome-mark rect {
+    fill: #7fd8ff;
+    animation: markGlow 2.6s ease-in-out infinite;
+    filter: drop-shadow(0 0 8px rgba(127,216,255,.45));
+  }
+  .welcome-mark rect:nth-child(2) { animation-delay: .25s; }
+  .welcome-mark rect:nth-child(3) { animation-delay: .5s; }
+  .welcome-mark rect:nth-child(4) { animation-delay: .75s; }
+  .welcome-mark rect:nth-child(5) { animation-delay: 1s; }
+  @keyframes markGlow {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: .32; }
+  }
+
+  .welcome-card h2 {
+    font-size: 21px; font-weight: 600; letter-spacing: .5px;
+    margin-bottom: 12px; color: #eef5fb;
+  }
+  .welcome-desc {
+    font-size: 13.5px; line-height: 1.85; color: #8b9aa8;
+    margin-bottom: 26px;
+  }
+  .welcome-btns { display: flex; gap: 10px; justify-content: center; }
+  .wbtn {
+    font: inherit; font-size: 13.5px;
+    padding: 11px 26px; border-radius: 11px;
+    border: 1px solid #24313d; background: #131b23; color: #e6edf3;
+    cursor: pointer; transition: .18s;
+  }
+  .wbtn:hover { background: #1a2531; border-color: #334455; }
+  .wbtn.primary {
+    background: #10342a; border-color: #1f6b4a; color: #7ef0bd;
+  }
+  .wbtn.primary:hover { background: #164a37; border-color: #2a8c60; }
+  .welcome-hint {
+    margin-top: 20px; font-size: 12px; color: #4f5d6b; letter-spacing: .03em;
+  }
+
+  /* =====================================================
+     操作指南
+     ===================================================== */
+  #guideOverlay {
+    position: fixed; inset: 0; z-index: 40;
+    pointer-events: none;
+    font-family: system-ui, "PingFang SC", sans-serif; color: #dfe8ff;
+    opacity: 0; visibility: hidden;
+    transition: opacity .8s cubic-bezier(.4,0,.2,1), visibility .8s;
+  }
+  #guideOverlay.show { opacity: 1; visibility: visible; }
+
+  /* ★ 遮罩：用 clip-path 挖洞，露出被高亮的按钮。
+       指针事件始终为 none，最终由 document 上的捕获拦截器决定放行与否。 */
+  .guide-mask {
+    position: fixed; inset: 0; z-index: 44;
+    background: rgba(0, 0, 0, .62);
+    pointer-events: none;
+    /* polygon 始终 10 个点（外 5 + 内 5），保证能平滑过渡 */
+    clip-path: polygon(evenodd,
+      0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%,
+      0 0, 0 0, 0 0, 0 0, 0 0);
+    -webkit-clip-path: polygon(evenodd,
+      0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%,
+      0 0, 0 0, 0 0, 0 0, 0 0);
+    transition:
+      clip-path .55s cubic-bezier(.34,.03,.22,1),
+      -webkit-clip-path .55s cubic-bezier(.34,.03,.22,1);
+  }
+  .guide-mask[hidden] { display: none; }
+
+  .guide-close {
+    position: fixed; top: 20px; right: 20px;
+    width: 36px; height: 36px; padding: 0; z-index: 49;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(5,9,18,.72);
+    border: 1px solid rgba(255,255,255,.18);
+    border-radius: 9px; color: rgba(255,255,255,.82); cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: .2s;
+    pointer-events: auto;
+  }
+  .guide-close:hover { background: rgba(127,216,255,.2); border-color: rgba(127,216,255,.55); color: #cdefff; }
+
+  /* 内容包：卡片 + 图示，整体做位置过渡 */
+  .guide-bundle {
+    position: absolute;
+    left: 24px;
+    top: calc(100% - 24px);
+    transform: translateY(-100%);
+    z-index: 47;
+    width: min(430px, calc(100vw - 48px));
+    display: flex; flex-direction: column; gap: 14px;
+    pointer-events: none;
+    opacity: 0; visibility: hidden;
+    transition:
+      opacity 1s cubic-bezier(.4,0,.2,1),
+      visibility 1s,
+      left 1.4s cubic-bezier(.34,.03,.22,1),
+      top 1.4s cubic-bezier(.34,.03,.22,1),
+      transform 1.4s cubic-bezier(.34,.03,.22,1);
+  }
+  #guideOverlay.show .guide-bundle { opacity: 1; visibility: visible; }
+
+  .guide-bundle.pos-tl {
+    top: 24px;
+    transform: translateY(0);
+  }
+  .guide-bundle.pos-center {
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .guide-fig {
+    margin: 0; pointer-events: none;
+    padding: 10px 14px;
+    background: rgba(5,9,18,.55);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,.1); border-radius: 14px;
+    align-self: flex-start;
+  }
+  .guide-fig[hidden] { display: none; }
+  .guide-fig svg {
+    width: 186px; height: 140px; display: block;
+    fill: none; stroke: #fff; stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round;
+    filter: drop-shadow(0 2px 10px rgba(0,0,0,.9));
+  }
+  .guide-fig .dim    { stroke: rgba(255,255,255,.3); fill: none; stroke-width: 1.6; }
+  .guide-fig .alive  { stroke: #7fd8ff; fill: rgba(127,216,255,.85); stroke-width: 2; }
+  .guide-fig .tri    { stroke: #7fd8ff; fill: rgba(127,216,255,.35); stroke-width: 2; }
+  .guide-fig .track  { stroke: rgba(255,255,255,.22); stroke-width: 6; stroke-linecap: round; }
+  .guide-fig .cursor { stroke: #0b0f14; stroke-width: 1.6; fill: rgba(255,255,255,.92); }
+  .guide-fig .will-born {
+    stroke: #7fd8ff; fill: none; stroke-width: 2.4;
+    stroke-dasharray: 5 5;
+    animation: gDash 1.4s linear infinite;
+  }
+  .guide-fig .lbl {
+    stroke: none; fill: rgba(255,255,255,.5);
+    font-family: system-ui, sans-serif; font-size: 11px;
+    text-anchor: middle; letter-spacing: .06em;
+  }
+
+  .guide-card {
+    pointer-events: auto;
+    padding: 17px 24px 14px;
+    background: rgba(5,9,18,.9);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,.13); border-radius: 16px;
+    box-shadow: 0 10px 34px rgba(0,0,0,.5);
+    text-align: left;
+  }
+
+  .guide-big {
+    font-size: 22px; font-weight: 600; letter-spacing: .01em; line-height: 1.55;
+    color: #fff; margin-bottom: 8px;
+  }
+  .guide-big .k {
+    display: inline-block; padding: 2px 9px; margin: 0 3px;
+    font-size: .8em; font-weight: 600; vertical-align: 2px;
+    border: 1px solid rgba(127,216,255,.6); border-radius: 7px;
+    background: rgba(127,216,255,.16); color: #cdefff;
+  }
+  .guide-note { font-size: 14px; line-height: 1.72; color: rgba(223,232,255,.68); }
+
+  .guide-foot {
+    display: flex; align-items: center; justify-content: flex-start; gap: 16px;
+    margin-top: 14px; padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,.09);
+  }
+  .guide-nav {
+    width: 28px; height: 28px; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.16);
+    border-radius: 50%; color: rgba(255,255,255,.8); cursor: pointer;
+    transition: .2s;
+  }
+  .guide-nav:hover:not(:disabled) { background: rgba(127,216,255,.18); border-color: rgba(127,216,255,.5); color: #cdefff; }
+  .guide-nav:disabled { opacity: .28; cursor: not-allowed; pointer-events: none; }
+  .guide-nav[hidden] { display: none; }
+
+  .guide-nav.ready {
+    background: rgba(127,216,255,.2);
+    border-color: rgba(127,216,255,.65);
+    color: #cdefff;
+    animation: navReady 1.6s ease-in-out infinite;
+  }
+  @keyframes navReady {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(127,216,255,.35); }
+    50%      { box-shadow: 0 0 0 7px rgba(127,216,255,0); }
+  }
+
+  .guide-dots { display: flex; gap: 8px; }
+  .guide-dot {
+    width: 6px; height: 6px; padding: 0; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,.34); background: transparent; cursor: pointer;
+    transition: .22s;
+  }
+  .guide-dot.on { background: #7fd8ff; border-color: #7fd8ff; transform: scale(1.35); }
+  .guide-dot:disabled { cursor: not-allowed; }
+
+  .guide-hint {
+    margin: 0; text-align: left; font-size: 12px;
+    color: rgba(223,232,255,.6); letter-spacing: .04em;
+    text-shadow: 0 1px 4px rgba(0,0,0,.85);
+    transition: opacity .5s;
+  }
+  .guide-bundle.pos-center .guide-hint { opacity: 0; }
+
+  /* ---------- 最终页 ---------- */
+  .guide-card.is-final {
+    text-align: center;
+    padding: 24px 26px 20px;
+  }
+  .guide-card.is-final .guide-big { font-size: 24px; margin-bottom: 10px; }
+  .guide-card.is-final .guide-note { font-size: 13.5px; }
+  .final-fig {
+    display: flex; justify-content: center;
+    margin: 14px 0 6px;
+  }
+  .final-fig[hidden] { display: none; }
+  .final-fig svg {
+    width: 170px; height: 128px;
+    fill: none; stroke: #fff; stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  .final-fig .alive { stroke: #7fd8ff; fill: rgba(127,216,255,.85); }
+  .final-fig .dim   { stroke: rgba(255,255,255,.22); fill: none; stroke-width: 1.4; }
+
+  .final-start {
+    display: block; width: 100%;
+    margin: 14px 0 0;
+    padding: 13px 24px;
+    font: inherit; font-size: 14.5px; font-weight: 600;
+    background: #10342a;
+    border: 1px solid #1f6b4a;
+    border-radius: 12px;
+    color: #7ef0bd;
+    cursor: pointer;
+    transition: .2s;
+    letter-spacing: .08em;
+  }
+  .final-start[hidden] { display: none; }
+  .final-start:hover { background: #164a37; border-color: #2a8c60; }
+  .final-start:active { transform: translateY(1px); }
+
+  /* ---------- 高亮框 & 等待提示 ---------- */
+  .guide-hl {
+    position: fixed; z-index: 45; pointer-events: none;
+    border: 2.5px solid #fff; border-radius: 12px;
+    box-shadow: 0 0 0 2px rgba(0,0,0,.45), 0 0 18px rgba(127,216,255,.55);
+    animation: gHl 1.5s ease-in-out infinite;
+    transition: left 1.4s cubic-bezier(.34,.03,.22,1),
+                top 1.4s cubic-bezier(.34,.03,.22,1),
+                width 1.4s cubic-bezier(.34,.03,.22,1),
+                height 1.4s cubic-bezier(.34,.03,.22,1);
+  }
+  .guide-hl[hidden] { display: none; }
+  .guide-wait {
+    position: fixed; z-index: 46; pointer-events: none;
+    padding: 7px 14px; border-radius: 9px; white-space: nowrap;
+    background: rgba(5,9,18,.88); border: 1px solid rgba(127,216,255,.5);
+    color: #cdefff; font-size: 13px;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    animation: gWait 1.4s ease-in-out infinite;
+    transition: left .6s ease, top .6s ease;
+  }
+  .guide-wait[hidden] { display: none; }
+
+  @keyframes gHl {
+    0%, 100% { box-shadow: 0 0 0 2px rgba(0,0,0,.45), 0 0 10px rgba(127,216,255,.4); }
+    50%      { box-shadow: 0 0 0 2px rgba(0,0,0,.45), 0 0 26px rgba(127,216,255,.95); }
+  }
+  @keyframes gWait { 0%,100% { opacity: .82; } 50% { opacity: 1; } }
+  @keyframes gGlow { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+  @keyframes gDash { to { stroke-dashoffset: -20; } }
+  @keyframes gSlide { 0%, 100% { transform: translateX(-38px); } 50% { transform: translateX(38px); } }
+  @keyframes gDrag {
+    0%, 100% { transform: translate(0, 0); }
+    35%      { transform: translate(14px, -10px); }
+    70%      { transform: translate(-8px, 8px); }
+  }
+  .a-glow  { animation: gGlow 1.8s ease-in-out infinite; }
+  .a-slide { animation: gSlide 2.6s ease-in-out infinite; }
+  .a-drag  { animation: gDrag 2.8s ease-in-out infinite; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .a-glow, .a-slide, .a-drag,
+    .guide-fig .will-born, .guide-hl, .guide-wait,
+    .welcome-mark rect { animation: none; }
+  }
+  @media (max-width: 720px) {
+    .guide-fig svg { width: 148px; height: 111px; }
+    .guide-big { font-size: 19px; }
+    .guide-note { font-size: 13px; }
+    .welcome-card { padding: 28px 22px 22px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="loading">L O A D I N G</div>
+
+<div class="wrap" id="wrap">
+  <div class="topbar">
+    <div>
+      <h1>康威生命游戏</h1>
+      <p class="sub">点击格子作画 · 观察细胞自动演化</p>
+    </div>
+    <button class="tool-btn" id="guideBtn" title="操作指南">?</button>
+  </div>
+
+  <canvas id="board"></canvas>
+
+  <div class="bar">
+    <button id="playBtn" class="btn">▶ 开始</button>
+    <button id="stepBtn" class="btn">单步</button>
+    <button id="randBtn" class="btn">随机</button>
+    <button id="clearBtn" class="btn">清空</button>
+    <label class="speed">速度
+      <input type="range" id="speed" min="1" max="60" value="6">
+      <span id="speedVal">6</span>/s
+    </label>
+  </div>
+
+  <div class="stats">代数 <b id="gen">0</b> · 存活 <b id="pop">0</b></div>
+</div>
+
+<div id="welcome" role="dialog" aria-label="欢迎">
+  <div class="welcome-card">
+    <svg class="welcome-mark" viewBox="0 0 60 60" aria-hidden="true">
+      <rect x="22" y="0"  width="16" height="16" rx="3.5"/>
+      <rect x="44" y="22" width="16" height="16" rx="3.5"/>
+      <rect x="0"  y="44" width="16" height="16" rx="3.5"/>
+      <rect x="22" y="44" width="16" height="16" rx="3.5"/>
+      <rect x="44" y="44" width="16" height="16" rx="3.5"/>
+    </svg>
+    <h2>康威生命游戏</h2>
+    <p class="welcome-desc">
+      一片方格构成的世界，每个格子只有活着或死亡两种状态。<br>
+      规则只有三条，却会自己演化出滑翔机、脉冲星，<br>
+      甚至能自我复制的结构。
+    </p>
+    <div class="welcome-btns">
+      <button class="wbtn primary" id="startTutorial">开始教程</button>
+      <button class="wbtn" id="skipTutorial">直接开玩</button>
+    </div>
+    <p class="welcome-hint">随时可点右上角 <b>?</b> 重新查看规则</p>
+  </div>
+</div>
+
+<div id="guideOverlay" role="dialog" aria-label="操作指南">
+  <div class="guide-mask" id="guideMask"></div>
+
+  <button class="guide-close" id="guideClose" aria-label="关闭指南">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 6 6 18M6 6l12 12"></path>
+    </svg>
+  </button>
+
+  <div class="guide-bundle" id="guideBundle">
+    <figure class="guide-fig" id="guideFig"></figure>
+
+    <div class="guide-card" id="guideCard">
+      <p class="guide-big" id="guideTitle"></p>
+      <p class="guide-note" id="guideDesc"></p>
+
+      <div class="final-fig" id="finalFig" hidden></div>
+      <button class="final-start" id="finalStart" hidden>开 始 探 索</button>
+
+      <div class="guide-foot" id="guideFoot">
+        <button class="guide-nav" id="guidePrev" aria-label="上一页">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 18l-6-6 6-6"></path>
+          </svg>
+        </button>
+        <div class="guide-dots" id="guideDots"></div>
+        <button class="guide-nav" id="guideNext" aria-label="下一页">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18l6-6-6-6"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <p class="guide-hint" id="guideHint">← → 翻页 · Esc 关闭</p>
+  </div>
+
+  <div class="guide-hl" id="guideHl" hidden></div>
+  <div class="guide-wait" id="guideWait" hidden></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* =========================================================
+     一、游戏本体
+     ========================================================= */
+  const COLS = 72, ROWS = 44, CELL = 12;
+  const W = COLS * CELL, H = ROWS * CELL;
+
+  const canvas = document.getElementById('board');
+  const ctx = canvas.getContext('2d');
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.aspectRatio = W + ' / ' + H;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const genEl    = document.getElementById('gen');
+  const popEl    = document.getElementById('pop');
+  const playBtn  = document.getElementById('playBtn');
+  const stepBtn  = document.getElementById('stepBtn');
+  const randBtn  = document.getElementById('randBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const speedEl  = document.getElementById('speed');
+  const speedValEl = document.getElementById('speedVal');
+
+  let grid = new Uint8Array(COLS * ROWS);
+  let nextGrid = new Uint8Array(COLS * ROWS);
+  let running = false;
+  let generation = 0;
+  let population = 0;
+  let speed = 6;
+  let acc = 0, lastT = 0;
+  let guideOpen = false;
+
+  const GUN = [
+    [24,0],[22,1],[24,1],[12,2],[13,2],[20,2],[21,2],[34,2],[35,2],
+    [11,3],[15,3],[20,3],[21,3],[34,3],[35,3],
+    [0,4],[1,4],[10,4],[16,4],[20,4],[21,4],
+    [0,5],[1,5],[10,5],[14,5],[16,5],[17,5],[22,5],[24,5],
+    [10,6],[16,6],[24,6],
+    [11,7],[15,7],
+    [12,8],[13,8]
+  ];
+
+  function placeGun() {
+    grid.fill(0);
+    const ox = Math.floor((COLS - 36) / 2);
+    const oy = Math.floor((ROWS - 9) / 2);
+    for (const g of GUN) {
+      const gx = g[0] + ox, gy = g[1] + oy;
+      if (gx >= 0 && gx < COLS && gy >= 0 && gy < ROWS) grid[gy * COLS + gx] = 1;
+    }
+    generation = 0;
+    recount();
+    updateStats();
+  }
+
+  function step() {
+    let pop = 0;
+    for (let y = 0; y < ROWS; y++) {
+      const yUp = (y === 0 ? ROWS - 1 : y - 1) * COLS;
+      const yMid = y * COLS;
+      const yDn = (y === ROWS - 1 ? 0 : y + 1) * COLS;
+      for (let x = 0; x < COLS; x++) {
+        const xL = x === 0 ? COLS - 1 : x - 1;
+        const xR = x === COLS - 1 ? 0 : x + 1;
+        const n =
+          grid[yUp + xL] + grid[yUp + x] + grid[yUp + xR] +
+          grid[yMid + xL] +                grid[yMid + xR] +
+          grid[yDn + xL] + grid[yDn + x] + grid[yDn + xR];
+        const i = yMid + x;
+        const v = grid[i] ? (n === 2 || n === 3 ? 1 : 0) : (n === 3 ? 1 : 0);
+        nextGrid[i] = v;
+        pop += v;
+      }
+    }
+    const t = grid; grid = nextGrid; nextGrid = t;
+    generation++;
+    population = pop;
+    updateStats();
+  }
+
+  function draw() {
+    ctx.fillStyle = '#080c11';
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.045)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = 1; x < COLS; x++) { ctx.moveTo(x * CELL + 0.5, 0); ctx.lineTo(x * CELL + 0.5, H); }
+    for (let y = 1; y < ROWS; y++) { ctx.moveTo(0, y * CELL + 0.5); ctx.lineTo(W, y * CELL + 0.5); }
+    ctx.stroke();
+
+    ctx.fillStyle = '#7fd8ff';
+    for (let y = 0; y < ROWS; y++) {
+      const row = y * COLS;
+      for (let x = 0; x < COLS; x++) {
+        if (grid[row + x]) ctx.fillRect(x * CELL + 1, y * CELL + 1, CELL - 2, CELL - 2);
+      }
+    }
+  }
+
+  function loop(t) {
+    if (!lastT) lastT = t;
+    let dt = t - lastT;
+    lastT = t;
+    if (dt > 250) dt = 250;
+
+    if (running) {
+      acc += dt;
+      const interval = 1000 / speed;
+      let guard = 0;
+      while (acc >= interval && guard++ < 40) { step(); acc -= interval; }
+      if (guard >= 40) acc = 0;
+    } else {
+      acc = 0;
+    }
+
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  function recount() {
+    let n = 0;
+    for (let i = 0; i < grid.length; i++) n += grid[i];
+    population = n;
+  }
+  function updateStats() {
+    genEl.textContent = generation;
+    popEl.textContent = population;
+  }
+  function setRunning(v) {
+    running = v;
+    playBtn.textContent = v ? '⏸ 暂停' : '▶ 开始';
+    playBtn.classList.toggle('primary', !v);
+    stepBtn.disabled  = v;
+    randBtn.disabled  = v;
+    clearBtn.disabled = v;
+    lastT = 0; acc = 0;
+  }
+  function clearAll() {
+    grid.fill(0);
+    generation = 0;
+    population = 0;
+    updateStats();
+  }
+  function randomize() {
+    for (let i = 0; i < grid.length; i++) grid[i] = Math.random() < 0.28 ? 1 : 0;
+    generation = 0;
+    recount();
+    updateStats();
+  }
+
+  /* ---------- 画布交互 ---------- */
+  let painting = false, paintVal = 1;
+  function cellFromEvent(e) {
+    const r = canvas.getBoundingClientRect();
+    const x = Math.floor((e.clientX - r.left) / r.width * COLS);
+    const y = Math.floor((e.clientY - r.top) / r.height * ROWS);
+    if (x < 0 || y < 0 || x >= COLS || y >= ROWS) return null;
+    return { x: x, y: y };
+  }
+  function applyCell(c) {
+    const i = c.y * COLS + c.x;
+    if (grid[i] === paintVal) return;
+    grid[i] = paintVal;
+    population += paintVal ? 1 : -1;
+    updateStats();
+  }
+  canvas.addEventListener('pointerdown', function (e) {
+    if (guideOpen) return;
+    const c = cellFromEvent(e);
+    if (!c) return;
+    e.preventDefault();
+    painting = true;
+    canvas.setPointerCapture(e.pointerId);
+    paintVal = grid[c.y * COLS + c.x] ? 0 : 1;
+    applyCell(c);
+  });
+  canvas.addEventListener('pointermove', function (e) {
+    if (!painting || guideOpen) return;
+    const c = cellFromEvent(e);
+    if (c) applyCell(c);
+  });
+  canvas.addEventListener('pointerup',    function () { painting = false; });
+  canvas.addEventListener('pointercancel',function () { painting = false; });
+
+  /* ---------- 按钮 & 快捷键 ---------- */
+  playBtn.addEventListener('click', function () { setRunning(!running); });
+  stepBtn.addEventListener('click',  function () { setRunning(false); step(); });
+  randBtn.addEventListener('click',  function () { setRunning(false); randomize(); });
+  clearBtn.addEventListener('click', function () { setRunning(false); clearAll(); });
+  speedEl.addEventListener('input', function () {
+    speed = Number(speedEl.value);
+    speedValEl.textContent = speed;
+  });
+
+  window.addEventListener('keydown', function (e) {
+    if (e.target.tagName === 'INPUT') return;
+    if (guideOpen) return;
+    if (e.code === 'Space') { e.preventDefault(); setRunning(!running); }
+    else if (e.key === 'r' || e.key === 'R') { setRunning(false); randomize(); }
+    else if (e.key === 'c' || e.key === 'C') { setRunning(false); clearAll(); }
+    else if (e.key === 's' || e.key === 'S') { setRunning(false); step(); }
+  });
+
+  /* =========================================================
+     二、操作指南
+     ========================================================= */
+
+  function cells(x0, y0, s, gap, n, alive) {
+    let out = '';
+    const step = s + gap;
+    for (let j = 0; j < n; j++) {
+      for (let i = 0; i < n; i++) {
+        const idx = j * n + i;
+        const on = alive.indexOf(idx) >= 0;
+        out += '<rect class="' + (on ? 'alive' : 'dim') + '"'
+             + ' x="' + (x0 + i * step) + '"'
+             + ' y="' + (y0 + j * step) + '"'
+             + ' width="' + s + '" height="' + s + '"'
+             + ' rx="' + (s * 0.2).toFixed(1) + '"/>';
+      }
+    }
+    return out;
+  }
+
+  const GUIDE = [
+    {
+      title: '欢迎来到细胞世界',
+      note: '一片方格构成的世界，每个格子只有两种状态：活着，或者死亡。规则只有三条，之后世界就自己往下走了。',
+      svg: cells(59, 34, 26, 2, 3, []) +
+           '<rect class="alive a-glow" x="87" y="62" width="26" height="26" rx="5.2"/>'
+    },
+    {
+      title: '规则 ① 存活',
+      note: '「邻居」指周围的 8 个格子。活细胞身边正好有 2 或 3 个活邻居时，它继续活下去。',
+      svg: cells(59, 34, 26, 2, 3, [1, 5]) +
+           '<rect class="alive a-glow" x="87" y="62" width="26" height="26" rx="5.2"/>'
+    },
+    {
+      title: '规则 ② 死亡',
+      note: '活邻居少于 2 个 → 孤独而死；多于 3 个 → 拥挤而死。两种死法都只看身边那 8 格。',
+      svg: cells(20, 46, 20, 2, 3, [1]) +
+           '<rect class="alive" x="42" y="68" width="20" height="20" rx="4"/>' +
+           '<text class="lbl" x="52" y="128">孤独</text>' +
+           cells(118, 46, 20, 2, 3, [0, 1, 2, 3, 5]) +
+           '<rect class="alive" x="140" y="68" width="20" height="20" rx="4"/>' +
+           '<text class="lbl" x="150" y="128">拥挤</text>'
+    },
+    {
+      title: '规则 ③ 诞生',
+      note: '一个死格子，如果周围正好有 3 个活邻居，下一代它就会在这里诞生。规则只有这三条。',
+      svg: cells(59, 34, 26, 2, 3, [1, 3, 5]) +
+           '<rect class="will-born" x="87" y="62" width="26" height="26" rx="5.2"/>'
+    },
+    {
+      title: '用鼠标画出细胞',
+      note: '在格子上点击或按住拖动，就能画上细胞；从已有细胞上按下拖动，则是擦除。先把画面涂成你想要的样子。',
+      svg: cells(59, 34, 26, 2, 3, [0, 4, 8]) +
+           '<g class="a-drag"><g transform="translate(108 74)">' +
+           '<path class="cursor" d="M0 0 L0 22 L6 16 L10 25 L15 23 L11 14 L18 14 Z"/>' +
+           '</g></g>'
+    },
+    {
+      title: '开始演化',
+      note: '准备好了就点「开始」，让细胞世界自己动起来。做完之后，右下角的箭头会亮起——不用急，自己决定什么时候继续。',
+      hl: 'playBtn',
+      wait: '点这里开始演化',
+      afterText: '很好！点右下角 → 继续',
+      pos: 'tl',
+      svg: '<circle class="dim" cx="70" cy="75" r="32"/>' +
+           '<path class="tri" d="M60 57 L94 75 L60 93 Z"/>' +
+           '<g transform="translate(142 75)">' +
+           '  <rect class="alive" x="-13" y="-19" width="10" height="38" rx="3"/>' +
+           '  <rect class="alive" x="4" y="-19" width="10" height="38" rx="3"/>' +
+           '</g>'
+    },
+    {
+      title: '调节演化速度',
+      note: '拖动滑块，决定每秒推进多少代。慢一点便于观察结构，快一点容易看到大尺度的图案。试着拖一下，感受不同节奏。',
+      hl: 'speed',
+      hlEvent: 'input',
+      wait: '拖动滑块试试',
+      afterText: '找到合适的节奏了吗？点右下角 → 继续',
+      pos: 'tl',
+      noMask: true,
+      svg: '<line class="track" x1="28" y1="75" x2="172" y2="75"/>' +
+           '<circle class="alive a-slide" cx="100" cy="75" r="11"/>' +
+           '<text class="lbl" x="100" y="118">每秒演化代数</text>'
+    },
+    {
+      title: '随时可以暂停',
+      note: '同一个按钮也是暂停键——游戏一直在跑，任何时候你都可以按它停下来，仔细看看某个瞬间的画面。现在点一下，把它暂停。',
+      hl: 'playBtn',
+      wait: '点这里暂停',
+      afterText: '对，就是这样。点右下角 → 继续',
+      pos: 'tl',
+      svg: '<g transform="translate(56 75)">' +
+           '  <rect class="alive" x="-15" y="-22" width="12" height="44" rx="3"/>' +
+           '  <rect class="alive" x="3" y="-22" width="12" height="44" rx="3"/>' +
+           '</g>' +
+           '<circle class="dim" cx="140" cy="75" r="26"/>' +
+           '<path class="tri" d="M132 61 L156 75 L132 89 Z"/>'
+    },
+    {
+      title: '开始探索吧',
+      note: '试试画出滑翔机（下图这个形状），它会斜着穿过整片方格。也可以点「随机」，看看能涌现出什么。',
+      final: true,
+      pos: 'center'
+    }
+  ];
+
+  const guideBtn     = document.getElementById('guideBtn');
+  const guideOverlay = document.getElementById('guideOverlay');
+  const guideFig     = document.getElementById('guideFig');
+  const guideCard    = document.getElementById('guideCard');
+  const guideTitle   = document.getElementById('guideTitle');
+  const guideDesc    = document.getElementById('guideDesc');
+  const guideDots    = document.getElementById('guideDots');
+  const guideHl      = document.getElementById('guideHl');
+  const guideWait    = document.getElementById('guideWait');
+  const guidePrev    = document.getElementById('guidePrev');
+  const guideNext    = document.getElementById('guideNext');
+  const guideBundle  = document.getElementById('guideBundle');
+  const guideMask    = document.getElementById('guideMask');
+  const finalFig     = document.getElementById('finalFig');
+  const finalStart   = document.getElementById('finalStart');
+
+  let guideIdx = 0;
+  let hlTarget = null;
+  let hlCleanup = null;
+  let hlActivated = false;
+  let runningBeforeGuide = null;
+
+  const fmtKeys = function (s) {
+    return s.replace(/【([^】]*)】/g, '<span class="k">$1</span>');
+  };
+
+  GUIDE.forEach(function (_, i) {
+    const b = document.createElement('button');
+    b.className = 'guide-dot';
+    b.type = 'button';
+    b.setAttribute('aria-label', '第 ' + (i + 1) + ' 页');
+    b.addEventListener('click', function () {
+      if (b.disabled) return;
+      showGuide(i);
+    });
+    guideDots.appendChild(b);
+  });
+  const guideDotEls = guideDots.children;
+
+  /* ---------- 遮罩挖洞：露出被高亮的按钮，避免被盖住 ---------- */
+  // 关键：外框顺时针 5 点 + 内洞逆时针 5 点，用 evenodd 填充规则挖出镂空。
+  // 统一 10 个点 → polygon 过渡时不会跳变。
+  function updateMaskHole(el) {
+    let x1 = 0, y1 = 0, x2 = 0, y2 = 0;
+    if (el && !guideMask.hidden) {
+      const r = el.getBoundingClientRect();
+      const pad = 10;
+      x1 = Math.max(-2, r.left - pad);
+      y1 = Math.max(-2, r.top - pad);
+      x2 = Math.min(window.innerWidth + 2, r.right + pad);
+      y2 = Math.min(window.innerHeight + 2, r.bottom + pad);
+    }
+    const path =
+      'polygon(evenodd,' +
+        '0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%,' +
+        x1 + 'px ' + y1 + 'px,' +
+        x1 + 'px ' + y2 + 'px,' +
+        x2 + 'px ' + y2 + 'px,' +
+        x2 + 'px ' + y1 + 'px,' +
+        x1 + 'px ' + y1 + 'px)';
+    guideMask.style.webkitClipPath = path;
+    guideMask.style.clipPath = path;
+  }
+
+  // 窗口尺寸变化时，同步更新洞的位置
+  window.addEventListener('resize', function () {
+    if (guideOpen && hlTarget) updateMaskHole(hlTarget);
+  });
+
+  /* ---------- 导航状态 ---------- */
+  function updateNavState() {
+    const p = GUIDE[guideIdx];
+    const isLast = guideIdx === GUIDE.length - 1;
+    const needsAction = !!p.hl && !hlActivated;
+
+    guidePrev.classList.remove('ready');
+    guideNext.classList.remove('ready');
+
+    if (p.final) {
+      guidePrev.hidden = true;
+      guideNext.hidden = true;
+    } else {
+      guidePrev.hidden = false;
+      guideNext.hidden = false;
+      guidePrev.disabled = guideIdx === 0;
+      guideNext.disabled = isLast || needsAction;
+      if (!guideNext.disabled && p.hl) guideNext.classList.add('ready');
+    }
+
+    for (let d = 0; d < guideDotEls.length; d++) {
+      const dot = guideDotEls[d];
+      const locked = needsAction && d > guideIdx;
+      dot.disabled = locked;
+      dot.style.opacity = locked ? '.2' : '';
+      dot.style.cursor = locked ? 'not-allowed' : '';
+    }
+  }
+
+  /* ---------- 高亮屏幕上的某个 UI ---------- */
+  function placeHl(id, waitText, afterText, onActivate, eventName) {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    const r = el.getBoundingClientRect();
+    const pad = 8;
+    guideHl.style.left   = (r.left - pad) + 'px';
+    guideHl.style.top    = (r.top - pad) + 'px';
+    guideHl.style.width  = (r.width + pad * 2) + 'px';
+    guideHl.style.height = (r.height + pad * 2) + 'px';
+    guideHl.hidden = false;
+
+    hlTarget = el;
+
+    // ★ 关键修复：让遮罩在这里挖出洞，把按钮亮出来
+    updateMaskHole(el);
+
+    if (waitText) {
+      guideWait.textContent = waitText;
+      guideWait.style.left = (r.left + r.width / 2) + 'px';
+      guideWait.style.transform = (r.top < 80) ? 'translate(-50%, 0)' : 'translate(-50%, -100%)';
+      guideWait.style.top = (r.top < 80) ? (r.bottom + 14) + 'px' : (r.top - 14) + 'px';
+      guideWait.hidden = false;
+    } else {
+      guideWait.hidden = true;
+    }
+
+    if (onActivate) {
+      let done = false;
+      const fire = function () {
+        if (done) return;
+        done = true;
+        onActivate();
+        if (afterText && !guideWait.hidden) guideWait.textContent = afterText;
+      };
+
+      const ev = eventName || 'click';
+      el.addEventListener(ev, fire);
+
+      // playBtn 也允许用键盘空格完成，避免用户被卡死
+      let winHandler = null;
+      if (id === 'playBtn') {
+        winHandler = function (e) {
+          if (e.code !== 'Space') return;
+          if (e.target && e.target.tagName === 'INPUT') return;
+          fire();
+        };
+        window.addEventListener('keydown', winHandler);
+      }
+
+      hlCleanup = function () {
+        el.removeEventListener(ev, fire);
+        if (winHandler) window.removeEventListener('keydown', winHandler);
+      };
+    }
+  }
+
+  function clearGuideFx() {
+    if (hlCleanup) { hlCleanup(); hlCleanup = null; }
+    guideHl.hidden = true;
+    guideWait.hidden = true;
+    guideWait.style.transform = '';
+    guideWait.style.left = '';
+    guideWait.style.top = '';
+    guideWait.textContent = '';
+    hlTarget = null;
+    // ★ 恢复全屏遮罩（去掉洞）
+    updateMaskHole(null);
+  }
+
+  /* ---------- 显示某一页 ---------- */
+  function showGuide(i) {
+    guideIdx = (i + GUIDE.length) % GUIDE.length;
+    const p = GUIDE[guideIdx];
+
+    clearGuideFx();
+
+    guideTitle.innerHTML = fmtKeys(p.title);
+    guideDesc.textContent = p.note;
+
+    if (p.final) {
+      guideFig.hidden = true;
+      finalFig.hidden = false;
+      finalFig.innerHTML =
+        '<svg viewBox="0 0 200 150" aria-hidden="true">' +
+          cells(46, 21, 20, 2, 5, [7, 13, 16, 17, 18]) +
+        '</svg>';
+      finalStart.hidden = false;
+      guideCard.classList.add('is-final');
+    } else {
+      guideFig.hidden = false;
+      finalFig.hidden = true;
+      finalStart.hidden = true;
+      guideFig.innerHTML = '<svg viewBox="0 0 200 150" aria-hidden="true">' + p.svg + '</svg>';
+      guideCard.classList.remove('is-final');
+    }
+
+    for (let d = 0; d < guideDotEls.length; d++) {
+      guideDotEls[d].classList.toggle('on', d === guideIdx);
+    }
+
+    guideBundle.className = 'guide-bundle' + (p.pos ? ' pos-' + p.pos : '');
+    guideMask.hidden = !!p.noMask;
+
+    if (p.hl) {
+      hlActivated = false;
+      placeHl(p.hl, p.wait, p.afterText, function () {
+        hlActivated = true;
+        updateNavState();
+      }, p.hlEvent);
+    } else {
+      hlActivated = true;
+    }
+
+    updateNavState();
+  }
+
+  /* ---------- 打开 / 关闭指南 ---------- */
+  function openGuide(startFrom) {
+    guideOpen = true;
+    runningBeforeGuide = running;
+    setRunning(false);
+    showGuide(typeof startFrom === 'number' ? startFrom : 0);
+    guideOverlay.classList.add('show');
+    guideBtn.style.display = 'none';
+  }
+
+  function closeGuide(forceRunning) {
+    guideOpen = false;
+    clearGuideFx();
+    guideOverlay.classList.remove('show');
+    guideBtn.style.display = '';
+    let target = runningBeforeGuide;
+    if (typeof forceRunning === 'boolean') target = forceRunning;
+    runningBeforeGuide = null;
+    if (target !== null) setRunning(target);
+  }
+
+  guideBtn.addEventListener('click', function () {
+    if (guideOpen) closeGuide(); else openGuide(0);
+  });
+  document.getElementById('guideClose').addEventListener('click', function () { closeGuide(); });
+  guidePrev.addEventListener('click', function () { showGuide(guideIdx - 1); });
+  guideNext.addEventListener('click', function () { showGuide(guideIdx + 1); });
+
+  /* ---------- 键盘：翻页 / 关闭 ---------- */
+  window.addEventListener('keydown', function (e) {
+    if (!guideOpen) return;
+    const k = e.key.toLowerCase();
+    if (k === 'escape') { e.preventDefault(); closeGuide(); return; }
+    if (e.target === speedEl) return;   // 速度滑块聚焦时，方向键交给它
+    if (k === 'arrowleft') {
+      e.preventDefault();
+      if (!guidePrev.disabled && !guidePrev.hidden) showGuide(guideIdx - 1);
+    } else if (k === 'arrowright') {
+      e.preventDefault();
+      if (!guideNext.disabled && !guideNext.hidden) showGuide(guideIdx + 1);
+    }
+  });
+
+  /* ---------- 拦截：指南打开时，点非高亮 / 非卡片区域一律拦住 ---------- */
+  document.addEventListener('pointerdown', function (e) {
+    if (!guideOpen) return;
+    if (e.target.closest('#guideOverlay')) return;
+    if (hlTarget && hlTarget.contains(e.target)) return;
+    e.stopPropagation();
+    e.preventDefault();
+  }, true);
+
+  finalStart.addEventListener('click', function () {
+    closeGuide(true);
+  });
+
+  /* =========================================================
+     三、启动流程
+     ========================================================= */
+  const loading = document.getElementById('loading');
+  const welcome = document.getElementById('welcome');
+  const wrap    = document.getElementById('wrap');
+
+  placeGun();
+  setRunning(true);
+  requestAnimationFrame(loop);
+
+  setTimeout(function () {
+    loading.classList.add('out');
+    wrap.classList.add('ready');
+    setTimeout(function () { loading.remove(); }, 700);
+  }, 420);
+
+  setTimeout(function () {
+    welcome.classList.add('show');
+  }, 1100);
+
+  document.getElementById('startTutorial').addEventListener('click', function () {
+    welcome.classList.remove('show');
+    setTimeout(function () { openGuide(0); }, 420);
+  });
+
+  document.getElementById('skipTutorial').addEventListener('click', function () {
+    welcome.classList.remove('show');
+  });
+
+})();
+</script>
+</body>
+</html>
