@@ -16,7 +16,6 @@
     min-height: 100vh;
   }
 
-  /* ---------- 页面主体 ---------- */
   .wrap {
     width: 100%; max-width: 900px;
     opacity: 0; transform: translateY(10px);
@@ -68,7 +67,6 @@
   .stats { margin-top: 14px; font-size: 13px; color: #7d8b99; }
   .stats b { color: #cfe3d8; font-variant-numeric: tabular-nums; font-weight: 600; }
 
-  /* ---------- 加载画面 ---------- */
   #loading {
     position: fixed; inset: 0; z-index: 60;
     display: flex; align-items: center; justify-content: center;
@@ -80,7 +78,6 @@
   }
   #loading.out { opacity: 0; pointer-events: none; }
 
-  /* ---------- 欢迎页 ---------- */
   #welcome {
     position: fixed; inset: 0; z-index: 50;
     display: flex; align-items: center; justify-content: center;
@@ -145,9 +142,6 @@
     margin-top: 20px; font-size: 12px; color: #4f5d6b; letter-spacing: .03em;
   }
 
-  /* =====================================================
-     操作指南
-     ===================================================== */
   #guideOverlay {
     position: fixed; inset: 0; z-index: 40;
     pointer-events: none;
@@ -157,13 +151,10 @@
   }
   #guideOverlay.show { opacity: 1; visibility: visible; }
 
-  /* ★ 遮罩：用 clip-path 挖洞，露出被高亮的按钮。
-       指针事件始终为 none，最终由 document 上的捕获拦截器决定放行与否。 */
   .guide-mask {
     position: fixed; inset: 0; z-index: 44;
     background: rgba(0, 0, 0, .62);
-    pointer-events: none;
-    /* polygon 始终 10 个点（外 5 + 内 5），保证能平滑过渡 */
+    pointer-events: auto;
     clip-path: polygon(evenodd,
       0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%,
       0 0, 0 0, 0 0, 0 0, 0 0);
@@ -189,7 +180,6 @@
   }
   .guide-close:hover { background: rgba(127,216,255,.2); border-color: rgba(127,216,255,.55); color: #cdefff; }
 
-  /* 内容包：卡片 + 图示，整体做位置过渡 */
   .guide-bundle {
     position: absolute;
     left: 24px;
@@ -315,7 +305,6 @@
   }
   .guide-bundle.pos-center .guide-hint { opacity: 0; }
 
-  /* ---------- 最终页 ---------- */
   .guide-card.is-final {
     text-align: center;
     padding: 24px 26px 20px;
@@ -352,7 +341,6 @@
   .final-start:hover { background: #164a37; border-color: #2a8c60; }
   .final-start:active { transform: translateY(1px); }
 
-  /* ---------- 高亮框 & 等待提示 ---------- */
   .guide-hl {
     position: fixed; z-index: 45; pointer-events: none;
     border: 2.5px solid #fff; border-radius: 12px;
@@ -364,6 +352,8 @@
                 height 1.4s cubic-bezier(.34,.03,.22,1);
   }
   .guide-hl[hidden] { display: none; }
+  .guide-hl.no-anim { transition: none !important; }
+
   .guide-wait {
     position: fixed; z-index: 46; pointer-events: none;
     padding: 7px 14px; border-radius: 9px; white-space: nowrap;
@@ -374,6 +364,7 @@
     transition: left .6s ease, top .6s ease;
   }
   .guide-wait[hidden] { display: none; }
+  .guide-wait.no-anim { transition: none !important; }
 
   @keyframes gHl {
     0%, 100% { box-shadow: 0 0 0 2px rgba(0,0,0,.45), 0 0 10px rgba(127,216,255,.4); }
@@ -402,6 +393,7 @@
     .guide-big { font-size: 19px; }
     .guide-note { font-size: 13px; }
     .welcome-card { padding: 28px 22px 22px; }
+    body { padding: 18px 12px 40px; }
   }
 </style>
 </head>
@@ -506,37 +498,82 @@
   'use strict';
 
   /* =========================================================
-     一、游戏本体
+     一、屏幕自适应布局
      ========================================================= */
-  const COLS = 72, ROWS = 44, CELL = 12;
-  const W = COLS * CELL, H = ROWS * CELL;
+  // 每个格子在屏幕上希望占用的像素大小（根据视口宽度选择，越窄越小）
+  function pickTargetCell(w) {
+    if (w < 380) return 8;
+    if (w < 480) return 9;
+    if (w < 620) return 10;
+    if (w < 800) return 11;
+    if (w < 1000) return 12;
+    if (w < 1300) return 14;
+    return 16;
+  }
 
+  // 计算该用多少列、多少行
+  function computeLayout() {
+    const wrap = document.querySelector('.wrap');
+    const availW = Math.max(260, (wrap && wrap.clientWidth) || (window.innerWidth - 36));
+
+    // 可用高度 = 视口高 - 顶部内边距 - 标题区 - 工具栏 - 统计栏 - 底部内边距 - 一点余量
+    const chromeH = 26 + 80 + 62 + 40 + 56 + 10;
+    const availH = Math.max(220, window.innerHeight - chromeH);
+
+    const targetCell = pickTargetCell(availW);
+    let cols = Math.floor(availW / targetCell);
+    let rows = Math.floor(availH / targetCell);
+
+    // 夹在合理区间，避免极端窗口尺寸下网格过大或过小
+    cols = Math.max(18, Math.min(cols, 160));
+    rows = Math.max(12, Math.min(rows, 100));
+
+    return { cols: cols, rows: rows };
+  }
+
+  /* ---------- 画布与网格 ---------- */
   const canvas = document.getElementById('board');
   const ctx = canvas.getContext('2d');
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  canvas.width = W * dpr;
-  canvas.height = H * dpr;
-  canvas.style.aspectRatio = W + ' / ' + H;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  const genEl    = document.getElementById('gen');
-  const popEl    = document.getElementById('pop');
-  const playBtn  = document.getElementById('playBtn');
-  const stepBtn  = document.getElementById('stepBtn');
-  const randBtn  = document.getElementById('randBtn');
-  const clearBtn = document.getElementById('clearBtn');
-  const speedEl  = document.getElementById('speed');
-  const speedValEl = document.getElementById('speedVal');
+  let dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-  let grid = new Uint8Array(COLS * ROWS);
-  let nextGrid = new Uint8Array(COLS * ROWS);
-  let running = false;
-  let generation = 0;
-  let population = 0;
-  let speed = 6;
-  let acc = 0, lastT = 0;
-  let guideOpen = false;
+  // 内部每个格子占的像素（分辨率单位）。屏幕上看起来多大由 CSS 缩放决定。
+  const CELL = 12;
 
+  let COLS, ROWS, W, H;
+  let grid, nextGrid;
+
+  function applyCanvasSize() {
+    canvas.width  = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.aspectRatio = W + ' / ' + H;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  // 初始化网格（分配数组）
+  function allocGrid(cols, rows) {
+    COLS = cols;
+    ROWS = rows;
+    W = COLS * CELL;
+    H = ROWS * CELL;
+    grid = new Uint8Array(COLS * ROWS);
+    nextGrid = new Uint8Array(COLS * ROWS);
+  }
+
+  // 窗口尺寸变化时：把旧网格采样到新网格，尽量保留现有图案
+  function resampleInto(oldGrid, oldCols, oldRows) {
+    const n = new Uint8Array(COLS * ROWS);
+    for (let y = 0; y < ROWS; y++) {
+      const oy = Math.min(oldRows - 1, Math.floor(y * oldRows / ROWS));
+      for (let x = 0; x < COLS; x++) {
+        const ox = Math.min(oldCols - 1, Math.floor(x * oldCols / COLS));
+        n[y * COLS + x] = oldGrid[oy * oldCols + ox];
+      }
+    }
+    return n;
+  }
+
+  /* ---------- 初始图案 ---------- */
   const GUN = [
     [24,0],[22,1],[24,1],[12,2],[13,2],[20,2],[21,2],[34,2],[35,2],
     [11,3],[15,3],[20,3],[21,3],[34,3],[35,3],
@@ -547,18 +584,57 @@
     [12,8],[13,8]
   ];
 
-  function placeGun() {
+  function seedPattern() {
     grid.fill(0);
-    const ox = Math.floor((COLS - 36) / 2);
-    const oy = Math.floor((ROWS - 9) / 2);
-    for (const g of GUN) {
-      const gx = g[0] + ox, gy = g[1] + oy;
-      if (gx >= 0 && gx < COLS && gy >= 0 && gy < ROWS) grid[gy * COLS + gx] = 1;
+    const gunW = 36, gunH = 9;
+    if (COLS >= gunW + 6 && ROWS >= gunH + 6) {
+      // 大网格：中心放高斯帕滑翔机枪
+      const ox = Math.floor((COLS - gunW) / 2);
+      const oy = Math.floor((ROWS - gunH) / 2);
+      for (let k = 0; k < GUN.length; k++) {
+        const gx = GUN[k][0] + ox, gy = GUN[k][1] + oy;
+        if (gx >= 0 && gx < COLS && gy >= 0 && gy < ROWS) grid[gy * COLS + gx] = 1;
+      }
+    } else {
+      // 小网格：四个角各放一只滑翔机
+      const glider = [[1,0],[2,1],[0,2],[1,2],[2,2]];
+      const corners = [
+        [2, 2],
+        [Math.max(2, COLS - 5), 2],
+        [2, Math.max(2, ROWS - 5)],
+        [Math.max(2, COLS - 5), Math.max(2, ROWS - 5)]
+      ];
+      for (let c = 0; c < corners.length; c++) {
+        const sx = corners[c][0], sy = corners[c][1];
+        for (let k = 0; k < glider.length; k++) {
+          const gx = sx + glider[k][0], gy = sy + glider[k][1];
+          if (gx >= 0 && gx < COLS && gy >= 0 && gy < ROWS) grid[gy * COLS + gx] = 1;
+        }
+      }
     }
     generation = 0;
     recount();
     updateStats();
   }
+
+  /* =========================================================
+     二、游戏逻辑
+     ========================================================= */
+  const genEl = document.getElementById('gen');
+  const popEl = document.getElementById('pop');
+  const playBtn = document.getElementById('playBtn');
+  const stepBtn = document.getElementById('stepBtn');
+  const randBtn = document.getElementById('randBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const speedEl = document.getElementById('speed');
+  const speedValEl = document.getElementById('speedVal');
+
+  let running = false;
+  let generation = 0;
+  let population = 0;
+  let speed = 6;
+  let acc = 0, lastT = 0;
+  let guideOpen = false;
 
   function step() {
     let pop = 0;
@@ -630,10 +706,12 @@
     for (let i = 0; i < grid.length; i++) n += grid[i];
     population = n;
   }
+
   function updateStats() {
     genEl.textContent = generation;
     popEl.textContent = population;
   }
+
   function setRunning(v) {
     running = v;
     playBtn.textContent = v ? '⏸ 暂停' : '▶ 开始';
@@ -643,12 +721,14 @@
     clearBtn.disabled = v;
     lastT = 0; acc = 0;
   }
+
   function clearAll() {
     grid.fill(0);
     generation = 0;
     population = 0;
     updateStats();
   }
+
   function randomize() {
     for (let i = 0; i < grid.length; i++) grid[i] = Math.random() < 0.28 ? 1 : 0;
     generation = 0;
@@ -656,8 +736,11 @@
     updateStats();
   }
 
-  /* ---------- 画布交互 ---------- */
+  /* =========================================================
+     三、画布交互 & 按钮
+     ========================================================= */
   let painting = false, paintVal = 1;
+
   function cellFromEvent(e) {
     const r = canvas.getBoundingClientRect();
     const x = Math.floor((e.clientX - r.left) / r.width * COLS);
@@ -665,6 +748,7 @@
     if (x < 0 || y < 0 || x >= COLS || y >= ROWS) return null;
     return { x: x, y: y };
   }
+
   function applyCell(c) {
     const i = c.y * COLS + c.x;
     if (grid[i] === paintVal) return;
@@ -672,6 +756,7 @@
     population += paintVal ? 1 : -1;
     updateStats();
   }
+
   canvas.addEventListener('pointerdown', function (e) {
     if (guideOpen) return;
     const c = cellFromEvent(e);
@@ -682,15 +767,16 @@
     paintVal = grid[c.y * COLS + c.x] ? 0 : 1;
     applyCell(c);
   });
+
   canvas.addEventListener('pointermove', function (e) {
     if (!painting || guideOpen) return;
     const c = cellFromEvent(e);
     if (c) applyCell(c);
   });
-  canvas.addEventListener('pointerup',    function () { painting = false; });
-  canvas.addEventListener('pointercancel',function () { painting = false; });
 
-  /* ---------- 按钮 & 快捷键 ---------- */
+  canvas.addEventListener('pointerup',     function () { painting = false; });
+  canvas.addEventListener('pointercancel', function () { painting = false; });
+
   playBtn.addEventListener('click', function () { setRunning(!running); });
   stepBtn.addEventListener('click',  function () { setRunning(false); step(); });
   randBtn.addEventListener('click',  function () { setRunning(false); randomize(); });
@@ -700,29 +786,39 @@
     speedValEl.textContent = speed;
   });
 
+  // 阻止按钮聚焦时空格“默认激活”导致双重切换
+  [playBtn, stepBtn, randBtn, clearBtn].forEach(function (btn) {
+    btn.addEventListener('keydown', function (e) {
+      if (e.code === 'Space') e.preventDefault();
+    });
+  });
+
   window.addEventListener('keydown', function (e) {
     if (e.target.tagName === 'INPUT') return;
     if (guideOpen) return;
-    if (e.code === 'Space') { e.preventDefault(); setRunning(!running); }
+    if (e.code === 'Space') {
+      e.preventDefault();
+      if (e.repeat) return;
+      setRunning(!running);
+    }
     else if (e.key === 'r' || e.key === 'R') { setRunning(false); randomize(); }
     else if (e.key === 'c' || e.key === 'C') { setRunning(false); clearAll(); }
     else if (e.key === 's' || e.key === 'S') { setRunning(false); step(); }
   });
 
   /* =========================================================
-     二、操作指南
+     四、操作指南
      ========================================================= */
-
   function cells(x0, y0, s, gap, n, alive) {
     let out = '';
-    const step = s + gap;
+    const stepPx = s + gap;
     for (let j = 0; j < n; j++) {
       for (let i = 0; i < n; i++) {
         const idx = j * n + i;
         const on = alive.indexOf(idx) >= 0;
         out += '<rect class="' + (on ? 'alive' : 'dim') + '"'
-             + ' x="' + (x0 + i * step) + '"'
-             + ' y="' + (y0 + j * step) + '"'
+             + ' x="' + (x0 + i * stepPx) + '"'
+             + ' y="' + (y0 + j * stepPx) + '"'
              + ' width="' + s + '" height="' + s + '"'
              + ' rx="' + (s * 0.2).toFixed(1) + '"/>';
       }
@@ -773,6 +869,7 @@
       hl: 'playBtn',
       wait: '点这里开始演化',
       afterText: '很好！点右下角 → 继续',
+      hlKeyAction: function () { setRunning(true); },
       pos: 'tl',
       svg: '<circle class="dim" cx="70" cy="75" r="32"/>' +
            '<path class="tri" d="M60 57 L94 75 L60 93 Z"/>' +
@@ -800,6 +897,7 @@
       hl: 'playBtn',
       wait: '点这里暂停',
       afterText: '对，就是这样。点右下角 → 继续',
+      hlKeyAction: function () { setRunning(false); },
       pos: 'tl',
       svg: '<g transform="translate(56 75)">' +
            '  <rect class="alive" x="-15" y="-22" width="12" height="44" rx="3"/>' +
@@ -838,6 +936,8 @@
   let hlActivated = false;
   let runningBeforeGuide = null;
 
+  const HL_PAD = 10;
+
   const fmtKeys = function (s) {
     return s.replace(/【([^】]*)】/g, '<span class="k">$1</span>');
   };
@@ -855,18 +955,14 @@
   });
   const guideDotEls = guideDots.children;
 
-  /* ---------- 遮罩挖洞：露出被高亮的按钮，避免被盖住 ---------- */
-  // 关键：外框顺时针 5 点 + 内洞逆时针 5 点，用 evenodd 填充规则挖出镂空。
-  // 统一 10 个点 → polygon 过渡时不会跳变。
   function updateMaskHole(el) {
     let x1 = 0, y1 = 0, x2 = 0, y2 = 0;
     if (el && !guideMask.hidden) {
       const r = el.getBoundingClientRect();
-      const pad = 10;
-      x1 = Math.max(-2, r.left - pad);
-      y1 = Math.max(-2, r.top - pad);
-      x2 = Math.min(window.innerWidth + 2, r.right + pad);
-      y2 = Math.min(window.innerHeight + 2, r.bottom + pad);
+      x1 = Math.max(-2, r.left - HL_PAD);
+      y1 = Math.max(-2, r.top - HL_PAD);
+      x2 = Math.min(window.innerWidth + 2, r.right + HL_PAD);
+      y2 = Math.min(window.innerHeight + 2, r.bottom + HL_PAD);
     }
     const path =
       'polygon(evenodd,' +
@@ -880,12 +976,36 @@
     guideMask.style.clipPath = path;
   }
 
-  // 窗口尺寸变化时，同步更新洞的位置
-  window.addEventListener('resize', function () {
-    if (guideOpen && hlTarget) updateMaskHole(hlTarget);
-  });
+  function positionHl(instant) {
+    if (!hlTarget) return;
+    const r = hlTarget.getBoundingClientRect();
 
-  /* ---------- 导航状态 ---------- */
+    if (instant) {
+      guideHl.classList.add('no-anim');
+      guideWait.classList.add('no-anim');
+    }
+
+    guideHl.style.left   = (r.left - HL_PAD) + 'px';
+    guideHl.style.top    = (r.top - HL_PAD) + 'px';
+    guideHl.style.width  = (r.width + HL_PAD * 2) + 'px';
+    guideHl.style.height = (r.height + HL_PAD * 2) + 'px';
+    guideHl.hidden = false;
+
+    if (!guideWait.hidden) {
+      guideWait.style.left = (r.left + r.width / 2) + 'px';
+      guideWait.style.transform = (r.top < 80) ? 'translate(-50%, 0)' : 'translate(-50%, -100%)';
+      guideWait.style.top = (r.top < 80) ? (r.bottom + 14) + 'px' : (r.top - 14) + 'px';
+    }
+
+    updateMaskHole(hlTarget);
+
+    if (instant) {
+      void guideHl.offsetWidth;
+      guideHl.classList.remove('no-anim');
+      guideWait.classList.remove('no-anim');
+    }
+  }
+
   function updateNavState() {
     const p = GUIDE[guideIdx];
     const isLast = guideIdx === GUIDE.length - 1;
@@ -914,62 +1034,52 @@
     }
   }
 
-  /* ---------- 高亮屏幕上的某个 UI ---------- */
-  function placeHl(id, waitText, afterText, onActivate, eventName) {
+  function placeHl(id, waitText, afterText, onActivate, eventName, keyAction) {
     const el = document.getElementById(id);
     if (!el) return;
 
-    const r = el.getBoundingClientRect();
-    const pad = 8;
-    guideHl.style.left   = (r.left - pad) + 'px';
-    guideHl.style.top    = (r.top - pad) + 'px';
-    guideHl.style.width  = (r.width + pad * 2) + 'px';
-    guideHl.style.height = (r.height + pad * 2) + 'px';
-    guideHl.hidden = false;
-
     hlTarget = el;
-
-    // ★ 关键修复：让遮罩在这里挖出洞，把按钮亮出来
-    updateMaskHole(el);
 
     if (waitText) {
       guideWait.textContent = waitText;
-      guideWait.style.left = (r.left + r.width / 2) + 'px';
-      guideWait.style.transform = (r.top < 80) ? 'translate(-50%, 0)' : 'translate(-50%, -100%)';
-      guideWait.style.top = (r.top < 80) ? (r.bottom + 14) + 'px' : (r.top - 14) + 'px';
       guideWait.hidden = false;
     } else {
       guideWait.hidden = true;
     }
 
-    if (onActivate) {
-      let done = false;
-      const fire = function () {
-        if (done) return;
-        done = true;
-        onActivate();
-        if (afterText && !guideWait.hidden) guideWait.textContent = afterText;
-      };
+    positionHl(false);
 
-      const ev = eventName || 'click';
-      el.addEventListener(ev, fire);
+    if (!onActivate) return;
 
-      // playBtn 也允许用键盘空格完成，避免用户被卡死
-      let winHandler = null;
-      if (id === 'playBtn') {
-        winHandler = function (e) {
+    let done = false;
+    const ev = eventName || 'click';
+
+    const finish = function (viaKey) {
+      if (done) return;
+      done = true;
+      if (viaKey && typeof keyAction === 'function') keyAction();
+      onActivate();
+      if (afterText && !guideWait.hidden) guideWait.textContent = afterText;
+    };
+
+    const clickHandler = function () { finish(false); };
+    const keyHandler = (id === 'playBtn')
+      ? function (e) {
           if (e.code !== 'Space') return;
           if (e.target && e.target.tagName === 'INPUT') return;
-          fire();
-        };
-        window.addEventListener('keydown', winHandler);
-      }
+          e.preventDefault();
+          finish(true);
+        }
+      : null;
 
-      hlCleanup = function () {
-        el.removeEventListener(ev, fire);
-        if (winHandler) window.removeEventListener('keydown', winHandler);
-      };
-    }
+    el.addEventListener(ev, clickHandler);
+    if (keyHandler) window.addEventListener('keydown', keyHandler);
+
+    hlCleanup = function () {
+      el.removeEventListener(ev, clickHandler);
+      if (keyHandler) window.removeEventListener('keydown', keyHandler);
+      hlCleanup = null;
+    };
   }
 
   function clearGuideFx() {
@@ -981,11 +1091,9 @@
     guideWait.style.top = '';
     guideWait.textContent = '';
     hlTarget = null;
-    // ★ 恢复全屏遮罩（去掉洞）
     updateMaskHole(null);
   }
 
-  /* ---------- 显示某一页 ---------- */
   function showGuide(i) {
     guideIdx = (i + GUIDE.length) % GUIDE.length;
     const p = GUIDE[guideIdx];
@@ -1024,7 +1132,7 @@
       placeHl(p.hl, p.wait, p.afterText, function () {
         hlActivated = true;
         updateNavState();
-      }, p.hlEvent);
+      }, p.hlEvent, p.hlKeyAction);
     } else {
       hlActivated = true;
     }
@@ -1032,7 +1140,6 @@
     updateNavState();
   }
 
-  /* ---------- 打开 / 关闭指南 ---------- */
   function openGuide(startFrom) {
     guideOpen = true;
     runningBeforeGuide = running;
@@ -1060,12 +1167,11 @@
   guidePrev.addEventListener('click', function () { showGuide(guideIdx - 1); });
   guideNext.addEventListener('click', function () { showGuide(guideIdx + 1); });
 
-  /* ---------- 键盘：翻页 / 关闭 ---------- */
   window.addEventListener('keydown', function (e) {
     if (!guideOpen) return;
-    const k = e.key.toLowerCase();
+    const k = (e.key || '').toLowerCase();
     if (k === 'escape') { e.preventDefault(); closeGuide(); return; }
-    if (e.target === speedEl) return;   // 速度滑块聚焦时，方向键交给它
+    if (e.target === speedEl) return;
     if (k === 'arrowleft') {
       e.preventDefault();
       if (!guidePrev.disabled && !guidePrev.hidden) showGuide(guideIdx - 1);
@@ -1075,7 +1181,6 @@
     }
   });
 
-  /* ---------- 拦截：指南打开时，点非高亮 / 非卡片区域一律拦住 ---------- */
   document.addEventListener('pointerdown', function (e) {
     if (!guideOpen) return;
     if (e.target.closest('#guideOverlay')) return;
@@ -1089,13 +1194,64 @@
   });
 
   /* =========================================================
-     三、启动流程
+     五、窗口尺寸自适应
+     ========================================================= */
+  function handleResize() {
+    // 处理设备像素比变化（拖到另一块屏幕 / 浏览器缩放）
+    const newDpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dprChanged = newDpr !== dpr;
+    if (dprChanged) dpr = newDpr;
+
+    const layout = computeLayout();
+    const sizeChanged = layout.cols !== COLS || layout.rows !== ROWS;
+
+    if (sizeChanged) {
+      const oldGrid = grid, oldCols = COLS, oldRows = ROWS;
+      // 重新分配数组，把旧图案等比采样到新网格里
+      COLS = layout.cols;
+      ROWS = layout.rows;
+      W = COLS * CELL;
+      H = ROWS * CELL;
+      grid = resampleInto(oldGrid, oldCols, oldRows);
+      nextGrid = new Uint8Array(COLS * ROWS);
+      recount();
+      updateStats();
+    }
+
+    if (sizeChanged || dprChanged) applyCanvasSize();
+
+    if (guideOpen && hlTarget) positionHl(true);
+  }
+
+  let resizeRaf = 0;
+  window.addEventListener('resize', function () {
+    if (resizeRaf) return;
+    resizeRaf = requestAnimationFrame(function () {
+      resizeRaf = 0;
+      handleResize();
+    });
+  });
+
+  // 窗口尺寸变化的另一种情况：系统缩放变化
+  window.addEventListener('orientationchange', function () {
+    setTimeout(handleResize, 150);
+  });
+
+  /* =========================================================
+     六、启动
      ========================================================= */
   const loading = document.getElementById('loading');
   const welcome = document.getElementById('welcome');
   const wrap    = document.getElementById('wrap');
 
-  placeGun();
+  // 1) 首次计算尺寸并初始化
+  (function bootstrap() {
+    const layout = computeLayout();
+    allocGrid(layout.cols, layout.rows);
+    applyCanvasSize();
+    seedPattern();
+  })();
+
   setRunning(true);
   requestAnimationFrame(loop);
 
