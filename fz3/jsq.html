@@ -1,0 +1,2590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>科学计算器 · 单位换算</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:#f2f3f8;min-height:100%;
+    display:flex;justify-content:center;align-items:flex-start;
+    padding:20px 15px;color:#1b1d24;
+  }
+  .app{
+    width:min(100%,440px);display:flex;flex-direction:column;
+    background:#fff;border-radius:26px;
+    box-shadow:0 12px 48px rgba(30,35,70,.09),0 2px 10px rgba(30,35,70,.04);
+  }
+  .head{padding:16px 16px 4px}
+  .tabs{display:flex;gap:5px;background:#f2f3f8;padding:4px;border-radius:13px}
+  .tab{
+    flex:1;border:0;background:transparent;padding:10px 4px;border-radius:10px;
+    font-size:13.5px;font-weight:600;color:#868da0;cursor:pointer;
+    font-family:inherit;transition:background .18s,color .18s;white-space:nowrap;
+  }
+  .tab.active{background:#fff;color:#1b1d24;box-shadow:0 1px 5px rgba(30,35,70,.09)}
+  .panel{display:none;flex-direction:column}
+  .panel.active{display:flex}
+
+  .display{padding:20px 22px 14px;min-height:118px;display:flex;flex-direction:column;
+    justify-content:flex-end;gap:6px;text-align:right;overflow:hidden}
+  .expr{font-size:15px;color:#959cb0;min-height:21px;word-break:break-all;line-height:1.35}
+  .result{font-size:36px;font-weight:700;color:#1b1d24;line-height:1.15;letter-spacing:-1px;
+    word-break:break-all;overflow-wrap:anywhere;transition:color .2s}
+  .result.preview{color:#b8bfd0}
+  .result.ciallo{font-size:19px;font-weight:700;color:#ff6b8a;letter-spacing:0;line-height:1.4}
+  .result.cancelled{font-size:17px;font-weight:600;color:#a8aec0;letter-spacing:0;line-height:1.4}
+  .result.rawError{
+    font-size:14px;font-weight:600;color:#ff8c4a;
+    letter-spacing:0;line-height:1.5;text-align:right;word-break:break-word;
+  }
+  .result.apology{
+    font-size:13px;font-weight:500;color:#5b6cff;letter-spacing:0;line-height:1.65;
+    text-align:right;background:#f7f8ff;border-radius:14px;padding:12px 14px;
+    border:1px solid #e8ebff;word-break:break-word;
+  }
+  .result.apology .ap-title{
+    display:block;font-size:14px;font-weight:700;color:#1b1d24;margin-bottom:6px;
+  }
+  .result.apology .ap-hl{color:#ff6b8a;font-weight:600}
+  .result.apology code{
+    font-family:inherit;background:#eef0ff;padding:1px 6px;border-radius:5px;
+    font-size:12px;color:#4f5bd5;font-weight:600;
+  }
+  .result.apology sup{font-size:9px;vertical-align:super}
+
+  .calc-mode-switch{
+    display:flex;gap:4px;background:#f2f3f8;padding:3px;border-radius:10px;
+    margin:0 22px 10px;flex-shrink:0;
+  }
+  .calc-mode-btn{
+    flex:1;border:0;background:transparent;padding:7px 0;border-radius:7px;
+    font-family:inherit;font-size:12.5px;font-weight:600;color:#868da0;cursor:pointer;
+    transition:background .16s,color .16s,box-shadow .16s;
+  }
+  .calc-mode-btn.active{background:#fff;color:#1b1d24;box-shadow:0 1px 4px rgba(30,35,70,.08)}
+
+  .progress-bar{display:flex;align-items:center;gap:10px;padding:0 22px 10px}
+  .progress-track{flex:1;height:4px;border-radius:2px;background:#eef0ff;overflow:hidden;position:relative}
+  .progress-indicator{position:absolute;top:0;left:0;height:100%;width:35%;border-radius:2px;
+    background:linear-gradient(90deg,#a8b3ff,#5b6cff,#a8b3ff);
+    animation:indeterminate 1.3s ease-in-out infinite}
+  @keyframes indeterminate{0%{transform:translateX(-100%)}100%{transform:translateX(340%)}}
+  .progress-label{font-size:12px;color:#5b6cff;font-weight:600;flex-shrink:0;white-space:nowrap}
+  .cancel-btn{border:0;background:#f0f2ff;color:#5b6cff;padding:4px 12px;border-radius:999px;
+    font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;flex-shrink:0}
+  .cancel-btn:hover{background:#e3e7ff}
+
+  .warning-bar{
+    display:flex;align-items:flex-start;gap:8px;
+    margin:0 22px 10px;padding:8px 12px;
+    background:#fff8f2;border:1px solid #ffe1c8;border-radius:10px;
+    font-size:11.5px;color:#b35c00;line-height:1.5;
+  }
+  .warning-bar .w-icon{flex-shrink:0;font-size:13px}
+  .warning-bar .w-text{flex:1;word-break:break-word}
+  .warning-bar .w-close{
+    border:0;background:transparent;color:#b35c00;font-size:14px;
+    cursor:pointer;padding:0 4px;font-family:inherit;flex-shrink:0;
+  }
+
+  .expand-bar{display:flex;justify-content:center;padding:0 22px 10px;gap:8px;flex-wrap:wrap}
+  .expand-btn{
+    border:0;background:#f0f2ff;color:#5b6cff;border-radius:999px;
+    padding:6px 16px;font-size:12.5px;font-weight:600;font-family:inherit;
+    cursor:pointer;transition:background .16s;
+  }
+  .expand-btn:hover{background:#e3e7ff}
+  .expand-btn:active{transform:scale(.96)}
+
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}
+    40%{transform:translateX(7px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+  .shake{animation:shake .42s cubic-bezier(.36,.07,.19,.97)}
+
+  .keys{display:grid;gap:10px;flex-shrink:0}
+
+  .keys-basic{
+    grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(5,1fr);
+    padding:0 14px 18px;gap:10px;
+  }
+  .keys-basic .key{
+    border:0;border-radius:50px;padding:18px 0;
+    font-family:inherit;font-size:22px;font-weight:500;
+    color:#1b1d24;background:#f7f8fa;box-shadow:none;
+    cursor:pointer;user-select:none;transition:background .12s,transform .06s;
+  }
+  .keys-basic .key:active{transform:scale(.95);background:#eceef2}
+  .keys-basic .key.fn,.keys-basic .key.op{
+    color:#4f5bd5;background:#f7f8fa;font-size:22px;font-weight:500;
+  }
+  .keys-basic .key.eq{
+    grid-column:4;grid-row:4 / span 2;
+    background:linear-gradient(140deg,#6a7bff,#5566f0);color:#fff;
+    font-size:26px;font-weight:500;border-radius:50px;
+    box-shadow:0 4px 14px rgba(85,102,240,.28);
+  }
+  .keys-basic .key.eq:active{
+    background:linear-gradient(140deg,#5c6ef0,#4a5ae5);
+    box-shadow:0 2px 6px rgba(85,102,240,.3);
+  }
+
+  .keys-sci{grid-template-columns:repeat(5,1fr);padding:0 12px 16px;gap:7px}
+  .key{
+    border:0;border-radius:14px;padding:13px 0;
+    font-family:inherit;font-size:15.5px;font-weight:600;
+    color:#1b1d24;background:#fff;
+    box-shadow:inset 0 0 0 1px #ecedf4;cursor:pointer;user-select:none;
+    transition:background .14s,transform .07s,box-shadow .14s,color .14s;
+  }
+  .key:active{transform:scale(.94)}
+  .key.fn{background:#f7f8fc;color:#5f6779;font-size:13.5px;
+    box-shadow:inset 0 0 0 1px #eff0f6}
+  .key.op{background:#eef0ff;color:#4f5bd5;font-size:17px;box-shadow:none}
+  .key.op:hover{background:#e5e8ff}
+  .keys-sci .key.eq{background:linear-gradient(140deg,#6a7bff,#5566f0);color:#fff;
+    grid-column:span 2;box-shadow:0 4px 14px rgba(85,102,240,.32);font-size:19px}
+  .key.mode{font-size:12px;color:#4f5bd5;background:#f0f2ff}
+  .key.inv-active{background:#eef0ff;color:#5b6cff;
+    box-shadow:inset 0 0 0 1.5px #5b6cff}
+  .key.inv-toggle.active{background:#5b6cff;color:#fff;
+    box-shadow:0 3px 10px rgba(91,108,255,.25)}
+
+  .cats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:14px 16px 10px}
+  .cat{padding:8px 0;border-radius:999px;border:0;background:#f3f4f9;color:#767e92;
+    font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap;
+    transition:.16s;text-align:center}
+  .cat.active{background:#5b6cff;color:#fff;box-shadow:0 4px 12px rgba(91,108,255,.28)}
+
+  .conv-body{padding:6px 16px 22px}
+  .conv-row{display:flex;align-items:center;gap:10px;background:#f7f8fc;border-radius:18px;
+    padding:14px 14px;transition:box-shadow .18s}
+  .conv-row:focus-within{box-shadow:inset 0 0 0 1.5px #c8cfff;background:#fbfbff}
+  .conv-row input{flex:1 1 0%;width:0;min-width:0;border:0;background:transparent;outline:none;
+    font-family:inherit;font-size:25px;font-weight:700;color:#1b1d24;letter-spacing:-.5px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.3}
+  .conv-row input::placeholder{color:#c2c8d6;font-weight:500}
+  .conv-value{flex:1 1 0%;width:0;min-width:0;font-family:inherit;font-size:25px;
+    font-weight:700;color:#1b1d24;letter-spacing:-.5px;line-height:1.3;
+    word-break:break-all;overflow-wrap:anywhere}
+  .conv-value.placeholder{color:#c2c8d6;font-weight:500}
+  .conv-value.error{color:#ff6b8a;font-size:16px;font-weight:600;letter-spacing:0}
+  .conv-value.cancelled{color:#a8aec0;font-size:16px;font-weight:600;letter-spacing:0}
+  .conv-value.rawError{color:#ff8c4a;font-size:13px;font-weight:600;letter-spacing:0;line-height:1.4}
+  .conv-value.apology{color:#5b6cff;font-size:12.5px;font-weight:500;letter-spacing:0;line-height:1.5}
+
+  .custom-select{position:relative;flex:0 0 auto;max-width:50%}
+  .cs-button{display:flex;align-items:center;gap:6px;border:0;background:#fff;
+    border-radius:11px;padding:9px 12px;font-family:inherit;font-size:13.5px;
+    font-weight:600;color:#3d4356;cursor:pointer;outline:none;
+    box-shadow:0 1px 4px rgba(30,35,70,.07);max-width:100%;transition:box-shadow .16s}
+  .cs-button:hover{box-shadow:0 2px 8px rgba(30,35,70,.1)}
+  .custom-select.open .cs-button{box-shadow:0 0 0 1.5px #5b6cff}
+  .cs-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
+  .cs-arrow{font-size:9px;color:#868da0;transition:transform .18s;flex-shrink:0}
+  .custom-select.open .cs-arrow{transform:rotate(180deg)}
+  .cs-panel{display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:100%;
+    max-width:220px;max-height:240px;overflow-y:auto;background:#fff;border-radius:12px;
+    box-shadow:0 8px 32px rgba(30,35,70,.15),0 2px 8px rgba(30,35,70,.08);
+    padding:5px;z-index:100;-webkit-overflow-scrolling:touch}
+  .cs-panel::-webkit-scrollbar{width:6px}
+  .cs-panel::-webkit-scrollbar-thumb{background:#d8dce8;border-radius:3px}
+  .custom-select.open .cs-panel{display:block}
+  .cs-option{display:block;width:100%;border:0;background:transparent;padding:8px 12px;
+    border-radius:8px;font-family:inherit;font-size:13px;font-weight:500;color:#3d4356;
+    text-align:left;cursor:pointer;white-space:nowrap;transition:background .12s}
+  .cs-option:hover{background:#f3f4f9}
+  .cs-option.active{background:#eef0ff;color:#5b6cff;font-weight:600}
+
+  .conv-swap{display:flex;justify-content:center;padding:9px 0}
+  .conv-swap button{width:42px;height:42px;border-radius:50%;border:0;
+    background:#eef0ff;color:#5b6cff;font-size:19px;cursor:pointer;
+    transition:transform .35s cubic-bezier(.34,1.56,.64,1),background .18s;
+    display:flex;align-items:center;justify-content:center}
+  .conv-swap button:hover{background:#e3e7ff;transform:rotate(180deg)}
+  .conv-swap button:active{transform:rotate(180deg) scale(.9)}
+
+  .hint{text-align:center;font-size:12px;color:#a8aec0;padding:16px 0 0;letter-spacing:.3px}
+
+  .settings-body{padding:20px 22px 30px}
+  .setting-group{margin-bottom:26px}
+  .setting-group:last-child{margin-bottom:0}
+  .setting-group h3{font-size:15px;font-weight:700;color:#1b1d24;margin-bottom:5px}
+  .setting-desc{font-size:12.5px;color:#868da0;line-height:1.5;margin-bottom:12px}
+  .chip-group{display:flex;flex-wrap:wrap;gap:7px;align-items:center}
+  .chip{padding:9px 15px;border:0;border-radius:999px;background:#f3f4f9;color:#767e92;
+    font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;
+    transition:all .16s;white-space:nowrap}
+  .chip.active{background:#5b6cff;color:#fff;box-shadow:0 3px 10px rgba(91,108,255,.25)}
+  .chip:hover:not(.active):not(.disabled){background:#e9ebf3}
+  .chip.disabled{opacity:.4;cursor:not-allowed}
+  .chip.warn.active{background:#ff6b8a;box-shadow:0 3px 10px rgba(255,107,138,.25)}
+  .chip-input{width:90px;padding:9px 12px;border:0;border-radius:999px;background:#f3f4f9;
+    color:#1b1d24;font-size:13px;font-weight:600;font-family:inherit;outline:none;
+    text-align:center;transition:box-shadow .16s}
+  .chip-input:focus{box-shadow:inset 0 0 0 1.5px #5b6cff;background:#fff}
+  .chip-input::-webkit-outer-spin-button,.chip-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .chip-input{-moz-appearance:textfield}
+  .about-box{background:#f7f8fc;border-radius:14px;padding:14px 16px;
+    font-size:12.5px;color:#767e92;line-height:1.65}
+  .about-box b{color:#5b6cff;font-weight:600}
+  .about-box .ciallo{color:#ff6b8a;font-weight:600}
+  .about-box .apology{color:#5b6cff;font-weight:600}
+
+  .dev-panel{margin-top:14px;background:#fafbff;border:1px solid #e8ebff;
+    border-radius:14px;padding:10px 12px;display:none}
+  .dev-panel.open{display:block}
+  .dev-panel-title{font-size:12px;color:#5b6cff;font-weight:700;letter-spacing:.3px;
+    margin-bottom:8px;padding-bottom:6px;border-bottom:1px dashed #e0e4ff;
+    text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
+  .dev-panel-title .hint{font-size:10.5px;font-weight:500;color:#a8aec0;padding:0;
+    text-transform:none;letter-spacing:0}
+  .dev-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed #eceeff}
+  .dev-row:last-child{border-bottom:0}
+  .dev-row.vertical{flex-wrap:wrap;align-items:stretch}
+  .dev-row.vertical .dev-info{flex:1;min-width:0}
+  .dev-row.vertical .dev-textarea{flex:1 1 100%;order:3;margin-top:6px}
+  .dev-row.vertical .dev-lock{order:2}
+  .dev-info{flex:1;min-width:0}
+  .dev-name{display:block;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:11.5px;font-weight:700;color:#3d4356;word-break:break-all}
+  .dev-desc{display:block;font-size:10.5px;color:#868da0;margin-top:2px;line-height:1.35}
+  .dev-input{width:88px;flex-shrink:0;padding:6px 9px;border:1.5px solid transparent;
+    border-radius:8px;background:#fff;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:11.5px;font-weight:600;color:#1b1d24;outline:none;text-align:right;
+    transition:border-color .15s,background .15s;box-shadow:0 1px 3px rgba(30,35,70,.04)}
+  .dev-input:focus{border-color:#5b6cff}
+  .dev-input:disabled{background:#f0f1f6;color:#a8aec0;cursor:not-allowed}
+  .dev-textarea{width:100%;min-height:60px;padding:8px 10px;border:1.5px solid transparent;
+    border-radius:8px;background:#fff;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:11.5px;font-weight:600;color:#1b1d24;outline:none;resize:vertical;
+    line-height:1.4;box-shadow:0 1px 3px rgba(30,35,70,.04);transition:border-color .15s}
+  .dev-textarea:focus{border-color:#5b6cff}
+  .dev-textarea:disabled{background:#f0f1f6;color:#a8aec0;cursor:not-allowed}
+  .dev-lock{flex-shrink:0;display:flex;align-items:center;gap:3px;cursor:pointer;
+    user-select:none;padding:4px 6px;border-radius:6px;transition:background .12s}
+  .dev-lock:hover{background:#eef0ff}
+  .dev-lock input{margin:0;accent-color:#5b6cff;cursor:pointer}
+  .dev-lock .lock-icon{font-size:11px;color:#a8aec0}
+  .dev-lock.checked .lock-icon{color:#ff6b8a}
+  .dev-subsection{margin-top:12px;padding-top:10px;border-top:1px solid #e8ebff}
+  .dev-subsection-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .dev-subsection-header .label{font-size:11px;color:#5b6cff;font-weight:700;letter-spacing:.3px;text-transform:uppercase}
+  .dev-runtime-tag{
+    display:inline-block;padding:1px 6px;background:#e8ebff;color:#5b6cff;
+    border-radius:4px;font-size:9.5px;font-weight:700;margin-left:4px;letter-spacing:0;
+    text-transform:none;vertical-align:middle;
+  }
+
+  @media (max-width:380px){
+    .cats{grid-template-columns:repeat(3,1fr);gap:6px;padding:10px 12px 6px}
+    .keys-sci .key{padding:11px 0;font-size:14px}
+    .keys-sci .key.fn{font-size:12.5px}
+    .keys-basic .key{padding:15px 0;font-size:20px}
+    .keys-basic .key.eq{font-size:24px}
+    .display{min-height:90px;padding:15px 18px 10px}
+    .result{font-size:30px}
+    .result.apology{font-size:12px}
+    .result.rawError{font-size:12.5px}
+    .conv-row input,.conv-value{font-size:21px}
+    .tab{font-size:12.5px;padding:10px 2px}
+    .cs-label{max-width:100px}
+    .dev-input{width:70px;font-size:11px}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="head">
+    <div class="tabs">
+      <button class="tab active" data-tab="calc">计算器</button>
+      <button class="tab" data-tab="conv">单位换算</button>
+      <button class="tab" data-tab="settings">设置</button>
+    </div>
+  </div>
+
+  <section class="panel active" id="panel-calc">
+    <div class="display">
+      <div class="expr" id="expr">0</div>
+      <div class="result" id="result"></div>
+    </div>
+
+    <div class="calc-mode-switch" id="calcModeSwitch">
+      <button class="calc-mode-btn active" data-calcmode="basic">普通计算器</button>
+      <button class="calc-mode-btn" data-calcmode="sci">科学计算器</button>
+    </div>
+
+    <div class="progress-bar" id="calcProgress" style="display:none">
+      <div class="progress-track"><div class="progress-indicator"></div></div>
+      <span class="progress-label" id="calcProgressLabel">正在计算…</span>
+      <button class="cancel-btn" id="calcCancel" style="display:none">取消</button>
+    </div>
+
+    <div class="warning-bar" id="calcWarning" style="display:none">
+      <span class="w-icon">⚠</span>
+      <span class="w-text" id="calcWarningText"></span>
+      <button class="w-close" id="calcWarningClose">×</button>
+    </div>
+
+    <div class="expand-bar" id="calcExpandBar" style="display:none">
+      <button class="expand-btn" id="calcExpandBtn">显示完整</button>
+      <button class="expand-btn" id="calcDownloadBtn" style="display:none">下载完整结果</button>
+    </div>
+
+    <!-- 普通计算器（默认显示） -->
+    <div class="keys keys-basic" id="keysBasic">
+      <button class="key fn"  data-t="clear">C</button>
+      <button class="key op"  data-t="ins" data-v="/">÷</button>
+      <button class="key op"  data-t="ins" data-v="*">×</button>
+      <button class="key fn"  data-t="back">⌫</button>
+
+      <button class="key" data-t="ins" data-v="7">7</button>
+      <button class="key" data-t="ins" data-v="8">8</button>
+      <button class="key" data-t="ins" data-v="9">9</button>
+      <button class="key op" data-t="ins" data-v="-">−</button>
+
+      <button class="key" data-t="ins" data-v="4">4</button>
+      <button class="key" data-t="ins" data-v="5">5</button>
+      <button class="key" data-t="ins" data-v="6">6</button>
+      <button class="key op" data-t="ins" data-v="+">+</button>
+
+      <button class="key" data-t="ins" data-v="1">1</button>
+      <button class="key" data-t="ins" data-v="2">2</button>
+      <button class="key" data-t="ins" data-v="3">3</button>
+      <button class="key eq" data-t="eq">=</button>
+
+      <button class="key fn" data-t="percent">%</button>
+      <button class="key" data-t="ins" data-v="0">0</button>
+      <button class="key" data-t="ins" data-v=".">.</button>
+    </div>
+
+    <!-- 科学计算器（⌫ 在第一行最右） -->
+    <div class="keys keys-sci" id="keysSci" style="display:none">
+      <button class="key mode" data-t="deg" id="degKey">DEG</button>
+      <button class="key fn"  data-t="clear">C</button>
+      <button class="key fn"  data-t="ins" data-v="(">(</button>
+      <button class="key fn"  data-t="ins" data-v=")">)</button>
+      <button class="key fn"  data-t="back">⌫</button>
+
+      <button class="key fn" data-t="trig" data-fn="sin">sin</button>
+      <button class="key fn" data-t="trig" data-fn="cos">cos</button>
+      <button class="key fn" data-t="trig" data-fn="tan">tan</button>
+      <button class="key fn" data-t="ins" data-v="ln(">ln</button>
+      <button class="key fn" data-t="ins" data-v="log(">log</button>
+
+      <button class="key fn" data-t="ins" data-v="sqrt(">√</button>
+      <button class="key fn" data-t="ins" data-v="^2">x²</button>
+      <button class="key fn" data-t="ins" data-v="^3">x³</button>
+      <button class="key fn" data-t="ins" data-v="^">xʸ</button>
+      <button class="key fn" data-t="ytroot">ʸ√x</button>
+
+      <button class="key fn" data-t="ins" data-v="π">π</button>
+      <button class="key fn" data-t="ins" data-v="e">e</button>
+      <button class="key fn" data-t="reciprocal">1/x</button>
+      <button class="key fn inv-toggle" data-t="inv" id="invKey">Inv</button>
+      <button class="key fn" data-t="percent">%</button>
+
+      <button class="key" data-t="ins" data-v="7">7</button>
+      <button class="key" data-t="ins" data-v="8">8</button>
+      <button class="key" data-t="ins" data-v="9">9</button>
+      <button class="key op" data-t="ins" data-v="/">÷</button>
+      <button class="key fn" data-t="ins" data-v="!">n!</button>
+
+      <button class="key" data-t="ins" data-v="4">4</button>
+      <button class="key" data-t="ins" data-v="5">5</button>
+      <button class="key" data-t="ins" data-v="6">6</button>
+      <button class="key op" data-t="ins" data-v="*">×</button>
+      <button class="key fn" data-t="ins" data-v="Ans">Ans</button>
+
+      <button class="key" data-t="ins" data-v="1">1</button>
+      <button class="key" data-t="ins" data-v="2">2</button>
+      <button class="key" data-t="ins" data-v="3">3</button>
+      <button class="key op" data-t="ins" data-v="-">−</button>
+      <button class="key op" data-t="ins" data-v="+">+</button>
+
+      <button class="key" data-t="ins" data-v="0">0</button>
+      <button class="key" data-t="ins" data-v=".">.</button>
+      <button class="key fn" data-t="neg">±</button>
+      <button class="key eq" data-t="eq">=</button>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-conv">
+    <div class="cats" id="cats"></div>
+    <div class="conv-body">
+      <div class="conv-row">
+        <input id="convFrom" type="text" inputmode="decimal" value="1" placeholder="0">
+        <div class="custom-select" id="unitFromSel">
+          <button class="cs-button" type="button">
+            <span class="cs-label">米 m</span>
+            <span class="cs-arrow">▼</span>
+          </button>
+          <div class="cs-panel"></div>
+        </div>
+      </div>
+      <div class="conv-swap"><button id="swapBtn" title="交换单位">⇅</button></div>
+      <div class="conv-row">
+        <div class="conv-value placeholder" id="convTo">0</div>
+        <div class="custom-select" id="unitToSel">
+          <button class="cs-button" type="button">
+            <span class="cs-label">千米 km</span>
+            <span class="cs-arrow">▼</span>
+          </button>
+          <div class="cs-panel"></div>
+        </div>
+      </div>
+
+      <div class="progress-bar" id="convProgress" style="display:none;padding:10px 0 0">
+        <div class="progress-track"><div class="progress-indicator"></div></div>
+        <span class="progress-label">正在计算…</span>
+        <button class="cancel-btn" id="convCancel" style="display:none">取消</button>
+      </div>
+
+      <div class="warning-bar" id="convWarning" style="display:none;margin:10px 0 0;padding:8px 12px">
+        <span class="w-icon">⚠</span>
+        <span class="w-text" id="convWarningText"></span>
+        <button class="w-close" id="convWarningClose">×</button>
+      </div>
+
+      <div class="expand-bar" id="convExpandBar" style="display:none;padding:10px 0 0">
+        <button class="expand-btn" id="convExpandBtn">显示完整</button>
+      </div>
+
+      <div class="hint" id="convHint">输入任意数值，实时换算 ✨</div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-settings">
+    <div class="settings-body">
+      <div class="setting-group">
+        <h3>小数位数</h3>
+        <p class="setting-desc">控制计算器与单位换算结果显示精度，可填任意非负整数。</p>
+        <div class="chip-group" id="precChips">
+          <button class="chip active" data-prec="auto">自动</button>
+          <button class="chip" data-prec="0">0</button>
+          <button class="chip" data-prec="2">2</button>
+          <button class="chip" data-prec="4">4</button>
+          <button class="chip" data-prec="6">6</button>
+          <button class="chip" data-prec="10">10</button>
+          <button class="chip" data-prec="20">20</button>
+          <input type="number" min="0" class="chip-input" id="customPrec" placeholder="自定义">
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <h3>数字显示</h3>
+        <p class="setting-desc">科学计数法会把极大/极小值写成 <b>1.23e+24</b>；禁止折叠则完全展开为具体数字。</p>
+        <div class="chip-group" id="expChips">
+          <button class="chip active" data-exp="auto">科学计数法</button>
+          <button class="chip" data-exp="never">禁止折叠</button>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <h3>数据模式</h3>
+        <p class="setting-desc">传统模式使用 Number 类型；无溢出模式使用 BigFloat 任意精度运算。</p>
+        <div class="chip-group" id="modeChips">
+          <button class="chip" data-mode="legacy">传统（1e308 溢出）</button>
+          <button class="chip active" data-mode="big">无溢出（BigFloat）</button>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <h3>执行线程</h3>
+        <p class="setting-desc">主线程模式若把 BigInt 吃爆会直接白屏；Web Worker 模式崩溃时能优雅显示道歉，还能随时取消。</p>
+        <div class="chip-group" id="threadChips">
+          <button class="chip warn" data-thread="main">主线程（危险）</button>
+          <button class="chip active" data-thread="worker">Web Worker</button>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <h3>开发者模式</h3>
+        <p class="setting-desc">
+          打开后可以自由调整内部<b>所有</b>参数、运行时变量和常量。
+          <b>所有字段都可写，无只读项</b>。每个字段后面的 🔒 会真正锁定。
+        </p>
+        <div class="chip-group">
+          <button class="chip" id="devToggle">开发者模式：关</button>
+        </div>
+        <div class="dev-panel" id="devPanel">
+          <div class="dev-panel-title">
+            <span>计算参数</span>
+            <span class="hint">改完即生效</span>
+          </div>
+          <div id="devParamsList"></div>
+
+          <div class="dev-subsection">
+            <div class="dev-subsection-header">
+              <span class="label">运行时变量</span>
+              <span class="hint" style="font-size:10.5px;color:#a8aec0;font-weight:500;text-transform:none;letter-spacing:0">实时状态 · 全部可写</span>
+            </div>
+            <div id="devRuntimeList"></div>
+          </div>
+
+          <div class="dev-subsection">
+            <div class="dev-subsection-header">
+              <span class="label">常量</span>
+              <button class="chip" id="advDevToggle" style="font-size:11px;padding:5px 10px;">隐藏常量</button>
+            </div>
+            <div id="advDevParamsList"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <h3>关于</h3>
+        <div class="about-box">
+          支持四则运算、幂、阶乘、三角/反三角函数、对数、<b>ʸ√x</b>、<b>1/x</b>、<b>%</b>，可使用 <b>Ans</b>、<b>π</b>、<b>e</b>。点击 <b>Inv</b> 可在 sin/cos/tan 与反三角之间切换。<br>
+          <b>数学无意义</b>（0/0、非法输入等）显示 <b style="color:#ff6b8a">Ciallo~(∠・ω&lt; )⌒☆</b>。<br>
+          <b>物理极限</b>（超出 BigInt 容量）显示 <b class="apology">诚恳的道歉</b>。<br>
+          <b>开发者模式</b>下不做任何检测，出错直接显示错误信息原文。<br>
+          不设任何位数限制，任何数学上存在的表达式都会真的去算。
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+/* =========================================================================
+   运行时配置
+   ========================================================================= */
+const DEFAULT_CONFIG = {
+  maxPreview: '50',
+  bigDisplayThreshold: '500000',
+  progressDelay: '120',
+  workerProbeTimeout: '600',
+  calcMode: 'basic',
+  precision: 'auto',
+  dataMode: 'big',
+  threadMode: 'worker',
+  angleMode: 'DEG',
+  noExponential: 'false',
+  ansNumber: '0',
+  ansBig: 'BF:0:0',
+  divPrecision: '200',
+  piString: '3.14159265358979323846264338327950288419716939937510582097494459',
+  eString:  '2.71828182845904523536028747135266249775724709369995957496696763',
+};
+
+const runtimeConfig = Object.assign({}, DEFAULT_CONFIG);
+
+const configLocks = {
+  maxPreview: false, bigDisplayThreshold: false, progressDelay: false,
+  workerProbeTimeout: false, calcMode: false,
+  expr: false, lastWasEval: false, precision: false,
+  dataMode: false, threadMode: false, angleMode: false,
+  noExponential: false, ansNumber: false, ansBig: false,
+  workerAvailable: false, devMode: false, workerRequestId: false,
+  divPrecision: true, piString: true, eString: true,
+};
+
+const DEV_PARAMS = [
+  { key: 'maxPreview',          name: 'MAX_PREVIEW',           desc: '结果预览最大位数', type: 'text' },
+  { key: 'bigDisplayThreshold', name: 'BIG_DISPLAY_THRESHOLD', desc: '超大结果摘要阈值（位）', type: 'text' },
+  { key: 'progressDelay',       name: 'PROGRESS_DELAY',        desc: '进度条显示延迟（毫秒）', type: 'text' },
+  { key: 'workerProbeTimeout',  name: 'WORKER_PROBE_TIMEOUT',  desc: 'Worker 探测超时（毫秒）', type: 'text' },
+];
+
+const RUNTIME_VARS = [
+  { key: 'calcMode',         name: 'CALC_MODE',          desc: 'basic / sci', type: 'text' },
+  { key: 'expr',             name: 'EXPR',               desc: '当前表达式文本', type: 'text' },
+  { key: 'lastWasEval',      name: 'LAST_WAS_EVAL',      desc: '上次操作是否为求值', type: 'text' },
+  { key: 'precision',        name: 'PRECISION',          desc: '小数位数（数字或 auto）', type: 'text' },
+  { key: 'dataMode',         name: 'DATA_MODE',          desc: 'big / legacy', type: 'text' },
+  { key: 'threadMode',       name: 'THREAD_MODE',        desc: 'main / worker', type: 'text' },
+  { key: 'angleMode',        name: 'ANGLE_MODE',         desc: 'DEG / RAD', type: 'text' },
+  { key: 'noExponential',    name: 'NO_EXPONENTIAL',     desc: 'true / false', type: 'text' },
+  { key: 'ansNumber',        name: 'ANS_NUMBER',         desc: 'Number 型 Ans', type: 'text' },
+  { key: 'ansBig',           name: 'ANS_BIG',            desc: 'BigFloat 型 Ans（BF:尾数:指数）', type: 'text' },
+  { key: 'workerAvailable',  name: 'WORKER_AVAILABLE',   desc: 'Worker 是否可用', type: 'text' },
+  { key: 'devMode',          name: 'DEV_MODE',           desc: '开发者模式是否开启', type: 'text' },
+  { key: 'workerRequestId',  name: 'WORKER_REQUEST_ID',  desc: 'Worker 请求序号', type: 'text' },
+];
+
+const ADV_DEV_PARAMS = [
+  { key: 'divPrecision', name: 'DIV_PRECISION', desc: 'BigFloat 除法内部精度', type: 'text' },
+  { key: 'piString',     name: 'PI_BF',         desc: '圆周率高精度常量',      type: 'longtext' },
+  { key: 'eString',      name: 'E_BF',          desc: '自然对数底数高精度常量', type: 'longtext' },
+];
+
+/* =========================================================================
+   大整数分块转字符串
+   ========================================================================= */
+function bigIntToString(bi) {
+  if (typeof bi !== 'bigint') return String(bi);
+  if (bi === 0n) return '0';
+  try { return bi.toString(); } catch (e) {}
+  const sign = bi < 0n ? '-' : '';
+  let n = bi < 0n ? -bi : bi;
+  const CHUNK = 1000000000n;
+  const LEN = 9;
+  const parts = [];
+  while (n > 0n) {
+    const rem = n % CHUNK;
+    n = n / CHUNK;
+    parts.push(rem.toString().padStart(LEN, '0'));
+  }
+  const last = parts[parts.length - 1].replace(/^0+/, '') || '0';
+  parts[parts.length - 1] = last;
+  let result = sign;
+  for (let i = parts.length - 1; i >= 0; i--) result += parts[i];
+  return result;
+}
+
+/* =========================================================================
+   计算引擎
+   ========================================================================= */
+function createEngine(config) {
+  config = config || {};
+  let DIV_PRECISION;
+  try { DIV_PRECISION = BigInt(config.divPrecision); }
+  catch { DIV_PRECISION = null; }
+
+  class BigFloatClass {
+    constructor(m, e = 0) { this.m = m; this.e = e; }
+
+    static fromString(s) {
+      if (typeof s !== 'string') s = String(s);
+      s = s.trim();
+      if (s === '' || s === '.' || s === '-' || s === '+') return null;
+      const match = s.match(/^([+-]?)(\d*)(?:\.(\d*))?(?:[eE]([+-]?\d+))?$/);
+      if (!match) return null;
+      const sign = match[1] === '-' ? -1n : 1n;
+      const intPart = match[2] || '';
+      const fracPart = match[3] || '';
+      const exp = match[4] ? parseInt(match[4], 10) : 0;
+      if (!intPart && !fracPart) return null;
+      const digits = (intPart + fracPart) || '0';
+      let mantissa;
+      try { mantissa = BigInt(digits) * sign; } catch { return null; }
+      return new BigFloatClass(mantissa, exp - fracPart.length);
+    }
+
+    static fromNumber(n) {
+      if (typeof n !== 'number' || !isFinite(n)) return null;
+      return BigFloatClass.fromString(String(n));
+    }
+
+    isZero() { return this.m === 0n; }
+
+    absCompare(o) {
+      if (this.m === 0n && o.m === 0n) return 0;
+      if (this.m === 0n) return -1;
+      if (o.m === 0n) return 1;
+      const aDigits = bigIntToString(this.m < 0n ? -this.m : this.m).length + this.e;
+      const bDigits = bigIntToString(o.m < 0n ? -o.m : o.m).length + o.e;
+      if (aDigits !== bDigits) return aDigits > bDigits ? 1 : -1;
+      return 0;
+    }
+
+    mul(o) { return new BigFloatClass(this.m * o.m, this.e + o.e); }
+
+    add(o) {
+      if (this.m === 0n) return o;
+      if (o.m === 0n) return this;
+      const e = Math.min(this.e, o.e);
+      const s1 = this.e - e, s2 = o.e - e;
+      if (s1 > 200000 || s2 > 200000) return this.absCompare(o) >= 0 ? this : o;
+      const m1 = this.m * (10n ** BigInt(s1));
+      const m2 = o.m * (10n ** BigInt(s2));
+      return new BigFloatClass(m1 + m2, e);
+    }
+
+    sub(o) { return this.add(new BigFloatClass(-o.m, o.e)); }
+
+    div(o) {
+      if (o.m === 0n) throw new Error('division by zero');
+      const PREC = DIV_PRECISION;
+      const num = this.m * (10n ** PREC);
+      const q = num / o.m;
+      return new BigFloatClass(q, this.e - o.e - Number(PREC));
+    }
+
+    toString(precision, noExp) {
+      const isAuto = precision == null || precision === 'auto' || !isFinite(precision);
+      const prec = isAuto ? null : Math.max(0, Math.min(1000, Math.floor(Number(precision))));
+      const forceExpand = !!noExp;
+      if (this.m === 0n) {
+        if (isAuto || prec === 0) return '0';
+        return '0.' + '0'.repeat(prec);
+      }
+      const sign = this.m < 0n ? '-' : '';
+      const absM = this.m < 0n ? -this.m : this.m;
+      const digitsStr = bigIntToString(absM);
+      let digits = digitsStr.replace(/^0+/, '') || '0';
+      const e = this.e;
+      const totalExp = digits.length - 1 + e;
+      const useSci = !forceExpand && (totalExp >= 21 || totalExp < -6);
+      if (useSci) {
+        const intDigit = digits[0];
+        let fracDigits = digits.slice(1);
+        const keepPrec = isAuto ? 14 : prec;
+        if (fracDigits.length <= keepPrec) {
+          let rounded = fracDigits;
+          if (isAuto) rounded = rounded.replace(/0+$/, '');
+          let mantissa = intDigit;
+          if (rounded) mantissa += '.' + rounded;
+          return sign + mantissa + 'e' + (totalExp >= 0 ? '+' : '') + totalExp;
+        }
+        const kept = fracDigits.slice(0, keepPrec);
+        const nextD = fracDigits.charCodeAt(keepPrec) - 48;
+        let num = kept ? BigInt(kept) : 0n;
+        if (nextD >= 5) num += 1n;
+        let numStr = num.toString();
+        let leading = intDigit;
+        if (numStr.length > keepPrec) {
+          const carry = BigInt(intDigit) + 1n;
+          leading = carry.toString();
+          numStr = numStr.slice(numStr.length - keepPrec).padStart(keepPrec, '0');
+        }
+        let rounded = numStr.padStart(keepPrec, '0');
+        if (isAuto) rounded = rounded.replace(/0+$/, '');
+        let mantissa = leading;
+        if (rounded) mantissa += '.' + rounded;
+        return sign + mantissa + 'e' + (totalExp >= 0 ? '+' : '') + totalExp;
+      }
+      let intPart, fracPart;
+      if (e >= 0) { intPart = digits + '0'.repeat(e); fracPart = ''; }
+      else {
+        const pointPos = digits.length + e;
+        if (pointPos > 0) { intPart = digits.slice(0, pointPos); fracPart = digits.slice(pointPos); }
+        else { intPart = '0'; fracPart = '0'.repeat(-pointPos) + digits; }
+      }
+      if (isAuto) {
+        fracPart = fracPart.replace(/0+$/, '');
+        if (fracPart.length > 15) fracPart = fracPart.slice(0, 15);
+        return sign + intPart + (fracPart ? '.' + fracPart : '');
+      }
+      if (prec === 0) {
+        if (fracPart.length > 0) {
+          const firstFrac = fracPart.charCodeAt(0) - 48;
+          if (firstFrac >= 5) intPart = (BigInt(intPart) + 1n).toString();
+        }
+        return sign + intPart;
+      }
+      if (fracPart.length > prec) {
+        const kept = fracPart.slice(0, prec);
+        const nextD = fracPart.charCodeAt(prec) - 48;
+        let num = kept ? BigInt(kept) : 0n;
+        if (nextD >= 5) num += 1n;
+        let numStr = num.toString();
+        if (numStr.length > prec) {
+          intPart = (BigInt(intPart) + 1n).toString();
+          numStr = numStr.slice(numStr.length - prec).padStart(prec, '0');
+        }
+        fracPart = numStr.padStart(prec, '0');
+      } else fracPart = fracPart.padEnd(prec, '0');
+      return sign + intPart + '.' + fracPart;
+    }
+
+    toCompact() { return 'BF:' + this.m.toString() + ':' + this.e; }
+
+    static fromCompact(s) {
+      if (typeof s !== 'string' || !s.startsWith('BF:')) return null;
+      const parts = s.slice(3).split(':');
+      if (parts.length !== 2) return null;
+      try {
+        const m = BigInt(parts[0]);
+        const e = parseInt(parts[1], 10);
+        if (!isFinite(e)) return null;
+        return new BigFloatClass(m, e);
+      } catch { return null; }
+    }
+
+    toNumber() { return Number(this.toString(20)); }
+  }
+
+  const _PI_BF = BigFloatClass.fromString(config.piString);
+  const _E_BF  = BigFloatClass.fromString(config.eString);
+  const BF32 = BigFloatClass.fromNumber(32);
+  const BF5  = BigFloatClass.fromNumber(5);
+  const BF9  = BigFloatClass.fromNumber(9);
+  const BF27315 = BigFloatClass.fromString('273.15');
+  const BF49167 = BigFloatClass.fromString('491.67');
+
+  function bfIntPow(base, n) {
+    if (base.m === 0n) {
+      if (n === 0n) return BigFloatClass.fromNumber(1);
+      if (n < 0n) throw new Error('division by zero');
+      return BigFloatClass.fromNumber(0);
+    }
+    if (base.e === 0 && base.m === 1n) return BigFloatClass.fromNumber(1);
+    if (base.e === 0 && base.m === -1n) {
+      const nn = n < 0n ? -n : n;
+      return BigFloatClass.fromNumber((nn & 1n) === 0n ? 1 : -1);
+    }
+    let result = BigFloatClass.fromNumber(1);
+    let b = base;
+    let e = n < 0n ? -n : n;
+    while (e > 0n) {
+      if (e & 1n) result = result.mul(b);
+      e >>= 1n;
+      if (e > 0n) b = b.mul(b);
+    }
+    if (n < 0n) {
+      if (result.m === 0n) throw new Error('division by zero');
+      return BigFloatClass.fromNumber(1).div(result);
+    }
+    return result;
+  }
+
+  function bfPow(base, exp) {
+    if (exp.e >= 0 && exp.e < 1000) {
+      let n = null;
+      try { n = exp.m * (10n ** BigInt(exp.e)); } catch { n = null; }
+      if (n !== null) return bfIntPow(base, n);
+    }
+    const bn = base.toNumber();
+    const en = exp.toNumber();
+    if (!isFinite(bn) || !isFinite(en)) throw new Error('result not representable');
+    const r = Math.pow(bn, en);
+    if (!isFinite(r)) throw new Error('result not representable');
+    return BigFloatClass.fromNumber(r);
+  }
+
+  function bfSqrt(x) {
+    if (x.m < 0n) throw new Error('sqrt negative');
+    if (x.isZero()) return BigFloatClass.fromNumber(0);
+    const approx = Math.sqrt(x.toNumber());
+    let guess;
+    if (isFinite(approx) && approx > 0) guess = BigFloatClass.fromNumber(approx);
+    else {
+      const halfE = Math.floor(x.e / 2);
+      const rem = x.e - halfE * 2;
+      const mantissa = x.m * (10n ** BigInt(rem));
+      guess = new BigFloatClass(BigInt(Math.round(Math.sqrt(Number(mantissa) || 1))), halfE);
+    }
+    const HALF = BigFloatClass.fromString('0.5');
+    for (let i = 0; i < 60; i++) {
+      const next = guess.add(x.div(guess)).mul(HALF);
+      if (next.m === guess.m && next.e === guess.e) break;
+      guess = next;
+    }
+    return guess;
+  }
+
+  function bfFactorial(bf) {
+    const s = bf.toString();
+    if (!/^\d+$/.test(s)) throw new Error('factorial');
+    const n = parseInt(s, 10);
+    if (!Number.isFinite(n) || n < 0) throw new Error('factorial');
+    let r = BigFloatClass.fromNumber(1);
+    for (let i = 2; i <= n; i++) r = r.mul(BigFloatClass.fromNumber(i));
+    return r;
+  }
+
+  function tokenize(src) {
+    const out = [];
+    let i = 0;
+    while (i < src.length) {
+      const c = src[i];
+      if (c === ' ') { i++; continue; }
+      if (c === 'π') { out.push({ type: 'name', value: 'π' }); i++; continue; }
+      if (/[0-9]/.test(c) || (c === '.' && /[0-9]/.test(src[i + 1] || ''))) {
+        let j = i;
+        while (j < src.length && /[0-9.]/.test(src[j])) j++;
+        if (j < src.length && (src[j] === 'e' || src[j] === 'E')) {
+          const save = j;
+          let k = j + 1;
+          if (k < src.length && (src[k] === '+' || src[k] === '-')) k++;
+          if (k < src.length && /[0-9]/.test(src[k])) {
+            while (k < src.length && /[0-9]/.test(src[k])) k++;
+            j = k;
+          } else j = save;
+        }
+        const raw = src.slice(i, j);
+        const num = parseFloat(raw);
+        if (isNaN(num)) throw new Error('bad number');
+        out.push({ type: 'num', value: num, raw });
+        i = j; continue;
+      }
+      if (/[a-zA-Z]/.test(c)) {
+        let j = i;
+        while (j < src.length && /[a-zA-Z0-9]/.test(src[j])) j++;
+        out.push({ type: 'name', value: src.slice(i, j) });
+        i = j; continue;
+      }
+      if ('+-*/^()!'.includes(c)) {
+        out.push({ type: 'op', value: c });
+        i++; continue;
+      }
+      throw new Error('bad char');
+    }
+    return out;
+  }
+
+  function factorial(n) {
+    if (!Number.isInteger(n) || n < 0) throw new Error('factorial');
+    let r = 1;
+    for (let i = 2; i <= n; i++) r *= i;
+    return r;
+  }
+
+  function evaluateNum(src, opts) {
+    opts = opts || {};
+    const angleMode = opts.angleMode || 'DEG';
+    const ansNum = opts.ansNum || 0;
+    const toRad = x => angleMode === 'DEG' ? x * Math.PI / 180 : x;
+    const fromRad = x => angleMode === 'DEG' ? x * 180 / Math.PI : x;
+    const FUNCS = {
+      sin: x => Math.sin(toRad(x)), cos: x => Math.cos(toRad(x)), tan: x => Math.tan(toRad(x)),
+      asin: x => fromRad(Math.asin(x)), acos: x => fromRad(Math.acos(x)), atan: x => fromRad(Math.atan(x)),
+      sinh: x => Math.sinh(x), cosh: x => Math.cosh(x), tanh: x => Math.tanh(x),
+      ln: x => Math.log(x), log: x => Math.log10(x),
+      sqrt: x => Math.sqrt(x), cbrt: x => Math.cbrt(x),
+      abs: x => Math.abs(x), exp: x => Math.exp(x),
+    };
+    const tokens = tokenize(src);
+    let pos = 0;
+    const peek = () => tokens[pos];
+    const next = () => tokens[pos++];
+    function parseExpr() {
+      let v = parseTerm();
+      while (true) {
+        const t = peek();
+        if (!t || t.type !== 'op' || (t.value !== '+' && t.value !== '-')) break;
+        next(); const r = parseTerm();
+        v = t.value === '+' ? v + r : v - r;
+      }
+      return v;
+    }
+    function parseTerm() {
+      let v = parseUnary();
+      while (true) {
+        const t = peek();
+        if (!t) break;
+        if (t.type === 'op' && (t.value === '*' || t.value === '/')) {
+          next(); const r = parseUnary();
+          v = t.value === '*' ? v * r : v / r;
+        } else if (t.type === 'num' || t.type === 'name' || (t.type === 'op' && t.value === '(')) {
+          v = v * parseUnary();
+        } else break;
+      }
+      return v;
+    }
+    function parseUnary() {
+      const t = peek();
+      if (t && t.type === 'op' && t.value === '-') { next(); return -parseUnary(); }
+      if (t && t.type === 'op' && t.value === '+') { next(); return parseUnary(); }
+      return parsePower();
+    }
+    function parsePower() {
+      const base = parsePostfix();
+      const t = peek();
+      if (t && t.type === 'op' && t.value === '^') {
+        next(); const exp = parseUnary();
+        return Math.pow(base, exp);
+      }
+      return base;
+    }
+    function parsePostfix() {
+      let v = parsePrimary();
+      while (peek() && peek().type === 'op' && peek().value === '!') {
+        next(); v = factorial(v);
+      }
+      return v;
+    }
+    function parsePrimary() {
+      const t = next();
+      if (!t) throw new Error('unexpected end');
+      if (t.type === 'num') return t.value;
+      if (t.type === 'name') {
+        const name = t.value;
+        if (FUNCS[name]) {
+          const p = next();
+          if (!p || p.value !== '(') throw new Error('expected (');
+          const arg = parseExpr();
+          const close = next();
+          if (!close || close.value !== ')') throw new Error('expected )');
+          return FUNCS[name](arg);
+        }
+        if (name === 'π' || name === 'pi') return Math.PI;
+        if (name === 'e') return Math.E;
+        if (name === 'Ans') return ansNum;
+        throw new Error('unknown');
+      }
+      if (t.type === 'op' && t.value === '(') {
+        const v = parseExpr();
+        const close = next();
+        if (!close || close.value !== ')') throw new Error('expected )');
+        return v;
+      }
+      throw new Error('unexpected token');
+    }
+    const result = parseExpr();
+    if (pos < tokens.length) throw new Error('trailing');
+    return result;
+  }
+
+  function evaluateBig(src, opts) {
+    opts = opts || {};
+    const angleMode = opts.angleMode || 'DEG';
+    const ansBig = opts.ansBig || new BigFloatClass(0n, 0);
+    const toRad = x => angleMode === 'DEG' ? x * Math.PI / 180 : x;
+    const fromRad = x => angleMode === 'DEG' ? x * 180 / Math.PI : x;
+    const FUNCS_BF = {
+      sin: x => BigFloatClass.fromNumber(Math.sin(toRad(x.toNumber()))),
+      cos: x => BigFloatClass.fromNumber(Math.cos(toRad(x.toNumber()))),
+      tan: x => BigFloatClass.fromNumber(Math.tan(toRad(x.toNumber()))),
+      asin: x => BigFloatClass.fromNumber(fromRad(Math.asin(x.toNumber()))),
+      acos: x => BigFloatClass.fromNumber(fromRad(Math.acos(x.toNumber()))),
+      atan: x => BigFloatClass.fromNumber(fromRad(Math.atan(x.toNumber()))),
+      sinh: x => BigFloatClass.fromNumber(Math.sinh(x.toNumber())),
+      cosh: x => BigFloatClass.fromNumber(Math.cosh(x.toNumber())),
+      tanh: x => BigFloatClass.fromNumber(Math.tanh(x.toNumber())),
+      ln: x => BigFloatClass.fromNumber(Math.log(x.toNumber())),
+      log: x => BigFloatClass.fromNumber(Math.log10(x.toNumber())),
+      sqrt: x => bfSqrt(x),
+      cbrt: x => BigFloatClass.fromNumber(Math.cbrt(x.toNumber())),
+      abs: x => new BigFloatClass(x.m < 0n ? -x.m : x.m, x.e),
+      exp: x => BigFloatClass.fromNumber(Math.exp(x.toNumber())),
+    };
+    const tokens = tokenize(src);
+    let pos = 0;
+    const peek = () => tokens[pos];
+    const next = () => tokens[pos++];
+    function parseExpr() {
+      let v = parseTerm();
+      while (true) {
+        const t = peek();
+        if (!t || t.type !== 'op' || (t.value !== '+' && t.value !== '-')) break;
+        next(); const r = parseTerm();
+        v = t.value === '+' ? v.add(r) : v.sub(r);
+      }
+      return v;
+    }
+    function parseTerm() {
+      let v = parseUnary();
+      while (true) {
+        const t = peek();
+        if (!t) break;
+        if (t.type === 'op' && (t.value === '*' || t.value === '/')) {
+          next(); const r = parseUnary();
+          v = t.value === '*' ? v.mul(r) : v.div(r);
+        } else if (t.type === 'num' || t.type === 'name' || (t.type === 'op' && t.value === '(')) {
+          v = v.mul(parseUnary());
+        } else break;
+      }
+      return v;
+    }
+    function parseUnary() {
+      const t = peek();
+      if (t && t.type === 'op' && t.value === '-') { next(); return parseUnary().mul(BigFloatClass.fromNumber(-1)); }
+      if (t && t.type === 'op' && t.value === '+') { next(); return parseUnary(); }
+      return parsePower();
+    }
+    function parsePower() {
+      const base = parsePostfix();
+      const t = peek();
+      if (t && t.type === 'op' && t.value === '^') {
+        next(); const exp = parseUnary();
+        return bfPow(base, exp);
+      }
+      return base;
+    }
+    function parsePostfix() {
+      let v = parsePrimary();
+      while (peek() && peek().type === 'op' && peek().value === '!') {
+        next(); v = bfFactorial(v);
+      }
+      return v;
+    }
+    function parsePrimary() {
+      const t = next();
+      if (!t) throw new Error('unexpected end');
+      if (t.type === 'num') {
+        if (t.raw) {
+          const bf = BigFloatClass.fromString(t.raw);
+          if (bf) return bf;
+        }
+        return BigFloatClass.fromNumber(t.value);
+      }
+      if (t.type === 'name') {
+        const name = t.value;
+        if (FUNCS_BF[name]) {
+          const p = next();
+          if (!p || p.value !== '(') throw new Error('expected (');
+          const arg = parseExpr();
+          const close = next();
+          if (!close || close.value !== ')') throw new Error('expected )');
+          return FUNCS_BF[name](arg);
+        }
+        if (name === 'π' || name === 'pi') return _PI_BF;
+        if (name === 'e') return _E_BF;
+        if (name === 'Ans') return ansBig;
+        throw new Error('unknown');
+      }
+      if (t.type === 'op' && t.value === '(') {
+        const v = parseExpr();
+        const close = next();
+        if (!close || close.value !== ')') throw new Error('expected )');
+        return v;
+      }
+      throw new Error('unexpected token');
+    }
+    const result = parseExpr();
+    if (pos < tokens.length) throw new Error('trailing');
+    return result;
+  }
+
+  function tempToCBig(name, v) {
+    if (name === '摄氏度 °C') return v;
+    if (name === '华氏度 °F') return v.sub(BF32).mul(BF5).div(BF9);
+    if (name === '开尔文 K')  return v.sub(BF27315);
+    if (name === '兰氏度 °R') return v.sub(BF49167).mul(BF5).div(BF9);
+    return v;
+  }
+  function tempFromCBig(name, v) {
+    if (name === '摄氏度 °C') return v;
+    if (name === '华氏度 °F') return v.mul(BF9).div(BF5).add(BF32);
+    if (name === '开尔文 K')  return v.add(BF27315);
+    if (name === '兰氏度 °R') return v.add(BF27315).mul(BF9).div(BF5);
+    return v;
+  }
+  function tempToCNum(name, v) {
+    if (name === '摄氏度 °C') return v;
+    if (name === '华氏度 °F') return (v - 32) * 5 / 9;
+    if (name === '开尔文 K')  return v - 273.15;
+    if (name === '兰氏度 °R') return (v - 491.67) * 5 / 9;
+    return v;
+  }
+  function tempFromCNum(name, v) {
+    if (name === '摄氏度 °C') return v;
+    if (name === '华氏度 °F') return v * 9 / 5 + 32;
+    if (name === '开尔文 K')  return v + 273.15;
+    if (name === '兰氏度 °R') return (v + 273.15) * 9 / 5;
+    return v;
+  }
+
+  return {
+    BigFloat: BigFloatClass, PI_BF: _PI_BF, E_BF: _E_BF,
+    bfPow, bfSqrt, bfFactorial, tokenize,
+    evaluateNum, evaluateBig,
+    tempToCBig, tempFromCBig, tempToCNum, tempFromCNum,
+    bigIntToString,
+  };
+}
+
+let engine = createEngine(runtimeConfig);
+let BigFloat = engine.BigFloat;
+
+/* =========================================================================
+   错误分类 —— 物理极限检查扩宽，抓所有 BigInt 尺寸/内存相关的异常
+   ========================================================================= */
+const MATH_ERRORS = new Set([
+  'division by zero','sqrt negative','factorial','bad char','bad number',
+  'unexpected end','expected (','expected )','unknown','unexpected token',
+  'trailing','result not representable','bad input',
+]);
+function isMathError(msg) {
+  if (!msg) return false;
+  return MATH_ERRORS.has(msg);
+}
+
+/* 物理极限：任何 BigInt 尺寸、栈、内存、RangeError 相关都算 */
+function isPhysicalLimit(msg) {
+  if (!msg) return false;
+  const s = String(msg);
+  return /Maximum BigInt size exceeded/i.test(s) ||
+         /BigInt.*(too large|size|exceeded)/i.test(s) ||
+         /call stack size exceeded/i.test(s) ||
+         /out of memory/i.test(s) ||
+         /Allocation failed/i.test(s) ||
+         /RangeError/i.test(s);
+}
+
+function isConfigError(msg) {
+  if (!msg) return false;
+  return /Cannot read propert/i.test(msg) ||
+         /Cannot mix BigInt/i.test(msg) ||
+         /Cannot convert/i.test(msg) ||
+         /is not a function/i.test(msg) ||
+         /Invalid.*argument/i.test(msg) ||
+         /Cannot use 'in'/i.test(msg) ||
+         /not iterable/i.test(msg) ||
+         /Cannot read properties of null/i.test(msg);
+}
+
+/* =========================================================================
+   自定义下拉
+   ========================================================================= */
+class CustomSelect {
+  constructor(rootEl) {
+    this.root = rootEl;
+    this.button = rootEl.querySelector('.cs-button');
+    this.label = rootEl.querySelector('.cs-label');
+    this.panel = rootEl.querySelector('.cs-panel');
+    this.options = []; this.value = null; this.changeHandler = null;
+    this.button.addEventListener('click', (e) => { e.stopPropagation(); this.toggle(); });
+    if (!CustomSelect._docListenerBound) {
+      document.addEventListener('click', () => {
+        document.querySelectorAll('.custom-select.open').forEach(el => el.classList.remove('open'));
+      });
+      CustomSelect._docListenerBound = true;
+    }
+  }
+  setOptions(options) {
+    this.options = options; this.panel.innerHTML = '';
+    options.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'cs-option';
+      btn.textContent = opt.label;
+      btn.dataset.value = String(opt.value);
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.setValue(opt.value); this.close();
+        if (this.changeHandler) this.changeHandler(this.value);
+      });
+      this.panel.appendChild(btn);
+    });
+    if (options.length > 0) this.setValue(options[0].value, false);
+  }
+  setValue(v, fireChange = false) {
+    const found = this.options.find(o => String(o.value) === String(v));
+    if (!found) return;
+    this.value = found.value;
+    this.label.textContent = found.label;
+    this.panel.querySelectorAll('.cs-option').forEach(el => {
+      el.classList.toggle('active', String(el.dataset.value) === String(this.value));
+    });
+    if (fireChange && this.changeHandler) this.changeHandler(this.value);
+  }
+  getValue() { return this.value; }
+  onChange(cb) { this.changeHandler = cb; }
+  toggle() { if (this.root.classList.contains('open')) this.close(); else this.open(); }
+  open() {
+    document.querySelectorAll('.custom-select.open').forEach(el => {
+      if (el !== this.root) el.classList.remove('open');
+    });
+    this.root.classList.add('open');
+  }
+  close() { this.root.classList.remove('open'); }
+}
+CustomSelect._docListenerBound = false;
+
+/* =========================================================================
+   Web Worker 检测
+   ========================================================================= */
+function detectWorkerSupport() {
+  return new Promise((resolve) => {
+    if (typeof Worker === 'undefined') return resolve(false);
+    let blobUrl = null, w = null;
+    const cleanup = () => {
+      try { if (w) w.terminate(); } catch (e) {}
+      try { if (blobUrl) URL.revokeObjectURL(blobUrl); } catch (e) {}
+    };
+    try {
+      const src = 'self.onmessage = function(e){ self.postMessage(e.data + 1); };';
+      const blob = new Blob([src], { type: 'application/javascript' });
+      blobUrl = URL.createObjectURL(blob);
+      w = new Worker(blobUrl);
+    } catch (e) { cleanup(); return resolve(false); }
+    let settled = false;
+    const finish = (ok) => {
+      if (settled) return; settled = true;
+      cleanup(); resolve(ok);
+    };
+    const timeout = Number(runtimeConfig.workerProbeTimeout);
+    const timer = setTimeout(() => finish(false), timeout);
+    w.onmessage = (e) => { clearTimeout(timer); finish(e.data === 2); };
+    w.onerror = () => { clearTimeout(timer); finish(false); };
+    w.postMessage(1);
+  });
+}
+
+/* =========================================================================
+   Worker 管理
+   ========================================================================= */
+let worker = null;
+let workerRequestId = 0;
+const pendingWorkerRequests = new Map();
+
+function buildWorkerSource() {
+  return `
+    const bigIntToString = ${bigIntToString.toString()};
+    const createEngine = ${createEngine.toString()};
+    const engineConfig = ${JSON.stringify({
+      divPrecision: runtimeConfig.divPrecision,
+      piString: runtimeConfig.piString,
+      eString: runtimeConfig.eString,
+    })};
+    const engine = createEngine(engineConfig);
+
+    self.onmessage = function(e) {
+      const data = e.data;
+      const id = data.id;
+      try {
+        let result;
+        if (data.kind === 'eval') {
+          const p = data.payload;
+          if (p.dataMode === 'big') {
+            const ansBig = engine.BigFloat.fromCompact(p.ansBig) || new engine.BigFloat(0n, 0);
+            const bf = engine.evaluateBig(p.expr, { angleMode: p.angleMode, ansBig: ansBig });
+            result = { value: bf.toString(p.precision, p.noExponential), exact: bf.toCompact() };
+          } else {
+            const n = engine.evaluateNum(p.expr, { angleMode: p.angleMode, ansNum: p.ansNum });
+            if (typeof n !== 'number' || !isFinite(n)) throw new Error('result not representable');
+            result = { value: formatNumber(n, p.precision, p.noExponential), exact: n };
+          }
+        } else if (data.kind === 'convert') {
+          const p = data.payload;
+          const input = engine.BigFloat.fromString(p.input);
+          if (!input) throw new Error('bad input');
+          let out;
+          if (p.category === 'temperature') {
+            const c = engine.tempToCBig(p.fromName, input);
+            out = engine.tempFromCBig(p.toName, c);
+          } else {
+            const f1 = engine.BigFloat.fromNumber(p.fromFactor);
+            const f2 = engine.BigFloat.fromNumber(p.toFactor);
+            out = input.mul(f1).div(f2);
+          }
+          result = { value: out.toString(p.precision, p.noExponential) };
+        }
+        self.postMessage({ id: id, result: result });
+      } catch (err) {
+        const msg = (err && err.message) ? String(err.message) : String(err);
+        const name = (err && err.name) ? String(err.name) : '';
+        // 只发短消息，避免 stack 过大
+        self.postMessage({ id: id, error: msg, errorName: name });
+      }
+    };
+
+    function formatNumber(n, precision, noExp) {
+      if (!isFinite(n)) throw new Error('result not representable');
+      if (n === 0) return '0';
+      const forceExpand = !!noExp;
+      if (!forceExpand && (precision === 'auto' || precision == null)) {
+        if (Number.isInteger(n) && Math.abs(n) < 1e15) return String(n);
+        const abs = Math.abs(n);
+        if (abs >= 1e15 || abs < 1e-9) {
+          return n.toExponential(9).replace(/\\.?0+e/, 'e').replace('e+', 'e');
+        }
+        let s = n.toPrecision(12);
+        if (s.includes('e')) {
+          const parts = s.split('e');
+          const mm = parts[0].replace(/0+$/, '').replace(/\\.$/, '');
+          return mm + 'e' + parts[1].replace('+', '');
+        }
+        if (s.includes('.')) s = s.replace(/0+$/, '').replace(/\\.$/, '');
+        return s;
+      }
+      if (forceExpand) {
+        if (Number.isInteger(n)) { try { return BigInt(n).toString(); } catch {} }
+        let s = n.toFixed(20);
+        if (s.includes('.')) s = s.replace(/0+$/, '').replace(/\\.$/, '');
+        return s || '0';
+      }
+      const p = Math.max(0, Math.min(1000, Math.floor(precision)));
+      const absN = Math.abs(n);
+      if (absN >= 1e21 || (absN > 0 && absN < 1e-6)) {
+        const s = n.toExponential(Math.min(p, 50));
+        const parts = s.split('e');
+        const mm = parts[0].replace(/0+$/, '').replace(/\\.$/, '') || '0';
+        return mm + 'e' + parts[1].replace('+', '');
+      }
+      let s = n.toFixed(Math.min(p, 100));
+      if (s.includes('.')) s = s.replace(/0+$/, '').replace(/\\.$/, '');
+      return s || '0';
+    }
+  `;
+}
+
+function ensureWorker() {
+  if (worker) return worker;
+  const workerSource = buildWorkerSource();
+  const blob = new Blob([workerSource], { type: 'application/javascript' });
+  worker = new Worker(URL.createObjectURL(blob));
+  worker.onmessage = (e) => {
+    const { id, result, error, errorName } = e.data;
+    const pending = pendingWorkerRequests.get(id);
+    if (!pending) return;
+    pendingWorkerRequests.delete(id);
+    if (error) {
+      const err = new Error(error);
+      err.name = errorName || 'Error';
+      err.workerError = true;
+      pending.reject(err);
+    } else pending.resolve(result);
+  };
+  worker.onerror = (e) => {
+    const msg = (e && e.message) ? String(e.message) : 'worker crashed';
+    pendingWorkerRequests.forEach(p => {
+      const err = new Error(msg);
+      err.workerCrash = true;
+      p.reject(err);
+    });
+    pendingWorkerRequests.clear();
+    worker = null;
+  };
+  return worker;
+}
+
+function rebuildWorker() {
+  if (worker) { try { worker.terminate(); } catch {} worker = null; }
+  pendingWorkerRequests.forEach(p => {
+    const err = new Error('rebuilding');
+    err.workerCrash = false;
+    p.reject(err);
+  });
+  pendingWorkerRequests.clear();
+  if (threadMode === 'worker' && workerAvailable) ensureWorker();
+}
+
+function workerCall(kind, payload) {
+  return new Promise((resolve, reject) => {
+    const w = ensureWorker();
+    const id = ++workerRequestId;
+    if (!configLocks.workerRequestId) {
+      runtimeConfig.workerRequestId = String(workerRequestId);
+    }
+    pendingWorkerRequests.set(id, { resolve, reject });
+    w.postMessage({ id, kind, payload });
+  });
+}
+
+function cancelWorker() {
+  if (worker) { worker.terminate(); worker = null; }
+  pendingWorkerRequests.forEach(p => p.reject(new Error('cancelled')));
+  pendingWorkerRequests.clear();
+}
+
+/* =========================================================================
+   全局状态
+   ========================================================================= */
+let expr = '';
+let lastWasEval = false;
+let calcMode = 'basic';
+let precision = 'auto';
+let dataMode = 'big';
+let threadMode = 'worker';
+let angleMode = 'DEG';
+let noExponential = false;
+let ansNumber = 0;
+let ansBig = new BigFloat(0n, 0);
+let workerAvailable = false;
+let devMode = false;
+let advDevMode = true;
+let invActive = false;
+
+const CIALLO = 'Ciallo~(∠・ω< )⌒☆';
+
+function guardSet(key, value) {
+  if (configLocks[key]) return false;
+  switch (key) {
+    case 'calcMode': calcMode = String(value); runtimeConfig.calcMode = calcMode; applyCalcMode(); break;
+    case 'expr': expr = String(value); runtimeConfig.expr = expr; break;
+    case 'lastWasEval': lastWasEval = !!value; runtimeConfig.lastWasEval = String(lastWasEval); break;
+    case 'precision': precision = (value === 'auto') ? 'auto' : value; runtimeConfig.precision = String(precision); break;
+    case 'dataMode': dataMode = String(value); runtimeConfig.dataMode = dataMode; break;
+    case 'threadMode': threadMode = String(value); runtimeConfig.threadMode = threadMode; if (threadMode === 'worker' && workerAvailable) ensureWorker(); break;
+    case 'angleMode': angleMode = String(value); runtimeConfig.angleMode = angleMode; degKey.textContent = angleMode; break;
+    case 'noExponential': noExponential = (value === 'true' || value === '1' || value === true); runtimeConfig.noExponential = String(noExponential); break;
+    case 'ansNumber': ansNumber = Number(value); runtimeConfig.ansNumber = String(ansNumber); break;
+    case 'ansBig': {
+      const bf = (typeof value === 'string') ? BigFloat.fromCompact(value) : value;
+      if (bf && bf.toCompact) { ansBig = bf; runtimeConfig.ansBig = ansBig.toCompact(); }
+      break;
+    }
+    case 'workerAvailable': workerAvailable = (value === 'true' || value === '1' || value === true); runtimeConfig.workerAvailable = String(workerAvailable); syncWorkerChipState(); break;
+    case 'devMode': devMode = (value === 'true' || value === '1' || value === true); runtimeConfig.devMode = String(devMode); syncDevPanelState(); break;
+    case 'workerRequestId': workerRequestId = Number(value) || 0; runtimeConfig.workerRequestId = String(workerRequestId); break;
+    default: return false;
+  }
+  return true;
+}
+
+function getRuntimeVar(key) {
+  switch (key) {
+    case 'calcMode': return calcMode;
+    case 'expr': return expr;
+    case 'lastWasEval': return String(lastWasEval);
+    case 'precision': return String(precision);
+    case 'dataMode': return dataMode;
+    case 'threadMode': return threadMode;
+    case 'angleMode': return angleMode;
+    case 'noExponential': return String(noExponential);
+    case 'ansNumber': return String(ansNumber);
+    case 'ansBig': return ansBig ? ansBig.toCompact() : 'BF:0:0';
+    case 'workerAvailable': return String(workerAvailable);
+    case 'devMode': return String(devMode);
+    case 'workerRequestId': return String(workerRequestId);
+  }
+  return '';
+}
+
+/* =========================================================================
+   Number 格式化
+   ========================================================================= */
+function fmtNum(n, noExp) {
+  if (typeof n !== 'number' || !isFinite(n)) return '';
+  if (n === 0) return '0';
+  const forceExpand = !!noExp;
+  if (forceExpand) {
+    if (Number.isInteger(n)) { try { return BigInt(n).toString(); } catch {} }
+    let s = n.toFixed(20);
+    if (s.includes('.')) s = s.replace(/0+$/, '').replace(/\.$/, '');
+    return s || '0';
+  }
+  if (Number.isInteger(n) && Math.abs(n) < 1e15) return String(n);
+  const abs = Math.abs(n);
+  if (abs >= 1e15 || abs < 1e-9) {
+    return n.toExponential(9).replace(/\.?0+e/, 'e').replace('e+', 'e');
+  }
+  let s = n.toPrecision(12);
+  if (s.includes('e')) {
+    const [m, e] = s.split('e');
+    const mm = m.replace(/0+$/, '').replace(/\.$/, '');
+    return mm + 'e' + e.replace('+', '');
+  }
+  if (s.includes('.')) s = s.replace(/0+$/, '').replace(/\.$/, '');
+  return s;
+}
+
+function applyPrecisionNum(n, p, noExp) {
+  if (!isFinite(n)) return '';
+  if (n === 0) return '0';
+  const forceExpand = !!noExp;
+  if (forceExpand) {
+    if (Number.isInteger(n)) { try { return BigInt(n).toString(); } catch {} }
+    let s = n.toFixed(20);
+    if (s.includes('.')) s = s.replace(/0+$/, '').replace(/\.$/, '');
+    return s || '0';
+  }
+  const P = Math.max(0, Math.min(1000, Math.floor(p)));
+  const absN = Math.abs(n);
+  if (absN >= 1e21 || (absN > 0 && absN < 1e-6)) {
+    const s = n.toExponential(Math.min(P, 50));
+    const [m, e] = s.split('e');
+    const mm = m.replace(/0+$/, '').replace(/\.$/, '') || '0';
+    return mm + 'e' + e.replace('+', '');
+  }
+  let s = n.toFixed(Math.min(P, 100));
+  if (s.includes('.')) s = s.replace(/0+$/, '').replace(/\.$/, '');
+  if (s === '' || s === '-') s = '0';
+  return s;
+}
+
+/* =========================================================================
+   计算器 UI
+   ========================================================================= */
+const exprEl   = document.getElementById('expr');
+const resultEl = document.getElementById('result');
+const displayEl= document.querySelector('.display');
+const degKey   = document.getElementById('degKey');
+const invKey   = document.getElementById('invKey');
+const calcExpandBar = document.getElementById('calcExpandBar');
+const calcExpandBtn = document.getElementById('calcExpandBtn');
+const calcDownloadBtn = document.getElementById('calcDownloadBtn');
+const calcProgress = document.getElementById('calcProgress');
+const calcCancel = document.getElementById('calcCancel');
+const calcProgressLabel = document.getElementById('calcProgressLabel');
+const calcWarning = document.getElementById('calcWarning');
+const calcWarningText = document.getElementById('calcWarningText');
+const calcWarningClose = document.getElementById('calcWarningClose');
+const keysBasic = document.getElementById('keysBasic');
+const keysSci = document.getElementById('keysSci');
+
+let calcFullText = '';
+let calcExtraClass = '';
+let calcExpanded = false;
+let calcIsHtml = false;
+
+const FN_PREFIX = ['asin(', 'acos(', 'atan(', 'sinh(', 'cosh(', 'tanh(',
+                   'sqrt(', 'sin(', 'cos(', 'tan(', 'log(', 'ln(', 'abs(', 'exp(', 'Ans', '^2', '^3'];
+
+function pretty(s) {
+  return s.replace(/sqrt\(/g, '√(').replace(/\*/g, '×').replace(/\//g, '÷')
+          .replace(/\^(-1)/g, '⁻¹').replace(/\^\(-1\)/g, '⁻¹');
+}
+function smartBack(s) {
+  for (const p of FN_PREFIX) {
+    if (s.endsWith(p)) return s.slice(0, -p.length);
+  }
+  return s.slice(0, -1);
+}
+
+function findLastOperandStart(s) {
+  if (!s) return -1;
+  let i = s.length - 1;
+  if (s[i] === ')') {
+    let depth = 0;
+    while (i >= 0) {
+      if (s[i] === ')') depth++;
+      else if (s[i] === '(') { depth--; if (depth === 0) return i; }
+      i--;
+    }
+    return -1;
+  }
+  while (i >= 0 && /[0-9.a-zA-Zπ]/.test(s[i])) i--;
+  return i + 1;
+}
+
+function paintCalcResult() {
+  resultEl.className = 'result' + (calcExtraClass ? ' ' + calcExtraClass : '');
+  const text = calcFullText;
+  const maxPreview = Number(runtimeConfig.maxPreview);
+  const bigThreshold = Number(runtimeConfig.bigDisplayThreshold);
+
+  if (!text) {
+    resultEl.textContent = '';
+    calcExpandBar.style.display = 'none';
+    calcDownloadBtn.style.display = 'none';
+    return;
+  }
+  if (calcIsHtml) {
+    resultEl.innerHTML = text;
+    calcExpandBar.style.display = 'none';
+    calcDownloadBtn.style.display = 'none';
+    return;
+  }
+  if (!calcExpanded && text.length > maxPreview) {
+    if (text.length > bigThreshold) {
+      const head = text.slice(0, 30);
+      const tail = text.slice(-30);
+      resultEl.textContent = head + ' …… ' + tail + '  (共 ' + text.length + ' 位)';
+    } else {
+      resultEl.textContent = text.slice(0, maxPreview) + '…';
+    }
+    calcExpandBar.style.display = '';
+    calcDownloadBtn.style.display = '';
+  } else if (calcExpanded && text.length > bigThreshold) {
+    const head = text.slice(0, 5000);
+    const tail = text.slice(-5000);
+    resultEl.textContent = head + '\n……（中间省略 ' + (text.length - 10000) + ' 位）……\n' + tail;
+    calcExpandBar.style.display = 'none';
+    calcDownloadBtn.style.display = '';
+  } else {
+    resultEl.textContent = text;
+    calcExpandBar.style.display = 'none';
+    calcDownloadBtn.style.display = '';
+  }
+}
+
+function renderResult(text, extraClass) {
+  calcFullText = text || '';
+  calcExtraClass = extraClass || '';
+  calcExpanded = false;
+  calcIsHtml = false;
+  paintCalcResult();
+}
+
+function renderHtmlResult(html, extraClass) {
+  calcFullText = html;
+  calcExtraClass = extraClass || '';
+  calcExpanded = true;
+  calcIsHtml = true;
+  paintCalcResult();
+}
+
+calcExpandBtn.addEventListener('click', () => { calcExpanded = true; paintCalcResult(); });
+calcDownloadBtn.addEventListener('click', () => {
+  if (!calcFullText || calcIsHtml) return;
+  try {
+    const blob = new Blob([calcFullText], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'calc_result_' + Date.now() + '.txt';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  } catch (e) { alert('下载失败：' + e.message); }
+});
+
+function showCalcProgress(label) {
+  calcProgress.style.display = '';
+  calcProgressLabel.textContent = label || '正在计算…';
+  calcCancel.style.display = (threadMode === 'worker' && workerAvailable) ? '' : 'none';
+}
+function hideCalcProgress() {
+  calcProgress.style.display = 'none';
+  calcCancel.style.display = 'none';
+}
+calcCancel.addEventListener('click', () => {
+  cancelWorker(); hideCalcProgress();
+  renderResult('已取消', 'cancelled');
+});
+
+function showCalcWarning(text) { calcWarning.style.display = ''; calcWarningText.textContent = text; }
+function hideCalcWarning() { calcWarning.style.display = 'none'; }
+calcWarningClose.addEventListener('click', hideCalcWarning);
+
+function computeMain(src) {
+  if (dataMode === 'big') {
+    const bf = engine.evaluateBig(src, { angleMode, ansBig });
+    const value = bf.toString(precision === 'auto' ? null : precision, noExponential);
+    return { value, big: bf, exact: bf.toCompact() };
+  } else {
+    const n = engine.evaluateNum(src, { angleMode, ansNum: ansNumber });
+    if (typeof n !== 'number' || !isFinite(n)) throw new Error('result not representable');
+    const value = precision === 'auto'
+      ? fmtNum(n, noExponential)
+      : applyPrecisionNum(n, precision, noExponential);
+    return { value, num: n, exact: n };
+  }
+}
+
+let previewToken = 0;
+async function updateDisplay() {
+  exprEl.textContent = pretty(expr) || '0';
+  if (!expr.trim()) { renderResult('', ''); return; }
+  const token = ++previewToken;
+  if (threadMode === 'worker' && workerAvailable) {
+    try {
+      const result = await workerCall('eval', {
+        expr, angleMode, dataMode,
+        ansBig: ansBig.toCompact(), ansNum: ansNumber,
+        precision: precision === 'auto' ? null : precision,
+        noExponential,
+      });
+      if (token !== previewToken) return;
+      renderResult(result.value, 'preview');
+    } catch (e) {
+      if (token !== previewToken) return;
+      renderResult('', '');
+    }
+  } else {
+    try {
+      const r = computeMain(expr);
+      renderResult(r.value, 'preview');
+    } catch (e) { renderResult('', ''); }
+  }
+}
+
+function ciallo() {
+  guardSet('expr', '');
+  guardSet('lastWasEval', false);
+  exprEl.textContent = '';
+  renderResult(CIALLO, 'ciallo');
+  hideCalcWarning();
+  displayEl.classList.remove('shake');
+  void displayEl.offsetWidth;
+  displayEl.classList.add('shake');
+}
+
+function buildApologyMessage(src) {
+  return (
+    '<span class="ap-title">抱歉，我们真的算不出来。</span>' +
+    '表达式 <code>' + escapeHtml(src) + '</code> 的结果超出了 JavaScript 引擎的 BigInt 容量。' +
+    'BigInt 最大约 3.22 亿位十进制数字，大约需要 400MB 内存。<br>' +
+    '作为对比，可观测宇宙的原子总数约 10<sup>80</sup> 个。<br>' +
+    '数学上这个结果是存在的，但物理世界的计算机装不下它。' +
+    '我们承诺不做任何人为限制，这是物理极限，不是你的错。<br>' +
+    '<span class="ap-hl">抱歉。</span>'
+  );
+}
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function showApology(src) {
+  guardSet('lastWasEval', false);
+  exprEl.textContent = pretty(src) + ' =';
+  renderHtmlResult(buildApologyMessage(src), 'apology');
+  hideCalcWarning();
+  displayEl.classList.remove('shake');
+  void displayEl.offsetWidth;
+  displayEl.classList.add('shake');
+}
+
+function handleEvalSuccess(src, result) {
+  if (dataMode === 'big') {
+    const bf = BigFloat.fromCompact(result.exact) || BigFloat.fromString(result.value);
+    if (bf) guardSet('ansBig', bf);
+    guardSet('expr', result.exact);
+  } else {
+    guardSet('ansNumber', result.exact);
+    guardSet('expr', fmtNum(result.exact, noExponential));
+  }
+  exprEl.textContent = pretty(src) + ' =';
+  renderResult(result.value, '');
+  guardSet('lastWasEval', true);
+  hideCalcWarning();
+  syncRuntimeVarsUI();
+}
+
+/* ★★★ 关键修复：错误分流顺序调整，物理极限必须优先于 rawError ★★★ */
+function handleEvalError(e, src) {
+  const rawMsg = e && e.message ? String(e.message) : '';
+  const rawName = e && e.name ? String(e.name) : '';
+  const combined = rawName + ' ' + rawMsg;
+
+  if (rawMsg === 'cancelled' || rawMsg === 'rebuilding') {
+    if (rawMsg === 'cancelled') renderResult('已取消', 'cancelled');
+    return;
+  }
+
+  // 开发者模式：原样显示
+  if (devMode) {
+    exprEl.textContent = pretty(src) + ' =';
+    renderResult(rawMsg || 'undefined', 'rawError');
+    return;
+  }
+
+  // 物理极限：必须最优先判断（用 combined 字符串，同时匹配 name 和 message）
+  if (isPhysicalLimit(combined) || e.workerCrash) {
+    showApology(src);
+    return;
+  }
+
+  // 数学无意义
+  if (isMathError(rawMsg)) { ciallo(); return; }
+
+  // 其他错误 → 原始错误 + 警告
+  exprEl.textContent = pretty(src) + ' =';
+  renderResult(rawMsg || '未知错误', 'rawError');
+  if (isConfigError(rawMsg)) showCalcWarning('开发者模式中的参数导致了类型错误。');
+  else showCalcWarning('计算过程中出现未分类错误。');
+  displayEl.classList.remove('shake');
+  void displayEl.offsetWidth;
+  displayEl.classList.add('shake');
+}
+
+async function doEval() {
+  if (!expr.trim()) return;
+  const src = expr;
+  await new Promise(r => requestAnimationFrame(r));
+
+  if (threadMode === 'main' || !workerAvailable) {
+    showCalcProgress('正在计算…（主线程，界面暂时冻结）');
+    await new Promise(r => requestAnimationFrame(r));
+    await new Promise(r => requestAnimationFrame(r));
+    try {
+      const result = computeMain(src);
+      hideCalcProgress();
+      handleEvalSuccess(src, result);
+    } catch (e) {
+      hideCalcProgress();
+      handleEvalError(e, src);
+    }
+  } else {
+    let progressShown = false;
+    const delay = Number(runtimeConfig.progressDelay);
+    const timer = setTimeout(() => {
+      progressShown = true;
+      showCalcProgress('正在计算…（后台线程，可取消）');
+    }, delay);
+    try {
+      const result = await workerCall('eval', {
+        expr: src, angleMode, dataMode,
+        ansBig: ansBig.toCompact(), ansNum: ansNumber,
+        precision: precision === 'auto' ? null : precision,
+        noExponential,
+      });
+      clearTimeout(timer);
+      if (progressShown) hideCalcProgress();
+      handleEvalSuccess(src, result);
+    } catch (e) {
+      clearTimeout(timer);
+      if (progressShown) hideCalcProgress();
+      handleEvalError(e, src);
+    }
+  }
+}
+
+function applyCalcMode() {
+  const isBasic = calcMode === 'basic';
+  keysBasic.style.display = isBasic ? '' : 'none';
+  keysSci.style.display = isBasic ? 'none' : '';
+  document.querySelectorAll('.calc-mode-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.calcmode === calcMode);
+  });
+}
+
+function updateInvUI() {
+  const trigButtons = document.querySelectorAll('[data-t="trig"]');
+  trigButtons.forEach(btn => {
+    const fn = btn.dataset.fn;
+    if (invActive) { btn.textContent = fn + '⁻¹'; btn.classList.add('inv-active'); }
+    else { btn.textContent = fn; btn.classList.remove('inv-active'); }
+  });
+  if (invKey) invKey.classList.toggle('active', invActive);
+}
+
+function insertReciprocal() {
+  const s = expr;
+  if (!s) { guardSet('expr', '1/'); return; }
+  const start = findLastOperandStart(s);
+  if (start < 0 || start >= s.length) { guardSet('expr', s + '1/'); return; }
+  const head = s.slice(0, start);
+  const tail = s.slice(start);
+  guardSet('expr', head + '(' + tail + ')^(-1)');
+}
+
+function handleKey(btn) {
+  const t = btn.dataset.t;
+
+  if (t === 'clear') {
+    guardSet('expr', ''); guardSet('lastWasEval', false);
+    hideCalcWarning(); updateDisplay(); return;
+  }
+  if (t === 'back') {
+    guardSet('expr', smartBack(expr)); guardSet('lastWasEval', false);
+    updateDisplay(); return;
+  }
+  if (t === 'deg') {
+    guardSet('angleMode', angleMode === 'DEG' ? 'RAD' : 'DEG');
+    syncRuntimeVarsUI(); updateDisplay(); return;
+  }
+  if (t === 'eq') { doEval(); return; }
+  if (t === 'neg') {
+    if (lastWasEval) {
+      guardSet('expr', '(-' + expr + ')'); guardSet('lastWasEval', false);
+      updateDisplay(); return;
+    }
+    const m = expr.match(/(-?\d*\.?\d+)$/);
+    if (m) {
+      const num = m[0];
+      guardSet('expr', expr.slice(0, m.index) + (num.startsWith('-') ? num.slice(1) : '-' + num));
+    } else guardSet('expr', expr + '-');
+    updateDisplay(); return;
+  }
+
+  if (t === 'inv') { invActive = !invActive; updateInvUI(); return; }
+  if (t === 'trig') {
+    const fn = btn.dataset.fn;
+    const target = invActive ? ('a' + fn + '(') : (fn + '(');
+    if (lastWasEval) { guardSet('expr', target); guardSet('lastWasEval', false); }
+    else guardSet('expr', expr + target);
+    updateDisplay(); return;
+  }
+  if (t === 'ytroot') {
+    if (lastWasEval) { guardSet('expr', '^(1/'); guardSet('lastWasEval', false); }
+    else guardSet('expr', expr + '^(1/');
+    updateDisplay(); return;
+  }
+  if (t === 'percent') {
+    if (lastWasEval) { guardSet('expr', '/100'); guardSet('lastWasEval', false); }
+    else guardSet('expr', expr + '/100');
+    updateDisplay(); return;
+  }
+  if (t === 'reciprocal') { insertReciprocal(); updateDisplay(); return; }
+
+  if (t === 'ins') {
+    const v = btn.dataset.v;
+    if (lastWasEval) {
+      const newExpr = (/^[0-9.]/.test(v) || /^[a-zA-Z(π]/.test(v)) ? v : expr + v;
+      guardSet('expr', newExpr); guardSet('lastWasEval', false);
+    } else guardSet('expr', expr + v);
+    updateDisplay();
+  }
+}
+
+function bindKeys(el) {
+  if (!el) return;
+  el.addEventListener('click', e => {
+    const btn = e.target.closest('.key');
+    if (btn) handleKey(btn);
+  });
+}
+bindKeys(keysBasic);
+bindKeys(keysSci);
+
+document.querySelectorAll('.calc-mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (guardSet('calcMode', btn.dataset.calcmode)) syncRuntimeVarsUI();
+  });
+});
+
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('panel-calc').classList.contains('active')) return;
+  const k = e.key;
+  if (/^[0-9]$/.test(k) || '+-*/^().!'.includes(k)) {
+    guardSet('expr', expr + k); guardSet('lastWasEval', false);
+    updateDisplay(); e.preventDefault();
+  } else if (k === 'Enter' || k === '=') { doEval(); e.preventDefault(); }
+  else if (k === 'Backspace') {
+    guardSet('expr', smartBack(expr)); guardSet('lastWasEval', false);
+    updateDisplay(); e.preventDefault();
+  } else if (k === 'Escape') {
+    guardSet('expr', ''); guardSet('lastWasEval', false);
+    updateDisplay(); e.preventDefault();
+  }
+});
+
+updateInvUI();
+applyCalcMode();
+
+/* =========================================================================
+   单位数据
+   ========================================================================= */
+const UNIT_DATA = {
+  length: { label: '长度', units: [
+    {n:'米 m', f:1}, {n:'千米 km', f:1000}, {n:'分米 dm', f:0.1}, {n:'厘米 cm', f:0.01},
+    {n:'毫米 mm', f:0.001}, {n:'微米 μm', f:1e-6}, {n:'纳米 nm', f:1e-9},
+    {n:'英里 mi', f:1609.344}, {n:'码 yd', f:0.9144}, {n:'英尺 ft', f:0.3048},
+    {n:'英寸 in', f:0.0254}, {n:'海里 nmi', f:1852},
+    {n:'光年 ly', f:9.4607304725808e15}, {n:'天文单位 AU', f:1.495978707e11},
+    {n:'里', f:500}, {n:'尺', f:1/3}, {n:'寸', f:1/30},
+  ]},
+  mass: { label: '质量', units: [
+    {n:'千克 kg', f:1}, {n:'克 g', f:0.001}, {n:'毫克 mg', f:1e-6}, {n:'微克 μg', f:1e-9},
+    {n:'吨 t', f:1000}, {n:'磅 lb', f:0.45359237}, {n:'盎司 oz', f:0.028349523125},
+    {n:'斤', f:0.5}, {n:'两', f:0.05}, {n:'克拉 ct', f:0.0002}, {n:'英石 st', f:6.35029318},
+  ]},
+  temperature: { label: '温度', units: [
+    {n:'摄氏度 °C'}, {n:'华氏度 °F'}, {n:'开尔文 K'}, {n:'兰氏度 °R'},
+  ]},
+  area: { label: '面积', units: [
+    {n:'平方米 m²', f:1}, {n:'平方千米 km²', f:1e6}, {n:'公顷 ha', f:10000},
+    {n:'公亩 a', f:100}, {n:'亩', f:2000/3},
+    {n:'平方厘米 cm²', f:0.0001}, {n:'平方毫米 mm²', f:1e-6},
+    {n:'英亩 ac', f:4046.8564224}, {n:'平方英里 mi²', f:2589988.110336},
+    {n:'平方英尺 ft²', f:0.09290304}, {n:'平方英寸 in²', f:0.00064516}, {n:'平方码 yd²', f:0.83612736},
+  ]},
+  volume: { label: '体积', units: [
+    {n:'升 L', f:1}, {n:'毫升 mL', f:0.001}, {n:'立方米 m³', f:1000}, {n:'立方厘米 cm³', f:0.001},
+    {n:'立方英尺 ft³', f:28.316846592}, {n:'立方英寸 in³', f:0.016387064},
+    {n:'美制加仑 gal', f:3.785411784}, {n:'英制加仑 gal(UK)', f:4.54609},
+    {n:'美制夸脱 qt', f:0.946352946}, {n:'美制品脱 pt', f:0.473176473},
+    {n:'美制液盎司 fl oz', f:0.0295735295625}, {n:'美制杯 cup', f:0.2365882365},
+    {n:'石油桶 bbl', f:158.987294928},
+  ]},
+  speed: { label: '速度', units: [
+    {n:'米/秒 m/s', f:1}, {n:'千米/时 km/h', f:1/3.6}, {n:'英里/时 mph', f:0.44704},
+    {n:'英尺/秒 ft/s', f:0.3048}, {n:'节 kn', f:1852/3600},
+    {n:'马赫 Mach', f:340.29}, {n:'光速 c', f:299792458},
+  ]},
+  time: { label: '时间', units: [
+    {n:'秒 s', f:1}, {n:'毫秒 ms', f:0.001}, {n:'微秒 μs', f:1e-6}, {n:'纳秒 ns', f:1e-9},
+    {n:'分钟 min', f:60}, {n:'小时 h', f:3600}, {n:'天 d', f:86400}, {n:'周 wk', f:604800},
+    {n:'月（30天）', f:2592000}, {n:'年（365天）', f:31536000},
+  ]},
+  energy: { label: '能量', units: [
+    {n:'焦耳 J', f:1}, {n:'千焦 kJ', f:1000}, {n:'卡 cal', f:4.184}, {n:'千卡 kcal', f:4184},
+    {n:'瓦时 Wh', f:3600}, {n:'千瓦时 kWh', f:3600000}, {n:'电子伏 eV', f:1.602176634e-19},
+    {n:'英热单位 BTU', f:1055.05585262}, {n:'英尺磅 ft·lb', f:1.3558179483314004},
+  ]},
+  power: { label: '功率', units: [
+    {n:'瓦 W', f:1}, {n:'千瓦 kW', f:1000}, {n:'兆瓦 MW', f:1e6},
+    {n:'公制马力 PS', f:735.49875}, {n:'英制马力 hp', f:745.6998715822702},
+    {n:'英热单位/时', f:0.2930710701722222},
+  ]},
+  data: { label: '数据', units: [
+    {n:'字节 B', f:1}, {n:'比特 bit', f:0.125}, {n:'千字节 KB', f:1e3},
+    {n:'兆字节 MB', f:1e6}, {n:'吉字节 GB', f:1e9}, {n:'太字节 TB', f:1e12},
+    {n:'拍字节 PB', f:1e15}, {n:'KiB', f:1024}, {n:'MiB', f:1048576},
+    {n:'GiB', f:1073741824}, {n:'TiB', f:1099511627776},
+  ]},
+  pressure: { label: '压强', units: [
+    {n:'帕斯卡 Pa', f:1}, {n:'千帕 kPa', f:1000}, {n:'兆帕 MPa', f:1e6}, {n:'巴 bar', f:1e5},
+    {n:'标准大气压 atm', f:101325}, {n:'毫米汞柱 mmHg', f:133.322387415},
+    {n:'磅力/平方英寸 psi', f:6894.757293168},
+  ]},
+};
+
+/* =========================================================================
+   单位换算 UI
+   ========================================================================= */
+const catsEl    = document.getElementById('cats');
+const unitFromSel = new CustomSelect(document.getElementById('unitFromSel'));
+const unitToSel   = new CustomSelect(document.getElementById('unitToSel'));
+const convFromEl= document.getElementById('convFrom');
+const convToEl  = document.getElementById('convTo');
+const convHint  = document.getElementById('convHint');
+const swapBtn   = document.getElementById('swapBtn');
+const convExpandBar = document.getElementById('convExpandBar');
+const convExpandBtn = document.getElementById('convExpandBtn');
+const convProgress  = document.getElementById('convProgress');
+const convCancel    = document.getElementById('convCancel');
+const convWarning   = document.getElementById('convWarning');
+const convWarningText = document.getElementById('convWarningText');
+const convWarningClose = document.getElementById('convWarningClose');
+
+unitFromSel.onChange(() => doConvert());
+unitToSel.onChange(() => doConvert());
+
+let currentCat = 'length';
+let convToken = 0;
+let convFullText = '';
+let convExtraClass = '';
+let convExpanded = false;
+
+function paintConvValue() {
+  const maxPreview = Number(runtimeConfig.maxPreview);
+  const bigThreshold = Number(runtimeConfig.bigDisplayThreshold);
+  convToEl.className = 'conv-value' + (convExtraClass ? ' ' + convExtraClass : '');
+
+  if (convFullText === '' || convFullText == null) {
+    convToEl.textContent = '0';
+    convToEl.className = 'conv-value placeholder';
+    convExpandBar.style.display = 'none';
+    return;
+  }
+  if (convExtraClass === 'error' || convExtraClass === 'cancelled' ||
+      convExtraClass === 'rawError' || convExtraClass === 'apology') {
+    convToEl.textContent = convFullText;
+    convExpandBar.style.display = 'none';
+    return;
+  }
+  if (!convExpanded && convFullText.length > maxPreview) {
+    if (convFullText.length > bigThreshold) {
+      const head = convFullText.slice(0, 30);
+      const tail = convFullText.slice(-30);
+      convToEl.textContent = head + ' …… ' + tail + '  (共 ' + convFullText.length + ' 位)';
+    } else {
+      convToEl.textContent = convFullText.slice(0, maxPreview) + '…';
+    }
+    convExpandBar.style.display = '';
+  } else {
+    convToEl.textContent = convFullText;
+    convExpandBar.style.display = 'none';
+  }
+}
+
+function setConvValue(text, extraClass) {
+  convFullText = text || '';
+  convExtraClass = extraClass || '';
+  convExpanded = false;
+  paintConvValue();
+}
+
+convExpandBtn.addEventListener('click', () => { convExpanded = true; paintConvValue(); });
+
+function showConvProgress() {
+  convProgress.style.display = '';
+  convCancel.style.display = (threadMode === 'worker' && workerAvailable) ? '' : 'none';
+}
+function hideConvProgress() {
+  convProgress.style.display = 'none';
+  convCancel.style.display = 'none';
+}
+convCancel.addEventListener('click', () => {
+  cancelWorker(); hideConvProgress();
+  setConvValue('已取消', 'cancelled');
+});
+
+function showConvWarning(text) { convWarning.style.display = ''; convWarningText.textContent = text; }
+function hideConvWarning() { convWarning.style.display = 'none'; }
+convWarningClose.addEventListener('click', hideConvWarning);
+
+function buildCats() {
+  Object.entries(UNIT_DATA).forEach(([key, data]) => {
+    const b = document.createElement('button');
+    b.className = 'cat' + (key === currentCat ? ' active' : '');
+    b.textContent = data.label;
+    b.dataset.cat = key;
+    catsEl.appendChild(b);
+  });
+}
+
+function setCategory(cat) {
+  currentCat = cat;
+  unitFromSel.close();
+  unitToSel.close();
+  const data = UNIT_DATA[cat];
+  const options = data.units.map((u, i) => ({ value: i, label: u.n }));
+  unitFromSel.setOptions(options);
+  unitToSel.setOptions(options);
+  unitFromSel.setValue(0, false);
+  unitToSel.setValue(data.units.length > 1 ? 1 : 0, false);
+  doConvert();
+}
+
+function computeConvertMain(raw, cat, uf, ut) {
+  if (cat === 'temperature') {
+    if (dataMode === 'big') {
+      const input = BigFloat.fromString(raw);
+      if (!input) return null;
+      const c = engine.tempToCBig(uf.n, input);
+      const out = engine.tempFromCBig(ut.n, c);
+      return { value: out.toString(precision === 'auto' ? null : precision, noExponential) };
+    } else {
+      const n = Number(raw);
+      if (isNaN(n)) return null;
+      const c = engine.tempToCNum(uf.n, n);
+      const out = engine.tempFromCNum(ut.n, c);
+      if (!isFinite(out)) throw new Error('result not representable');
+      return { value: precision === 'auto'
+        ? fmtNum(out, noExponential)
+        : applyPrecisionNum(out, precision, noExponential) };
+    }
+  }
+  if (dataMode === 'big') {
+    const input = BigFloat.fromString(raw);
+    if (!input) return null;
+    const base = input.mul(BigFloat.fromNumber(uf.f));
+    const out = base.div(BigFloat.fromNumber(ut.f));
+    return { value: out.toString(precision === 'auto' ? null : precision, noExponential) };
+  } else {
+    const n = Number(raw);
+    if (isNaN(n)) return null;
+    const base = n * uf.f;
+    const out = base / ut.f;
+    if (!isFinite(out)) throw new Error('result not representable');
+    return { value: precision === 'auto'
+      ? fmtNum(out, noExponential)
+      : applyPrecisionNum(out, precision, noExponential) };
+  }
+}
+
+function handleConvertError(e) {
+  const rawMsg = e && e.message ? String(e.message) : '';
+  const rawName = e && e.name ? String(e.name) : '';
+  const combined = rawName + ' ' + rawMsg;
+
+  if (rawMsg === 'cancelled' || rawMsg === 'rebuilding') {
+    if (rawMsg === 'cancelled') setConvValue('已取消', 'cancelled');
+    return;
+  }
+  if (devMode) { setConvValue(rawMsg || 'undefined', 'rawError'); return; }
+  if (isPhysicalLimit(combined) || e.workerCrash) {
+    setConvValue('抱歉，算不出来。结果超出 BigInt 容量（约 3.22 亿位）。这是物理极限，不是你的错。', 'apology');
+    return;
+  }
+  if (isMathError(rawMsg)) { setConvValue('错误', 'error'); return; }
+  setConvValue(rawMsg || '未知错误', 'rawError');
+  if (isConfigError(rawMsg)) showConvWarning('开发者模式中的参数导致了类型错误。');
+  else showConvWarning('换算过程中出现未分类错误。');
+}
+
+async function doConvert() {
+  const data = UNIT_DATA[currentCat];
+  const uf = data.units[+unitFromSel.getValue()];
+  const ut = data.units[+unitToSel.getValue()];
+  const raw = convFromEl.value.trim();
+  if (raw === '' || raw === '.' || raw === '-' || raw === '+') {
+    setConvValue('', '');
+    return;
+  }
+  const token = ++convToken;
+  hideConvWarning();
+
+  if (threadMode === 'worker' && workerAvailable && dataMode === 'big') {
+    let progressShown = false;
+    const delay = Number(runtimeConfig.progressDelay);
+    const timer = setTimeout(() => { progressShown = true; showConvProgress(); }, delay);
+    try {
+      const result = await workerCall('convert', {
+        input: raw, category: currentCat,
+        fromName: uf.n, toName: ut.n,
+        fromFactor: uf.f, toFactor: ut.f,
+        precision: precision === 'auto' ? null : precision,
+        noExponential,
+      });
+      clearTimeout(timer);
+      if (progressShown) hideConvProgress();
+      if (token !== convToken) return;
+      setConvValue(result.value, '');
+    } catch (e) {
+      clearTimeout(timer);
+      if (progressShown) hideConvProgress();
+      if (token !== convToken) return;
+      handleConvertError(e);
+    }
+  } else {
+    try {
+      const r = computeConvertMain(raw, currentCat, uf, ut);
+      if (token !== convToken) return;
+      if (!r) { setConvValue('', ''); return; }
+      setConvValue(r.value, '');
+    } catch (e) {
+      if (token !== convToken) return;
+      handleConvertError(e);
+    }
+  }
+}
+
+catsEl.addEventListener('click', e => {
+  const b = e.target.closest('.cat');
+  if (!b) return;
+  catsEl.querySelectorAll('.cat').forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+  setCategory(b.dataset.cat);
+});
+convFromEl.addEventListener('input', doConvert);
+swapBtn.addEventListener('click', () => {
+  const a = unitFromSel.getValue();
+  unitFromSel.setValue(unitToSel.getValue(), false);
+  unitToSel.setValue(a, false);
+  if (convFullText && convExtraClass === '' &&
+      convFullText.length <= 200 && BigFloat.fromString(convFullText)) {
+    convFromEl.value = convFullText;
+  }
+  doConvert();
+});
+
+/* =========================================================================
+   设置面板
+   ========================================================================= */
+function refreshAll() { updateDisplay(); doConvert(); }
+
+function rebuildRuntime() {
+  engine = createEngine(runtimeConfig);
+  BigFloat = engine.BigFloat;
+  if (worker || (threadMode === 'worker' && workerAvailable)) rebuildWorker();
+  refreshAll();
+}
+
+document.querySelectorAll('#precChips .chip').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const p = btn.dataset.prec;
+    const newPrecision = p === 'auto' ? 'auto' : parseInt(p, 10);
+    if (!guardSet('precision', newPrecision)) return;
+    document.querySelectorAll('#precChips .chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('customPrec').value = '';
+    syncRuntimeVarsUI(); refreshAll();
+  });
+});
+const customPrecEl = document.getElementById('customPrec');
+customPrecEl.addEventListener('input', e => {
+  const v = e.target.value.trim();
+  if (v === '') return;
+  const n = parseInt(v, 10);
+  if (isNaN(n) || n < 0) return;
+  if (!guardSet('precision', n)) return;
+  document.querySelectorAll('#precChips .chip').forEach(b => b.classList.remove('active'));
+  syncRuntimeVarsUI(); refreshAll();
+});
+document.querySelectorAll('#expChips .chip').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const v = btn.dataset.exp === 'never';
+    if (!guardSet('noExponential', v)) return;
+    document.querySelectorAll('#expChips .chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    syncRuntimeVarsUI(); refreshAll();
+  });
+});
+document.querySelectorAll('#modeChips .chip').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (!guardSet('dataMode', btn.dataset.mode)) return;
+    document.querySelectorAll('#modeChips .chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    syncRuntimeVarsUI(); refreshAll();
+  });
+});
+document.querySelectorAll('#threadChips .chip').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.disabled) return;
+    if (btn.dataset.thread === 'worker' && !workerAvailable) return;
+    if (!guardSet('threadMode', btn.dataset.thread)) return;
+    document.querySelectorAll('#threadChips .chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    syncRuntimeVarsUI(); refreshAll();
+  });
+});
+
+/* =========================================================================
+   开发者模式
+   ========================================================================= */
+const devToggle = document.getElementById('devToggle');
+const devPanel = document.getElementById('devPanel');
+const devParamsList = document.getElementById('devParamsList');
+const devRuntimeList = document.getElementById('devRuntimeList');
+const advDevToggle = document.getElementById('advDevToggle');
+const advDevParamsList = document.getElementById('advDevParamsList');
+
+function isConstantKey(key) {
+  return key === 'piString' || key === 'eString' || key === 'divPrecision';
+}
+
+let rebuildTimer = null;
+
+function buildParamRow(meta, mode) {
+  const isRuntime = mode === 'runtime';
+  const row = document.createElement('div');
+  row.className = 'dev-row';
+  if (meta.type === 'longtext') row.classList.add('vertical');
+  row.dataset.key = meta.key;
+  row.dataset.section = mode;
+
+  const info = document.createElement('div');
+  info.className = 'dev-info';
+  const nameEl = document.createElement('span');
+  nameEl.className = 'dev-name';
+  nameEl.textContent = meta.name;
+  if (isRuntime) {
+    const tag = document.createElement('span');
+    tag.className = 'dev-runtime-tag';
+    tag.textContent = '运行时';
+    nameEl.appendChild(tag);
+  }
+  const descEl = document.createElement('span');
+  descEl.className = 'dev-desc';
+  descEl.textContent = meta.desc;
+  info.appendChild(nameEl); info.appendChild(descEl);
+
+  let input;
+  if (meta.type === 'longtext') {
+    input = document.createElement('textarea');
+    input.className = 'dev-textarea'; input.rows = 3; input.spellcheck = false;
+  } else {
+    input = document.createElement('input');
+    input.className = 'dev-input'; input.type = 'text';
+  }
+  input.dataset.key = meta.key;
+  input.dataset.section = mode;
+  input.value = isRuntime ? getRuntimeVar(meta.key) : runtimeConfig[meta.key];
+  input.disabled = configLocks[meta.key];
+
+  const lockLabel = document.createElement('label');
+  lockLabel.className = 'dev-lock' + (configLocks[meta.key] ? ' checked' : '');
+  const lockCb = document.createElement('input');
+  lockCb.type = 'checkbox'; lockCb.checked = configLocks[meta.key];
+  const lockIcon = document.createElement('span');
+  lockIcon.className = 'lock-icon';
+  lockIcon.textContent = configLocks[meta.key] ? '🔒' : '🔓';
+  lockLabel.appendChild(lockCb); lockLabel.appendChild(lockIcon);
+
+  row.appendChild(info); row.appendChild(input); row.appendChild(lockLabel);
+
+  input.addEventListener('input', () => {
+    if (configLocks[meta.key]) {
+      input.value = isRuntime ? getRuntimeVar(meta.key) : runtimeConfig[meta.key];
+      return;
+    }
+    if (isRuntime) {
+      guardSet(meta.key, input.value);
+      syncTopUI();
+      if (isConstantKey(meta.key)) {
+        if (rebuildTimer) clearTimeout(rebuildTimer);
+        rebuildTimer = setTimeout(() => rebuildRuntime(), 500);
+      } else refreshAll();
+    } else {
+      runtimeConfig[meta.key] = input.value;
+      if (isConstantKey(meta.key)) {
+        if (rebuildTimer) clearTimeout(rebuildTimer);
+        rebuildTimer = setTimeout(() => rebuildRuntime(), 500);
+      } else refreshAll();
+    }
+  });
+
+  lockCb.addEventListener('change', () => {
+    configLocks[meta.key] = lockCb.checked;
+    input.disabled = lockCb.checked;
+    lockLabel.classList.toggle('checked', lockCb.checked);
+    lockIcon.textContent = lockCb.checked ? '🔒' : '🔓';
+    if (lockCb.checked) {
+      input.value = isRuntime ? getRuntimeVar(meta.key) : runtimeConfig[meta.key];
+    }
+  });
+
+  return row;
+}
+
+function syncTopUI() {
+  document.querySelectorAll('#precChips .chip').forEach(b => {
+    const p = b.dataset.prec;
+    if (p === 'auto') b.classList.toggle('active', precision === 'auto');
+    else b.classList.toggle('active', String(precision) === p);
+  });
+  if (precision !== 'auto') customPrecEl.value = String(precision);
+  else customPrecEl.value = '';
+  document.querySelectorAll('#expChips .chip').forEach(b => {
+    b.classList.toggle('active', b.dataset.exp === 'never' ? noExponential : !noExponential);
+  });
+  document.querySelectorAll('#modeChips .chip').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === dataMode);
+  });
+  document.querySelectorAll('#threadChips .chip').forEach(b => {
+    b.classList.toggle('active', b.dataset.thread === threadMode);
+  });
+  degKey.textContent = angleMode;
+  document.querySelectorAll('.calc-mode-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.calcmode === calcMode);
+  });
+}
+
+function syncRuntimeVarsUI() {
+  if (!devMode) return;
+  const rows = devRuntimeList.querySelectorAll('.dev-row');
+  rows.forEach(row => {
+    const key = row.dataset.key;
+    const input = row.querySelector('.dev-input, .dev-textarea');
+    if (!input) return;
+    if (!configLocks[key]) {
+      const v = getRuntimeVar(key);
+      if (input.value !== v) input.value = v;
+    }
+  });
+}
+
+function syncWorkerChipState() {
+  const workerChip = document.querySelector('#threadChips .chip[data-thread="worker"]');
+  if (!workerChip) return;
+  if (!workerAvailable) {
+    workerChip.disabled = true;
+    workerChip.classList.add('disabled');
+    workerChip.title = '当前环境无法创建可用的 Web Worker';
+  } else {
+    workerChip.disabled = false;
+    workerChip.classList.remove('disabled');
+    workerChip.title = '1 + 1 = 2，Worker 可用';
+  }
+}
+
+function syncDevPanelState() {
+  devToggle.textContent = '开发者模式：' + (devMode ? '开' : '关');
+  devToggle.classList.toggle('active', devMode);
+  devPanel.classList.toggle('open', devMode);
+  if (devMode && devParamsList.children.length === 0) buildDevPanel();
+  syncRuntimeVarsUI();
+}
+
+function buildDevPanel() {
+  devParamsList.innerHTML = '';
+  DEV_PARAMS.forEach(meta => devParamsList.appendChild(buildParamRow(meta, 'config')));
+  devRuntimeList.innerHTML = '';
+  RUNTIME_VARS.forEach(meta => devRuntimeList.appendChild(buildParamRow(meta, 'runtime')));
+  advDevParamsList.innerHTML = '';
+  ADV_DEV_PARAMS.forEach(meta => advDevParamsList.appendChild(buildParamRow(meta, 'config')));
+}
+
+devToggle.addEventListener('click', () => {
+  guardSet('devMode', !devMode);
+  syncRuntimeVarsUI();
+  if (devMode) {
+    advDevMode = true;
+    advDevToggle.textContent = '隐藏常量';
+    advDevToggle.classList.add('active');
+    advDevParamsList.style.display = '';
+  }
+});
+
+advDevToggle.addEventListener('click', () => {
+  advDevMode = !advDevMode;
+  advDevToggle.textContent = advDevMode ? '隐藏常量' : '显示常量';
+  advDevToggle.classList.toggle('active', advDevMode);
+  advDevParamsList.style.display = advDevMode ? '' : 'none';
+});
+
+/* =========================================================================
+   标签切换 & 初始化
+   ========================================================================= */
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+    document.querySelectorAll('.custom-select.open').forEach(el => el.classList.remove('open'));
+  });
+});
+
+buildCats();
+setCategory('length');
+updateDisplay();
+
+detectWorkerSupport().then(ok => {
+  guardSet('workerAvailable', ok);
+  if (!ok) {
+    if (threadMode === 'worker') {
+      guardSet('threadMode', 'main');
+      document.querySelectorAll('#threadChips .chip').forEach(b => {
+        b.classList.toggle('active', b.dataset.thread === 'main');
+      });
+    }
+  } else {
+    if (threadMode === 'worker') ensureWorker();
+  }
+  syncRuntimeVarsUI();
+});
+</script>
+</body>
+</html>
