@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>百宝箱 | 星际小玩意</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+
+    html, body {
+        width: 100%; height: 100%; overflow: hidden;
+        background: #03050b; color: #fff;
+        font-family: 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', 'Helvetica Neue', sans-serif;
+    }
+
+    #starCanvas {
+        position: fixed; inset: 0;
+        width: 100%; height: 100%;
+        z-index: 0; pointer-events: none;
+    }
+
+    /* ============================================================
+       整体布局
+       ============================================================ */
+    .app-layout {
+        position: relative; z-index: 3;
+        display: flex;
+        width: 100%; height: 100%;
+    }
+
+    /* ============================================================
+       侧边栏
+       ============================================================ */
+    .sidebar {
+        width: 240px; flex-shrink: 0;
+        height: 100vh;
+        display: flex; flex-direction: column;
+        background: rgba(255,255,255,0.035);
+        border-right: 1px solid rgba(255,255,255,0.08);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        box-shadow: 4px 0 30px rgba(0,0,0,0.35);
+        z-index: 5;
+    }
+
+    .sidebar-header {
+        display: flex; align-items: center; gap: 12px;
+        padding: 1.6rem 1.5rem 1.4rem;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .logo-icon {
+        font-size: 1.6rem;
+        filter: drop-shadow(0 0 10px rgba(140,190,255,0.6));
+    }
+    .logo-text { display: flex; flex-direction: column; gap: 2px; }
+    .logo-main {
+        font-size: 1.05rem; font-weight: 700; letter-spacing: 2px;
+        background: linear-gradient(135deg, #FFFFFF, #C0E0FF);
+        -webkit-background-clip: text; background-clip: text;
+        color: transparent;
+    }
+    .logo-sub {
+        font-size: 0.6rem; letter-spacing: 2.5px;
+        color: rgba(255,255,255,0.28); font-weight: 300;
+    }
+
+    .sidebar-nav {
+        flex: 1;
+        display: flex; flex-direction: column;
+        padding: 1rem 0;
+        overflow-y: auto;
+        gap: 2px;
+    }
+    .sidebar-nav::-webkit-scrollbar { width: 0; }
+
+    .nav-item {
+        position: relative;
+        display: flex; align-items: center; gap: 12px;
+        width: 100%;
+        padding: 0.8rem 1.5rem;
+        background: transparent; border: none;
+        color: rgba(255,255,255,0.5);
+        font-family: inherit; font-size: 0.9rem;
+        letter-spacing: 1px;
+        cursor: pointer; text-align: left;
+        transition: color .25s ease, background .25s ease;
+    }
+    .nav-item::before {
+        content: '';
+        position: absolute; left: 0; top: 50%;
+        transform: translateY(-50%);
+        width: 3px; height: 0;
+        background: #8cbaff;
+        border-radius: 0 3px 3px 0;
+        box-shadow: 0 0 14px rgba(140,190,255,0.9);
+        transition: height .3s cubic-bezier(.2,.9,.4,1.1);
+    }
+    .nav-item:hover {
+        color: rgba(255,255,255,0.85);
+        background: rgba(255,255,255,0.04);
+    }
+    .nav-item.active {
+        color: #fff;
+        background: rgba(120,180,255,0.1);
+    }
+    .nav-item.active::before { height: 58%; }
+
+    .nav-icon { font-size: 1.1rem; width: 22px; text-align: center; }
+    .nav-text { white-space: nowrap; }
+
+    .sidebar-empty {
+        padding: 1rem 1.5rem;
+        font-size: 0.72rem;
+        letter-spacing: 1px;
+        color: rgba(255,255,255,0.18);
+        line-height: 1.8;
+    }
+
+    .sidebar-footer {
+        display: flex; align-items: center; gap: 8px;
+        padding: 1.1rem 1.5rem;
+        font-size: 0.82rem; letter-spacing: 1px;
+        color: rgba(255,255,255,0.35);
+        text-decoration: none;
+        border-top: 1px solid rgba(255,255,255,0.06);
+        transition: color .25s ease, background .25s ease;
+    }
+    .sidebar-footer:hover {
+        color: #8cbaff;
+        background: rgba(255,255,255,0.03);
+    }
+
+    /* ============================================================
+       内容区
+       ============================================================ */
+    .content {
+        flex: 1;
+        height: 100vh;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 2.5rem 3rem;
+        scroll-behavior: smooth;
+    }
+    .content::-webkit-scrollbar { width: 6px; }
+    .content::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+    .content::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.25);
+        border-radius: 10px;
+    }
+    .content::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
+
+    .panel { display: none; max-width: 620px; margin: 0 auto; }
+    .panel.active { display: block; animation: panelIn .4s cubic-bezier(.2,.9,.4,1.1); }
+
+    @keyframes panelIn {
+        from { opacity: 0; transform: translateY(18px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .panel-header { margin-bottom: 1.8rem; text-align: center; }
+    .panel-title {
+        font-size: clamp(1.6rem, 3.5vw, 2.1rem);
+        font-weight: 700; letter-spacing: 2px;
+        background: linear-gradient(135deg, #FFFFFF, #C0E0FF, #AAD0FF);
+        -webkit-background-clip: text; background-clip: text;
+        color: transparent;
+        text-shadow: 0 0 20px rgba(170,208,255,0.35);
+    }
+    .panel-desc {
+        margin-top: 0.7rem;
+        font-size: 0.85rem; line-height: 1.8;
+        color: rgba(255,255,255,0.45);
+        letter-spacing: 0.5px;
+    }
+
+    /* ============================================================
+       液态玻璃卡片
+       ============================================================ */
+    .glass-card {
+        position: relative;
+        width: 100%;
+        background: rgba(255,255,255,0.055);
+        border-radius: 24px;
+        padding: 2rem 1.8rem;
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        box-shadow:
+            inset  0.5px  0    0 0 rgba(255,255,255,0.35),
+            inset -0.5px  0    0 0 rgba(255,255,255,0.18),
+            inset  0      0.5px 0 0 rgba(255,255,255,0.50),
+            inset  0     -0.5px 0 0 rgba(255,255,255,0.22),
+            0 16px 40px rgba(0,0,0,0.42);
+    }
+    .glass-card::before {
+        content: '';
+        position: absolute; top: 0; left: 15%; right: 15%; height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
+    }
+
+    /* ============================================================
+       分段控件
+       ============================================================ */
+    .segmented-control {
+        position: relative; display: inline-flex;
+        background: rgba(255,255,255,.06);
+        border: 1px solid rgba(255,255,255,.15);
+        border-radius: 22px; padding: 4px;
+        box-shadow: inset 0 2px 10px rgba(0,0,0,.2), 0 4px 16px rgba(0,0,0,.28);
+    }
+    .segmented-slider {
+        position: absolute; top: 4px; left: 4px;
+        height: calc(100% - 8px);
+        background: rgba(255,255,255,.2);
+        border-radius: 18px;
+        box-shadow: 0 4px 12px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.5);
+        z-index: 0; pointer-events: none;
+        transition: none;
+    }
+    .segmented-control.ready .segmented-slider {
+        transition: left .35s cubic-bezier(.34,1.3,.64,1),
+                    width .35s cubic-bezier(.34,1.3,.64,1);
+    }
+    .segmented-option {
+        position: relative; z-index: 1;
+        padding: 9px 22px; border-radius: 18px;
+        font-size: 13px; font-weight: 600; letter-spacing: 1px;
+        color: rgba(255,255,255,.5);
+        background: transparent; border: none; cursor: pointer;
+        font-family: inherit; white-space: nowrap;
+        transition: color .3s ease;
+    }
+    .segmented-option.active { color: #fff; text-shadow: 0 0 8px rgba(255,255,255,.6); }
+    .segmented-option:hover { color: rgba(255,255,255,.85); }
+
+    /* ============================================================
+       回声洞
+       ============================================================ */
+    .echo-textarea {
+        width: 100%; min-height: 150px; resize: none;
+        padding: 1.1rem 1.2rem;
+        background: rgba(0,0,0,.3);
+        border: 1px solid rgba(255,255,255,.1);
+        border-radius: 18px;
+        color: #fff; font-size: .95rem; line-height: 1.75;
+        font-family: inherit; outline: none; user-select: text;
+        transition: border-color .25s, background .25s, box-shadow .25s;
+    }
+    .echo-textarea::placeholder { color: rgba(255,255,255,.25); }
+    .echo-textarea:focus {
+        border-color: rgba(120,180,255,.6);
+        background: rgba(0,0,0,.5);
+        box-shadow: 0 0 0 3px rgba(120,180,255,.15);
+    }
+    .echo-textarea:disabled { opacity: .5; cursor: not-allowed; }
+
+    .counter-row {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-top: .7rem; padding: 0 .35rem;
+        font-size: .75rem; letter-spacing: .5px;
+    }
+    .hint-text { color: rgba(255,255,255,.35); }
+    .char-counter { color: rgba(255,255,255,.35); letter-spacing: 1px; transition: color .2s; }
+    .char-counter.warn { color: #FFB86B; }
+
+    .primary-btn {
+        position: relative; width: 100%; margin-top: 1.2rem;
+        padding: 1rem; border: none; border-radius: 999px;
+        font-size: 1.05rem; font-weight: 600; letter-spacing: 2px;
+        color: #fff; font-family: inherit; cursor: pointer; overflow: hidden;
+        background: rgba(255,255,255,.08);
+        box-shadow:
+            inset  0  0.5px 0 0 rgba(255,255,255,.35),
+            inset  0 -0.5px 0 0 rgba(255,255,255,.18),
+            0 10px 26px rgba(0,0,0,.38);
+        transition: transform .25s cubic-bezier(.2,.9,.4,1.1),
+                    background .25s ease, box-shadow .25s ease;
+    }
+    .primary-btn:hover:not(:disabled) {
+        transform: translateY(-3px);
+        background: rgba(255,255,255,.15);
+        box-shadow: 0 18px 34px rgba(0,0,0,.45), 0 0 24px rgba(140,190,255,.35);
+    }
+    .primary-btn:active:not(:disabled) { transform: translateY(1px); transition-duration: .05s; }
+    .primary-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    .ripple-effect {
+        position: absolute; border-radius: 50%; pointer-events: none;
+        background: radial-gradient(circle, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 75%);
+        transform: scale(0); z-index: 2;
+    }
+
+    .echo-display {
+        min-height: 200px;
+        display: flex; align-items: center; justify-content: center;
+        padding: 1.6rem;
+        background: rgba(0,0,0,.25);
+        border: 1px solid rgba(255,255,255,.07);
+        border-radius: 20px;
+        text-align: center;
+    }
+    .echo-empty {
+        color: rgba(255,255,255,.3);
+        font-size: .88rem; line-height: 2; letter-spacing: 1px;
+    }
+    .echo-message {
+        width: 100%;
+        animation: echoIn .85s cubic-bezier(.2,.9,.4,1.1);
+    }
+    @keyframes echoIn {
+        0%   { opacity: 0; filter: blur(12px); transform: translateY(16px) scale(.96); }
+        100% { opacity: 1; filter: blur(0);     transform: translateY(0) scale(1); }
+    }
+    .echo-text {
+        font-size: 1.05rem; line-height: 1.95; color: #DCE8FF;
+        white-space: pre-wrap; word-break: break-word;
+        user-select: text;
+        text-shadow: 0 0 24px rgba(140,190,255,.35),
+                     0 0 60px rgba(140,190,255,.15);
+    }
+    .echo-time {
+        margin-top: 1.3rem; font-size: .72rem;
+        color: rgba(255,255,255,.32); letter-spacing: 1.5px;
+    }
+
+    /* ============================================================
+       3D 骰子
+       ============================================================ */
+    .dice-stage {
+        position: relative;
+        display: flex; align-items: center; justify-content: center;
+        min-height: 300px;
+        background: rgba(0,0,0,.28);
+        border: 1px solid rgba(255,255,255,.07);
+        border-radius: 20px;
+        overflow: hidden;
+        margin-bottom: 0.2rem;
+    }
+
+    /* 舞台地面光晕 */
+    .dice-stage::after {
+        content: '';
+        position: absolute;
+        bottom: 34px;
+        width: 180px; height: 26px;
+        background: radial-gradient(ellipse at center,
+                    rgba(120,180,255,0.30) 0%,
+                    rgba(120,180,255,0.10) 45%,
+                    transparent 72%);
+        filter: blur(6px);
+        pointer-events: none;
+        transition: opacity .4s ease, transform .4s ease;
+    }
+    .dice-stage.rolling::after {
+        opacity: 0.55;
+        transform: scale(1.18);
+    }
+
+    /* 透视容器 */
+    .dice-scene {
+        --size: 130px;
+        position: relative;
+        width: 100%; height: 100%;
+        display: flex; align-items: center; justify-content: center;
+        perspective: 900px;
+        perspective-origin: 50% 45%;
+    }
+
+    /* 固定倾角容器，让骰子始终有立体感 */
+    .dice-tilt {
+        width: var(--size);
+        height: var(--size);
+        transform-style: preserve-3d;
+        transform: rotateX(-16deg) rotateY(-22deg);
+    }
+
+    /* 立方体本体 */
+    .dice-cube {
+        position: relative;
+        width: var(--size);
+        height: var(--size);
+        transform-style: preserve-3d;
+        transform: rotateX(0deg) rotateY(0deg);
+        transition: transform 1.7s cubic-bezier(0.15, 0.8, 0.25, 1);
+        cursor: pointer;
+    }
+
+    /* 六个面 */
+    .dice-face {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(3, 1fr);
+        padding: 15%;
+        border-radius: 16%;
+        border: 1px solid rgba(255,255,255,0.42);
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        box-shadow:
+            inset 0 0 22px rgba(255,255,255,0.14),
+            inset 0 0 2px rgba(255,255,255,0.6),
+            0 0 26px rgba(120,180,255,0.20);
+    }
+
+    /* 每个面的位置 + 明暗（模拟环境光） */
+    .dice-face:nth-child(1) {   /* front —— 1 */
+        transform: translateZ(calc(var(--size) / 2));
+        background: linear-gradient(140deg,
+            rgba(58, 88, 150, 0.96), rgba(24, 38, 72, 0.96));
+    }
+    .dice-face:nth-child(2) {   /* back —— 6 */
+        transform: rotateY(180deg) translateZ(calc(var(--size) / 2));
+        background: linear-gradient(140deg,
+            rgba(34, 50, 92, 0.96), rgba(16, 26, 52, 0.96));
+    }
+    .dice-face:nth-child(3) {   /* right —— 3 */
+        transform: rotateY(90deg) translateZ(calc(var(--size) / 2));
+        background: linear-gradient(140deg,
+            rgba(44, 68, 122, 0.96), rgba(20, 32, 62, 0.96));
+    }
+    .dice-face:nth-child(4) {   /* left —— 4 */
+        transform: rotateY(-90deg) translateZ(calc(var(--size) / 2));
+        background: linear-gradient(140deg,
+            rgba(72, 106, 175, 0.96), rgba(30, 46, 86, 0.96));
+    }
+    .dice-face:nth-child(5) {   /* top —— 2 */
+        transform: rotateX(90deg) translateZ(calc(var(--size) / 2));
+        background: linear-gradient(140deg,
+            rgba(92, 130, 205, 0.96), rgba(40, 60, 108, 0.96));
+    }
+    .dice-face:nth-child(6) {   /* bottom —— 5 */
+        transform: rotateX(-90deg) translateZ(calc(var(--size) / 2));
+        background: linear-gradient(140deg,
+            rgba(26, 38, 70, 0.96), rgba(12, 20, 40, 0.96));
+    }
+
+    /* 点数 */
+    .dice-face i {
+        width: 62%;
+        height: 62%;
+        place-self: center;
+        border-radius: 50%;
+        background: radial-gradient(circle at 34% 30%,
+                    #ffffff 0%,
+                    #dbe9ff 45%,
+                    #8fb6ef 100%);
+        box-shadow:
+            0 0 12px rgba(170, 210, 255, 0.95),
+            0 0 3px rgba(255, 255, 255, 0.9),
+            inset 0 -2px 4px rgba(20, 40, 80, 0.45);
+        visibility: hidden;
+    }
+
+    /* 每个面的点位分布（3×3 九宫格，位置 1~9） */
+    .face-1 i:nth-child(5) { visibility: visible; }
+    .face-2 i:nth-child(1),
+    .face-2 i:nth-child(9) { visibility: visible; }
+    .face-3 i:nth-child(1),
+    .face-3 i:nth-child(5),
+    .face-3 i:nth-child(9) { visibility: visible; }
+    .face-4 i:nth-child(1),
+    .face-4 i:nth-child(3),
+    .face-4 i:nth-child(7),
+    .face-4 i:nth-child(9) { visibility: visible; }
+    .face-5 i:nth-child(1),
+    .face-5 i:nth-child(3),
+    .face-5 i:nth-child(5),
+    .face-5 i:nth-child(7),
+    .face-5 i:nth-child(9) { visibility: visible; }
+    .face-6 i:nth-child(1),
+    .face-6 i:nth-child(3),
+    .face-6 i:nth-child(4),
+    .face-6 i:nth-child(6),
+    .face-6 i:nth-child(7),
+    .face-6 i:nth-child(9) { visibility: visible; }
+
+    /* ============================================================
+       Toast
+       ============================================================ */
+    #toast {
+        position: fixed; bottom: 8%; left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: rgba(10,20,35,.92);
+        border: 1px solid rgba(255,255,255,.4);
+        border-radius: 60px; padding: 12px 28px;
+        color: #fff; font-size: .9rem; letter-spacing: 1px;
+        z-index: 9999; opacity: 0; pointer-events: none;
+        transition: opacity .4s ease, transform .4s ease;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        max-width: 86vw; text-align: center;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast.success { border-color: rgba(100,255,180,.6); }
+    #toast.error   { border-color: rgba(255,100,120,.6); }
+
+    /* ============================================================
+       响应式 —— 移动端侧边栏变顶部横向条
+       ============================================================ */
+    @media (max-width: 820px) {
+        .app-layout { flex-direction: column; }
+
+        .sidebar {
+            width: 100%;
+            height: auto;
+            flex-direction: row;
+            align-items: center;
+            padding: 0.6rem 0.8rem;
+            border-right: none;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+        }
+        .sidebar-header { display: none; }
+        .sidebar-nav {
+            flex-direction: row;
+            padding: 0;
+            gap: 0.35rem;
+            overflow-x: auto;
+            overflow-y: hidden;
+            flex: 1;
+        }
+        .sidebar-nav::-webkit-scrollbar { display: none; }
+        .sidebar-empty { display: none; }
+        .nav-item {
+            flex-shrink: 0;
+            width: auto;
+            padding: 0.5rem 0.85rem;
+            border-radius: 12px;
+            gap: 6px;
+            font-size: 0.82rem;
+        }
+        .nav-item::before { display: none; }
+        .nav-item.active {
+            background: rgba(120,180,255,0.2);
+            box-shadow: 0 0 16px rgba(120,180,255,0.25);
+        }
+        .nav-icon { font-size: 1rem; width: auto; }
+        .nav-text { font-size: 0.8rem; }
+
+        .sidebar-footer {
+            padding: 0.5rem 0.9rem;
+            border-top: none;
+            border-left: 1px solid rgba(255,255,255,0.08);
+            font-size: 0.75rem;
+            flex-shrink: 0;
+        }
+        .sidebar-footer span:last-child { display: none; }
+
+        .content { padding: 1.5rem 1rem; }
+        .glass-card { padding: 1.5rem 1.2rem; border-radius: 20px; }
+        .panel-header { margin-bottom: 1.3rem; }
+        .echo-textarea { min-height: 130px; font-size: 16px; }
+        .segmented-option { padding: 8px 16px; font-size: 12.5px; }
+        .echo-display { min-height: 170px; padding: 1.2rem; }
+        .echo-text { font-size: 0.98rem; }
+
+        .dice-stage { min-height: 240px; }
+        .dice-scene { --size: 100px; }
+        .dice-stage::after { width: 140px; height: 20px; bottom: 26px; }
+    }
+
+    @media (max-width: 420px) {
+        .nav-text { display: none; }
+        .nav-item { padding: 0.5rem 0.7rem; }
+        .nav-icon { font-size: 1.15rem; }
+    }
+</style>
+</head>
+<body>
+
+<canvas id="starCanvas"></canvas>
+
+<div class="app-layout">
+
+    <!-- ==================== 侧边栏 ==================== -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-icon">🧰</div>
+            <div class="logo-text">
+                <span class="logo-main">百宝箱</span>
+                <span class="logo-sub">TREASURE BOX</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav" id="sidebarNav">
+            <button class="nav-item active" data-panel="panelEcho">
+                <span class="nav-icon">📮</span><span class="nav-text">回声洞</span>
+            </button>
+            <button class="nav-item" data-panel="panelDice">
+                <span class="nav-icon">🎲</span><span class="nav-text">骰子</span>
+            </button>
+            <!-- 以后要加新玩具，就往这里插一个 .nav-item，
+                 然后在下面内容区补一个对应的 .panel -->
+        </nav>
+
+        <div class="sidebar-empty">
+            · 更多小玩意陆续补充 ·
+        </div>
+
+        <a class="sidebar-footer" href="index.html">
+            <span>←</span><span>返回首页</span>
+        </a>
+    </aside>
+
+    <!-- ==================== 内容区 ==================== -->
+    <main class="content" id="contentArea">
+
+        <!-- ========== 回声洞 ========== -->
+        <section class="panel active" id="panelEcho">
+            <div class="panel-header">
+                <h1 class="panel-title">✦ 回声洞 ✦</h1>
+                <p class="panel-desc">
+                    把想说的话丢进洞里<br>
+                    某一天，会被另一个陌生人听见
+                </p>
+            </div>
+
+            <div class="glass-card">
+                <div style="display:flex; justify-content:center; margin-bottom:1.5rem;">
+                    <div class="segmented-control" id="tabControl">
+                        <div class="segmented-slider" id="tabSlider"></div>
+                        <button class="segmented-option active" data-target="panelThrow">📮 扔一条</button>
+                        <button class="segmented-option" data-target="panelListen">👂 听一条</button>
+                    </div>
+                </div>
+
+                <!-- 扔回声 -->
+                <div class="sub-panel active" id="panelThrow">
+                    <textarea id="echoInput" class="echo-textarea" maxlength="500"
+                        placeholder="写下此刻的心情、一个秘密、或者一句想对陌生人说的话……"></textarea>
+                    <div class="counter-row">
+                        <span class="hint-text">🌙 每人每天只能扔一条</span>
+                        <span class="char-counter"><span id="charCount">0</span>/500</span>
+                    </div>
+                    <button class="primary-btn" id="sendBtn">🚀 扔进洞里</button>
+                </div>
+
+                <!-- 听回声 -->
+                <div class="sub-panel" id="panelListen" style="display:none;">
+                    <div class="echo-display" id="echoDisplay">
+                        <div class="echo-empty">
+                            洞中静悄悄的……<br>
+                            点击下方按钮，随机捞起一条回声
+                        </div>
+                    </div>
+                    <button class="primary-btn" id="drawBtn">🎲 抽一条回声</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== 3D 骰子 ========== -->
+        <section class="panel" id="panelDice">
+            <div class="panel-header">
+                <h1 class="panel-title">🎲 骰子</h1>
+                <p class="panel-desc">
+                    当你不知道该怎么办的时候<br>
+                    让宇宙替你抛一次
+                </p>
+            </div>
+
+            <div class="glass-card">
+                <div class="dice-stage" id="diceStage">
+                    <div class="dice-scene">
+                        <div class="dice-tilt">
+                            <div class="dice-cube" id="diceCube">
+                                <div class="dice-face face-1">
+                                    <i></i><i></i><i></i>
+                                    <i></i><i></i><i></i>
+                                    <i></i><i></i><i></i>
+                                </div>
+                                <div class="dice-face face-6">
+                                    <i></i><i></i><i></i>
+                                    <i></i><i></i><i></i>
+                                    <i></i><i></i><i></i>
+                                </div>
+                                <div class="dice-face face-3">
+                                    <i></i><i></i><i></i>
+                                    <i></i><i></i><i></i>
+                                    <i></i><i></i><i></i>
+                                </div>
+                                <div class="dice-face face-4">
+                                    <i></i><i></i><i></i>
+                                    <i></i><i></i><i></i>
+                                    <i></i><i></i><i></i>
+                                </div>
+                                <div class="dice-face face-2">
+                                    <i></i><i></i><i></i>
+                                    <i></i><i></i><i></i>
+                                    <i></i><i></i><i></i>
+                                </div>
+                                <div class="dice-face face-5">
+                                    <i></i><i></i><i></i>
+                                    <i></i><i></i><i></i>
+                                    <i></i><i></i><i></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="primary-btn" id="rollBtn">🎲 掷骰子</button>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<div id="toast">✨ 提示</div>
+
+<script>
+(function () {
+    'use strict';
+
+    /* ============================================================
+       Supabase 配置
+       ============================================================ */
+    const SUPABASE_URL = 'https://xdavyegtdbrfmwkmsfns.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkYXZ5ZWd0ZGJyZm13a21zZm5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2Mjk3MDUsImV4cCI6MjEwMDIwNTcwNX0.J0MO1VcuhRXI6AwmAZ4sC7PHnVewWiSEE6llUfp1RpY';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const ECHO_MAX_LEN = 500;
+    const LOCAL_DAY_KEY = 'echo_last_sent_day';
+
+    /* ============================================================
+       工具
+       ============================================================ */
+    function $(id) { return document.getElementById(id); }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>"']/g, function (m) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+        });
+    }
+
+    let toastTimer = null;
+    function showToast(msg, type) {
+        const el = $('toast');
+        el.textContent = msg;
+        el.className = 'show ' + (type || 'success');
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { el.className = ''; }, 2800);
+    }
+
+    function createRipple(e) {
+        const btn = e.currentTarget;
+        if (btn.disabled) return;
+        if (btn.querySelector('.ripple-effect')) return;
+
+        let cx, cy;
+        if (e.touches && e.touches.length) {
+            cx = e.touches[0].clientX; cy = e.touches[0].clientY;
+        } else {
+            cx = e.clientX; cy = e.clientY;
+        }
+        const rect = btn.getBoundingClientRect();
+        const dia = Math.max(rect.width, rect.height) * 1.6;
+        const rad = dia / 2;
+
+        const ripple = document.createElement('span');
+        ripple.className = 'ripple-effect';
+        Object.assign(ripple.style, {
+            width: dia + 'px', height: dia + 'px',
+            left: (cx - rect.left - rad) + 'px',
+            top:  (cy - rect.top  - rad) + 'px',
+            transition: 'transform .55s ease-out, opacity .65s ease'
+        });
+        btn.appendChild(ripple);
+        requestAnimationFrame(function () {
+            ripple.style.transform = 'scale(2.2)';
+            ripple.style.opacity = '0';
+        });
+        setTimeout(function () { if (ripple.parentNode) ripple.remove(); }, 660);
+    }
+
+    document.querySelectorAll('.primary-btn').forEach(function (btn) {
+        btn.addEventListener('mousedown', createRipple);
+        btn.addEventListener('touchstart', createRipple, { passive: true });
+    });
+
+    /* ============================================================
+       星空背景
+       ============================================================ */
+    const canvas = $('starCanvas');
+    const ctx = canvas.getContext('2d');
+    let stars = [], W = 0, H = 0;
+
+    function initStars() {
+        stars = [];
+        const count = window.innerWidth < 820 ? 110 : 180;
+        for (let i = 0; i < count; i++) {
+            stars.push({
+                x: Math.random() * W,
+                y: Math.random() * H,
+                radius: Math.random() * 2 + 0.8,
+                alpha:  Math.random() * 0.5 + 0.3,
+                speed:  0.002 + Math.random() * 0.008,
+                offset: Math.random() * Math.PI * 2
+            });
+        }
+    }
+
+    function resizeCanvas() {
+        W = window.innerWidth;
+        H = window.innerHeight;
+        canvas.width  = W;
+        canvas.height = H;
+        initStars();
+    }
+
+    function renderLoop(now) {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#03050b';
+        ctx.fillRect(0, 0, W, H);
+
+        const t = now / 1000;
+        for (let i = 0; i < stars.length; i++) {
+            const s = stars[i];
+            const twinkle = 0.5 + 0.5 * Math.sin(t * s.speed * 2.5 + s.offset);
+            const alpha = Math.min(s.alpha * (0.6 + twinkle * 0.5), 0.95);
+
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(225,235,255,' + alpha + ')';
+            ctx.fill();
+
+            if (s.radius > 1.5 && twinkle > 0.7) {
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.radius * 1.6, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(180,210,255,' + (alpha * 0.2) + ')';
+                ctx.fill();
+            }
+        }
+        requestAnimationFrame(renderLoop);
+    }
+
+    /* ============================================================
+       侧边栏切换
+       ============================================================ */
+    const navItems = document.querySelectorAll('.nav-item');
+    const contentArea = $('contentArea');
+
+    navItems.forEach(function (item) {
+        item.addEventListener('click', function () {
+            navItems.forEach(function (n) { n.classList.remove('active'); });
+            item.classList.add('active');
+
+            document.querySelectorAll('.panel').forEach(function (p) {
+                p.classList.remove('active');
+            });
+            const target = $(item.dataset.panel);
+            if (target) target.classList.add('active');
+
+            contentArea.scrollTop = 0;
+
+            if (item.dataset.panel === 'panelEcho') {
+                requestAnimationFrame(function () { moveEchoSlider(); });
+            }
+        });
+    });
+
+    /* ============================================================
+       回声洞
+       ============================================================ */
+    const echoTextarea = $('echoInput');
+    const echoCharCount = $('charCount');
+    const sendBtn = $('sendBtn');
+    const drawBtn = $('drawBtn');
+    const echoDisplay = $('echoDisplay');
+    const echoTabControl = $('tabControl');
+    const echoTabSlider = $('tabSlider');
+    const echoTabOptions = echoTabControl.querySelectorAll('.segmented-option');
+
+    let sentToday = false;
+
+    function getDeviceId() {
+        let id = localStorage.getItem('star_device_id');
+        if (!id) {
+            id = 'dev_' + Math.random().toString(36).slice(2, 11) + '_' + Date.now();
+            localStorage.setItem('star_device_id', id);
+        }
+        return id;
+    }
+
+    function getDayKey() {
+        const d = new Date();
+        const p = function (n) { return String(n).padStart(2, '0'); };
+        return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+    }
+
+    function formatTime(iso) {
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return '';
+        const p = function (n) { return String(n).padStart(2, '0'); };
+        return d.getFullYear() + '.' + p(d.getMonth() + 1) + '.' + p(d.getDate()) +
+               '  ' + p(d.getHours()) + ':' + p(d.getMinutes());
+    }
+
+    function moveEchoSlider() {
+        const active = echoTabControl.querySelector('.segmented-option.active');
+        if (!active) return;
+        const o = active.getBoundingClientRect();
+        const c = echoTabControl.getBoundingClientRect();
+        if (o.width === 0) return;
+        echoTabSlider.style.left  = (o.left - c.left) + 'px';
+        echoTabSlider.style.width = o.width + 'px';
+    }
+
+    echoTabOptions.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            echoTabOptions.forEach(function (b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            moveEchoSlider();
+
+            document.querySelectorAll('#panelEcho .sub-panel').forEach(function (p) {
+                p.classList.remove('active');
+                p.style.display = 'none';
+            });
+            const target = $(btn.dataset.target);
+            if (target) {
+                target.classList.add('active');
+                target.style.display = 'block';
+            }
+        });
+    });
+
+    echoTextarea.addEventListener('input', function () {
+        const len = echoTextarea.value.length;
+        echoCharCount.textContent = len;
+        echoCharCount.parentElement.classList.toggle('warn', len > ECHO_MAX_LEN * 0.9);
+    });
+
+    function markEchoAsSent() {
+        sentToday = true;
+        echoTextarea.disabled = true;
+        echoTextarea.placeholder = '今天已经扔过一条回声啦，明天再来吧 ✨';
+        sendBtn.disabled = true;
+        sendBtn.textContent = '✅ 今日已投递';
+    }
+
+    async function checkEchoTodayStatus() {
+        const dayKey = getDayKey();
+        if (localStorage.getItem(LOCAL_DAY_KEY) === dayKey) {
+            markEchoAsSent();
+            return;
+        }
+        try {
+            const res = await sb.rpc('has_echoed_today', {
+                p_device_id: getDeviceId(),
+                p_day_key:   dayKey
+            });
+            if (res.error) return;
+            if (res.data === true) {
+                localStorage.setItem(LOCAL_DAY_KEY, dayKey);
+                markEchoAsSent();
+            }
+        } catch (e) { /* 忽略 */ }
+    }
+
+    async function handleEchoSend() {
+        const content = echoTextarea.value.trim();
+
+        if (!content) {
+            showToast('先写点什么吧 ✨', 'error');
+            echoTextarea.focus();
+            return;
+        }
+        if (content.length > ECHO_MAX_LEN) {
+            showToast('最多 ' + ECHO_MAX_LEN + ' 个字哦', 'error');
+            return;
+        }
+        if (sentToday) {
+            showToast('今天已经扔过一条回声啦，明天再来 ✨', 'error');
+            return;
+        }
+
+        sendBtn.disabled = true;
+        sendBtn.textContent = '🔄 正在投递...';
+
+        const deviceId = getDeviceId();
+        const dayKey = getDayKey();
+
+        try {
+            const check = await sb.rpc('has_echoed_today', {
+                p_device_id: deviceId,
+                p_day_key:   dayKey
+            });
+            if (check.error) throw check.error;
+
+            if (check.data === true) {
+                localStorage.setItem(LOCAL_DAY_KEY, dayKey);
+                markEchoAsSent();
+                showToast('今天已经扔过一条回声啦，明天再来 ✨', 'error');
+                return;
+            }
+
+            const { error } = await sb.from('echoes').insert({
+                device_id: deviceId,
+                content:   content,
+                day_key:   dayKey
+            });
+
+            if (error) {
+                if (error.code === '23505') {
+                    localStorage.setItem(LOCAL_DAY_KEY, dayKey);
+                    markEchoAsSent();
+                    showToast('今天已经扔过一条回声啦，明天再来 ✨', 'error');
+                    return;
+                }
+                throw error;
+            }
+
+            localStorage.setItem(LOCAL_DAY_KEY, dayKey);
+            echoTextarea.value = '';
+            echoCharCount.textContent = '0';
+            echoCharCount.parentElement.classList.remove('warn');
+            markEchoAsSent();
+            showToast('🌌 回声已沉入洞中，等待被听见', 'success');
+
+        } catch (err) {
+            console.error('发送失败:', err);
+            showToast('投递失败，请检查网络后重试', 'error');
+            if (!sentToday) {
+                sendBtn.disabled = false;
+                sendBtn.textContent = '🚀 扔进洞里';
+            }
+        }
+    }
+
+    function renderEcho(echo) {
+        echoDisplay.innerHTML =
+            '<div class="echo-message">' +
+                '<div class="echo-text">' + escapeHtml(echo.content) + '</div>' +
+                '<div class="echo-time">📡 ' + formatTime(echo.created_at) + '</div>' +
+            '</div>';
+    }
+
+    async function handleEchoDraw() {
+        drawBtn.disabled = true;
+        drawBtn.textContent = '🔄 正在聆听...';
+
+        try {
+            const { data, error } = await sb.rpc('random_echo');
+            if (error) throw error;
+
+            if (!data || data.length === 0) {
+                echoDisplay.innerHTML =
+                    '<div class="echo-empty">洞中静悄悄的……<br>点击下方按钮，随机捞起一条回声</div>';
+                showToast('洞里还空空的，要不要成为第一个？', 'error');
+                return;
+            }
+            renderEcho(data[0]);
+
+        } catch (err) {
+            console.error('抽取失败:', err);
+            showToast('抽取失败，请稍后再试', 'error');
+        } finally {
+            drawBtn.disabled = false;
+            drawBtn.textContent = '🎲 抽一条回声';
+        }
+    }
+
+    sendBtn.addEventListener('click', handleEchoSend);
+    drawBtn.addEventListener('click', handleEchoDraw);
+
+    /* ============================================================
+       3D 骰子
+       ============================================================ */
+    const diceCube  = $('diceCube');
+    const diceStage = $('diceStage');
+    const rollBtn   = $('rollBtn');
+
+    /*
+       立方体六个面在本地方向下的法线，以及各面的点数：
+         front  (0, 0, 1)   → 1
+         back   (0, 0,-1)   → 6
+         right  (1, 0, 0)   → 3
+         left   (-1,0, 0)   → 4
+         top    (0,-1, 0)   → 2
+         bottom (0, 1, 0)   → 5
+
+       要某个面朝前（法线指向 +z），立方体需要的 rotateX / rotateY 角度：
+       （transform 顺序为 rotateX(a) rotateY(b)）
+    */
+    const DICE_TARGET = {
+        1: { x:   0, y:    0 },
+        2: { x: -90, y:    0 },
+        3: { x:   0, y:  -90 },
+        4: { x:   0, y:   90 },
+        5: { x:  90, y:    0 },
+        6: { x:   0, y:  180 }
+    };
+
+    let diceAngleX = 0;     // 累积角度，只增不减，保证一直朝同一方向翻滚
+    let diceAngleY = 0;
+    let diceRolling = false;
+
+    function normalizeDeg(deg) {
+        return ((deg % 360) + 360) % 360;
+    }
+
+    function rollDice() {
+        if (diceRolling) return;
+        diceRolling = true;
+        rollBtn.disabled = true;
+        diceStage.classList.add('rolling');
+
+        // 随机结果（用 crypto 保证均匀，降级到 Math.random）
+        let value;
+        if (window.crypto && window.crypto.getRandomValues) {
+            const buf = new Uint32Array(1);
+            window.crypto.getRandomValues(buf);
+            value = (buf[0] % 6) + 1;
+        } else {
+            value = Math.floor(Math.random() * 6) + 1;
+        }
+
+        const target = DICE_TARGET[value];
+
+        // 当前角度到目标角度的最小正增量
+        const dx = normalizeDeg(target.x - diceAngleX);
+        const dy = normalizeDeg(target.y - diceAngleY);
+
+        // 至少再滚 2~3 整圈
+        const extraX = 360 * (2 + Math.floor(Math.random() * 2));
+        const extraY = 360 * (2 + Math.floor(Math.random() * 2));
+
+        diceAngleX += extraX + dx;
+        diceAngleY += extraY + dy;
+
+        diceCube.style.transform =
+            'rotateX(' + diceAngleX + 'deg) rotateY(' + diceAngleY + 'deg)';
+
+        // 与 CSS transition 时长对齐（1.7s）
+        setTimeout(function () {
+            diceRolling = false;
+            rollBtn.disabled = false;
+            diceStage.classList.remove('rolling');
+        }, 1760);
+    }
+
+    rollBtn.addEventListener('click', rollDice);
+    diceCube.addEventListener('click', rollDice);
+
+    /* ============================================================
+       启动
+       ============================================================ */
+    window.addEventListener('resize', function () {
+        resizeCanvas();
+        moveEchoSlider();
+    });
+
+    resizeCanvas();
+    requestAnimationFrame(renderLoop);
+
+    requestAnimationFrame(function () {
+        moveEchoSlider();
+        requestAnimationFrame(function () {
+            echoTabControl.classList.add('ready');
+        });
+    });
+
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(function () { moveEchoSlider(); });
+    }
+
+    checkEchoTodayStatus();
+
+})();
+</script>
+</body>
+</html>
