@@ -33,6 +33,7 @@
   .status-text.check { color: #d64100; animation: pulse 1s ease-in-out infinite; }
   .status-text.march { color: #b8860b; }
   .status-text.charging { color: #8a4a00; }
+  .status-text.draw { color: #7a3aa0; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
   .btn-reset { background: rgba(50, 30, 15, 0.15); border: 1px solid rgba(255, 215, 160, 0.15); border-radius: 30px; padding: 5px 14px; font-size: 13px; font-weight: 600; color: #2d1e10; cursor: pointer; font-family: inherit; }
   .btn-reset:hover { background: rgba(50, 30, 15, 0.28); }
@@ -50,14 +51,24 @@
   #reviewControls span { font-size: 14px; font-weight: 600; white-space: nowrap; }
   #progressSlider { flex: 1; min-width: 100px; max-width: 260px; accent-color: #4a7a9c; height: 6px; cursor: pointer; }
   #btnExitReview { padding: 5px 16px; font-size: 14px; border: none; border-radius: 30px; background: #e74c3c; color: white; cursor: pointer; font-weight: 600; font-family: inherit; }
-  .footer { display: flex; justify-content: center; gap: 16px; margin-top: 12px; flex-wrap: wrap; align-items: center; }
+  .footer { display: flex; justify-content: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; align-items: center; }
   .btn-undo { background: rgba(50, 30, 15, 0.12); border: 1px solid rgba(255, 215, 160, 0.12); border-radius: 30px; padding: 8px 26px; font-size: 15px; font-weight: 600; color: #2d1e10; cursor: pointer; font-family: inherit; }
   .btn-undo:hover:not(:disabled) { background: rgba(50, 30, 15, 0.25); }
   .btn-undo:disabled { opacity: 0.35; cursor: not-allowed; }
-  .truck-actions {
-    display: none; justify-content: center; gap: 8px; margin-top: 12px; padding: 6px 12px;
-    background: rgba(224, 160, 96, 0.10); border-radius: 24px; border: 1px solid rgba(224, 160, 96, 0.35);
+  .btn-draw {
+    background: rgba(150, 100, 200, 0.15);
+    border: 1px solid rgba(150, 100, 200, 0.3);
+    border-radius: 30px;
+    padding: 8px 26px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #5a2a8a;
+    cursor: pointer;
+    font-family: inherit;
   }
+  .btn-draw:hover:not(:disabled) { background: rgba(150, 100, 200, 0.28); }
+  .btn-draw:disabled { opacity: 0.35; cursor: not-allowed; }
+  .truck-actions { display: none; justify-content: center; gap: 8px; margin-top: 12px; padding: 6px 12px; background: rgba(224, 160, 96, 0.10); border-radius: 24px; border: 1px solid rgba(224, 160, 96, 0.35); }
   .truck-actions.show { display: flex; }
   .truck-label { display: flex; align-items: center; font-size: 12.5px; font-weight: 600; color: #8a5a2a; margin-right: 4px; letter-spacing: 0.5px; }
   .truck-btn { padding: 6px 16px; border-radius: 20px; border: 1px solid transparent; background: rgba(255, 255, 255, 0.55); font-size: 13px; font-weight: 600; color: #5a4a3a; cursor: pointer; font-family: inherit; transition: all 0.2s; min-width: 76px; }
@@ -82,6 +93,56 @@
   #notification { position: fixed; top: 22px; left: 50%; transform: translateX(-50%) translateY(-120px); background: linear-gradient(135deg, rgba(20,20,45,.95), rgba(40,30,65,.95)); color: #fff; padding: 12px 26px; border-radius: 50px; border: 1px solid rgba(160,130,255,.5); box-shadow: 0 12px 50px rgba(160,130,255,.35), 0 4px 20px rgba(0,0,0,.4); display: flex; align-items: center; gap: 10px; z-index: 9999; transition: transform .5s cubic-bezier(0.34,1.3,0.64,1), opacity .35s; opacity: 0; pointer-events: none; font-weight: 600; font-size: 13.5px; backdrop-filter: blur(16px); max-width: 90vw; white-space: nowrap; }
   #notification.show { transform: translateX(-50%) translateY(0); opacity: 1; }
   #notification .notif-icon { font-size: 18px; }
+
+  /* ===== 和棋申请横幅 ===== */
+  #drawOfferBanner {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-200px);
+    background: linear-gradient(135deg, rgba(60, 30, 90, 0.96), rgba(100, 60, 140, 0.96));
+    color: #fff;
+    padding: 12px 12px 12px 22px;
+    border-radius: 50px;
+    border: 1px solid rgba(200, 160, 255, 0.5);
+    box-shadow: 0 12px 50px rgba(140, 100, 200, 0.5), 0 4px 20px rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 9999;
+    transition: transform .55s cubic-bezier(0.34,1.3,0.64,1), opacity .35s;
+    opacity: 0;
+    pointer-events: none;
+    font-weight: 600;
+    font-size: 15px;
+    backdrop-filter: blur(16px);
+    max-width: 90vw;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  #drawOfferBanner.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  #drawOfferBanner .draw-icon { font-size: 22px; }
+  #drawOfferBanner .draw-text { white-space: nowrap; }
+  #drawOfferBanner .draw-btn {
+    padding: 7px 20px;
+    border-radius: 25px;
+    border: none;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all .2s;
+    min-width: 70px;
+  }
+  #drawOfferBanner .draw-accept { background: #4CAF50; color: #fff; }
+  #drawOfferBanner .draw-accept:hover { background: #5ec264; transform: translateY(-1px); }
+  #drawOfferBanner .draw-reject { background: rgba(255, 255, 255, 0.15); color: #fff; border: 1px solid rgba(255, 255, 255, 0.35); }
+  #drawOfferBanner .draw-reject:hover { background: rgba(255, 255, 255, 0.28); }
+
   @media (max-width: 640px) {
     .game-container { padding: 16px 12px 14px; border-radius: 32px; }
     .title { font-size: 17px; } .title small { font-size: 10px; }
@@ -99,11 +160,19 @@
     .tips { font-size: 10.5px; padding: 8px 10px; }
     .truck-btn { padding: 5px 10px; font-size: 11.5px; min-width: 62px; }
     .truck-label { font-size: 11px; }
+    #drawOfferBanner { font-size: 13px; padding: 10px 10px 10px 18px; gap: 8px; }
+    #drawOfferBanner .draw-btn { padding: 6px 14px; font-size: 12.5px; min-width: 58px; }
   }
 </style>
 </head>
 <body>
 <div id="notification"><span class="notif-icon">⚡</span><span class="notif-text">通知</span></div>
+<div id="drawOfferBanner">
+  <span class="draw-icon">🤝</span>
+  <span class="draw-text">对方申请和棋</span>
+  <button class="draw-btn draw-accept" id="btnAcceptDraw">同意</button>
+  <button class="draw-btn draw-reject" id="btnRejectDraw">拒绝</button>
+</div>
 <div class="game-container">
   <div class="header">
     <div class="title">♟ 中国象棋 <small>御驾亲征</small></div>
@@ -123,7 +192,10 @@
       </div>
     </div>
   </div>
-  <div class="footer"><button class="btn-undo" id="btnUndo" disabled>↩ 悔棋</button></div>
+  <div class="footer">
+    <button class="btn-undo" id="btnUndo" disabled>↩ 悔棋</button>
+    <button class="btn-draw" id="btnRequestDraw">🤝 申请和棋</button>
+  </div>
   <div class="truck-actions" id="truckActions">
     <span class="truck-label">🚚 拖车</span>
     <button class="truck-btn active" data-mode="move">🚶 移动</button>
@@ -138,11 +210,11 @@
   <div class="tips">
     <b>坦克</b>(车+炮): 炮击2格内敌方, 1格移动, 不过河, 2血; 一步合成。<br>
     <b>拖车</b>(车+车): 半径4内远跳(自身半场), 单独一步过河, 能载帅将, 不能吃子; 底部 [移动/装货/卸货] 切换。载帅拖车被吃→车毁人亡; 炮台不打载帅拖车。<br>
-    <b>炮台</b>(炮+炮): <b>3 步合成</b>(点 3 次: 充能①→充能②→合体), <b>合体后需重新装填才能开火</b>; 全图炮击除将外任意敌, 2血, <b>开火后需 2 个己方回合装填</b>。<br>
+    <b>炮台</b>(炮+炮): 3 步合成, 合体后需重新装填; 全图炮击除将外任意敌, 2血, 开火后需 2 个己方回合装填。<br>
     <b>兵营</b>: 4觉醒兵合成, 2血(知识分子入驻变3血), 每3己方回合产出1兵。<br>
-    <b>知识分子</b>(相+兵): 红方粉紫 / 黑方蓝黑, 上下左右 1~2 格, 可穿过己方棋子; 向2格内己方兵卒和帅将传思想。<br>
+    <b>知识分子</b>(相+兵): 红方粉紫 / 黑方蓝黑, 上下左右 1~2 格, 可穿过己方棋子。<br>
     <b>御驾亲征</b>: 帅/将过河时激活。未过河兵在己方半场可前进2格; 觉醒兵朝敌方向可走2格; 拖车解除半场限制。<br>
-    <b>灰色虚圈</b>: 该方向可走但会造成"将帅照面"送将, 已被规则过滤。<br>
+    <b>和棋</b>: 系统会在"长时间无吃子"或"双方都无威胁棋子"时弹出<b>对方申请和棋</b>横幅, 由您决定同意或拒绝; 您也可主动点 [🤝 申请和棋]。<br>
     <b>帅死续战</b>: 帅/将阵亡后, 若还有知识分子/觉醒兵, 游戏继续。
   </div>
   <div class="settings">
@@ -182,8 +254,11 @@ const VAL_TANK_HALF = 650;
 const VAL_P_AWAKENED = 260;
 const VAL_CAMP = 1000;
 
-/* 炮台开火后需 2 个己方回合装填 → turnCount - lastFireTurn >= 6 */
 const ARTILLERY_RELOAD = 6;
+/* 无吃子步数阈值：达到此值时 AI 会申请和棋 */
+const NO_CAPTURE_DRAW_THRESHOLD = 120;
+/* 拒绝后重置的步数（避免立刻重弹） */
+const NO_CAPTURE_RESET = 60;
 
 const DIRS8 = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
 const DIRS4 = [[0,1],[0,-1],[1,0],[-1,0]];
@@ -216,6 +291,7 @@ const turnDot = document.getElementById('turnDot');
 const statusText = document.getElementById('statusText');
 const btnReset = document.getElementById('btnReset');
 const btnUndo = document.getElementById('btnUndo');
+const btnRequestDraw = document.getElementById('btnRequestDraw');
 const overlay = document.getElementById('overlay');
 const resultText = document.getElementById('resultText');
 const btnNextGame = document.getElementById('btnNextGame');
@@ -237,15 +313,21 @@ const difficultySlider = document.getElementById('difficultySlider');
 const diffOptions = difficultyControl.querySelectorAll('.segmented-option');
 const truckActions = document.getElementById('truckActions');
 const truckBtns = truckActions.querySelectorAll('.truck-btn');
+const drawOfferBanner = document.getElementById('drawOfferBanner');
+const btnAcceptDraw = document.getElementById('btnAcceptDraw');
+const btnRejectDraw = document.getElementById('btnRejectDraw');
 
 let board, turn, selected, targets, history, lastMove, gameOver, winner, thinking, checkNow;
 let camps = [];
 let turnCount = 0;
+let noCaptureHalfMoves = 0;
 let showLegal = true, showBest = false, showCheck = true, difficulty = 'extreme';
 let isReview = false, reviewStep = 0;
 let notifTimer = null;
 let truckMode = 'move';
 let forbiddenTargets = [];
+let pendingDrawOffer = false;   /* 是否有待玩家响应的和棋申请 */
+let drawOfferFrom = null;       /* 'ai' | 'player' */
 
 function createInitialBoard() {
   const bd = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
@@ -271,8 +353,12 @@ function initGame() {
   gameOver = false; winner = null; thinking = false; checkNow = false;
   camps = [];
   turnCount = 0;
+  noCaptureHalfMoves = 0;
   truckMode = 'move';
   forbiddenTargets = [];
+  pendingDrawOffer = false;
+  drawOfferFrom = null;
+  drawOfferBanner.classList.remove('show');
   isReview = false; reviewStep = 0;
   overlay.classList.remove('show');
   reviewControls.classList.remove('active');
@@ -513,7 +599,6 @@ function revertThoughts(affected) {
   for (const a of affected) a.piece.thought = a.oldThought;
 }
 
-/* 检查某炮是否有 stage 匹配的 charge 指向对方 */
 function getChargeStage(p, tx, ty) {
   if (p && p.charge && p.charge.x === tx && p.charge.y === ty) return p.charge.stage || 1;
   return 0;
@@ -521,6 +606,28 @@ function getChargeStage(p, tx, ty) {
 
 function isArtilleryReady(p) {
   return turnCount - (p.lastFireTurn ?? -10) >= ARTILLERY_RELOAD;
+}
+
+/* ===== 判断某方是否还有能威胁对方将帅的棋子（含兵营） ===== */
+function hasAnyThreatToKing(bd, color, campsArr) {
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      const p = bd[y][x];
+      if (!p || p.color !== color) continue;
+      switch (p.type) {
+        case 'R': case 'N': case 'C': case 'T': case 'I':
+        case 'P':
+          return true;
+      }
+    }
+  }
+  /* 兵营也算威胁：能持续产兵 */
+  if (campsArr) {
+    for (const camp of campsArr) {
+      if (camp.color === color) return true;
+    }
+  }
+  return false;
 }
 
 function isMoveSafe(bd, color, mv) {
@@ -818,7 +925,6 @@ function genPseudoMoves(bd, color, campsArr) {
         continue;
       }
 
-      /* ===== 炮：3 步合成（充能① → 充能② → 合体） ===== */
       if (p.type === 'C') {
         for (const [dx, dy] of DIRS4) {
           let nx = x + dx, ny = y + dy;
@@ -832,18 +938,14 @@ function genPseudoMoves(bd, color, campsArr) {
               if (t1.type === 'R') {
                 moves.push({ fx:x, fy:y, tx:nx, ty:ny, action:'merge' });
               } else if (t1.type === 'C') {
-                /* 检查双方 charge 是否互相指向 */
                 const aStage = getChargeStage(p, nx, ny);
                 const bStage = getChargeStage(t1, x, y);
                 const bothValid = aStage > 0 && bStage > 0 && aStage === bStage;
                 if (bothValid && aStage === 2) {
-                  /* 双方均已充能 2 次 → 合体 */
                   moves.push({ fx:x, fy:y, tx:nx, ty:ny, action:'mergeArtillery' });
                 } else if (bothValid && aStage === 1) {
-                  /* 双方已充能 1 次 → 升到 stage 2 */
                   moves.push({ fx:x, fy:y, tx:nx, ty:ny, action:'chargeArtillery2' });
                 } else {
-                  /* 未充能或状态不一致 → 从头充能 stage 1 */
                   moves.push({ fx:x, fy:y, tx:nx, ty:ny, action:'chargeArtillery' });
                 }
               }
@@ -1127,7 +1229,6 @@ function applyMove(bd, mv, color, campsArr, skipSideEffects) {
   } else if (mv.action === 'mergeArtillery') {
     if (piece) piece.charge = null;
     if (target) target.charge = null;
-    /* 合体时设置 lastFireTurn = turnCount，需要装填才能开火 */
     bd[mv.ty][mv.tx] = { type:'F', color: color, hp: 2, lastFireTurn: turnCount };
     bd[mv.fy][mv.fx] = null;
   } else if (mv.action === 'loadCargo') {
@@ -1423,6 +1524,7 @@ function updateCheckState() {
   return checkNow;
 }
 
+/* ===== 只做"硬失败"判定，不再自动判和 ===== */
 function checkGameEnd() {
   let totalPieces = 0;
   let hasCombatant = false;
@@ -1454,8 +1556,66 @@ function checkGameEnd() {
   return false;
 }
 
+/* ===== 检查是否该触发和棋申请 ===== */
+function shouldOfferDraw() {
+  if (pendingDrawOffer || gameOver) return false;
+  const redThreat = hasAnyThreatToKing(board, 'r', camps);
+  const blackThreat = hasAnyThreatToKing(board, 'b', camps);
+  if (!redThreat && !blackThreat) return true;
+  if (noCaptureHalfMoves >= NO_CAPTURE_DRAW_THRESHOLD) return true;
+  return false;
+}
+
+/* ===== 弹出和棋申请横幅 ===== */
+function offerDraw(from) {
+  if (pendingDrawOffer) return;
+  pendingDrawOffer = true;
+  drawOfferFrom = from;
+  drawOfferBanner.classList.add('show');
+  updateUI(); draw();
+}
+
+/* ===== 玩家响应和棋申请 ===== */
+btnAcceptDraw.addEventListener('click', () => {
+  if (!pendingDrawOffer) return;
+  pendingDrawOffer = false;
+  drawOfferBanner.classList.remove('show');
+  gameOver = true;
+  winner = null;
+  updateUI(); draw(); showOverlay();
+});
+
+btnRejectDraw.addEventListener('click', () => {
+  if (!pendingDrawOffer) return;
+  pendingDrawOffer = false;
+  drawOfferBanner.classList.remove('show');
+  noCaptureHalfMoves = NO_CAPTURE_RESET;
+  showNotification('您拒绝了和棋申请');
+  updateUI(); draw();
+});
+
+/* ===== 玩家主动申请和棋 ===== */
+btnRequestDraw.addEventListener('click', () => {
+  if (gameOver || pendingDrawOffer || thinking || isReview) return;
+  if (turn !== 'r') return;
+  /* AI 接受和棋的条件：局面确实僵持 */
+  const redThreat = hasAnyThreatToKing(board, 'r', camps);
+  const blackThreat = hasAnyThreatToKing(board, 'b', camps);
+  const aiAccepts = (!redThreat && !blackThreat) ||
+                    noCaptureHalfMoves >= NO_CAPTURE_RESET ||
+                    evaluate(board, camps) < 200;   /* AI 自己也不占优就同意 */
+  if (aiAccepts) {
+    gameOver = true;
+    winner = null;
+    updateUI(); draw(); showOverlay();
+    showNotification('AI 同意和棋');
+  } else {
+    showNotification('AI 拒绝了和棋申请');
+  }
+});
+
 function snapshotState() {
-  return { board: cloneBoard(board), camps: cloneCamps(camps), turnCount };
+  return { board: cloneBoard(board), camps: cloneCamps(camps), turnCount, noCaptureHalfMoves };
 }
 
 function computeLastMove(mv) {
@@ -1472,6 +1632,13 @@ function doMove(mv) {
   const undo = applyMove(board, mv, mover, camps, false);
   undo.snapshot = snapshotState();
   history.push(undo);
+
+  if (undo.targetPiece || mv.action === 'attackCamp') {
+    noCaptureHalfMoves = 0;
+  } else {
+    noCaptureHalfMoves++;
+  }
+
   lastMove = computeLastMove(mv);
   turn = other(turn);
   turnCount++;
@@ -1500,7 +1667,7 @@ function doMove(mv) {
 }
 
 function scheduleAI() {
-  if (thinking || gameOver) return;
+  if (thinking || gameOver || pendingDrawOffer) return;
   thinking = true;
   updateUI(); draw();
 
@@ -1522,6 +1689,13 @@ function scheduleAI() {
     const undo = applyMove(board, mv, 'b', camps, false);
     undo.snapshot = snapshotState();
     history.push(undo);
+
+    if (undo.targetPiece || mv.action === 'attackCamp') {
+    noCaptureHalfMoves = 0;
+    } else {
+      noCaptureHalfMoves++;
+    }
+
     lastMove = computeLastMove(mv);
     turn = 'r';
     turnCount++;
@@ -1543,17 +1717,25 @@ function scheduleAI() {
     if (checkGameEnd()) return;
     updateCheckState();
     updateUI(); draw();
+
+    /* AI 走完后检查是否要申请和棋 */
+    if (shouldOfferDraw()) {
+      setTimeout(() => offerDraw('ai'), 400);
+    }
   }, 80);
 }
 
 function undoMove() {
-  if (thinking || history.length === 0) return;
+  if (thinking || history.length === 0 || pendingDrawOffer) return;
   const steps = Math.min(2, history.length);
   for (let i = 0; i < steps; i++) {
     const undo = history.pop();
     revertMove(board, undo, camps);
     if (undo.snapshot && undo.snapshot.turnCount !== undefined) turnCount = undo.snapshot.turnCount;
     else turnCount = Math.max(0, turnCount - 1);
+    if (undo.snapshot && undo.snapshot.noCaptureHalfMoves !== undefined) {
+      noCaptureHalfMoves = undo.snapshot.noCaptureHalfMoves;
+    }
   }
   turn = (history.length % 2 === 0) ? 'r' : 'b';
   gameOver = false; winner = null;
@@ -1793,7 +1975,6 @@ function drawPiece(x, y, piece, highlight) {
     ctx.fillText(piece.color === 'r' ? '红' : '黑', ax, ay + 1);
   }
 
-  /* 炮充能标记：显示 stage 数字 */
   if (piece.type === 'C' && piece.charge) {
     const stage = piece.charge.stage || 1;
     ctx.beginPath();
@@ -1837,7 +2018,6 @@ function drawPiece(x, y, piece, highlight) {
     ctx.fillStyle = ready ? '#4ade80' : '#888';
     ctx.fill();
     if (!ready) {
-      /* 显示剩余己方回合数 */
       const diff = turnCount - (piece.lastFireTurn ?? -10);
       const remain = Math.max(1, Math.ceil((ARTILLERY_RELOAD - diff) / 2));
       ctx.fillStyle = '#fff';
@@ -2024,7 +2204,6 @@ function draw() {
       }
     }
 
-    /* 相邻合成提示 */
     if (!isReview && !gameOver && !thinking && selected) {
       for (const [dx, dy] of DIRS8) {
         const nx = selected.x + dx, ny = selected.y + dy;
@@ -2037,13 +2216,12 @@ function draw() {
         const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 220);
         let col;
         if (kind === 'mergeArtillery') {
-          /* 根据 charge stage 变色 */
           const aStage = getChargeStage(sp, nx, ny);
           const bStage = getChargeStage(tp, selected.x, selected.y);
           const stage = Math.min(aStage, bStage);
-          if (stage === 2) col = `rgba(255,120,40,${pulse})`;      /* 橙红 - 可合体 */
-          else if (stage === 1) col = `rgba(255,200,80,${pulse})`; /* 黄 - 继续充能 */
-          else col = `rgba(255,220,120,${pulse})`;                 /* 浅黄 - 未充能 */
+          if (stage === 2) col = `rgba(255,120,40,${pulse})`;
+          else if (stage === 1) col = `rgba(255,200,80,${pulse})`;
+          else col = `rgba(255,220,120,${pulse})`;
         } else {
           col = kind === 'merge' ? `rgba(245,166,35,${pulse})`
               : kind === 'mergeIntellectual' ? `rgba(154,106,240,${pulse})`
@@ -2211,14 +2389,23 @@ function updateUI() {
   if (gameOver) {
     if (winner === 'r') { turnDot.className = 'turn-dot red win'; statusText.textContent = '🎉 红方胜！'; }
     else if (winner === 'b') { turnDot.className = 'turn-dot black win'; statusText.textContent = '😵 黑方胜...'; }
+    else { turnDot.className = 'turn-dot'; statusText.textContent = '🤝 和棋'; }
+    statusText.classList.remove('check'); statusText.classList.remove('march'); statusText.classList.remove('charging'); statusText.classList.remove('draw');
+    btnUndo.disabled = true;
+    return;
+  }
+  if (pendingDrawOffer) {
+    turnDot.className = 'turn-dot red';
+    statusText.textContent = '等待您回应和棋申请';
     statusText.classList.remove('check'); statusText.classList.remove('march'); statusText.classList.remove('charging');
+    statusText.classList.add('draw');
     btnUndo.disabled = true;
     return;
   }
   if (thinking) {
     turnDot.className = 'turn-dot black';
     statusText.textContent = 'AI 思考中...';
-    statusText.classList.remove('check'); statusText.classList.remove('march'); statusText.classList.remove('charging');
+    statusText.classList.remove('check'); statusText.classList.remove('march'); statusText.classList.remove('charging'); statusText.classList.remove('draw');
     btnUndo.disabled = true;
     return;
   }
@@ -2226,47 +2413,47 @@ function updateUI() {
   const march = hasImperialMarch(board, turn);
   if (turn === 'r') {
     turnDot.className = 'turn-dot red';
-    if (!hasKing) { statusText.textContent = '红方无帅续战'; statusText.classList.remove('check'); statusText.classList.remove('charging'); statusText.classList.add('march'); }
-    else if (checkNow) { statusText.textContent = '红方被将军！'; statusText.classList.add('check'); statusText.classList.remove('march'); statusText.classList.remove('charging'); }
-    else if (march) { statusText.textContent = '红方御驾亲征'; statusText.classList.add('march'); statusText.classList.remove('check'); statusText.classList.remove('charging'); }
+    if (!hasKing) { statusText.textContent = '红方无帅续战'; statusText.classList.remove('check'); statusText.classList.remove('charging'); statusText.classList.remove('draw'); statusText.classList.add('march'); }
+    else if (checkNow) { statusText.textContent = '红方被将军！'; statusText.classList.add('check'); statusText.classList.remove('march'); statusText.classList.remove('charging'); statusText.classList.remove('draw'); }
+    else if (march) { statusText.textContent = '红方御驾亲征'; statusText.classList.add('march'); statusText.classList.remove('check'); statusText.classList.remove('charging'); statusText.classList.remove('draw'); }
     else if (selected) {
       const sp = board[selected.y][selected.x];
       if (sp && sp.type === 'D') {
         if (truckMode === 'move') statusText.textContent = '拖车·移动';
         else if (truckMode === 'load') statusText.textContent = '拖车·装货';
         else statusText.textContent = '拖车·卸货';
-        statusText.classList.remove('check'); statusText.classList.remove('march'); statusText.classList.remove('charging');
+        statusText.classList.remove('check'); statusText.classList.remove('march'); statusText.classList.remove('charging'); statusText.classList.remove('draw');
       } else if (sp && sp.type === 'C' && sp.charge) {
         const stage = sp.charge.stage || 1;
         statusText.textContent = `炮台充能中 (${stage}/3)`;
-        statusText.classList.remove('check'); statusText.classList.remove('march');
+        statusText.classList.remove('check'); statusText.classList.remove('march'); statusText.classList.remove('draw');
         statusText.classList.add('charging');
       } else if (sp && sp.type === 'F' && !isArtilleryReady(sp)) {
         const diff = turnCount - (sp.lastFireTurn ?? -10);
         const remain = Math.max(1, Math.ceil((ARTILLERY_RELOAD - diff) / 2));
         statusText.textContent = `炮台装填中 (剩${remain}回合)`;
-        statusText.classList.remove('check'); statusText.classList.remove('march');
+        statusText.classList.remove('check'); statusText.classList.remove('march'); statusText.classList.remove('draw');
         statusText.classList.add('charging');
       } else {
         statusText.textContent = '红方走棋';
-        statusText.classList.remove('check'); statusText.classList.remove('march'); statusText.classList.remove('charging');
+        statusText.classList.remove('check'); statusText.classList.remove('march'); statusText.classList.remove('charging'); statusText.classList.remove('draw');
       }
     }
-    else { statusText.textContent = '红方走棋'; statusText.classList.remove('check'); statusText.classList.remove('march'); statusText.classList.remove('charging'); }
+    else { statusText.textContent = '红方走棋'; statusText.classList.remove('check'); statusText.classList.remove('march'); statusText.classList.remove('charging'); statusText.classList.remove('draw'); }
   } else {
     turnDot.className = 'turn-dot black';
-    if (!hasKing) { statusText.textContent = '黑方无将续战'; statusText.classList.remove('check'); statusText.classList.remove('charging'); statusText.classList.add('march'); }
-    else if (checkNow) { statusText.textContent = '黑方被将军！'; statusText.classList.add('check'); statusText.classList.remove('march'); statusText.classList.remove('charging'); }
-    else if (march) { statusText.textContent = '黑方御驾亲征'; statusText.classList.add('march'); statusText.classList.remove('check'); statusText.classList.remove('charging'); }
-    else { statusText.textContent = '黑方走棋'; statusText.classList.remove('check'); statusText.classList.remove('march'); statusText.classList.remove('charging'); }
+    if (!hasKing) { statusText.textContent = '黑方无将续战'; statusText.classList.remove('check'); statusText.classList.remove('charging'); statusText.classList.remove('draw'); statusText.classList.add('march'); }
+    else if (checkNow) { statusText.textContent = '黑方被将军！'; statusText.classList.add('check'); statusText.classList.remove('march'); statusText.classList.remove('charging'); statusText.classList.remove('draw'); }
+    else if (march) { statusText.textContent = '黑方御驾亲征'; statusText.classList.add('march'); statusText.classList.remove('check'); statusText.classList.remove('charging'); statusText.classList.remove('draw'); }
+    else { statusText.textContent = '黑方走棋'; statusText.classList.remove('check'); statusText.classList.remove('march'); statusText.classList.remove('charging'); statusText.classList.remove('draw'); }
   }
-  btnUndo.disabled = (history.length === 0 || thinking);
+  btnUndo.disabled = (history.length === 0 || thinking || pendingDrawOffer);
 }
 
 function showOverlay() {
   if (winner === 'r') resultText.textContent = '🎉 恭喜！红方胜';
   else if (winner === 'b') resultText.textContent = '😵 AI 赢了';
-  else resultText.textContent = '🤝 平局';
+  else resultText.textContent = '🤝 和棋';
   overlay.classList.add('show');
 }
 
@@ -2302,7 +2489,7 @@ function findCampAtPoint(mx, my) {
 }
 
 function onCanvasClick(e) {
-  if (gameOver || thinking || isReview) return;
+  if (gameOver || thinking || isReview || pendingDrawOffer) return;
   if (turn !== 'r') return;
 
   const rect = canvas.getBoundingClientRect();
@@ -2429,8 +2616,9 @@ initGame();
 moveDifficultySlider();
 
 console.log('♟ 中国象棋 · 御驾亲征版');
-console.log('  💣 炮台：3 步合成（点 3 次：充能①→充能②→合体），合体后需重新装填');
-console.log('  💣 炮台：开火后需 2 个己方回合装填 (ARTILLERY_RELOAD = 6)');
+console.log('  🤝 和棋改为横幅申请：AI 会主动申请，玩家可同意/拒绝');
+console.log('  🤝 兵营算威胁：有兵营就不触发"无威胁"判定');
+console.log('  🤝 玩家也可主动点 [申请和棋] 按钮');
 
 })();
 </script>
