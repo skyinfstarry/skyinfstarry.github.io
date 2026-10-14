@@ -1,0 +1,2626 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+<title>中国象棋 · 御驾亲征</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: linear-gradient(145deg, #e8dcc8 0%, #d4c4aa 100%);
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    padding: 20px; -webkit-font-smoothing: antialiased;
+  }
+  .game-container {
+    max-width: 720px; width: 100%; background: rgba(215, 190, 160, 0.70);
+    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    border-radius: 48px; padding: 26px 28px 22px;
+    box-shadow: 0 30px 60px rgba(30, 20, 10, 0.12), 0 10px 30px rgba(0, 0, 0, 0.04), inset 0 1px 1px rgba(255, 240, 220, 0.6);
+    border: 1px solid rgba(255, 235, 210, 0.5); color: #2d1e10; position: relative;
+  }
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 4px; flex-wrap: wrap; gap: 8px; }
+  .title { font-size: 22px; font-weight: 700; letter-spacing: 1.5px; color: #3e2a1b; text-shadow: 0 1px 0 rgba(255, 235, 210, 0.6); }
+  .title small { font-size: 12px; font-weight: 600; color: #8a6a4a; margin-left: 6px; letter-spacing: 0; }
+  .status-area { display: flex; align-items: center; gap: 12px; background: rgba(60, 40, 20, 0.10); padding: 4px 14px 4px 12px; border-radius: 40px; border: 1px solid rgba(255, 215, 160, 0.25); flex-wrap: wrap; }
+  .turn-indicator { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; }
+  .turn-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(0, 0, 0, 0.20); flex-shrink: 0; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.10); transition: background .3s, box-shadow .3s; }
+  .turn-dot.red { background: radial-gradient(circle at 35% 35%, #ff8b7a, #c0392b); }
+  .turn-dot.black { background: radial-gradient(circle at 35% 35%, #666, #111); }
+  .turn-dot.win { box-shadow: 0 0 16px #f5d742, 0 0 30px #f5b742; border-color: #f5b742; }
+  .status-text { font-size: 14px; font-weight: 600; min-width: 86px; color: #2d1e10; }
+  .status-text.check { color: #d64100; animation: pulse 1s ease-in-out infinite; }
+  .status-text.march { color: #b8860b; }
+  .status-text.charging { color: #8a4a00; }
+  .status-text.draw { color: #7a3aa0; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+  .btn-reset { background: rgba(50, 30, 15, 0.15); border: 1px solid rgba(255, 215, 160, 0.15); border-radius: 30px; padding: 5px 14px; font-size: 13px; font-weight: 600; color: #2d1e10; cursor: pointer; font-family: inherit; }
+  .btn-reset:hover { background: rgba(50, 30, 15, 0.28); }
+  .board-wrapper { position: relative; display: flex; justify-content: center; border-radius: 16px; background: rgba(160, 130, 90, 0.25); padding: 6px; box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.15); }
+  #boardCanvas { display: block; width: 100%; height: auto; aspect-ratio: 548 / 608; border-radius: 12px; cursor: pointer; background: #eaceac; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25); touch-action: none; max-width: 560px; }
+  #overlay { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.60); border-radius: 16px; display: none; flex-direction: column; align-items: center; justify-content: center; color: white; z-index: 20; backdrop-filter: blur(4px); }
+  #overlay.show { display: flex; }
+  #resultText { font-size: 30px; font-weight: bold; margin-bottom: 20px; text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5); }
+  .overlay-buttons { display: flex; gap: 18px; }
+  .overlay-buttons button { padding: 11px 32px; font-size: 18px; border: none; border-radius: 40px; color: white; cursor: pointer; font-weight: 600; font-family: inherit; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); }
+  #btnNextGame { background: #4CAF50; }
+  #btnReview { background: #2196F3; }
+  #reviewControls { display: none; align-items: center; gap: 12px; margin-top: 12px; padding: 6px 16px; background: rgba(60, 40, 20, 0.10); border-radius: 40px; border: 1px solid rgba(255, 215, 160, 0.20); justify-content: center; width: 100%; flex-wrap: wrap; }
+  #reviewControls.active { display: flex; }
+  #reviewControls span { font-size: 14px; font-weight: 600; white-space: nowrap; }
+  #progressSlider { flex: 1; min-width: 100px; max-width: 260px; accent-color: #4a7a9c; height: 6px; cursor: pointer; }
+  #btnExitReview { padding: 5px 16px; font-size: 14px; border: none; border-radius: 30px; background: #e74c3c; color: white; cursor: pointer; font-weight: 600; font-family: inherit; }
+  .footer { display: flex; justify-content: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; align-items: center; }
+  .btn-undo { background: rgba(50, 30, 15, 0.12); border: 1px solid rgba(255, 215, 160, 0.12); border-radius: 30px; padding: 8px 26px; font-size: 15px; font-weight: 600; color: #2d1e10; cursor: pointer; font-family: inherit; }
+  .btn-undo:hover:not(:disabled) { background: rgba(50, 30, 15, 0.25); }
+  .btn-undo:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-draw {
+    background: rgba(150, 100, 200, 0.15);
+    border: 1px solid rgba(150, 100, 200, 0.3);
+    border-radius: 30px;
+    padding: 8px 26px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #5a2a8a;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-draw:hover:not(:disabled) { background: rgba(150, 100, 200, 0.28); }
+  .btn-draw:disabled { opacity: 0.35; cursor: not-allowed; }
+  .truck-actions { display: none; justify-content: center; gap: 8px; margin-top: 12px; padding: 6px 12px; background: rgba(224, 160, 96, 0.10); border-radius: 24px; border: 1px solid rgba(224, 160, 96, 0.35); }
+  .truck-actions.show { display: flex; }
+  .truck-label { display: flex; align-items: center; font-size: 12.5px; font-weight: 600; color: #8a5a2a; margin-right: 4px; letter-spacing: 0.5px; }
+  .truck-btn { padding: 6px 16px; border-radius: 20px; border: 1px solid transparent; background: rgba(255, 255, 255, 0.55); font-size: 13px; font-weight: 600; color: #5a4a3a; cursor: pointer; font-family: inherit; transition: all 0.2s; min-width: 76px; }
+  .truck-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.85); }
+  .truck-btn.active { background: #3a7bd5; color: white; border-color: #2a5ba5; box-shadow: 0 2px 8px rgba(58, 123, 213, 0.35); }
+  .truck-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .tips { margin-top: 12px; padding: 10px 14px; border-radius: 24px; background: rgba(60, 40, 20, 0.06); border: 1px solid rgba(255, 215, 160, 0.15); font-size: 11.5px; line-height: 1.6; color: #5a4a3a; }
+  .tips b { color: #8a3a1a; }
+  .settings { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; padding: 10px 16px 12px; background: rgba(60, 40, 20, 0.06); border-radius: 32px; border: 1px solid rgba(255, 215, 160, 0.15); }
+  .toggles-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; justify-content: center; }
+  .toggle-wrap { display: flex; align-items: center; gap: 9px; cursor: pointer; font-weight: 500; font-size: 13px; color: #2d1e10; user-select: none; }
+  .toggle-track { position: relative; width: 44px; height: 24px; background: rgba(60, 40, 20, 0.20); border-radius: 40px; box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.08); transition: background 0.25s; border: 1px solid rgba(255, 235, 210, 0.3); flex-shrink: 0; }
+  .toggle-track.active { background: #3a7bd5; }
+  .toggle-knob { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; background: white; border-radius: 30px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.10); transition: left 0.32s cubic-bezier(0.34, 1.3, 0.64, 1); }
+  .toggle-track.active .toggle-knob { left: 22px; }
+  .segmented-wrap { display: flex; align-items: flex-start; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .segmented-label { font-weight: 600; font-size: 13px; color: #2d1e10; white-space: nowrap; padding-top: 8px; }
+  .segmented-control { position: relative; display: flex; flex-wrap: wrap; background: rgba(60, 40, 20, 0.08); border-radius: 24px; padding: 4px; border: 1px solid rgba(255, 235, 210, 0.35); flex: 1 1 auto; min-width: 220px; max-width: 400px; row-gap: 4px; }
+  .segmented-slider { position: absolute; background: rgba(255, 255, 255, 0.80); border-radius: 20px; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.7); transition: all .32s cubic-bezier(0.34,1.3,0.64,1); z-index: 0; pointer-events: none; }
+  .segmented-option { position: relative; z-index: 1; padding: 7px 12px; border-radius: 20px; font-weight: 600; font-size: 12.5px; color: #5a4a3a; cursor: pointer; transition: color 0.3s ease; background: transparent; border: none; user-select: none; white-space: nowrap; flex: 1 1 0; text-align: center; min-width: 54px; font-family: inherit; }
+  .segmented-option.active { color: #1e293b; }
+  #notification { position: fixed; top: 22px; left: 50%; transform: translateX(-50%) translateY(-120px); background: linear-gradient(135deg, rgba(20,20,45,.95), rgba(40,30,65,.95)); color: #fff; padding: 12px 26px; border-radius: 50px; border: 1px solid rgba(160,130,255,.5); box-shadow: 0 12px 50px rgba(160,130,255,.35), 0 4px 20px rgba(0,0,0,.4); display: flex; align-items: center; gap: 10px; z-index: 9999; transition: transform .5s cubic-bezier(0.34,1.3,0.64,1), opacity .35s; opacity: 0; pointer-events: none; font-weight: 600; font-size: 13.5px; backdrop-filter: blur(16px); max-width: 90vw; white-space: nowrap; }
+  #notification.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  #notification .notif-icon { font-size: 18px; }
+
+  /* ===== 和棋申请横幅 ===== */
+  #drawOfferBanner {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-200px);
+    background: linear-gradient(135deg, rgba(60, 30, 90, 0.96), rgba(100, 60, 140, 0.96));
+    color: #fff;
+    padding: 12px 12px 12px 22px;
+    border-radius: 50px;
+    border: 1px solid rgba(200, 160, 255, 0.5);
+    box-shadow: 0 12px 50px rgba(140, 100, 200, 0.5), 0 4px 20px rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 9999;
+    transition: transform .55s cubic-bezier(0.34,1.3,0.64,1), opacity .35s;
+    opacity: 0;
+    pointer-events: none;
+    font-weight: 600;
+    font-size: 15px;
+    backdrop-filter: blur(16px);
+    max-width: 90vw;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  #drawOfferBanner.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  #drawOfferBanner .draw-icon { font-size: 22px; }
+  #drawOfferBanner .draw-text { white-space: nowrap; }
+  #drawOfferBanner .draw-btn {
+    padding: 7px 20px;
+    border-radius: 25px;
+    border: none;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all .2s;
+    min-width: 70px;
+  }
+  #drawOfferBanner .draw-accept { background: #4CAF50; color: #fff; }
+  #drawOfferBanner .draw-accept:hover { background: #5ec264; transform: translateY(-1px); }
+  #drawOfferBanner .draw-reject { background: rgba(255, 255, 255, 0.15); color: #fff; border: 1px solid rgba(255, 255, 255, 0.35); }
+  #drawOfferBanner .draw-reject:hover { background: rgba(255, 255, 255, 0.28); }
+
+  @media (max-width: 640px) {
+    .game-container { padding: 16px 12px 14px; border-radius: 32px; }
+    .title { font-size: 17px; } .title small { font-size: 10px; }
+    .status-area { padding: 4px 10px; gap: 8px; }
+    .turn-indicator { font-size: 13px; } .turn-dot { width: 16px; height: 16px; }
+    .status-text { font-size: 12px; min-width: 64px; }
+    .btn-reset { font-size: 12px; padding: 4px 11px; }
+    .settings { padding: 8px 10px; gap: 10px; }
+    .segmented-option { font-size: 11.5px; padding: 6px 8px; min-width: 48px; }
+    .segmented-label { font-size: 12px; padding-top: 6px; }
+    .segmented-control { min-width: 180px; }
+    #resultText { font-size: 22px; }
+    .overlay-buttons button { padding: 8px 22px; font-size: 15px; }
+    #notification { font-size: 12px; padding: 9px 16px; top: 14px; }
+    .tips { font-size: 10.5px; padding: 8px 10px; }
+    .truck-btn { padding: 5px 10px; font-size: 11.5px; min-width: 62px; }
+    .truck-label { font-size: 11px; }
+    #drawOfferBanner { font-size: 13px; padding: 10px 10px 10px 18px; gap: 8px; }
+    #drawOfferBanner .draw-btn { padding: 6px 14px; font-size: 12.5px; min-width: 58px; }
+  }
+</style>
+</head>
+<body>
+<div id="notification"><span class="notif-icon">⚡</span><span class="notif-text">通知</span></div>
+<div id="drawOfferBanner">
+  <span class="draw-icon">🤝</span>
+  <span class="draw-text">对方申请和棋</span>
+  <button class="draw-btn draw-accept" id="btnAcceptDraw">同意</button>
+  <button class="draw-btn draw-reject" id="btnRejectDraw">拒绝</button>
+</div>
+<div class="game-container">
+  <div class="header">
+    <div class="title">♟ 中国象棋 <small>御驾亲征</small></div>
+    <div class="status-area">
+      <div class="turn-indicator"><span>回合</span><span class="turn-dot red" id="turnDot"></span></div>
+      <span class="status-text" id="statusText">红方走棋</span>
+      <button class="btn-reset" id="btnReset">↺ 重开</button>
+    </div>
+  </div>
+  <div class="board-wrapper">
+    <canvas id="boardCanvas"></canvas>
+    <div id="overlay">
+      <div id="resultText">游戏结束</div>
+      <div class="overlay-buttons">
+        <button id="btnNextGame">下一局</button>
+        <button id="btnReview">复盘</button>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <button class="btn-undo" id="btnUndo" disabled>↩ 悔棋</button>
+    <button class="btn-draw" id="btnRequestDraw">🤝 申请和棋</button>
+  </div>
+  <div class="truck-actions" id="truckActions">
+    <span class="truck-label">🚚 拖车</span>
+    <button class="truck-btn active" data-mode="move">🚶 移动</button>
+    <button class="truck-btn" data-mode="load">📦 装货</button>
+    <button class="truck-btn" data-mode="unload">📤 卸货</button>
+  </div>
+  <div id="reviewControls">
+    <span id="stepLabel">0/0</span>
+    <input type="range" id="progressSlider" min="0" max="0" value="0">
+    <button id="btnExitReview">退出复盘</button>
+  </div>
+  <div class="tips">
+    <b>坦克</b>(车+炮): 炮击2格内敌方, 1格移动, 不过河, 2血; 一步合成。<br>
+    <b>拖车</b>(车+车): 半径4内远跳(自身半场), 单独一步过河, 能载帅将, 不能吃子; 底部 [移动/装货/卸货] 切换。载帅拖车被吃→车毁人亡; 炮台不打载帅拖车。<br>
+    <b>炮台</b>(炮+炮): 3 步合成, 合体后需重新装填; 全图炮击除将外任意敌, 2血, 开火后需 2 个己方回合装填。<br>
+    <b>兵营</b>: 4觉醒兵合成, 2血(知识分子入驻变3血), 每3己方回合产出1兵。<br>
+    <b>知识分子</b>(相+兵): 红方粉紫 / 黑方蓝黑, 上下左右 1~2 格, 可穿过己方棋子。<br>
+    <b>御驾亲征</b>: 帅/将过河时激活。未过河兵在己方半场可前进2格; 觉醒兵朝敌方向可走2格; 拖车解除半场限制。<br>
+    <b>和棋</b>: 系统会在"长时间无吃子"或"双方都无威胁棋子"时弹出<b>对方申请和棋</b>横幅, 由您决定同意或拒绝; 您也可主动点 [🤝 申请和棋]。<br>
+    <b>帅死续战</b>: 帅/将阵亡后, 若还有知识分子/觉醒兵, 游戏继续。
+  </div>
+  <div class="settings">
+    <div class="toggles-row">
+      <div class="toggle-wrap" id="toggleLegal"><div class="toggle-track active" id="trackLegal"><div class="toggle-knob"></div></div><span>可走位置</span></div>
+      <div class="toggle-wrap" id="toggleBest"><div class="toggle-track" id="trackBest"><div class="toggle-knob"></div></div><span>推荐走法</span></div>
+      <div class="toggle-wrap" id="toggleCheck"><div class="toggle-track active" id="trackCheck"><div class="toggle-knob"></div></div><span>将军提示</span></div>
+    </div>
+    <div class="segmented-wrap">
+      <span class="segmented-label">AI 难度</span>
+      <div class="segmented-control" id="difficultyControl">
+        <div class="segmented-slider" id="difficultySlider"></div>
+        <button class="segmented-option" data-value="easy">简单</button>
+        <button class="segmented-option" data-value="normal">普通</button>
+        <button class="segmented-option" data-value="hard">困难</button>
+        <button class="segmented-option active" data-value="extreme">极致</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+'use strict';
+
+const COLS = 9, ROWS = 10;
+const CELL = 60, MG = 34;
+const W = MG * 2 + (COLS - 1) * CELL;
+const H = MG * 2 + (ROWS - 1) * CELL;
+const PR = CELL * 0.44;
+
+const CHAR = {
+  r: { K:'帅', A:'仕', B:'相', N:'马', R:'车', C:'炮', P:'兵', T:'坦', I:'知', D:'拖', F:'台' },
+  b: { K:'将', A:'士', B:'象', N:'马', R:'车', C:'炮', P:'卒', T:'坦', I:'知', D:'拖', F:'台' }
+};
+const VAL = { K: 100000, R: 900, N: 400, C: 450, A: 200, B: 200, P: 100, T: 1300, I: 700, D: 1400, F: 1100 };
+const VAL_TANK_HALF = 650;
+const VAL_P_AWAKENED = 260;
+const VAL_CAMP = 1000;
+
+const ARTILLERY_RELOAD = 6;
+/* 无吃子步数阈值：达到此值时 AI 会申请和棋 */
+const NO_CAPTURE_DRAW_THRESHOLD = 120;
+/* 拒绝后重置的步数（避免立刻重弹） */
+const NO_CAPTURE_RESET = 60;
+
+const DIRS8 = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+const DIRS4 = [[0,1],[0,-1],[1,0],[-1,0]];
+
+const other = c => (c === 'r' ? 'b' : 'r');
+const inBounds = (x, y) => x >= 0 && x < COLS && y >= 0 && y < ROWS;
+const sideOf = y => (y >= 5 ? 'south' : 'north');
+
+const canvas = document.getElementById('boardCanvas');
+const ctx = canvas.getContext('2d');
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+canvas.width = W * DPR;
+canvas.height = H * DPR;
+
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+    if (w < 2 * r) r = w / 2;
+    if (h < 2 * r) r = h / 2;
+    this.moveTo(x + r, y);
+    this.arcTo(x + w, y, x + w, y + h, r);
+    this.arcTo(x + w, y + h, x, y + h, r);
+    this.arcTo(x, y + h, x, y, r);
+    this.arcTo(x, y, x + w, y, r);
+    this.closePath();
+    return this;
+  };
+}
+
+const turnDot = document.getElementById('turnDot');
+const statusText = document.getElementById('statusText');
+const btnReset = document.getElementById('btnReset');
+const btnUndo = document.getElementById('btnUndo');
+const btnRequestDraw = document.getElementById('btnRequestDraw');
+const overlay = document.getElementById('overlay');
+const resultText = document.getElementById('resultText');
+const btnNextGame = document.getElementById('btnNextGame');
+const btnReview = document.getElementById('btnReview');
+const reviewControls = document.getElementById('reviewControls');
+const progressSlider = document.getElementById('progressSlider');
+const stepLabel = document.getElementById('stepLabel');
+const btnExitReview = document.getElementById('btnExitReview');
+const notification = document.getElementById('notification');
+const notifText = notification.querySelector('.notif-text');
+const toggleLegal = document.getElementById('toggleLegal');
+const trackLegal = document.getElementById('trackLegal');
+const toggleBest = document.getElementById('toggleBest');
+const trackBest = document.getElementById('trackBest');
+const toggleCheck = document.getElementById('toggleCheck');
+const trackCheck = document.getElementById('trackCheck');
+const difficultyControl = document.getElementById('difficultyControl');
+const difficultySlider = document.getElementById('difficultySlider');
+const diffOptions = difficultyControl.querySelectorAll('.segmented-option');
+const truckActions = document.getElementById('truckActions');
+const truckBtns = truckActions.querySelectorAll('.truck-btn');
+const drawOfferBanner = document.getElementById('drawOfferBanner');
+const btnAcceptDraw = document.getElementById('btnAcceptDraw');
+const btnRejectDraw = document.getElementById('btnRejectDraw');
+
+let board, turn, selected, targets, history, lastMove, gameOver, winner, thinking, checkNow;
+let camps = [];
+let turnCount = 0;
+let noCaptureHalfMoves = 0;
+let showLegal = true, showBest = false, showCheck = true, difficulty = 'extreme';
+let isReview = false, reviewStep = 0;
+let notifTimer = null;
+let truckMode = 'move';
+let forbiddenTargets = [];
+let pendingDrawOffer = false;   /* 是否有待玩家响应的和棋申请 */
+let drawOfferFrom = null;       /* 'ai' | 'player' */
+
+function createInitialBoard() {
+  const bd = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+  const back = ['R','N','B','A','K','A','B','N','R'];
+  for (let x = 0; x < COLS; x++) {
+    bd[0][x] = { type: back[x], color: 'b' };
+    bd[9][x] = { type: back[x], color: 'r' };
+  }
+  bd[0][4].thought = 0;
+  bd[9][4].thought = 0;
+  bd[2][1] = { type:'C', color:'b' }; bd[2][7] = { type:'C', color:'b' };
+  bd[7][1] = { type:'C', color:'r' }; bd[7][7] = { type:'C', color:'r' };
+  for (let x = 0; x < COLS; x += 2) {
+    bd[3][x] = { type:'P', color:'b', thought: 0 };
+    bd[6][x] = { type:'P', color:'r', thought: 0 };
+  }
+  return bd;
+}
+
+function initGame() {
+  board = createInitialBoard();
+  turn = 'r'; selected = null; targets = []; history = []; lastMove = null;
+  gameOver = false; winner = null; thinking = false; checkNow = false;
+  camps = [];
+  turnCount = 0;
+  noCaptureHalfMoves = 0;
+  truckMode = 'move';
+  forbiddenTargets = [];
+  pendingDrawOffer = false;
+  drawOfferFrom = null;
+  drawOfferBanner.classList.remove('show');
+  isReview = false; reviewStep = 0;
+  overlay.classList.remove('show');
+  reviewControls.classList.remove('active');
+  updateUI(); draw();
+}
+
+function cloneBoard(bd) {
+  return bd.map(row => row.map(p => p ? deepClonePiece(p) : null));
+}
+function deepClonePiece(p) {
+  const c = { ...p };
+  if (p.cargo) c.cargo = deepClonePiece(p.cargo);
+  if (p.charge) c.charge = { ...p.charge };
+  return c;
+}
+function cloneCamps(cs) {
+  return cs.map(c => ({ ...c }));
+}
+
+function hasImperialMarch(bd, color) {
+  const enemySide = color === 'r' ? 'north' : 'south';
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      const p = bd[y][x];
+      if (!p || p.color !== color) continue;
+      if (p.type === 'K' && sideOf(y) === enemySide) return true;
+      if (p.type === 'D' && p.cargo && p.cargo.type === 'K' && sideOf(y) === enemySide) return true;
+    }
+  }
+  return false;
+}
+
+function campCells(camp) {
+  return [
+    [camp.x, camp.y], [camp.x+1, camp.y],
+    [camp.x, camp.y+1], [camp.x+1, camp.y+1]
+  ];
+}
+
+function canAttackCamp(bd, ax, ay, p, camp) {
+  const cells = campCells(camp);
+  if (p.type === 'T') {
+    for (const [cx, cy] of cells) {
+      const dx = Math.abs(cx - ax), dy = Math.abs(cy - ay);
+      if (dx <= 2 && dy <= 2 && !(dx === 0 && dy === 0)) return true;
+    }
+    return false;
+  }
+  if (p.type === 'F') return true;
+  if (p.type === 'R' || p.type === 'D') {
+    for (const [cx, cy] of cells) {
+      if (cx === ax && cy === ay) continue;
+      if (cx === ax) {
+        const y1 = Math.min(cy, ay), y2 = Math.max(cy, ay);
+        let blocked = false;
+        for (let yy = y1 + 1; yy < y2; yy++) if (bd[yy][ax]) { blocked = true; break; }
+        if (!blocked) return true;
+      }
+      if (cy === ay) {
+        const x1 = Math.min(cx, ax), x2 = Math.max(cx, ax);
+        let blocked = false;
+        for (let xx = x1 + 1; xx < x2; xx++) if (bd[ay][xx]) { blocked = true; break; }
+        if (!blocked) return true;
+      }
+    }
+    return false;
+  }
+  if (p.type === 'C') {
+    for (const [cx, cy] of cells) {
+      if (cx === ax && cy === ay) continue;
+      if (cx === ax) {
+        const y1 = Math.min(cy, ay), y2 = Math.max(cy, ay);
+        let screens = 0;
+        for (let yy = y1 + 1; yy < y2; yy++) if (bd[yy][ax]) screens++;
+        if (screens === 1) return true;
+      }
+      if (cy === ay) {
+        const x1 = Math.min(cx, ax), x2 = Math.max(cx, ax);
+        let screens = 0;
+        for (let xx = x1 + 1; xx < x2; xx++) if (bd[ay][xx]) screens++;
+        if (screens === 1) return true;
+      }
+    }
+    return false;
+  }
+  if (p.type === 'N') {
+    const jumps = [
+      [1,2,0,1],[-1,2,0,1],[1,-2,0,-1],[-1,-2,0,-1],
+      [2,1,1,0],[2,-1,1,0],[-2,1,-1,0],[-2,-1,-1,0]
+    ];
+    for (const [dx, dy, lx, ly] of jumps) {
+      const nx = ax + dx, ny = ay + dy;
+      if (!inBounds(nx, ny)) continue;
+      if (bd[ay + ly][ax + lx]) continue;
+      for (const [cx, cy] of cells) if (cx === nx && cy === ny) return true;
+    }
+    return false;
+  }
+  return false;
+}
+
+function simulateCampFormation(bd) {
+  const formations = [];
+  for (let y = 0; y < ROWS - 1; y++) {
+    for (let x = 0; x < COLS - 1; x++) {
+      const p1 = bd[y][x], p2 = bd[y][x+1];
+      const p3 = bd[y+1][x], p4 = bd[y+1][x+1];
+      if (!p1 || !p2 || !p3 || !p4) continue;
+      if (p1.type !== 'P' || p2.type !== 'P' || p3.type !== 'P' || p4.type !== 'P') continue;
+      if (p1.color !== p2.color || p1.color !== p3.color || p1.color !== p4.color) continue;
+      if ((p1.thought || 0) < 2 || (p2.thought || 0) < 2 ||
+          (p3.thought || 0) < 2 || (p4.thought || 0) < 2) continue;
+      formations.push({ y, x, pieces: [p1, p2, p3, p4] });
+      bd[y][x] = null; bd[y][x+1] = null;
+      bd[y+1][x] = null; bd[y+1][x+1] = null;
+    }
+  }
+  return formations;
+}
+
+function revertFormations(bd, formations) {
+  for (const f of formations) {
+    bd[f.y][f.x] = f.pieces[0];
+    bd[f.y][f.x+1] = f.pieces[1];
+    bd[f.y+1][f.x] = f.pieces[2];
+    bd[f.y+1][f.x+1] = f.pieces[3];
+  }
+}
+
+function checkCampFormation(bd, campsArr) {
+  const merges = [];
+  for (let y = 0; y < ROWS - 1; y++) {
+    for (let x = 0; x < COLS - 1; x++) {
+      const p1 = bd[y][x], p2 = bd[y][x+1];
+      const p3 = bd[y+1][x], p4 = bd[y+1][x+1];
+      if (!p1 || !p2 || !p3 || !p4) continue;
+      if (p1.type !== 'P' || p2.type !== 'P' || p3.type !== 'P' || p4.type !== 'P') continue;
+      if (p1.color !== p2.color || p1.color !== p3.color || p1.color !== p4.color) continue;
+      if ((p1.thought || 0) < 2 || (p2.thought || 0) < 2 ||
+          (p3.thought || 0) < 2 || (p4.thought || 0) < 2) continue;
+      let conflict = false;
+      for (const camp of campsArr) {
+        if (Math.abs(camp.x - x) <= 2 && Math.abs(camp.y - y) <= 2) { conflict = true; break; }
+      }
+      if (conflict) continue;
+      const camp = { x, y, color: p1.color, spawnCounter: 0, hp: 2, upgraded: false };
+      campsArr.push(camp);
+      merges.push({
+        camp, pieces: [p1, p2, p3, p4],
+        positions: [[x, y], [x+1, y], [x, y+1], [x+1, y+1]]
+      });
+      bd[y][x] = null; bd[y][x+1] = null;
+      bd[y+1][x] = null; bd[y+1][x+1] = null;
+      showNotification(`🏰 ${p1.color === 'r' ? '红方' : '黑方'}兵营建成！`);
+    }
+  }
+  return merges;
+}
+
+function advanceCamps(bd, campsArr, color) {
+  const spawned = [];
+  const counters = [];
+  for (const camp of campsArr) {
+    if (camp.color !== color) continue;
+    counters.push({ camp, oldCounter: camp.spawnCounter });
+    if (camp.spawnCounter >= 3) {
+      const cells = campCells(camp);
+      cells.sort((a, b) => color === 'r' ? a[1] - b[1] : b[1] - a[1]);
+      for (const [cx, cy] of cells) {
+        if (!inBounds(cx, cy)) continue;
+        if (bd[cy][cx]) continue;
+        const thought = camp.upgraded ? 2 : 0;
+        const p = { type: 'P', color: color, thought };
+        bd[cy][cx] = p;
+        spawned.push({ x: cx, y: cy, piece: p });
+        camp.spawnCounter = 0;
+        break;
+      }
+      continue;
+    }
+    camp.spawnCounter++;
+    if (camp.spawnCounter >= 3) {
+      const cells = campCells(camp);
+      cells.sort((a, b) => color === 'r' ? a[1] - b[1] : b[1] - a[1]);
+      let placed = false;
+      for (const [cx, cy] of cells) {
+        if (!inBounds(cx, cy)) continue;
+        if (bd[cy][cx]) continue;
+        const thought = camp.upgraded ? 2 : 0;
+        const p = { type: 'P', color: color, thought };
+        bd[cy][cx] = p;
+        spawned.push({ x: cx, y: cy, piece: p });
+        placed = true;
+        break;
+      }
+      if (placed) camp.spawnCounter = 0;
+      else camp.spawnCounter = 3;
+    }
+  }
+  return { spawned, counters };
+}
+
+function spreadThoughts(bd, color) {
+  const affected = [];
+  const intellectuals = [];
+  for (let y = 0; y < ROWS; y++)
+    for (let x = 0; x < COLS; x++) {
+      const p = bd[y][x];
+      if (p && p.color === color && p.type === 'I') intellectuals.push({ x, y });
+    }
+  if (intellectuals.length === 0) return affected;
+  for (const { x: ix, y: iy } of intellectuals) {
+    for (let dy = -2; dy <= 2; dy++) {
+      for (let dx = -2; dx <= 2; dx++) {
+        if (dx === 0 && dy === 0) continue;
+        const nx = ix + dx, ny = iy + dy;
+        if (!inBounds(nx, ny)) continue;
+        const p = bd[ny][nx];
+        if (!p || p.color !== color) continue;
+        if (p.type !== 'P' && p.type !== 'K') continue;
+        const cur = p.thought || 0;
+        if (cur >= 2) continue;
+        if (affected.find(a => a.piece === p)) continue;
+        affected.push({ piece: p, oldThought: cur });
+        p.thought = cur + 1;
+        if (p.thought >= 2) {
+          const isK = p.type === 'K';
+          const name = isK ? (color === 'r' ? '帅' : '将') : (color === 'r' ? '兵' : '卒');
+          showNotification(`✊ ${color === 'r' ? '红' : '黑'}方${name}觉醒！`);
+        }
+      }
+    }
+  }
+  return affected;
+}
+
+function revertThoughts(affected) {
+  for (const a of affected) a.piece.thought = a.oldThought;
+}
+
+function getChargeStage(p, tx, ty) {
+  if (p && p.charge && p.charge.x === tx && p.charge.y === ty) return p.charge.stage || 1;
+  return 0;
+}
+
+function isArtilleryReady(p) {
+  return turnCount - (p.lastFireTurn ?? -10) >= ARTILLERY_RELOAD;
+}
+
+/* ===== 判断某方是否还有能威胁对方将帅的棋子（含兵营） ===== */
+function hasAnyThreatToKing(bd, color, campsArr) {
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      const p = bd[y][x];
+      if (!p || p.color !== color) continue;
+      switch (p.type) {
+        case 'R': case 'N': case 'C': case 'T': case 'I':
+        case 'P':
+          return true;
+      }
+    }
+  }
+  /* 兵营也算威胁：能持续产兵 */
+  if (campsArr) {
+    for (const camp of campsArr) {
+      if (camp.color === color) return true;
+    }
+  }
+  return false;
+}
+
+function isMoveSafe(bd, color, mv) {
+  const piece = bd[mv.fy][mv.fx];
+  const hasTarget = mv.tx !== undefined && mv.ty !== undefined;
+  const target = hasTarget ? bd[mv.ty][mv.tx] : null;
+  const targetHp = target ? target.hp : undefined;
+
+  if (mv.action === 'move') {
+    bd[mv.ty][mv.tx] = piece;
+    bd[mv.fy][mv.fx] = null;
+  } else if (mv.action === 'attack') {
+    if (target) {
+      if (target.type === 'K') bd[mv.ty][mv.tx] = null;
+      else {
+        if (target.hp === undefined) target.hp = 1;
+        target.hp--;
+        if (target.hp <= 0) {
+          if (target.type === 'D' && target.cargo) target.cargo = null;
+          bd[mv.ty][mv.tx] = null;
+        }
+      }
+    }
+  } else if (mv.action === 'merge') {
+    bd[mv.ty][mv.tx] = { type:'T', color: color, hp: 2 };
+    bd[mv.fy][mv.fx] = null;
+  } else if (mv.action === 'mergeIntellectual') {
+    bd[mv.ty][mv.tx] = { type:'I', color: color, hp: 1 };
+    bd[mv.fy][mv.fx] = null;
+  } else if (mv.action === 'mergeTruck') {
+    bd[mv.ty][mv.tx] = { type:'D', color: color, cargo: null };
+    bd[mv.fy][mv.fx] = null;
+  } else if (mv.action === 'mergeArtillery') {
+    bd[mv.ty][mv.tx] = { type:'F', color: color, hp: 2, lastFireTurn: -10 };
+    bd[mv.fy][mv.fx] = null;
+  } else if (mv.action === 'chargeArtillery' || mv.action === 'chargeArtillery2') {
+    /* 只记录 */
+  } else if (mv.action === 'loadCargo') {
+    const cargo = bd[mv.cargoY][mv.cargoX];
+    piece.cargo = cargo;
+    bd[mv.cargoY][mv.cargoX] = null;
+  } else if (mv.action === 'unloadCargo') {
+    bd[mv.targetY][mv.targetX] = piece.cargo;
+    piece.cargo = null;
+  } else if (mv.action === 'enterCamp') {
+    bd[mv.fy][mv.fx] = null;
+  }
+
+  const formations = simulateCampFormation(bd);
+  const safe = !isInCheck(bd, color);
+  revertFormations(bd, formations);
+
+  if (mv.action === 'move') {
+    bd[mv.fy][mv.fx] = piece;
+    bd[mv.ty][mv.tx] = target;
+  } else if (mv.action === 'attack') {
+    if (target) {
+      if (target.type === 'K') bd[mv.ty][mv.tx] = target;
+      else { target.hp = targetHp; bd[mv.ty][mv.tx] = target; }
+    }
+  } else if (mv.action === 'merge') {
+    bd[mv.fy][mv.fx] = piece;
+    bd[mv.ty][mv.tx] = target;
+  } else if (mv.action === 'mergeIntellectual') {
+    bd[mv.fy][mv.fx] = piece;
+    bd[mv.ty][mv.tx] = target;
+  } else if (mv.action === 'mergeTruck') {
+    bd[mv.fy][mv.fx] = piece;
+    bd[mv.ty][mv.tx] = target;
+  } else if (mv.action === 'mergeArtillery') {
+    bd[mv.fy][mv.fx] = piece;
+    bd[mv.ty][mv.tx] = target;
+  } else if (mv.action === 'loadCargo') {
+    bd[mv.cargoY][mv.cargoX] = piece.cargo;
+    piece.cargo = null;
+  } else if (mv.action === 'unloadCargo') {
+    piece.cargo = bd[mv.targetY][mv.targetX];
+    bd[mv.targetY][mv.targetX] = null;
+  } else if (mv.action === 'enterCamp') {
+    bd[mv.fy][mv.fx] = piece;
+  }
+
+  return safe;
+}
+
+function genPseudoMoves(bd, color, campsArr) {
+  const moves = [];
+  const opp = other(color);
+  const march = hasImperialMarch(bd, color);
+  const ownSide = color === 'r' ? 'south' : 'north';
+
+  const addNormal = (fx, fy, tx, ty) => {
+    if (!inBounds(tx, ty)) return;
+    const t = bd[ty][tx];
+    if (t && t.color === color) return;
+    if (t && (t.type === 'T' || t.type === 'F')) moves.push({ fx, fy, tx, ty, action: 'attack' });
+    else moves.push({ fx, fy, tx, ty, action: 'move' });
+  };
+
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      const p = bd[y][x];
+      if (!p || p.color !== color) continue;
+
+      if (p.type === 'T' || p.type === 'R' || p.type === 'C' || p.type === 'N' ||
+          p.type === 'F' || p.type === 'D' || p.type === 'I' || p.type === 'P' ||
+          p.type === 'K' || p.type === 'A' || p.type === 'B') {
+        for (const camp of campsArr) {
+          if (camp.color === color) continue;
+          if (canAttackCamp(bd, x, y, p, camp)) {
+            moves.push({ fx: x, fy: y, action: 'attackCamp', camp });
+          }
+        }
+      }
+
+      if (p.type === 'F') {
+        if (isArtilleryReady(p)) {
+          for (let yy = 0; yy < ROWS; yy++) {
+            for (let xx = 0; xx < COLS; xx++) {
+              if (xx === x && yy === y) continue;
+              const t = bd[yy][xx];
+              if (!t) continue;
+              if (t.color === color) continue;
+              if (t.type === 'K') continue;
+              if (t.type === 'D' && t.cargo && t.cargo.type === 'K') continue;
+              moves.push({ fx:x, fy:y, tx:xx, ty:yy, action:'attack' });
+            }
+          }
+        }
+        continue;
+      }
+
+      if (p.type === 'T') {
+        const tankSide = sideOf(y);
+        for (const [dx, dy] of DIRS8) {
+          const nx = x + dx, ny = y + dy;
+          if (!inBounds(nx, ny)) continue;
+          if (bd[ny][nx]) continue;
+          if (sideOf(ny) !== tankSide) continue;
+          moves.push({ fx:x, fy:y, tx:nx, ty:ny, action:'move' });
+        }
+        for (let dy = -2; dy <= 2; dy++) {
+          for (let dx = -2; dx <= 2; dx++) {
+            if (dx === 0 && dy === 0) continue;
+            const nx = x + dx, ny = y + dy;
+            if (!inBounds(nx, ny)) continue;
+            const t = bd[ny][nx];
+            if (t && t.color === opp) moves.push({ fx:x, fy:y, tx:nx, ty:ny, action:'attack' });
+          }
+        }
+        continue;
+      }
+
+      if (p.type === 'D') {
+        const tankSide = sideOf(y);
+        for (let yy = 0; yy < ROWS; yy++) {
+          for (let xx = 0; xx < COLS; xx++) {
+            if (xx === x && yy === y) continue;
+            const dx = xx - x, dy = yy - y;
+            if (dx*dx + dy*dy > 16) continue;
+            if (bd[yy][xx]) continue;
+            if (!march && sideOf(yy) !== tankSide) continue;
+            moves.push({ fx:x, fy:y, tx:xx, ty:yy, action:'move' });
+          }
+        }
+        if (!march) {
+          if (color === 'r' && y === 5) {
+            const ny = 4;
+            if (inBounds(x, ny) && !bd[ny][x]) {
+              moves.push({ fx:x, fy:y, tx:x, ty:ny, action:'move' });
+            }
+          } else if (color === 'b' && y === 4) {
+            const ny = 5;
+            if (inBounds(x, ny) && !bd[ny][x]) {
+              moves.push({ fx:x, fy:y, tx:x, ty:ny, action:'move' });
+            }
+          }
+        }
+        if (!p.cargo) {
+          for (const [dx, dy] of DIRS8) {
+            const nx = x + dx, ny = y + dy;
+            if (!inBounds(nx, ny)) continue;
+            const t = bd[ny][nx];
+            if (t && t.color === color && t.type !== 'D') {
+              moves.push({ fx:x, fy:y, cargoX:nx, cargoY:ny, action:'loadCargo' });
+            }
+          }
+        }
+        if (p.cargo) {
+          for (const [dx, dy] of DIRS8) {
+            const nx = x + dx, ny = y + dy;
+            if (!inBounds(nx, ny)) continue;
+            if (!bd[ny][nx]) {
+              moves.push({ fx:x, fy:y, targetX:nx, targetY:ny, action:'unloadCargo' });
+            }
+          }
+        }
+        continue;
+      }
+
+      if (p.type === 'B' || p.type === 'P') {
+        for (const [dx, dy] of DIRS8) {
+          const nx = x + dx, ny = y + dy;
+          if (!inBounds(nx, ny)) continue;
+          const t = bd[ny][nx];
+          if (t && t.color === color && (t.type === 'B' || t.type === 'P')) {
+            if ((p.type === 'B' && t.type === 'P') || (p.type === 'P' && t.type === 'B')) {
+              moves.push({ fx:x, fy:y, tx:nx, ty:ny, action:'mergeIntellectual' });
+            }
+          }
+        }
+      }
+
+      if (p.type === 'I') {
+        for (const camp of campsArr) {
+          if (camp.color !== color) continue;
+          if (camp.upgraded) continue;
+          const cells = campCells(camp);
+          let adj = false;
+          for (const [cx, cy] of cells) {
+            if (Math.abs(cx - x) + Math.abs(cy - y) === 1) { adj = true; break; }
+          }
+          if (adj) moves.push({ fx:x, fy:y, action:'enterCamp', camp });
+        }
+      }
+
+      if (p.type === 'K') {
+        const awakened = (p.thought || 0) >= 2;
+        if (awakened) {
+          for (const [dx, dy] of DIRS4) addNormal(x, y, x + dx, y + dy);
+        } else {
+          const ys = color === 'r' ? [7, 9] : [0, 2];
+          for (const [dx, dy] of DIRS4) {
+            const nx = x + dx, ny = y + dy;
+            if (nx < 3 || nx > 5 || ny < ys[0] || ny > ys[1]) continue;
+            addNormal(x, y, nx, ny);
+          }
+        }
+        continue;
+      }
+      if (p.type === 'A') {
+        const ys = color === 'r' ? [7, 9] : [0, 2];
+        for (const [dx, dy] of [[1,1],[1,-1],[-1,1],[-1,-1]]) {
+          const nx = x + dx, ny = y + dy;
+          if (nx < 3 || nx > 5 || ny < ys[0] || ny > ys[1]) continue;
+          addNormal(x, y, nx, ny);
+        }
+        continue;
+      }
+      if (p.type === 'B') {
+        for (const [dx, dy] of [[2,2],[2,-2],[-2,2],[-2,-2]]) {
+          const nx = x + dx, ny = y + dy;
+          if (!inBounds(nx, ny)) continue;
+          if (color === 'r' && ny < 5) continue;
+          if (color === 'b' && ny > 4) continue;
+          if (bd[y + dy/2][x + dx/2]) continue;
+          addNormal(x, y, nx, ny);
+        }
+        continue;
+      }
+      if (p.type === 'N') {
+        const jumps = [
+          [1,2,0,1],[-1,2,0,1],[1,-2,0,-1],[-1,-2,0,-1],
+          [2,1,1,0],[2,-1,1,0],[-2,1,-1,0],[-2,-1,-1,0]
+        ];
+        for (const [dx, dy, lx, ly] of jumps) {
+          const nx = x + dx, ny = y + dy;
+          if (!inBounds(nx, ny)) continue;
+          if (bd[y + ly][x + lx]) continue;
+          addNormal(x, y, nx, ny);
+        }
+        continue;
+      }
+
+      if (p.type === 'R') {
+        for (const [dx, dy] of DIRS4) {
+          let nx = x + dx, ny = y + dy;
+          while (inBounds(nx, ny)) {
+            const t = bd[ny][nx];
+            if (!t) {
+              moves.push({ fx:x, fy:y, tx:nx, ty:ny, action:'move' });
+            } else {
+              if (t.color === color) {
+                if (t.type === 'R') moves.push({ fx:x, fy:y, tx:nx, ty:ny, action:'mergeTruck' });
+                else if (t.type === 'C') moves.push({ fx:x, fy:y, tx:nx, ty:ny, action:'merge' });
+              } else {
+                if (t.type === 'T' || t.type === 'F') moves.push({ fx:x, fy:y, tx:nx, ty:ny, action:'attack' });
+                else moves.push({ fx:x, fy:y, tx:nx, ty:ny, action:'move' });
+              }
+              break;
+            }
+            nx += dx; ny += dy;
+          }
+        }
+        continue;
+      }
+
+      if (p.type === 'C') {
+        for (const [dx, dy] of DIRS4) {
+          let nx = x + dx, ny = y + dy;
+          while (inBounds(nx, ny) && !bd[ny][nx]) {
+            moves.push({ fx:x, fy:y, tx:nx, ty:ny, action:'move' });
+            nx += dx; ny += dy;
+          }
+          if (inBounds(nx, ny)) {
+            const t1 = bd[ny][nx];
+            if (t1 && t1.color === color) {
+              if (t1.type === 'R') {
+                moves.push({ fx:x, fy:y, tx:nx, ty:ny, action:'merge' });
+              } else if (t1.type === 'C') {
+                const aStage = getChargeStage(p, nx, ny);
+                const bStage = getChargeStage(t1, x, y);
+                const bothValid = aStage > 0 && bStage > 0 && aStage === bStage;
+                if (bothValid && aStage === 2) {
+                  moves.push({ fx:x, fy:y, tx:nx, ty:ny, action:'mergeArtillery' });
+                } else if (bothValid && aStage === 1) {
+                  moves.push({ fx:x, fy:y, tx:nx, ty:ny, action:'chargeArtillery2' });
+                } else {
+                  moves.push({ fx:x, fy:y, tx:nx, ty:ny, action:'chargeArtillery' });
+                }
+              }
+            } else {
+              nx += dx; ny += dy;
+              while (inBounds(nx, ny)) {
+                const t2 = bd[ny][nx];
+                if (t2) {
+                  if (t2.color !== color) {
+                    if (t2.type === 'T' || t2.type === 'F') moves.push({ fx:x, fy:y, tx:nx, ty:ny, action:'attack' });
+                    else moves.push({ fx:x, fy:y, tx:nx, ty:ny, action:'move' });
+                  }
+                  break;
+                }
+                nx += dx; ny += dy;
+              }
+            }
+          }
+        }
+        continue;
+      }
+
+      if (p.type === 'I') {
+        for (const [dx, dy] of DIRS4) {
+          for (let step = 1; step <= 2; step++) {
+            const nx = x + dx * step, ny = y + dy * step;
+            if (!inBounds(nx, ny)) break;
+            const t = bd[ny][nx];
+            if (t && t.color === color) continue;
+            if (t) {
+              if (t.type === 'T' || t.type === 'F') moves.push({ fx:x, fy:y, tx:nx, ty:ny, action:'attack' });
+              else moves.push({ fx:x, fy:y, tx:nx, ty:ny, action:'move' });
+              break;
+            }
+            moves.push({ fx:x, fy:y, tx:nx, ty:ny, action:'move' });
+          }
+        }
+        continue;
+      }
+      if (p.type === 'P') {
+        const awakened = (p.thought || 0) >= 2;
+        const inOwnSide = sideOf(y) === ownSide;
+        if (awakened) {
+          for (const [dx, dy] of DIRS4) {
+            const isTowardEnemy = (color === 'r' && dy < 0) || (color === 'b' && dy > 0);
+            if (march && inOwnSide && isTowardEnemy) {
+              addNormal(x, y, x + dx, y + dy);
+              const mx = x + dx, my = y + dy;
+              const nx = x + dx*2, ny = y + dy*2;
+              if (inBounds(nx, ny) && !bd[my][mx]) addNormal(x, y, nx, ny);
+            } else {
+              addNormal(x, y, x + dx, y + dy);
+            }
+          }
+        } else {
+          const fwd = color === 'r' ? -1 : 1;
+          addNormal(x, y, x, y + fwd);
+          if (march && inOwnSide) {
+            const midY = y + fwd;
+            const twoY = y + fwd*2;
+            if (inBounds(x, twoY) && !bd[midY][x]) addNormal(x, y, x, twoY);
+          }
+          const crossed = color === 'r' ? y <= 4 : y >= 5;
+          if (crossed) {
+            addNormal(x, y, x - 1, y);
+            addNormal(x, y, x + 1, y);
+          }
+        }
+        continue;
+      }
+    }
+  }
+  return moves;
+}
+
+function genLegalMoves(bd, color, campsArr) {
+  const pseudo = genPseudoMoves(bd, color, campsArr);
+  const legal = [];
+  for (let i = 0; i < pseudo.length; i++) {
+    if (isMoveSafe(bd, color, pseudo[i])) legal.push(pseudo[i]);
+  }
+  return legal;
+}
+
+function findKing(bd, color) {
+  const y0 = color === 'r' ? 7 : 0;
+  for (let y = y0; y < y0 + 3; y++)
+    for (let x = 3; x <= 5; x++) {
+      const p = bd[y][x];
+      if (p && p.type === 'K' && p.color === color) return { x, y };
+    }
+  for (let y = 0; y < ROWS; y++)
+    for (let x = 0; x < COLS; x++) {
+      const p = bd[y][x];
+      if (p && p.type === 'K' && p.color === color) return { x, y };
+      if (p && p.type === 'D' && p.color === color && p.cargo && p.cargo.type === 'K') {
+        return { x, y };
+      }
+    }
+  return null;
+}
+
+function isInCheck(bd, color) {
+  const k = findKing(bd, color);
+  if (!k) return false;
+  const kx = k.x, ky = k.y;
+  const enemy = other(color);
+  const enemyMarch = hasImperialMarch(bd, enemy);
+
+  for (const [dx, dy] of DIRS4) {
+    let nx = kx + dx, ny = ky + dy;
+    let firstPiece = null, fx = -1, fy = -1;
+    while (inBounds(nx, ny)) {
+      const p = bd[ny][nx];
+      if (p) { firstPiece = p; fx = nx; fy = ny; break; }
+      nx += dx; ny += dy;
+    }
+    if (firstPiece && firstPiece.color === enemy) {
+      const t = firstPiece.type;
+      if (t === 'R') return true;
+      if (t === 'K') {
+        if (Math.abs(fx - kx) + Math.abs(fy - ky) === 1) return true;
+        if (dx === 0) return true;
+      }
+    }
+    if (firstPiece) {
+      nx = fx + dx; ny = fy + dy;
+      while (inBounds(nx, ny)) {
+        const p = bd[ny][nx];
+        if (p) {
+          if (p.color === enemy && p.type === 'C') return true;
+          break;
+        }
+        nx += dx; ny += dy;
+      }
+    }
+  }
+
+  const jumps = [
+    [1,2,0,-1],[-1,2,0,-1],[1,-2,0,1],[-1,-2,0,1],
+    [2,1,-1,0],[2,-1,-1,0],[-2,1,1,0],[-2,-1,1,0]
+  ];
+  for (const [dx, dy, lx, ly] of jumps) {
+    const mx = kx + dx, my = ky + dy;
+    if (!inBounds(mx, my)) continue;
+    const p = bd[my][mx];
+    if (!p || p.color !== enemy || p.type !== 'N') continue;
+    const legX = mx + lx, legY = my + ly;
+    if (!inBounds(legX, legY)) continue;
+    if (!bd[legY][legX]) return true;
+  }
+
+  if (color === 'b') {
+    if (ky + 1 < ROWS) {
+      const p = bd[ky+1][kx];
+      if (p && p.color === 'r' && p.type === 'P') return true;
+    }
+    if (ky >= 5) {
+      for (const dx of [-1, 1]) {
+        const nx = kx + dx;
+        if (!inBounds(nx, ky)) continue;
+        const p = bd[ky][nx];
+        if (p && p.color === 'r' && p.type === 'P') return true;
+      }
+    }
+    for (const [dx, dy] of DIRS4) {
+      const nx = kx + dx, ny = ky + dy;
+      if (!inBounds(nx, ny)) continue;
+      const p = bd[ny][nx];
+      if (p && p.color === 'r' && p.type === 'P' && (p.thought || 0) >= 2) return true;
+    }
+    if (enemyMarch && ky + 2 < ROWS && !bd[ky+1][kx]) {
+      const p = bd[ky+2][kx];
+      if (p && p.color === 'r' && p.type === 'P' && (ky+2) >= 5) return true;
+    }
+  } else {
+    if (ky - 1 >= 0) {
+      const p = bd[ky-1][kx];
+      if (p && p.color === 'b' && p.type === 'P') return true;
+    }
+    if (ky <= 4) {
+      for (const dx of [-1, 1]) {
+        const nx = kx + dx;
+        if (!inBounds(nx, ky)) continue;
+        const p = bd[ky][nx];
+        if (p && p.color === 'b' && p.type === 'P') return true;
+      }
+    }
+    for (const [dx, dy] of DIRS4) {
+      const nx = kx + dx, ny = ky + dy;
+      if (!inBounds(nx, ny)) continue;
+      const p = bd[ny][nx];
+      if (p && p.color === 'b' && p.type === 'P' && (p.thought || 0) >= 2) return true;
+    }
+    if (enemyMarch && ky - 2 >= 0 && !bd[ky-1][kx]) {
+      const p = bd[ky-2][kx];
+      if (p && p.color === 'b' && p.type === 'P' && (ky-2) <= 4) return true;
+    }
+  }
+
+  for (let y = 0; y < ROWS; y++)
+    for (let x = 0; x < COLS; x++) {
+      const p = bd[y][x];
+      if (!p || p.color !== enemy || p.type !== 'T') continue;
+      const dx = Math.abs(x - kx), dy = Math.abs(y - ky);
+      if (dx <= 2 && dy <= 2 && !(dx === 0 && dy === 0)) return true;
+    }
+
+  for (let y = 0; y < ROWS; y++)
+    for (let x = 0; x < COLS; x++) {
+      const p = bd[y][x];
+      if (!p || p.color !== enemy || p.type !== 'I') continue;
+      for (const [dx, dy] of DIRS4) {
+        for (let step = 1; step <= 2; step++) {
+          const nx = x + dx * step, ny = y + dy * step;
+          if (nx === kx && ny === ky) return true;
+          if (!inBounds(nx, ny)) break;
+          const q = bd[ny][nx];
+          if (q && q.color !== enemy) break;
+        }
+      }
+    }
+
+  return false;
+}
+
+function applyMove(bd, mv, color, campsArr, skipSideEffects) {
+  const piece = bd[mv.fy][mv.fx];
+  const hasTarget = mv.tx !== undefined && mv.ty !== undefined;
+  const target = hasTarget ? (bd[mv.ty][mv.tx] || null) : null;
+
+  const undo = {
+    mv: { ...mv },
+    sourcePiece: piece,
+    sourceCargo: piece ? piece.cargo : undefined,
+    sourceCharge: piece && piece.charge ? { ...piece.charge } : null,
+    sourceLastFireTurn: piece ? piece.lastFireTurn : undefined,
+    targetPiece: target,
+    targetHp: target ? target.hp : undefined,
+    targetCargo: target && target.type === 'D' ? target.cargo : undefined,
+    targetCharge: target && target.charge ? { ...target.charge } : null,
+    cargoPiece: null, cargoX: -1, cargoY: -1,
+    unloadPiece: null, unloadX: -1, unloadY: -1,
+    removedCamp: null, campIndex: -1,
+    campHpBefore: null, campUpgradedBefore: null,
+    affectedThoughts: null,
+    spawnedCamps: null, spawnedPawns: null, campCounters: null
+  };
+
+  if (mv.action === 'move') {
+    bd[mv.ty][mv.tx] = piece;
+    bd[mv.fy][mv.fx] = null;
+  } else if (mv.action === 'attack') {
+    if (target) {
+      if (target.type === 'K') bd[mv.ty][mv.tx] = null;
+      else {
+        if (target.hp === undefined) target.hp = 1;
+        target.hp--;
+        if (target.hp <= 0) {
+          if (target.type === 'D' && target.cargo) target.cargo = null;
+          bd[mv.ty][mv.tx] = null;
+        }
+      }
+    }
+    if (piece.type === 'F') piece.lastFireTurn = turnCount;
+  } else if (mv.action === 'merge') {
+    bd[mv.ty][mv.tx] = { type:'T', color: color, hp: 2 };
+    bd[mv.fy][mv.fx] = null;
+  } else if (mv.action === 'mergeIntellectual') {
+    bd[mv.ty][mv.tx] = { type:'I', color: color, hp: 1 };
+    bd[mv.fy][mv.fx] = null;
+  } else if (mv.action === 'mergeTruck') {
+    bd[mv.ty][mv.tx] = { type:'D', color: color, cargo: null };
+    bd[mv.fy][mv.fx] = null;
+  } else if (mv.action === 'chargeArtillery') {
+    if (piece) piece.charge = { x: mv.tx, y: mv.ty, startTurn: turnCount, stage: 1 };
+    if (target) target.charge = { x: mv.fx, y: mv.fy, startTurn: turnCount, stage: 1 };
+  } else if (mv.action === 'chargeArtillery2') {
+    if (piece) piece.charge = { x: mv.tx, y: mv.ty, startTurn: turnCount, stage: 2 };
+    if (target) target.charge = { x: mv.fx, y: mv.fy, startTurn: turnCount, stage: 2 };
+  } else if (mv.action === 'mergeArtillery') {
+    if (piece) piece.charge = null;
+    if (target) target.charge = null;
+    bd[mv.ty][mv.tx] = { type:'F', color: color, hp: 2, lastFireTurn: turnCount };
+    bd[mv.fy][mv.fx] = null;
+  } else if (mv.action === 'loadCargo') {
+    const cargo = bd[mv.cargoY][mv.cargoX];
+    undo.cargoPiece = cargo;
+    undo.cargoX = mv.cargoX;
+    undo.cargoY = mv.cargoY;
+    piece.cargo = cargo;
+    bd[mv.cargoY][mv.cargoX] = null;
+  } else if (mv.action === 'unloadCargo') {
+    undo.unloadX = mv.targetX;
+    undo.unloadY = mv.targetY;
+    undo.unloadPiece = piece.cargo;
+    bd[mv.targetY][mv.targetX] = piece.cargo;
+    piece.cargo = null;
+  } else if (mv.action === 'enterCamp') {
+    const idx = campsArr.indexOf(mv.camp);
+    if (idx >= 0) {
+      undo.campHpBefore = campsArr[idx].hp;
+      undo.campUpgradedBefore = campsArr[idx].upgraded;
+      campsArr[idx].upgraded = true;
+      campsArr[idx].hp += 1;
+    }
+    bd[mv.fy][mv.fx] = null;
+  } else if (mv.action === 'attackCamp') {
+    const idx = campsArr.indexOf(mv.camp);
+    if (idx >= 0) {
+      undo.campHpBefore = campsArr[idx].hp;
+      campsArr[idx].hp--;
+      if (campsArr[idx].hp <= 0) {
+        undo.removedCamp = campsArr[idx];
+        undo.campIndex = idx;
+        campsArr.splice(idx, 1);
+      }
+    }
+    if (piece.type === 'F') piece.lastFireTurn = turnCount;
+  }
+
+  if (!skipSideEffects) {
+    const merges = checkCampFormation(bd, campsArr);
+    if (merges.length) undo.spawnedCamps = merges;
+    undo.affectedThoughts = spreadThoughts(bd, color);
+    const ar = advanceCamps(bd, campsArr, color);
+    undo.spawnedPawns = ar.spawned;
+    undo.campCounters = ar.counters;
+  }
+
+  return undo;
+}
+
+function revertMove(bd, undo, campsArr) {
+  const { mv, sourcePiece, targetPiece, targetHp } = undo;
+
+  if (undo.spawnedPawns) {
+    for (const s of undo.spawnedPawns) {
+      if (bd[s.y] && bd[s.y][s.x] === s.piece) bd[s.y][s.x] = null;
+    }
+  }
+  if (undo.campCounters) {
+    for (const { camp, oldCounter } of undo.campCounters) camp.spawnCounter = oldCounter;
+  }
+  if (undo.affectedThoughts) revertThoughts(undo.affectedThoughts);
+  if (undo.spawnedCamps) {
+    for (const { camp, pieces, positions } of undo.spawnedCamps) {
+      const idx = campsArr.indexOf(camp);
+      if (idx >= 0) campsArr.splice(idx, 1);
+      for (let i = 0; i < 4; i++) {
+        const [px, py] = positions[i];
+        bd[py][px] = pieces[i];
+      }
+    }
+  }
+
+  if (mv.action === 'move') {
+    bd[mv.fy][mv.fx] = sourcePiece;
+    bd[mv.ty][mv.tx] = targetPiece;
+  } else if (mv.action === 'attack') {
+    if (targetPiece) {
+      if (targetPiece.type === 'K') bd[mv.ty][mv.tx] = targetPiece;
+      else {
+        targetPiece.hp = targetHp;
+        if (targetPiece.type === 'D' && undo.targetCargo) targetPiece.cargo = undo.targetCargo;
+        bd[mv.ty][mv.tx] = targetPiece;
+      }
+    }
+    if (sourcePiece && sourcePiece.type === 'F') sourcePiece.lastFireTurn = undo.sourceLastFireTurn;
+  } else if (mv.action === 'merge' || mv.action === 'mergeIntellectual' || mv.action === 'mergeTruck') {
+    bd[mv.fy][mv.fx] = sourcePiece;
+    bd[mv.ty][mv.tx] = targetPiece;
+  } else if (mv.action === 'chargeArtillery' || mv.action === 'chargeArtillery2') {
+    if (sourcePiece) sourcePiece.charge = undo.sourceCharge;
+    if (targetPiece) targetPiece.charge = undo.targetCharge;
+  } else if (mv.action === 'mergeArtillery') {
+    bd[mv.fy][mv.fx] = sourcePiece;
+    bd[mv.ty][mv.tx] = targetPiece;
+    if (sourcePiece) sourcePiece.charge = undo.sourceCharge;
+    if (targetPiece) targetPiece.charge = undo.targetCharge;
+  } else if (mv.action === 'loadCargo') {
+    if (undo.cargoPiece) {
+      bd[undo.cargoY][undo.cargoX] = undo.cargoPiece;
+      sourcePiece.cargo = undo.sourceCargo;
+    }
+  } else if (mv.action === 'unloadCargo') {
+    if (undo.unloadPiece) {
+      bd[undo.unloadY][undo.unloadX] = null;
+      sourcePiece.cargo = undo.unloadPiece;
+    }
+  } else if (mv.action === 'enterCamp') {
+    const idx = campsArr.indexOf(mv.camp);
+    if (idx >= 0 && undo.campHpBefore !== null) {
+      campsArr[idx].hp = undo.campHpBefore;
+      campsArr[idx].upgraded = undo.campUpgradedBefore;
+    }
+    bd[mv.fy][mv.fx] = sourcePiece;
+  } else if (mv.action === 'attackCamp') {
+    if (undo.removedCamp) {
+      campsArr.splice(undo.campIndex, 0, undo.removedCamp);
+    } else if (mv.camp && undo.campHpBefore !== null) {
+      const idx = campsArr.indexOf(mv.camp);
+      if (idx >= 0) campsArr[idx].hp = undo.campHpBefore;
+    }
+    if (sourcePiece && sourcePiece.type === 'F') sourcePiece.lastFireTurn = undo.sourceLastFireTurn;
+  }
+}
+
+function evaluate(bd, campsArr) {
+  let score = 0;
+  let redKing = false, blackKing = false;
+  const redMarch = hasImperialMarch(bd, 'r');
+  const blackMarch = hasImperialMarch(bd, 'b');
+
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      const p = bd[y][x];
+      if (!p) continue;
+      let v;
+      if (p.type === 'T') {
+        v = (p.hp >= 2) ? VAL.T : VAL_TANK_HALF;
+        const ek = findKing(bd, other(p.color));
+        if (ek) {
+          const dx = Math.abs(x - ek.x), dy = Math.abs(y - ek.y);
+          const d = Math.max(dx, dy);
+          if (d <= 2) v += 500; else if (d <= 4) v += 150;
+        }
+        const tankSide = sideOf(y);
+        if (p.color === 'r' && tankSide === 'north') v += 80;
+        if (p.color === 'b' && tankSide === 'south') v += 80;
+      } else if (p.type === 'D') {
+        v = VAL.D;
+        if (p.cargo && p.cargo.type === 'K') v += 2000;
+        else if (p.cargo) v += 200;
+      } else if (p.type === 'F') {
+        v = VAL.F;
+        if (p.hp < 2) v -= 300;
+        if (isArtilleryReady(p)) v += 300;
+      } else if (p.type === 'I') {
+        v = VAL.I;
+        let count = 0;
+        for (let dy = -2; dy <= 2; dy++) {
+          for (let dx = -2; dx <= 2; dx++) {
+            if (dx === 0 && dy === 0) continue;
+            const nx = x + dx, ny = y + dy;
+            if (!inBounds(nx, ny)) continue;
+            const q = bd[ny][nx];
+            if (q && q.color === p.color && (q.type === 'P' || q.type === 'K') && (q.thought || 0) < 2) count++;
+          }
+        }
+        v += count * 40;
+      } else if (p.type === 'P') {
+        const awakened = (p.thought || 0) >= 2;
+        v = awakened ? VAL_P_AWAKENED : VAL.P;
+        if (!awakened) {
+          const ry = p.color === 'r' ? 9 - y : y;
+          v += ry * 8 + (ry > 4 ? 28 : 0);
+          if ((p.thought || 0) === 1) v += 30;
+        } else {
+          const ry = p.color === 'r' ? 9 - y : y;
+          v += ry * 5;
+        }
+      } else if (p.type === 'C') {
+        v = VAL.C;
+        if (p.charge) v += 30 + (p.charge.stage || 1) * 30;
+      } else if (p.type === 'K') {
+        v = VAL.K;
+        if ((p.thought || 0) >= 2) v += 500;
+        const isEnemySide = p.color === 'r' ? sideOf(y) === 'north' : sideOf(y) === 'south';
+        if (isEnemySide) v += 3000;
+        if (p.color === 'r') redKing = true; else blackKing = true;
+      } else {
+        v = VAL[p.type];
+        if (p.type !== 'K') {
+          const ry = p.color === 'r' ? 9 - y : y;
+          const cx = Math.min(x, 8 - x);
+          switch (p.type) {
+            case 'N': v += ry * 4 + cx * 5; break;
+          }
+        }
+      }
+      score += p.color === 'r' ? v : -v;
+    }
+  }
+
+  if (redMarch) score += 400;
+  if (blackMarch) score -= 400;
+
+  for (const camp of campsArr) {
+    const bonus = Math.min(camp.spawnCounter, 3) * 50;
+    const v = VAL_CAMP + bonus + (camp.hp - 2) * 300;
+    score += camp.color === 'r' ? v : -v;
+  }
+
+  if (!redKing && !blackKing) return 0;
+  if (!redKing) return -50000;
+  if (!blackKing) return 50000;
+  return score;
+}
+
+function orderMoves(bd, moves) {
+  for (let i = 0; i < moves.length; i++) {
+    const mv = moves[i];
+    const from = bd[mv.fy][mv.fx];
+    const to = (mv.tx !== undefined) ? bd[mv.ty][mv.tx] : null;
+    let s = 0;
+    if (mv.action === 'attackCamp') s = 5000;
+    else if (mv.action === 'attack') {
+      if (to && to.type === 'K') s = 1000000;
+      else s = to ? VAL[to.type] * 12 : 0;
+    } else if (mv.action === 'move') {
+      s = to ? VAL[to.type] * 10 - VAL[from.type] : 0;
+    } else if (mv.action === 'merge') s = 600;
+    else if (mv.action === 'mergeIntellectual') s = 550;
+    else if (mv.action === 'mergeTruck') s = 650;
+    else if (mv.action === 'chargeArtillery') s = 400;
+    else if (mv.action === 'chargeArtillery2') s = 500;
+    else if (mv.action === 'mergeArtillery') s = 700;
+    else if (mv.action === 'enterCamp') s = 500;
+    else if (mv.action === 'loadCargo') s = 300;
+    else if (mv.action === 'unloadCargo') s = 250;
+    mv._s = s;
+  }
+  moves.sort((a, b) => b._s - a._s);
+}
+
+function search(bd, campsArr, color, depth, alpha, beta, ply) {
+  if (depth <= 0) {
+    const s = evaluate(bd, campsArr);
+    return color === 'r' ? s : -s;
+  }
+  const moves = genLegalMoves(bd, color, campsArr);
+  if (moves.length === 0) return -100000 + ply;
+  orderMoves(bd, moves);
+
+  let best = -Infinity;
+  for (let i = 0; i < moves.length; i++) {
+    const mv = moves[i];
+    const undo = applyMove(bd, mv, color, campsArr, true);
+    const sc = -search(bd, campsArr, other(color), depth - 1, -beta, -alpha, ply + 1);
+    revertMove(bd, undo, campsArr);
+    if (sc > best) best = sc;
+    if (best > alpha) alpha = best;
+    if (alpha >= beta) break;
+  }
+  return best;
+}
+
+function findBestMove(bd, campsArr, color, depth) {
+  const searchCamps = campsArr.map(c => ({ ...c }));
+  const moves = genLegalMoves(bd, color, searchCamps);
+  if (moves.length === 0) return null;
+  orderMoves(bd, moves);
+
+  let bestMove = moves[0];
+  let alpha = -Infinity;
+  for (let i = 0; i < moves.length; i++) {
+    const mv = moves[i];
+    const undo = applyMove(bd, mv, color, searchCamps, true);
+    const sc = -search(bd, searchCamps, other(color), depth - 1, -Infinity, -alpha, 1);
+    revertMove(bd, undo, searchCamps);
+    if (sc > alpha) { alpha = sc; bestMove = mv; }
+  }
+  return bestMove;
+}
+
+function depthFor(d) {
+  if (d === 'easy') return 1;
+  if (d === 'normal') return 2;
+  if (d === 'hard') return 3;
+  return 3;
+}
+
+function updateCheckState() {
+  checkNow = isInCheck(board, turn);
+  return checkNow;
+}
+
+/* ===== 只做"硬失败"判定，不再自动判和 ===== */
+function checkGameEnd() {
+  let totalPieces = 0;
+  let hasCombatant = false;
+  let hasKing = false;
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      const p = board[y][x];
+      if (!p || p.color !== turn) continue;
+      totalPieces++;
+      if (p.type === 'K') hasKing = true;
+      if (p.type === 'I') hasCombatant = true;
+      if (p.type === 'P' && (p.thought || 0) >= 2) hasCombatant = true;
+      if (p.type === 'D' && p.cargo && p.cargo.type === 'K') hasKing = true;
+    }
+  }
+  if (totalPieces === 0) {
+    gameOver = true; winner = other(turn);
+    updateUI(); draw(); showOverlay(); return true;
+  }
+  if (!hasKing && !hasCombatant) {
+    gameOver = true; winner = other(turn);
+    updateUI(); draw(); showOverlay(); return true;
+  }
+  const moves = genLegalMoves(board, turn, camps);
+  if (moves.length === 0) {
+    gameOver = true; winner = other(turn);
+    updateUI(); draw(); showOverlay(); return true;
+  }
+  return false;
+}
+
+/* ===== 检查是否该触发和棋申请 ===== */
+function shouldOfferDraw() {
+  if (pendingDrawOffer || gameOver) return false;
+  const redThreat = hasAnyThreatToKing(board, 'r', camps);
+  const blackThreat = hasAnyThreatToKing(board, 'b', camps);
+  if (!redThreat && !blackThreat) return true;
+  if (noCaptureHalfMoves >= NO_CAPTURE_DRAW_THRESHOLD) return true;
+  return false;
+}
+
+/* ===== 弹出和棋申请横幅 ===== */
+function offerDraw(from) {
+  if (pendingDrawOffer) return;
+  pendingDrawOffer = true;
+  drawOfferFrom = from;
+  drawOfferBanner.classList.add('show');
+  updateUI(); draw();
+}
+
+/* ===== 玩家响应和棋申请 ===== */
+btnAcceptDraw.addEventListener('click', () => {
+  if (!pendingDrawOffer) return;
+  pendingDrawOffer = false;
+  drawOfferBanner.classList.remove('show');
+  gameOver = true;
+  winner = null;
+  updateUI(); draw(); showOverlay();
+});
+
+btnRejectDraw.addEventListener('click', () => {
+  if (!pendingDrawOffer) return;
+  pendingDrawOffer = false;
+  drawOfferBanner.classList.remove('show');
+  noCaptureHalfMoves = NO_CAPTURE_RESET;
+  showNotification('您拒绝了和棋申请');
+  updateUI(); draw();
+});
+
+/* ===== 玩家主动申请和棋 ===== */
+btnRequestDraw.addEventListener('click', () => {
+  if (gameOver || pendingDrawOffer || thinking || isReview) return;
+  if (turn !== 'r') return;
+  /* AI 接受和棋的条件：局面确实僵持 */
+  const redThreat = hasAnyThreatToKing(board, 'r', camps);
+  const blackThreat = hasAnyThreatToKing(board, 'b', camps);
+  const aiAccepts = (!redThreat && !blackThreat) ||
+                    noCaptureHalfMoves >= NO_CAPTURE_RESET ||
+                    evaluate(board, camps) < 200;   /* AI 自己也不占优就同意 */
+  if (aiAccepts) {
+    gameOver = true;
+    winner = null;
+    updateUI(); draw(); showOverlay();
+    showNotification('AI 同意和棋');
+  } else {
+    showNotification('AI 拒绝了和棋申请');
+  }
+});
+
+function snapshotState() {
+  return { board: cloneBoard(board), camps: cloneCamps(camps), turnCount, noCaptureHalfMoves };
+}
+
+function computeLastMove(mv) {
+  if (mv.tx !== undefined) return { fx: mv.fx, fy: mv.fy, tx: mv.tx, ty: mv.ty };
+  if (mv.cargoX !== undefined) return { fx: mv.fx, fy: mv.fy, tx: mv.cargoX, ty: mv.cargoY };
+  if (mv.targetX !== undefined) return { fx: mv.fx, fy: mv.fy, tx: mv.targetX, ty: mv.targetY };
+  if (mv.camp) return { fx: mv.fx, fy: mv.fy, tx: mv.camp.x + 1, ty: mv.camp.y + 1 };
+  return { fx: mv.fx, fy: mv.fy, tx: mv.fx, ty: mv.fy };
+}
+
+function doMove(mv) {
+  const mover = turn;
+  const preMarch = hasImperialMarch(board, mover);
+  const undo = applyMove(board, mv, mover, camps, false);
+  undo.snapshot = snapshotState();
+  history.push(undo);
+
+  if (undo.targetPiece || mv.action === 'attackCamp') {
+    noCaptureHalfMoves = 0;
+  } else {
+    noCaptureHalfMoves++;
+  }
+
+  lastMove = computeLastMove(mv);
+  turn = other(turn);
+  turnCount++;
+  selected = null; targets = []; forbiddenTargets = [];
+  truckMode = 'move';
+
+  if (mv.action === 'merge') showNotification('⚙️ 车炮合并，坦克登场！');
+  else if (mv.action === 'mergeIntellectual') showNotification('📚 相兵合并，知识分子诞生！');
+  else if (mv.action === 'mergeTruck') showNotification('🚚 双车合并，拖车登场！');
+  else if (mv.action === 'chargeArtillery') showNotification('⚡ 炮台充能中（1/3），继续点击充能');
+  else if (mv.action === 'chargeArtillery2') showNotification('⚡⚡ 炮台充能中（2/3），下回合合体');
+  else if (mv.action === 'mergeArtillery') showNotification('💣 炮台合体完成！需重新装填才能开火');
+  else if (mv.action === 'attackCamp') showNotification('💥 兵营受到攻击！');
+  else if (mv.action === 'enterCamp') showNotification('📖 知识分子入驻兵营，加固完成！');
+  else if (mv.action === 'loadCargo') showNotification('📦 已装货');
+  else if (mv.action === 'unloadCargo') showNotification('📤 已卸货');
+
+  if (hasImperialMarch(board, mover) && !preMarch) {
+    showNotification('👑 御驾亲征！兵可前进2格，拖车解除半场限制');
+  }
+
+  if (checkGameEnd()) return;
+  updateCheckState();
+  updateUI(); draw();
+  if (turn === 'b' && !gameOver) scheduleAI();
+}
+
+function scheduleAI() {
+  if (thinking || gameOver || pendingDrawOffer) return;
+  thinking = true;
+  updateUI(); draw();
+
+  setTimeout(() => {
+    const depth = depthFor(difficulty);
+    let mv = null;
+    if (difficulty === 'easy' && Math.random() < 0.4) {
+      const legal = genLegalMoves(board, 'b', camps);
+      if (legal.length) mv = legal[Math.floor(Math.random() * legal.length)];
+    } else {
+      mv = findBestMove(board, camps, 'b', depth);
+    }
+    thinking = false;
+    if (!mv) {
+      gameOver = true; winner = 'r';
+      updateUI(); draw(); showOverlay(); return;
+    }
+    const preMarch = hasImperialMarch(board, 'b');
+    const undo = applyMove(board, mv, 'b', camps, false);
+    undo.snapshot = snapshotState();
+    history.push(undo);
+
+    if (undo.targetPiece || mv.action === 'attackCamp') {
+    noCaptureHalfMoves = 0;
+    } else {
+      noCaptureHalfMoves++;
+    }
+
+    lastMove = computeLastMove(mv);
+    turn = 'r';
+    turnCount++;
+    selected = null; targets = []; forbiddenTargets = [];
+
+    if (mv.action === 'merge') showNotification('⚙️ 黑方车炮合并！');
+    else if (mv.action === 'mergeIntellectual') showNotification('📚 黑方知识分子诞生！');
+    else if (mv.action === 'mergeTruck') showNotification('🚚 黑方双车合并！');
+    else if (mv.action === 'chargeArtillery') showNotification('⚡ 黑方炮台充能中（1/3）');
+    else if (mv.action === 'chargeArtillery2') showNotification('⚡⚡ 黑方炮台充能中（2/3）');
+    else if (mv.action === 'mergeArtillery') showNotification('💣 黑方炮台合体完成！需重新装填');
+    else if (mv.action === 'attackCamp') showNotification('💥 黑方攻击兵营！');
+    else if (mv.action === 'enterCamp') showNotification('📖 黑方知识分子入驻兵营！');
+
+    if (hasImperialMarch(board, 'b') && !preMarch) {
+      showNotification('👑 黑方御驾亲征！');
+    }
+
+    if (checkGameEnd()) return;
+    updateCheckState();
+    updateUI(); draw();
+
+    /* AI 走完后检查是否要申请和棋 */
+    if (shouldOfferDraw()) {
+      setTimeout(() => offerDraw('ai'), 400);
+    }
+  }, 80);
+}
+
+function undoMove() {
+  if (thinking || history.length === 0 || pendingDrawOffer) return;
+  const steps = Math.min(2, history.length);
+  for (let i = 0; i < steps; i++) {
+    const undo = history.pop();
+    revertMove(board, undo, camps);
+    if (undo.snapshot && undo.snapshot.turnCount !== undefined) turnCount = undo.snapshot.turnCount;
+    else turnCount = Math.max(0, turnCount - 1);
+    if (undo.snapshot && undo.snapshot.noCaptureHalfMoves !== undefined) {
+      noCaptureHalfMoves = undo.snapshot.noCaptureHalfMoves;
+    }
+  }
+  turn = (history.length % 2 === 0) ? 'r' : 'b';
+  gameOver = false; winner = null;
+  selected = null; targets = []; forbiddenTargets = [];
+  truckMode = 'move';
+  lastMove = null;
+  overlay.classList.remove('show');
+  isReview = false;
+  reviewControls.classList.remove('active');
+  updateCheckState();
+  updateUI(); draw();
+}
+
+function boardAtStep(n) {
+  if (n <= 0) return { board: createInitialBoard(), camps: [] };
+  const snap = history[n - 1].snapshot;
+  if (!snap) return { board: cloneBoard(board), camps: cloneCamps(camps) };
+  return { board: cloneBoard(snap.board), camps: cloneCamps(snap.camps) };
+}
+
+function drawCornerMark(x, y) {
+  const px = MG + x * CELL, py = MG + y * CELL;
+  const d = 5, len = 8;
+  ctx.strokeStyle = '#a2703f';
+  ctx.lineWidth = 1.5;
+  const corners = [];
+  if (x > 0) corners.push([-1,-1], [-1,1]);
+  if (x < 8) corners.push([1,-1], [1,1]);
+  for (const [sx, sy] of corners) {
+    ctx.beginPath();
+    ctx.moveTo(px + sx * d, py + sy * (d + len));
+    ctx.lineTo(px + sx * d, py + sy * d);
+    ctx.lineTo(px + sx * (d + len), py + sy * d);
+    ctx.stroke();
+  }
+}
+
+function drawCamp(camp, attackable) {
+  const px = MG + (camp.x + 1) * CELL;
+  const py = MG + (camp.y + 1) * CELL;
+  const halfW = CELL * 1.05, halfH = CELL * 1.05;
+  const isRed = camp.color === 'r';
+
+  ctx.beginPath();
+  ctx.roundRect(px - halfW + 3, py - halfH + 4, halfW * 2, halfH * 2, 8);
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ctx.fill();
+
+  const g = ctx.createLinearGradient(px - halfW, py - halfH, px + halfW, py + halfH);
+  if (isRed) { g.addColorStop(0, '#a86a5a'); g.addColorStop(0.5, '#7a4a3a'); g.addColorStop(1, '#5a3428'); }
+  else { g.addColorStop(0, '#6a7a8a'); g.addColorStop(0.5, '#465a6a'); g.addColorStop(1, '#2e3a48'); }
+  ctx.beginPath();
+  ctx.roundRect(px - halfW, py - halfH, halfW * 2, halfH * 2, 8);
+  ctx.fillStyle = g;
+  ctx.fill();
+
+  const merlonH = 7, merlonCount = 5;
+  const spacing = (halfW * 2) / merlonCount;
+  for (let i = 0; i < merlonCount; i++) {
+    const mx = px - halfW + i * spacing + spacing * 0.15;
+    const mw = spacing * 0.7;
+    ctx.fillStyle = isRed ? '#7a4a3a' : '#465a6a';
+    ctx.fillRect(mx, py - halfH - merlonH + 1, mw, merlonH);
+  }
+
+  ctx.beginPath();
+  ctx.roundRect(px - halfW, py - halfH, halfW * 2, halfH * 2, 8);
+  ctx.strokeStyle = isRed ? '#c88070' : '#8090a0';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  if (camp.upgraded) {
+    ctx.beginPath();
+    ctx.roundRect(px - halfW - 2, py - halfH - 2, halfW * 2 + 4, halfH * 2 + 4, 10);
+    ctx.strokeStyle = '#f5d742';
+    ctx.lineWidth = 2;
+    ctx.shadowColor = '#f5d742';
+    ctx.shadowBlur = 8;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  ctx.beginPath();
+  ctx.arc(px, py, 6, 0, Math.PI * 2);
+  ctx.fillStyle = isRed ? '#ff5544' : '#88bbff';
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  const maxHp = camp.upgraded ? 3 : 2;
+  const barW = halfW * 1.6, barH = 5;
+  const bx = px - barW / 2, by = py + halfH - 12;
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.beginPath(); ctx.roundRect(bx, by, barW, barH, 2); ctx.fill();
+  ctx.fillStyle = '#ef4444';
+  ctx.beginPath(); ctx.roundRect(bx, by, barW * (camp.hp / maxHp), barH, 2); ctx.fill();
+
+  const progress = Math.min(camp.spawnCounter, 3) / 3;
+  const bx2 = px - barW / 2, by2 = by + 7;
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.beginPath(); ctx.roundRect(bx2, by2, barW, 4, 2); ctx.fill();
+  const pc = camp.spawnCounter >= 3 ? '#a78bfa' : (camp.spawnCounter >= 2 ? '#4ade80' : '#fbbf24');
+  ctx.fillStyle = pc;
+  ctx.beginPath(); ctx.roundRect(bx2, by2, barW * progress, 4, 2); ctx.fill();
+
+  if (camp.spawnCounter >= 3) {
+    ctx.fillStyle = '#a78bfa';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('!', px + halfW - 8, py - halfH + 8);
+  }
+
+  if (attackable) {
+    ctx.beginPath();
+    ctx.roundRect(px - halfW - 4, py - halfH - 4, halfW * 2 + 8, halfH * 2 + 8, 10);
+    ctx.strokeStyle = '#ff3b30'; ctx.lineWidth = 3;
+    ctx.shadowColor = '#ff3b30'; ctx.shadowBlur = 14; ctx.stroke(); ctx.shadowBlur = 0;
+  }
+}
+
+function drawPiece(x, y, piece, highlight) {
+  const px = MG + x * CELL, py = MG + y * CELL;
+  const isTank = piece.type === 'T';
+  const isIntel = piece.type === 'I';
+  const isTruck = piece.type === 'D';
+  const isArt = piece.type === 'F';
+  const isKing = piece.type === 'K';
+  const isAwakenedP = piece.type === 'P' && (piece.thought || 0) >= 2;
+  const isAwakenedK = isKing && (piece.thought || 0) >= 2;
+
+  ctx.beginPath();
+  ctx.ellipse(px + 2, py + 3.5, PR, PR * 0.94, 0, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(60,35,10,0.22)';
+  ctx.fill();
+
+  if (isTank) {
+    const g = ctx.createRadialGradient(px - PR * 0.35, py - PR * 0.4, PR * 0.15, px, py, PR);
+    g.addColorStop(0, '#8a9aa8'); g.addColorStop(0.5, '#5a6a78'); g.addColorStop(1, '#2e3a45');
+    ctx.beginPath(); ctx.arc(px, py, PR, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
+  } else if (isTruck) {
+    const g = ctx.createRadialGradient(px - PR * 0.35, py - PR * 0.4, PR * 0.15, px, py, PR);
+    g.addColorStop(0, '#d4b88a'); g.addColorStop(0.5, '#a08558'); g.addColorStop(1, '#6a5538');
+    ctx.beginPath(); ctx.arc(px, py, PR, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
+  } else if (isArt) {
+    const g = ctx.createRadialGradient(px - PR * 0.35, py - PR * 0.4, PR * 0.15, px, py, PR);
+    g.addColorStop(0, '#b8b8c8'); g.addColorStop(0.5, '#7a7a8a'); g.addColorStop(1, '#3a3a48');
+    ctx.beginPath(); ctx.arc(px, py, PR, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
+  } else if (isIntel) {
+    const g = ctx.createRadialGradient(px - PR * 0.35, py - PR * 0.4, PR * 0.15, px, py, PR);
+    if (piece.color === 'r') {
+      g.addColorStop(0, '#fff5fc');
+      g.addColorStop(0.5, '#f5d8ea');
+      g.addColorStop(1, '#d8a8c8');
+    } else {
+      g.addColorStop(0, '#f5f7ff');
+      g.addColorStop(0.5, '#d0d8ea');
+      g.addColorStop(1, '#8898b8');
+    }
+    ctx.beginPath(); ctx.arc(px, py, PR, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
+  } else if (isAwakenedK) {
+    const g = ctx.createRadialGradient(px - PR * 0.35, py - PR * 0.4, PR * 0.15, px, py, PR);
+    g.addColorStop(0, '#fff8e0'); g.addColorStop(0.5, '#f0e0a0'); g.addColorStop(1, '#c0a060');
+    ctx.beginPath(); ctx.arc(px, py, PR, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
+  } else if (isAwakenedP) {
+    const g = ctx.createRadialGradient(px - PR * 0.35, py - PR * 0.4, PR * 0.15, px, py, PR);
+    g.addColorStop(0, '#f0ffe8'); g.addColorStop(0.6, '#d0f0c0'); g.addColorStop(1, '#a0d090');
+    ctx.beginPath(); ctx.arc(px, py, PR, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
+  } else {
+    const g = ctx.createRadialGradient(px - PR * 0.35, py - PR * 0.4, PR * 0.15, px, py, PR);
+    g.addColorStop(0, '#fffdf6'); g.addColorStop(0.62, '#f7ecd4'); g.addColorStop(1, '#e0c89c');
+    ctx.beginPath(); ctx.arc(px, py, PR, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
+  }
+
+  let main;
+  if (isTank) main = piece.color === 'r' ? '#ffdd99' : '#c8e0ff';
+  else if (isTruck) main = piece.color === 'r' ? '#ffe0a0' : '#e0e0a0';
+  else if (isArt) main = piece.color === 'r' ? '#ff9090' : '#a0c0ff';
+  else if (isIntel) main = piece.color === 'r' ? '#a02560' : '#152a5a';
+  else if (isAwakenedK) main = piece.color === 'r' ? '#8a5a10' : '#5a4a10';
+  else if (isAwakenedP) main = piece.color === 'r' ? '#1a6a1a' : '#0a4a2a';
+  else main = piece.color === 'r' ? '#c0392b' : '#1f1f1f';
+
+  ctx.beginPath();
+  ctx.arc(px, py, PR, 0, Math.PI * 2);
+  ctx.strokeStyle = main;
+  ctx.lineWidth = isIntel ? 3 : ((isTank || isTruck || isArt || isAwakenedK) ? 2.5 : 2);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(px, py, PR - 4, 0, Math.PI * 2);
+  if (isIntel) {
+    ctx.strokeStyle = piece.color === 'r' ? 'rgba(160,37,96,0.5)' : 'rgba(21,42,90,0.5)';
+  } else {
+    ctx.strokeStyle = piece.color === 'r' ? 'rgba(192,57,43,.45)' : 'rgba(31,31,31,.4)';
+  }
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  if (highlight) {
+    ctx.beginPath(); ctx.arc(px, py, PR + 5, 0, Math.PI * 2);
+    ctx.strokeStyle = '#ff3b30'; ctx.lineWidth = 3;
+    ctx.shadowColor = '#ff3b30'; ctx.shadowBlur = 14; ctx.stroke(); ctx.shadowBlur = 0;
+  }
+
+  if (isAwakenedP) {
+    ctx.beginPath(); ctx.arc(px, py, PR + 4, 0, Math.PI * 2);
+    ctx.strokeStyle = '#4ade80'; ctx.lineWidth = 2.5;
+    ctx.shadowColor = '#4ade80'; ctx.shadowBlur = 8; ctx.stroke(); ctx.shadowBlur = 0;
+  }
+  if (isAwakenedK) {
+    ctx.beginPath(); ctx.arc(px, py, PR + 4, 0, Math.PI * 2);
+    ctx.strokeStyle = '#f5d742'; ctx.lineWidth = 2.5;
+    ctx.shadowColor = '#f5d742'; ctx.shadowBlur = 10; ctx.stroke(); ctx.shadowBlur = 0;
+  }
+
+  ctx.fillStyle = main;
+  ctx.font = `bold ${Math.round(CELL * 0.5)}px "KaiTi","STKaiti","Kaiti SC","SimSun",serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(CHAR[piece.color][piece.type], px, py + 1);
+
+  if (isIntel) {
+    const ax = px + PR - 9, ay = py + PR - 9;
+    ctx.beginPath();
+    ctx.arc(ax, ay, 8, 0, Math.PI * 2);
+    ctx.fillStyle = piece.color === 'r' ? '#c0392b' : '#1a1a1a';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 10px "KaiTi",serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(piece.color === 'r' ? '红' : '黑', ax, ay + 1);
+  }
+
+  if (piece.type === 'C' && piece.charge) {
+    const stage = piece.charge.stage || 1;
+    ctx.beginPath();
+    ctx.arc(px + PR - 9, py - PR + 9, 9, 0, Math.PI * 2);
+    ctx.fillStyle = stage === 1 ? '#f5a623' : '#e07a20';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+    ctx.fillStyle = stage === 1 ? '#3a1a00' : '#fff';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(stage), px + PR - 9, py - PR + 9);
+  }
+
+  if (isTank) {
+    const hp = piece.hp || 2;
+    const barW = PR * 1.1, barH = 4;
+    const bx = px - barW / 2, by = py + PR - 7;
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.beginPath(); ctx.roundRect(bx, by, barW, barH, 2); ctx.fill();
+    const ratio = hp / 2;
+    ctx.fillStyle = hp >= 2 ? '#4ade80' : '#fbbf24';
+    ctx.beginPath(); ctx.roundRect(bx, by, barW * ratio, barH, 2); ctx.fill();
+  }
+
+  if (isArt) {
+    const hp = piece.hp || 2;
+    const barW = PR * 1.1, barH = 4;
+    const bx = px - barW / 2, by = py + PR - 7;
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.beginPath(); ctx.roundRect(bx, by, barW, barH, 2); ctx.fill();
+    const ratio = hp / 2;
+    ctx.fillStyle = hp >= 2 ? '#4ade80' : '#fbbf24';
+    ctx.beginPath(); ctx.roundRect(bx, by, barW * ratio, barH, 2); ctx.fill();
+
+    const ready = isArtilleryReady(piece);
+    ctx.beginPath();
+    ctx.arc(px + PR - 7, py - PR + 7, 5, 0, Math.PI * 2);
+    ctx.fillStyle = ready ? '#4ade80' : '#888';
+    ctx.fill();
+    if (!ready) {
+      const diff = turnCount - (piece.lastFireTurn ?? -10);
+      const remain = Math.max(1, Math.ceil((ARTILLERY_RELOAD - diff) / 2));
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 8px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(remain), px + PR - 7, py - PR + 7);
+    }
+  }
+
+  if (isTruck && piece.cargo) {
+    ctx.beginPath();
+    ctx.arc(px - PR + 8, py - PR + 8, 7, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffb060';
+    ctx.fill();
+    ctx.fillStyle = '#3a2a10';
+    ctx.font = 'bold 9px "KaiTi",serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(CHAR[piece.cargo.color][piece.cargo.type], px - PR + 8, py - PR + 8);
+  }
+
+  if (piece.type === 'P' || piece.type === 'K') {
+    const t = piece.thought || 0;
+    if (t === 1) {
+      ctx.beginPath();
+      ctx.arc(px + PR - 6, py - PR + 6, 4, 0, Math.PI * 2);
+      ctx.fillStyle = '#fbbf24'; ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
+    } else if (t >= 2) {
+      ctx.fillStyle = '#4ade80';
+      ctx.font = 'bold 14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('★', px + PR - 4, py - PR + 4);
+    }
+  }
+}
+
+function isMergeTarget(bx, by) {
+  if (!selected) return null;
+  const sp = board[selected.y][selected.x];
+  const tp = board[by][bx];
+  if (!sp || !tp || sp.color !== tp.color) return null;
+  if (sp.type === 'R' && tp.type === 'R') return 'mergeTruck';
+  if (sp.type === 'C' && tp.type === 'C') return 'mergeArtillery';
+  if ((sp.type === 'R' && tp.type === 'C') || (sp.type === 'C' && tp.type === 'R')) return 'merge';
+  if ((sp.type === 'B' && tp.type === 'P') || (sp.type === 'P' && tp.type === 'B')) return 'mergeIntellectual';
+  return null;
+}
+
+function draw() {
+  const savedBoard = board, savedCamps = camps;
+  if (isReview) {
+    const s = boardAtStep(reviewStep);
+    board = s.board; camps = s.camps;
+  }
+  const curBoard = board, curCamps = camps;
+
+  try {
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+
+    const bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#f9e8c5'); bg.addColorStop(0.5, '#f3dcaa'); bg.addColorStop(1, '#e7c88f');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+    ctx.globalAlpha = 0.05;
+    for (let i = 0; i < 18; i++) {
+      const y = 12 + i * 34 + Math.sin(i * 0.7) * 8;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.bezierCurveTo(W * 0.3, y - 4 + Math.sin(i * 1.2) * 6, W * 0.7, y + 6 + Math.sin(i * 0.9) * 5, W, y - 2);
+      ctx.strokeStyle = '#8a6a4a'; ctx.lineWidth = 1.2; ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    if (!isReview && (hasImperialMarch(curBoard, 'r') || hasImperialMarch(curBoard, 'b'))) {
+      const redMarch = hasImperialMarch(curBoard, 'r');
+      const blackMarch = hasImperialMarch(curBoard, 'b');
+      ctx.globalAlpha = 0.08;
+      if (redMarch) { ctx.fillStyle = '#f5a623'; ctx.fillRect(MG, MG, 8*CELL, 4*CELL); }
+      if (blackMarch) { ctx.fillStyle = '#3060a0'; ctx.fillRect(MG, MG + 5*CELL, 8*CELL, 5*CELL); }
+      ctx.globalAlpha = 1;
+    }
+
+    ctx.fillStyle = 'rgba(120, 170, 210, 0.10)';
+    ctx.fillRect(MG, MG + 4 * CELL, 8 * CELL, CELL);
+
+    ctx.strokeStyle = '#a2703f';
+    ctx.lineWidth = 1.4;
+    ctx.lineCap = 'round';
+    const line = (x1, y1, x2, y2) => { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); };
+
+    for (let y = 0; y < ROWS; y++) line(MG, MG + y * CELL, MG + 8 * CELL, MG + y * CELL);
+    for (let x = 0; x < COLS; x++) {
+      const cx = MG + x * CELL;
+      if (x === 0 || x === 8) line(cx, MG, cx, MG + 9 * CELL);
+      else { line(cx, MG, cx, MG + 4 * CELL); line(cx, MG + 5 * CELL, cx, MG + 9 * CELL); }
+    }
+    line(MG + 3 * CELL, MG, MG + 5 * CELL, MG + 2 * CELL);
+    line(MG + 5 * CELL, MG, MG + 3 * CELL, MG + 2 * CELL);
+    line(MG + 3 * CELL, MG + 7 * CELL, MG + 5 * CELL, MG + 9 * CELL);
+    line(MG + 5 * CELL, MG + 7 * CELL, MG + 3 * CELL, MG + 9 * CELL);
+
+    ctx.strokeStyle = '#8a5a2b'; ctx.lineWidth = 3;
+    ctx.strokeRect(MG - 9, MG - 9, 8 * CELL + 18, 9 * CELL + 18);
+
+    [[1,2],[7,2],[1,7],[7,7],[0,3],[2,3],[4,3],[6,3],[8,3],[0,6],[2,6],[4,6],[6,6],[8,6]]
+      .forEach(([x, y]) => drawCornerMark(x, y));
+
+    ctx.fillStyle = 'rgba(150,100,50,0.45)';
+    ctx.font = `bold ${Math.round(CELL * 0.48)}px "KaiTi","STKaiti",serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('楚  河', MG + 2 * CELL, MG + 4.5 * CELL);
+    ctx.fillText('汉  界', MG + 6 * CELL, MG + 4.5 * CELL);
+
+    const attackableCamps = new Set();
+    if (!isReview && !gameOver && turn === 'r' && selected) {
+      const sp = board[selected.y][selected.x];
+      if (sp) {
+        for (const camp of curCamps) {
+          if (camp.color === 'b' && canAttackCamp(board, selected.x, selected.y, sp, camp)) {
+            attackableCamps.add(camp);
+          }
+        }
+      }
+    }
+
+    for (const camp of curCamps) drawCamp(camp, attackableCamps.has(camp));
+
+    let curLast;
+    if (isReview) curLast = reviewStep > 0 ? computeLastMove(history[reviewStep - 1].mv) : null;
+    else curLast = lastMove;
+
+    if (curLast && curLast.fx !== undefined && curLast.fy !== undefined) {
+      ctx.strokeStyle = 'rgba(46,134,222,0.7)';
+      ctx.lineWidth = 2.5;
+      const marks = [[curLast.fx, curLast.fy]];
+      if (curLast.tx !== undefined && (curLast.tx !== curLast.fx || curLast.ty !== curLast.fy)) {
+        marks.push([curLast.tx, curLast.ty]);
+      }
+      marks.forEach(([x, y]) => {
+        const px = MG + x * CELL, py = MG + y * CELL;
+        const d = CELL * 0.44;
+        ctx.beginPath(); ctx.rect(px - d, py - d, d * 2, d * 2); ctx.stroke();
+      });
+    }
+
+    if (showCheck && !isReview && !gameOver && !thinking) {
+      if (isInCheck(curBoard, turn)) {
+        const k = findKing(curBoard, turn);
+        if (k) {
+          const px = MG + k.x * CELL, py = MG + k.y * CELL;
+          ctx.beginPath(); ctx.arc(px, py, PR + 6, 0, Math.PI * 2);
+          ctx.strokeStyle = '#ff3b30'; ctx.lineWidth = 3.5;
+          ctx.shadowColor = '#ff3b30'; ctx.shadowBlur = 18; ctx.stroke(); ctx.shadowBlur = 0;
+        }
+      }
+    }
+
+    for (let y = 0; y < ROWS; y++)
+      for (let x = 0; x < COLS; x++) {
+        const p = curBoard[y][x];
+        if (!p) continue;
+        let hl = false;
+        if (showCheck && !isReview && !gameOver && p.type === 'K' && p.color === turn) {
+          hl = isInCheck(curBoard, turn);
+        }
+        drawPiece(x, y, p, hl);
+      }
+
+    if (!isReview && !gameOver && !thinking && forbiddenTargets.length > 0) {
+      for (const t of forbiddenTargets) {
+        const px = MG + t.x * CELL, py = MG + t.y * CELL;
+        ctx.strokeStyle = 'rgba(120,120,120,0.55)';
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath(); ctx.arc(px, py, CELL * 0.40, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(px - 6, py - 6); ctx.lineTo(px + 6, py + 6);
+        ctx.moveTo(px + 6, py - 6); ctx.lineTo(px - 6, py + 6);
+        ctx.stroke();
+      }
+    }
+
+    if (!isReview && !gameOver && !thinking && selected) {
+      for (const [dx, dy] of DIRS8) {
+        const nx = selected.x + dx, ny = selected.y + dy;
+        if (!inBounds(nx, ny)) continue;
+        const kind = isMergeTarget(nx, ny);
+        if (!kind) continue;
+        const sp = board[selected.y][selected.x];
+        const tp = board[ny][nx];
+        const px = MG + nx * CELL, py = MG + ny * CELL;
+        const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 220);
+        let col;
+        if (kind === 'mergeArtillery') {
+          const aStage = getChargeStage(sp, nx, ny);
+          const bStage = getChargeStage(tp, selected.x, selected.y);
+          const stage = Math.min(aStage, bStage);
+          if (stage === 2) col = `rgba(255,120,40,${pulse})`;
+          else if (stage === 1) col = `rgba(255,200,80,${pulse})`;
+          else col = `rgba(255,220,120,${pulse})`;
+        } else {
+          col = kind === 'merge' ? `rgba(245,166,35,${pulse})`
+              : kind === 'mergeIntellectual' ? `rgba(154,106,240,${pulse})`
+              : `rgba(212,160,96,${pulse})`;
+        }
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 4;
+        ctx.shadowColor = col;
+        ctx.shadowBlur = 14;
+        ctx.beginPath(); ctx.arc(px, py, CELL * 0.50, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(px, py, CELL * 0.40, 0, Math.PI * 2); ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+    }
+
+    if (showLegal && !isReview && !gameOver) {
+      for (const t of targets) {
+        if (t.action === 'attackCamp' || t.action === 'enterCamp') continue;
+        let tx, ty;
+        if (t.action === 'loadCargo')        { tx = t.cargoX;  ty = t.cargoY; }
+        else if (t.action === 'unloadCargo') { tx = t.targetX; ty = t.targetY; }
+        else { tx = t.tx; ty = t.ty; }
+        if (tx === undefined || ty === undefined) continue;
+        const px = MG + tx * CELL, py = MG + ty * CELL;
+        const targetPiece = curBoard[ty][tx];
+
+        if (t.action === 'attack') {
+          ctx.strokeStyle = '#ff3b30'; ctx.lineWidth = 3.5;
+          ctx.beginPath(); ctx.arc(px, py, CELL * 0.48, 0, Math.PI * 2); ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(px - CELL * 0.3, py); ctx.lineTo(px + CELL * 0.3, py);
+          ctx.moveTo(px, py - CELL * 0.3); ctx.lineTo(px, py + CELL * 0.3);
+          ctx.stroke();
+        } else if (t.action === 'merge' || t.action === 'mergeIntellectual' ||
+                   t.action === 'mergeTruck' || t.action === 'mergeArtillery') {
+          const col = t.action === 'merge' ? '#f5a623'
+                    : t.action === 'mergeIntellectual' ? '#9a6af0'
+                    : t.action === 'mergeTruck' ? '#d4a060'
+                    : '#ff8c3c';
+          const pulse = 0.7 + 0.3 * Math.sin(performance.now() / 250);
+          ctx.strokeStyle = col; ctx.lineWidth = 4.5;
+          ctx.globalAlpha = pulse;
+          ctx.shadowColor = col; ctx.shadowBlur = 15;
+          ctx.beginPath(); ctx.arc(px, py, CELL * 0.50, 0, Math.PI * 2); ctx.stroke();
+          ctx.beginPath(); ctx.arc(px, py, CELL * 0.40, 0, Math.PI * 2); ctx.stroke();
+          ctx.shadowBlur = 0;
+          ctx.globalAlpha = 1;
+        } else if (t.action === 'chargeArtillery' || t.action === 'chargeArtillery2') {
+          const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 200);
+          const isStage2 = t.action === 'chargeArtillery2';
+          ctx.strokeStyle = isStage2 ? `rgba(224,122,32,${pulse})` : `rgba(255,200,80,${pulse})`;
+          ctx.lineWidth = 4;
+          ctx.setLineDash([6, 4]);
+          ctx.beginPath(); ctx.arc(px, py, CELL * 0.48, 0, Math.PI * 2); ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = isStage2 ? '#c05010' : '#c07820';
+          ctx.font = 'bold 20px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(isStage2 ? '⚡⚡' : '⚡', px, py);
+        } else if (t.action === 'loadCargo') {
+          ctx.strokeStyle = '#e0a060'; ctx.lineWidth = 3.5;
+          ctx.beginPath(); ctx.arc(px, py, CELL * 0.44, 0, Math.PI * 2); ctx.stroke();
+          ctx.fillStyle = 'rgba(224,160,96,0.40)';
+          ctx.beginPath(); ctx.arc(px, py, CELL * 0.36, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#c07820';
+          ctx.beginPath();
+          ctx.moveTo(px, py - 10);
+          ctx.lineTo(px - 8, py + 6);
+          ctx.lineTo(px + 8, py + 6);
+          ctx.closePath(); ctx.fill();
+        } else if (t.action === 'unloadCargo') {
+          ctx.strokeStyle = '#e0a060'; ctx.lineWidth = 3.5;
+          ctx.setLineDash([5, 4]);
+          ctx.beginPath(); ctx.arc(px, py, CELL * 0.44, 0, Math.PI * 2); ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = '#c07820';
+          ctx.beginPath();
+          ctx.moveTo(px, py + 10);
+          ctx.lineTo(px - 8, py - 6);
+          ctx.lineTo(px + 8, py - 6);
+          ctx.closePath(); ctx.fill();
+        } else {
+          if (targetPiece) {
+            ctx.beginPath(); ctx.arc(px, py, CELL * 0.48, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(46,134,222,0.9)'; ctx.lineWidth = 3.5; ctx.stroke();
+          } else {
+            ctx.beginPath(); ctx.arc(px, py, CELL * 0.13, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(46,134,222,0.62)'; ctx.fill();
+          }
+        }
+      }
+    }
+
+    if (selected && !isReview) {
+      const px = MG + selected.x * CELL, py = MG + selected.y * CELL;
+      ctx.beginPath(); ctx.arc(px, py, CELL * 0.47, 0, Math.PI * 2);
+      ctx.strokeStyle = '#2e86de'; ctx.lineWidth = 3.5;
+      ctx.shadowColor = '#2e86de'; ctx.shadowBlur = 12; ctx.stroke(); ctx.shadowBlur = 0;
+    }
+  } finally {
+    board = savedBoard; camps = savedCamps;
+  }
+}
+
+function recomputeTargets() {
+  forbiddenTargets = [];
+  if (!selected) { targets = []; return; }
+  const p = board[selected.y] ? board[selected.y][selected.x] : null;
+  if (!p) { targets = []; return; }
+
+  const pseudoAll = genPseudoMoves(board, 'r', camps).filter(
+    mv => mv.fx === selected.x && mv.fy === selected.y
+  );
+
+  let allTargets = genLegalMoves(board, 'r', camps)
+    .filter(mv => mv.fx === selected.x && mv.fy === selected.y);
+
+  const legalKeys = new Set(allTargets.map(mv => mv.action + ':' + (mv.tx ?? -1) + ',' + (mv.ty ?? -1)));
+  for (const mv of pseudoAll) {
+    if (mv.action === 'move' || mv.action === 'attack') {
+      const key = mv.action + ':' + (mv.tx ?? -1) + ',' + (mv.ty ?? -1);
+      if (!legalKeys.has(key) && mv.tx !== undefined && mv.ty !== undefined) {
+        forbiddenTargets.push({ x: mv.tx, y: mv.ty });
+      }
+    }
+  }
+
+  if (p.type === 'D') {
+    allTargets = allTargets.filter(mv => {
+      if (truckMode === 'move')   return mv.action === 'move';
+      if (truckMode === 'load')   return mv.action === 'loadCargo';
+      if (truckMode === 'unload') return mv.action === 'unloadCargo';
+      return true;
+    });
+  }
+  targets = allTargets.map(mv => {
+    if (mv.action === 'attackCamp') return { action: 'attackCamp', camp: mv.camp };
+    if (mv.action === 'enterCamp') return { action: 'enterCamp', camp: mv.camp };
+    if (mv.action === 'loadCargo') return { action: 'loadCargo', cargoX: mv.cargoX, cargoY: mv.cargoY };
+    if (mv.action === 'unloadCargo') return { action: 'unloadCargo', targetX: mv.targetX, targetY: mv.targetY };
+    return { tx: mv.tx, ty: mv.ty, action: mv.action };
+  });
+}
+
+function updateTruckActions() {
+  const p = selected && board[selected.y] ? board[selected.y][selected.x] : null;
+  if (p && p.type === 'D' && !thinking && !gameOver && !isReview && turn === 'r') {
+    truckActions.classList.add('show');
+    const moveBtn = truckActions.querySelector('[data-mode="move"]');
+    const loadBtn = truckActions.querySelector('[data-mode="load"]');
+    const unloadBtn = truckActions.querySelector('[data-mode="unload"]');
+    moveBtn.disabled = false;
+    loadBtn.disabled = !!p.cargo;
+    unloadBtn.disabled = !p.cargo;
+    truckBtns.forEach(b => b.classList.toggle('active', b.dataset.mode === truckMode));
+  } else {
+    truckActions.classList.remove('show');
+  }
+}
+
+function updateUI() {
+  updateTruckActions();
+
+  if (gameOver) {
+    if (winner === 'r') { turnDot.className = 'turn-dot red win'; statusText.textContent = '🎉 红方胜！'; }
+    else if (winner === 'b') { turnDot.className = 'turn-dot black win'; statusText.textContent = '😵 黑方胜...'; }
+    else { turnDot.className = 'turn-dot'; statusText.textContent = '🤝 和棋'; }
+    statusText.classList.remove('check'); statusText.classList.remove('march'); statusText.classList.remove('charging'); statusText.classList.remove('draw');
+    btnUndo.disabled = true;
+    return;
+  }
+  if (pendingDrawOffer) {
+    turnDot.className = 'turn-dot red';
+    statusText.textContent = '等待您回应和棋申请';
+    statusText.classList.remove('check'); statusText.classList.remove('march'); statusText.classList.remove('charging');
+    statusText.classList.add('draw');
+    btnUndo.disabled = true;
+    return;
+  }
+  if (thinking) {
+    turnDot.className = 'turn-dot black';
+    statusText.textContent = 'AI 思考中...';
+    statusText.classList.remove('check'); statusText.classList.remove('march'); statusText.classList.remove('charging'); statusText.classList.remove('draw');
+    btnUndo.disabled = true;
+    return;
+  }
+  const hasKing = findKing(board, turn) !== null;
+  const march = hasImperialMarch(board, turn);
+  if (turn === 'r') {
+    turnDot.className = 'turn-dot red';
+    if (!hasKing) { statusText.textContent = '红方无帅续战'; statusText.classList.remove('check'); statusText.classList.remove('charging'); statusText.classList.remove('draw'); statusText.classList.add('march'); }
+    else if (checkNow) { statusText.textContent = '红方被将军！'; statusText.classList.add('check'); statusText.classList.remove('march'); statusText.classList.remove('charging'); statusText.classList.remove('draw'); }
+    else if (march) { statusText.textContent = '红方御驾亲征'; statusText.classList.add('march'); statusText.classList.remove('check'); statusText.classList.remove('charging'); statusText.classList.remove('draw'); }
+    else if (selected) {
+      const sp = board[selected.y][selected.x];
+      if (sp && sp.type === 'D') {
+        if (truckMode === 'move') statusText.textContent = '拖车·移动';
+        else if (truckMode === 'load') statusText.textContent = '拖车·装货';
+        else statusText.textContent = '拖车·卸货';
+        statusText.classList.remove('check'); statusText.classList.remove('march'); statusText.classList.remove('charging'); statusText.classList.remove('draw');
+      } else if (sp && sp.type === 'C' && sp.charge) {
+        const stage = sp.charge.stage || 1;
+        statusText.textContent = `炮台充能中 (${stage}/3)`;
+        statusText.classList.remove('check'); statusText.classList.remove('march'); statusText.classList.remove('draw');
+        statusText.classList.add('charging');
+      } else if (sp && sp.type === 'F' && !isArtilleryReady(sp)) {
+        const diff = turnCount - (sp.lastFireTurn ?? -10);
+        const remain = Math.max(1, Math.ceil((ARTILLERY_RELOAD - diff) / 2));
+        statusText.textContent = `炮台装填中 (剩${remain}回合)`;
+        statusText.classList.remove('check'); statusText.classList.remove('march'); statusText.classList.remove('draw');
+        statusText.classList.add('charging');
+      } else {
+        statusText.textContent = '红方走棋';
+        statusText.classList.remove('check'); statusText.classList.remove('march'); statusText.classList.remove('charging'); statusText.classList.remove('draw');
+      }
+    }
+    else { statusText.textContent = '红方走棋'; statusText.classList.remove('check'); statusText.classList.remove('march'); statusText.classList.remove('charging'); statusText.classList.remove('draw'); }
+  } else {
+    turnDot.className = 'turn-dot black';
+    if (!hasKing) { statusText.textContent = '黑方无将续战'; statusText.classList.remove('check'); statusText.classList.remove('charging'); statusText.classList.remove('draw'); statusText.classList.add('march'); }
+    else if (checkNow) { statusText.textContent = '黑方被将军！'; statusText.classList.add('check'); statusText.classList.remove('march'); statusText.classList.remove('charging'); statusText.classList.remove('draw'); }
+    else if (march) { statusText.textContent = '黑方御驾亲征'; statusText.classList.add('march'); statusText.classList.remove('check'); statusText.classList.remove('charging'); statusText.classList.remove('draw'); }
+    else { statusText.textContent = '黑方走棋'; statusText.classList.remove('check'); statusText.classList.remove('march'); statusText.classList.remove('charging'); statusText.classList.remove('draw'); }
+  }
+  btnUndo.disabled = (history.length === 0 || thinking || pendingDrawOffer);
+}
+
+function showOverlay() {
+  if (winner === 'r') resultText.textContent = '🎉 恭喜！红方胜';
+  else if (winner === 'b') resultText.textContent = '😵 AI 赢了';
+  else resultText.textContent = '🤝 和棋';
+  overlay.classList.add('show');
+}
+
+function showNotification(msg) {
+  notifText.textContent = msg;
+  notification.classList.add('show');
+  if (notifTimer) clearTimeout(notifTimer);
+  notifTimer = setTimeout(() => notification.classList.remove('show'), 2600);
+}
+
+function posFromEvent(e) {
+  const rect = canvas.getBoundingClientRect();
+  let cx, cy;
+  if (e.touches && e.touches.length) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; }
+  else { cx = e.clientX; cy = e.clientY; }
+  const x = (cx - rect.left) / rect.width * W;
+  const y = (cy - rect.top) / rect.height * H;
+  const col = Math.round((x - MG) / CELL);
+  const row = Math.round((y - MG) / CELL);
+  if (col < 0 || col > 8 || row < 0 || row > 9) return null;
+  const px = MG + col * CELL, py = MG + row * CELL;
+  if (Math.hypot(x - px, y - py) > CELL * 0.56) return null;
+  return { x: col, y: row };
+}
+
+function findCampAtPoint(mx, my) {
+  for (const camp of camps) {
+    const px = MG + (camp.x + 1) * CELL;
+    const py = MG + (camp.y + 1) * CELL;
+    if (Math.hypot(mx - px, my - py) < CELL * 0.9) return camp;
+  }
+  return null;
+}
+
+function onCanvasClick(e) {
+  if (gameOver || thinking || isReview || pendingDrawOffer) return;
+  if (turn !== 'r') return;
+
+  const rect = canvas.getBoundingClientRect();
+  let cx, cy;
+  if (e.touches && e.touches.length) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; }
+  else { cx = e.clientX; cy = e.clientY; }
+  const mx = (cx - rect.left) / rect.width * W;
+  const my = (cy - rect.top) / rect.height * H;
+
+  if (selected) {
+    const campHit = findCampAtPoint(mx, my);
+    if (campHit && campHit.color === 'b') {
+      const hit = targets.find(t => t.action === 'attackCamp' && t.camp === campHit);
+      if (hit) { doMove({ fx: selected.x, fy: selected.y, action: 'attackCamp', camp: campHit }); return; }
+    }
+    if (campHit && campHit.color === 'r') {
+      const hit = targets.find(t => t.action === 'enterCamp' && t.camp === campHit);
+      if (hit) { doMove({ fx: selected.x, fy: selected.y, action: 'enterCamp', camp: campHit }); return; }
+    }
+  }
+
+  const pos = posFromEvent(e);
+  if (!pos) { selected = null; targets = []; forbiddenTargets = []; updateUI(); draw(); return; }
+  const { x, y } = pos;
+
+  if (selected) {
+    const hit = targets.find(t => {
+      if (t.action === 'attackCamp' || t.action === 'enterCamp') return false;
+      if (t.action === 'loadCargo') return t.cargoX === x && t.cargoY === y;
+      if (t.action === 'unloadCargo') return t.targetX === x && t.targetY === y;
+      return t.tx === x && t.ty === y;
+    });
+    if (hit) { doMove({ fx: selected.x, fy: selected.y, ...hit }); return; }
+  }
+
+  const p = board[y][x];
+  if (p && p.color === 'r') {
+    selected = { x, y };
+    truckMode = 'move';
+    recomputeTargets();
+  } else {
+    selected = null; targets = []; forbiddenTargets = [];
+    truckMode = 'move';
+  }
+  updateUI(); draw();
+}
+
+canvas.addEventListener('click', onCanvasClick);
+canvas.addEventListener('touchstart', (e) => { e.preventDefault(); onCanvasClick(e); }, { passive: false });
+
+truckBtns.forEach(btn => {
+  btn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (btn.disabled) return;
+    truckMode = btn.dataset.mode;
+    recomputeTargets();
+    updateUI(); draw();
+  });
+});
+
+function enterReview() {
+  isReview = true;
+  reviewStep = history.length;
+  overlay.classList.remove('show');
+  reviewControls.classList.add('active');
+  progressSlider.max = history.length;
+  progressSlider.value = reviewStep;
+  stepLabel.textContent = reviewStep + '/' + history.length;
+  draw();
+}
+
+progressSlider.addEventListener('input', function () {
+  if (!isReview) return;
+  reviewStep = parseInt(this.value, 10);
+  stepLabel.textContent = reviewStep + '/' + history.length;
+  draw();
+});
+
+btnExitReview.addEventListener('click', function () {
+  isReview = false;
+  reviewControls.classList.remove('active');
+  if (gameOver) showOverlay();
+  draw();
+});
+
+btnReset.addEventListener('click', () => { if (thinking) return; initGame(); });
+btnNextGame.addEventListener('click', () => { if (thinking) return; initGame(); });
+btnReview.addEventListener('click', () => { if (history.length === 0) return; enterReview(); });
+btnUndo.addEventListener('click', undoMove);
+
+toggleLegal.addEventListener('click', (e) => { e.stopPropagation(); showLegal = !showLegal; trackLegal.classList.toggle('active', showLegal); draw(); });
+toggleBest.addEventListener('click', (e) => { e.stopPropagation(); showBest = !showBest; trackBest.classList.toggle('active', showBest); draw(); });
+toggleCheck.addEventListener('click', (e) => { e.stopPropagation(); showCheck = !showCheck; trackCheck.classList.toggle('active', showCheck); draw(); });
+
+function updateSegmentedSlider(control, slider) {
+  const active = control.querySelector('.segmented-option.active');
+  if (!active) return;
+  const oRect = active.getBoundingClientRect();
+  const cRect = control.getBoundingClientRect();
+  slider.style.left = (oRect.left - cRect.left) + 'px';
+  slider.style.top = (oRect.top - cRect.top) + 'px';
+  slider.style.width = oRect.width + 'px';
+  slider.style.height = oRect.height + 'px';
+}
+function moveDifficultySlider() { updateSegmentedSlider(difficultyControl, difficultySlider); }
+diffOptions.forEach(opt => {
+  opt.addEventListener('click', function (e) {
+    e.stopPropagation();
+    diffOptions.forEach(o => o.classList.remove('active'));
+    this.classList.add('active');
+    difficulty = this.dataset.value;
+    moveDifficultySlider();
+    showNotification('难度已切换：' + this.textContent);
+  });
+});
+difficultyControl.addEventListener('click', e => e.stopPropagation());
+window.addEventListener('resize', moveDifficultySlider);
+setTimeout(moveDifficultySlider, 30);
+setTimeout(moveDifficultySlider, 200);
+setTimeout(moveDifficultySlider, 600);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(moveDifficultySlider);
+
+initGame();
+moveDifficultySlider();
+
+console.log('♟ 中国象棋 · 御驾亲征版');
+console.log('  🤝 和棋改为横幅申请：AI 会主动申请，玩家可同意/拒绝');
+console.log('  🤝 兵营算威胁：有兵营就不触发"无威胁"判定');
+console.log('  🤝 玩家也可主动点 [申请和棋] 按钮');
+
+})();
+</script>
+</body>
+</html>
