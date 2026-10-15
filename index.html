@@ -571,7 +571,7 @@
     <!-- 背景画布 -->
     <canvas id="starCanvas"></canvas>
 
-    <!-- 顶部导航栏（已添加 collidable-btn 类，生成碰撞箱） -->
+    <!-- 顶部导航栏（已添加百宝箱） -->
     <header class="top-nav collidable-btn">
         <div class="nav-logo">
             <span class="logo-icon">✨</span>
@@ -582,6 +582,7 @@
             <a href="gg.html" target="_blank" rel="noopener noreferrer" class="nav-link">公告</a>
             <a href="yjfk.html" target="_blank" rel="noopener noreferrer" class="nav-link">意见反馈</a>
             <a href="help.html" target="_blank" rel="noopener noreferrer" class="nav-link">诊断</a>
+            <a href="bbx.html" target="_blank" rel="noopener noreferrer" class="nav-link">百宝箱</a>
         </nav>
         <div class="nav-actions">
             <button id="manageBallBtn" class="nav-btn" title="管理小球">⚙️</button>
@@ -604,13 +605,13 @@
 
         <div class="buttons-grid" id="buttonGrid"></div>
 
-        <!-- 模式选择器（已修改选项和跳转链接，并添加 collidable-btn 类） -->
+        <!-- 模式选择器（已修改：百宝箱移走，新增共创区） -->
         <div class="mode-selector-wrapper">
             <div class="segmented-control collidable-btn" id="modeSelector">
                 <div class="segmented-slider" id="modeSlider"></div>
                 <button class="segmented-option active" data-value="tools" data-url="fz.html">工具/游戏集</button>
                 <button class="segmented-option" data-value="download" data-url="xz.html">下载站</button>
-                <button class="segmented-option" data-value="treasure" data-url="bbx.html">百宝箱</button>
+                <button class="segmented-option" data-value="co-create" data-url="/gc/index.html">共创区</button>
             </div>
         </div>
 
@@ -813,7 +814,6 @@
         /* ============================================================
            第二部分：按钮配置
            ============================================================ */
-        // 加上向右的箭头
         const buttonsConfig = [
             { text: "开始探索 <span class='arrow'>→</span>", action: "explore" }
         ];
@@ -881,7 +881,6 @@
                 button.type = 'button';
                 button.className = 'liquid-btn collidable-btn';
                 button.setAttribute('data-index', idx);
-                // 使用 innerHTML 以支持 HTML 标签（箭头）
                 button.innerHTML = btnCfg.text;
                 button.style.setProperty('--order', idx);
 
