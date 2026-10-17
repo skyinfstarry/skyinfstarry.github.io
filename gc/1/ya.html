@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>雨爱 · 全景声 (纯净版)</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        html, body { width: 100%; height: 100%; overflow: hidden; background: #03050b; color: #fff; font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; }
+        #starCanvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+        .main-container { position: relative; z-index: 3; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; padding: 1.5rem; overflow-y: auto; }
+        
+        .glass-card {
+            position: relative; width: 100%; max-width: 580px; padding: 3rem 2rem 2.5rem; border-radius: 32px;
+            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: inset 0.5px 0 0 0 rgba(255,255,255,0.35), inset -0.5px 0 0 0 rgba(255,255,255,0.18),
+                        inset 0 0.5px 0 0 rgba(255,255,255,0.5), inset 0 -0.5px 0 0 rgba(255,255,255,0.22),
+                        0 20px 50px rgba(0,0,0,0.5);
+            text-align: center; animation: cardIn 1s cubic-bezier(0.2, 0.9, 0.4, 1.1) backwards;
+        }
+        @keyframes cardIn { 0% { opacity: 0; transform: translateY(30px) scale(0.96); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+        .glass-card::before { content: ''; position: absolute; top: 0; left: 15%; right: 15%; height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent); }
+        
+        .main-title { font-size: clamp(1.6rem, 5vw, 2.2rem); font-weight: 700; background: linear-gradient(135deg, #FFFFFF, #C0E0FF, #AAD0FF); -webkit-background-clip: text; background-clip: text; color: transparent; letter-spacing: 3px; text-shadow: 0 0 20px rgba(170, 208, 255, 0.4); margin-bottom: 0.5rem; }
+        .subtitle { font-size: 0.85rem; opacity: 0.7; letter-spacing: 2px; margin-bottom: 1.5rem; }
+
+        .radar-wrap { position: relative; width: 150px; height: 150px; margin: 0 auto 1.5rem; border-radius: 50%; background: radial-gradient(circle, rgba(100,180,255,0.1) 0%, transparent 70%); border: 1px solid rgba(255,255,255,0.15); box-shadow: inset 0 0 30px rgba(100,180,255,0.1), 0 0 20px rgba(100,180,255,0.1); }
+        .radar-dot { position: absolute; width: 8px; height: 8px; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 12px currentColor; }
+        .radar-center { position: absolute; top: 50%; left: 50%; width: 12px; height: 12px; transform: translate(-50%, -50%); border-radius: 50%; background: #fff; box-shadow: 0 0 15px #fff; }
+
+        .progress-wrap { position: relative; width: 100%; padding: 0.8rem 1rem; border-radius: 20px; margin-bottom: 1.5rem; background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.1); cursor: pointer; touch-action: none; }
+        .progress-bg { width: 100%; height: 8px; background: rgba(255, 255, 255, 0.08); border-radius: 4px; overflow: visible; box-shadow: inset 0 1px 4px rgba(0,0,0,0.6); position: relative; }
+        .progress-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #6ee7b7, #8cbaff); border-radius: 4px; box-shadow: 0 0 16px rgba(140, 190, 255, 0.9); transition: width 0.1s linear; }
+        .progress-thumb { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 14px; height: 14px; background: #fff; border-radius: 50%; box-shadow: 0 0 15px rgba(255,255,255,0.8); opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+        .progress-wrap:hover .progress-thumb, .progress-wrap.dragging .progress-thumb { opacity: 1; }
+        
+        .time-row { display: flex; justify-content: space-between; font-size: 0.75rem; font-family: monospace; color: rgba(186, 208, 240, 0.6); margin-top: 0.6rem; letter-spacing: 1px; }
+        .seek-tooltip { position: absolute; top: -30px; background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(255,255,255,0.2); padding: 2px 10px; border-radius: 8px; font-size: 0.7rem; font-family: monospace; color: #fff; pointer-events: none; opacity: 0; transform: translateX(-50%); transition: opacity 0.2s; white-space: nowrap; }
+        .progress-wrap:hover .seek-tooltip, .progress-wrap.dragging .seek-tooltip { opacity: 1; }
+
+        .btn-wrap { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; }
+        .liquid-btn { position: relative; display: inline-flex; align-items: center; justify-content: center; padding: 1rem 2.5rem; min-width: 200px; font-family: inherit; font-size: 1rem; font-weight: 600; color: #fff; letter-spacing: 2px; text-shadow: 0 1px 6px rgba(0,0,0,0.6); background: rgba(255, 255, 255, 0.055); border: none; border-radius: 999px; cursor: pointer; overflow: hidden; box-shadow: inset 0.5px 0 0 0 rgba(255,255,255,0.35), inset -0.5px 0 0 0 rgba(255,255,255,0.18), inset 0 0.5px 0 0 rgba(255,255,255,0.5), inset 0 -0.5px 0 0 rgba(255,255,255,0.22), 0 10px 26px rgba(0,0,0,0.38); transition: all 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1); }
+        .liquid-btn:hover { transform: translateY(-3px); background: rgba(255,255,255,0.11); box-shadow: inset 0.5px 0 0 0 rgba(255,255,255,0.55), inset -0.5px 0 0 0 rgba(255,255,255,0.3), inset 0 0.5px 0 0 rgba(255,255,255,0.75), inset 0 -0.5px 0 0 rgba(255,255,255,0.35), 0 18px 34px rgba(0,0,0,0.45), 0 0 24px rgba(140,190,255,0.35); }
+        .liquid-btn:active { transform: translateY(1px); }
+        .liquid-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .ripple-effect { position: absolute; border-radius: 50%; pointer-events: none; background: radial-gradient(circle, rgba(255,255,255,0.55) 0%, transparent 75%); transform: scale(0); opacity: 1; z-index: 2; }
+        .status-text { margin-top: 1rem; font-size: 0.8rem; letter-spacing: 2px; color: rgba(186,208,240,0.6); }
+
+        @supports not (backdrop-filter: url(#x)) {
+            .glass-card { background: rgba(20, 30, 50, 0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+            .liquid-btn { background: rgba(255,255,255,0.08); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="starCanvas"></canvas>
+
+<div class="main-container">
+    <div class="glass-card liquid-glass" id="mainCard">
+        <div class="main-title">雨爱 · 全景声</div>
+        <div class="subtitle">HRTF 3D 空间音频 · 纯享版</div>
+        
+        <div class="radar-wrap">
+            <div class="radar-center"></div>
+            <div class="radar-dot" id="dot-vocal" style="color:#6ee7b7; background:#6ee7b7; top:50%; left:50%;"></div>
+            <div class="radar-dot" id="dot-drums" style="color:#fcd34d; background:#fcd34d; top:50%; left:50%;"></div>
+            <div class="radar-dot" id="dot-bass" style="color:#f87171; background:#f87171; top:50%; left:50%;"></div>
+            <div class="radar-dot" id="dot-chords" style="color:#8cbaff; background:#8cbaff; top:50%; left:50%;"></div>
+        </div>
+
+        <div class="progress-wrap liquid-glass" id="progressWrap">
+            <div class="seek-tooltip" id="seekTooltip">00:00</div>
+            <div class="progress-bg" id="progressBg">
+                <div class="progress-fill" id="progressFill"></div>
+                <div class="progress-thumb" id="progressThumb" style="left: 0%;"></div>
+            </div>
+            <div class="time-row">
+                <span id="currentTime">00:00</span>
+                <span id="totalTime">00:00</span>
+            </div>
+        </div>
+
+        <div class="btn-wrap">
+            <button class="liquid-btn liquid-glass" id="playBtn" onclick="togglePlay()">▶ 开启全景声场</button>
+        </div>
+        <div class="status-text" id="statusText">建议佩戴耳机，效果最佳</div>
+    </div>
+</div>
+
+<script>
+/* ============================================================
+   0. 全局变量声明
+   ============================================================ */
+let totalBeats = 0;
+let totalDuration = 0;
+let resumePosition = 0;
+
+/* ============================================================
+   1. 星空背景
+   ============================================================ */
+const canvas = document.getElementById('starCanvas'), ctx = canvas.getContext('2d');
+let stars = [], W = 0, H = 0;
+function initStars() { stars = []; const count = window.innerWidth < 600 ? 120 : 200; for (let i = 0; i < count; i++) stars.push({ x: Math.random()*W, y: Math.random()*H, r: Math.random()*1.8+0.5, a: Math.random()*0.5+0.3, s: 0.002+Math.random()*0.008, o: Math.random()*Math.PI*2 }); }
+function resizeCanvas() { W = window.innerWidth; H = window.innerHeight; canvas.width = W; canvas.height = H; initStars(); }
+function renderLoop(now) { ctx.clearRect(0,0,W,H); ctx.fillStyle = '#03050b'; ctx.fillRect(0,0,W,H); const t = now / 1000; for (let s of stars) { const tw = 0.5 + 0.5 * Math.sin(t * s.s * 2.5 + s.o); ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fillStyle = `rgba(225,235,255,${Math.min(s.a * (0.6 + tw*0.5), 0.95)})`; ctx.fill(); } requestAnimationFrame(renderLoop); }
+window.addEventListener('resize', resizeCanvas); resizeCanvas(); requestAnimationFrame(renderLoop);
+
+/* ============================================================
+   2. 液态玻璃折射
+   ============================================================ */
+function calculateRefractionProfile(t, b, hf, ior, n) { n = n || 128; const eta = 1/ior; const refract = (nx, ny) => { const k = 1 - eta*eta*(1-ny*ny); return k < 0 ? null : [-(eta*ny + Math.sqrt(k))*nx, eta - (eta*ny + Math.sqrt(k))*ny]; }; const p = new Float64Array(n); for (let i = 0; i < n; i++) { const x = i/n, y = hf(x), dx = x < 1 ? 0.0001 : -0.0001, y2 = hf(x+dx); const d = (y2-y)/dx, m = Math.sqrt(d*d+1), r = refract(-d/m, -1/m); p[i] = r ? r[0] * ((y*b + t) / r[1]) : 0; } return p; }
+const squircle = t => Math.pow(1 - Math.pow(1-t, 4), 0.25);
+function generateDisplacementMap(w, h, r, b, p, maxD) { const c = document.createElement('canvas'); c.width = w; c.height = h; const cx = c.getContext('2d'), img = cx.createImageData(w,h), d = img.data; for (let i=0; i<d.length; i+=4) { d[i]=128; d[i+1]=128; d[i+3]=255; } const R = Math.min(r, Math.min(w,h)/2-1); if (R<=0) return c.toDataURL(); const cb = Math.min(b, R-1); if (cb<=1) return c.toDataURL(); const rSq=R*R, r1Sq=(R+1)*(R+1), rBSq=Math.max(R-cb,0)**2, wB=w-R*2, hB=h-R*2, S=p.length; for (let y=0; y<h; y++) for (let x=0; x<w; x++) { let dx=0, dy=0; if (x<R) dx=x-R; else if (x>=w-R) dx=x-R-wB; if (y<R) dy=y-R; else if (y>=h-R) dy=y-R-hB; const dSq=dx*dx+dy*dy; if (dSq>r1Sq||dSq<rBSq) continue; const dist=Math.sqrt(dSq), fs=R-dist, op=dSq<rSq?1:1-(dist-Math.sqrt(rSq))/(Math.sqrt(r1Sq)-Math.sqrt(rSq)); if (op<=0||dist===0) continue; const cos=dx/dist, sin=dy/dist, bi=Math.min(Math.floor((fs/cb)*S),S-1), disp=p[bi]||0; const idx=(y*w+x)*4; d[idx]=Math.min(255,Math.max(0,(128+(-cos*disp)/maxD*127*op+0.5)|0)); d[idx+1]=Math.min(255,Math.max(0,(128+(-sin*disp)/maxD*127*op+0.5)|0)); } cx.putImageData(img,0,0); return c.toDataURL(); }
+let defsEl = null; function ensureSVG() { if (defsEl) return; const svg = document.createElementNS('http://www.w3.org/2000/svg','svg'); svg.setAttribute('width','0'); svg.setAttribute('height','0'); svg.setAttribute('style','position:absolute;width:0;height:0;overflow:hidden;pointer-events:none;'); svg.setAttribute('color-interpolation-filters','sRGB'); document.body.appendChild(svg); defsEl = document.createElementNS('http://www.w3.org/2000/svg','defs'); svg.appendChild(defsEl); }
+function applyGlass(el, i) { const w=Math.round(el.offsetWidth), h=Math.round(el.offsetHeight); if (w<8||h<8) return; const r=Math.min(w,h)/2, b=Math.min(r*0.55, 16, r-1); if (b<=1) return; const p = calculateRefractionProfile(70, b, squircle, 2.4, 128); let maxD = 0; p.forEach(v => { if (Math.abs(v)>maxD) maxD=Math.abs(v); }); if (maxD<0.001) maxD=1; const url = generateDisplacementMap(w,h,r,b,p,maxD); const id = 'lg-'+i, old = defsEl.querySelector('#'+id); if (old) old.remove(); const f = document.createElementNS('http://www.w3.org/2000/svg','filter'); f.setAttribute('id', id); f.innerHTML = `<feImage href="${url}" x="0" y="0" width="${w}" height="${h}" result="d"/><feDisplacementMap in="SourceGraphic" in2="d" scale="${maxD*0.52}" xChannelSelector="R" yChannelSelector="G"/>`; defsEl.appendChild(f); el.style.setProperty('backdrop-filter', `url(#${id}) blur(0.4px)`, 'important'); el.style.setProperty('-webkit-backdrop-filter', `url(#${id}) blur(0.4px)`, 'important'); }
+function buildLiquidGlass() { document.querySelectorAll('.liquid-glass').forEach((el,i) => applyGlass(el,i)); }
+
+/* ============================================================
+   3. 全景声引擎 + 进度条控制
+   ============================================================ */
+let audioCtx = null, isPlaying = false, masterGain = null;
+let panners = {}, activeNodes = [];
+let radarAnimId = null, progressAnimId = null;
+let startTime = 0;
+let isDraggingProgress = false;
+
+const melodyData = [["D#4",0.5],["E4",0.5],["C#4",0.5],["D#4",1],["E4",1],["G#4",2],["B4",1],["G#4",1],["B3",0.5],["G#4",0.5],["F#4",0.5],["E4",1],["F#4",0.5],["C#4",0.5],["D#4",3],["E4",0.5],["D#4",0.5],["C#4",0.5],["C#4",1],["D#4",1],["E4",0.5],["G#4",2.5],["B4",0.5],["C#5",0.5],["G#4",1],["B4",0.5],["A4",0.5],["G#4",1],["D#4",0.5],["E4",1.5],["F#4",1.5],["F#4",0.5],["G#4",0.5],["F#4",0.5],["E4",0.5],["B3",0.5],["C#4",0.5],["B3",0.5],["C#4",0.5],["B3",0.5],["C#4",1],["G#4",0.5],["B3",1],["C#4",0.5],["B3",1],["C#4",0.5],["B3",0.5],["C#4",1],["G#4",0.5],["F#4",0.5],["G#4",1],["F#4",1.5],["E4",1.5],["F#4",0.5],["A4",1],["G#4",1],["A4",1],["B4",1.5],["F#4",0.5],["E4",0.5],["F#4",1],["G#4",0.5],["F#4",0.5],["E4",0.5],["F#4",1],["G#4",0.5],["G#4",0.5],["G#4",2.5],["G#4",0.5],["F#4",1],["G#4",0.5],["F#4",0.5],["E4",1],["D#4",0.5],["E4",0.5],["F#4",0.5],["G#4",1],["A4",0.5],["G#4",1],["A4",0.5],["A4",0.5],["B4",1],["G#4",0.5],["B3",0.5],["B4",1.5],["E4",1],["D#4",1],["E4",0.5],["B4",0.5],["C#5",0.5],["B4",1.5],["D#4",0.5],["E4",1],["D#4",0.5],["E4",0.5],["F#4",0.5],["G#4",1.5],["C#4",1.5],["E4",0.5],["E4",1],["D#4",1],["E4",0.5],["D#4",0.5],["B4",1],["A4",0.5],["B4",2],["F#4",0.5],["E4",0.5],["F#4",0.5],["F#4",0.5],["G#4",0.5],["G#4",0.5],["F#4",0.5],["E4",0.5],["F#4",0.5],["G#4",0.5],["G#4",3.5],["B4",0.5],["F#4",0.5],["G#4",0.5],["F#4",1],["G#4",0.5],["E4",0.5],["F#4",2],["E4",0.5],["F#4",0.5],["G#4",0.5],["E4",0.5],["F#4",0.5],["G#4",1],["A4",0.5],["G#4",1],["A4",1],["B4",1],["G#4",0.5],["B3",0.5],["B4",1.5],["E4",1],["D#4",2],["C#5",0.5],["B4",2],["E4",0.5],["D#4",1],["E4",0.5],["F#4",0.5],["G#4",1],["C#4",0.5],["E4",0.5],["E4",1],["D#4",0.5],["E4",0.5],["B4",1],["E4",2],["D#4",2],["E4",4]];
+const drumData = [["Kick",0.5],["HiHat",0.5],["Snare",0.5],["HiHat",0.5],["Kick",0.5],["HiHat",0.5],["Snare",0.5],["HiHat",0.5],["Kick",0.5],["HiHat",0.5],["Snare",0.5],["HiHat",0.5],["Kick",0.5],["HiHat",0.5],["Snare",0.5],["HiHat",0.5],["Kick",0.5],["HiHat",0.5],["Snare",0.5],["HiHat",0.5],["Kick",0.5],["HiHat",0.5],["Snare",0.5],["HiHat",0.5],["Kick",0.5],["HiHat",0.5],["Snare",0.5],["HiHat",0.5],["Kick",0.5],["Kick",0.5],["Snare",0.5],["HiHat",0.5],["Kick",0.5],["HiHat",0.5],["Snare",0.5],["HiHat",0.5],["Kick",0.5],["HiHat",0.5],["Snare",0.5],["HiHat",0.5],["Kick",0.5],["HiHat",0.5],["Snare",0.5],["HiHat",0.5],["Kick",0.5],["HiHat",0.5],["Snare",0.5],["HiHat",0.5],["Kick",0.5],["HiHat",0.5],["Snare",0.5],["HiHat",0.5],["Kick",0.5],["HiHat",0.5],["Snare",0.5],["HiHat",0.5],["Kick",0.5],["Kick",0.5],["Snare",0.5],["HiHat",0.5]];
+const bassData = [["C#3",1],["C#3",1],["G#3",1],["C#3",1],["A2",1],["A2",1],["E3",1],["A2",1],["E2",1],["E2",1],["B2",1],["E2",1],["B2",1],["B2",1],["F#3",1],["B2",1],["C#3",1],["C#3",1],["G#3",1],["C#3",1],["A2",1],["A2",1],["E3",1],["A2",1],["E2",1],["E2",1],["B2",1],["E2",1],["B2",1],["B2",1],["F#3",1],["B2",1]];
+const chordData = [["C#4",4],["E4",4],["G#4",4],["C#4",4],["E4",4],["A4",4],["B3",4],["E4",4],["G#4",4],["B3",4],["D#4",4],["F#4",4],["C#4",4],["E4",4],["G#4",4],["C#4",4],["E4",4],["A4",4],["B3",4],["E4",4],["G#4",4],["B3",4],["D#4",4],["F#4",4]];
+
+function getFrequency(note) { const s = {'C':0,'C#':1,'D':2,'D#':3,'E':4,'F':5,'F#':6,'G':7,'G#':8,'A':9,'A#':10,'B':11}; const p = note.match(/^([A-G]#?)(\d)$/); if (!p) return 440; return 440 * Math.pow(2, (((parseInt(p[2])+1)*12 + s[p[1]]) - 69) / 12); }
+function createPanner(x, y, z) { const p = audioCtx.createPanner(); p.panningModel = 'HRTF'; p.distanceModel = 'inverse'; p.refDistance = 1; p.maxDistance = 10000; p.rolloffFactor = 1; p.positionX.value = x; p.positionY.value = y; p.positionZ.value = z; p.connect(masterGain); return p; }
+
+function initAudio() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const l = audioCtx.listener;
+        if (l.positionX) { l.positionX.value = 0; l.positionY.value = 0; l.positionZ.value = 0; l.forwardX.value = 0; l.forwardY.value = 0; l.forwardZ.value = -1; l.upX.value = 0; l.upY.value = 1; l.upZ.value = 0; }
+        else { l.setPosition(0,0,0); l.setOrientation(0,0,-1, 0,1,0); }
+        const comp = audioCtx.createDynamicsCompressor(); comp.threshold.value = -18; comp.knee.value = 30; comp.ratio.value = 12; comp.attack.value = 0.003; comp.release.value = 0.25;
+        masterGain = audioCtx.createGain(); masterGain.gain.value = 0.8; masterGain.connect(comp); comp.connect(audioCtx.destination);
+        panners.vocal = createPanner(0, 0, -2); panners.drums = createPanner(2, -1, 0); panners.bass = createPanner(-2, -1, 0); panners.chords = createPanner(0, 2, 0);
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function stopAllAudio() { activeNodes.forEach(n => { try { n.stop(); n.disconnect(); } catch(e){} }); activeNodes = []; }
+
+function playVocal(freq, startTime, duration) {
+    const osc1 = audioCtx.createOscillator(), osc2 = audioCtx.createOscillator(); const gainNode = audioCtx.createGain(), filter = audioCtx.createBiquadFilter(); const lfo = audioCtx.createOscillator(), lfoGain = audioCtx.createGain();
+    osc1.type = 'sawtooth'; osc2.type = 'square'; osc1.frequency.setValueAtTime(freq, startTime); osc2.frequency.setValueAtTime(freq * 1.005, startTime);
+    lfo.frequency.value = 5.5; lfoGain.gain.value = freq * 0.01; lfo.connect(lfoGain); lfoGain.connect(osc1.frequency); lfoGain.connect(osc2.frequency); lfo.start(startTime); lfo.stop(startTime + duration);
+    filter.type = 'bandpass'; filter.frequency.value = 1000; filter.Q.value = 1.5;
+    gainNode.gain.setValueAtTime(0, startTime);
+    if (duration > 0.15) { gainNode.gain.linearRampToValueAtTime(0.35, startTime + 0.05); gainNode.gain.setValueAtTime(0.25, startTime + duration - 0.1); gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration); }
+    else { gainNode.gain.linearRampToValueAtTime(0.35, startTime + 0.02); gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration); }
+    osc1.connect(gainNode); osc2.connect(gainNode); gainNode.connect(filter); filter.connect(panners.vocal);
+    osc1.start(startTime); osc2.start(startTime); osc1.stop(startTime + duration); osc2.stop(startTime + duration); activeNodes.push(osc1, osc2, lfo);
+}
+
+const noiseBufferCache = {};
+function getNoiseBuffer(type) { if (noiseBufferCache[type]) return noiseBufferCache[type]; const size = type === 'Snare' ? 0.2 : 0.05; const bufferSize = audioCtx.sampleRate * size; const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate); const data = buffer.getChannelData(0); for (let i=0; i<bufferSize; i++) data[i] = Math.random()*2-1; noiseBufferCache[type] = buffer; return buffer; }
+
+function playDrum(type, startTime) {
+    const osc = audioCtx.createOscillator(); const gainNode = audioCtx.createGain();
+    if (type === 'Kick') { osc.type = 'sine'; osc.frequency.setValueAtTime(150, startTime); osc.frequency.exponentialRampToValueAtTime(0.01, startTime + 0.2); gainNode.gain.setValueAtTime(0.8, startTime); gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3); osc.connect(gainNode); gainNode.connect(panners.drums); osc.start(startTime); osc.stop(startTime + 0.3); activeNodes.push(osc); }
+    else if (type === 'Snare') { const noise = audioCtx.createBufferSource(); noise.buffer = getNoiseBuffer('Snare'); const filter = audioCtx.createBiquadFilter(); filter.type = 'bandpass'; filter.frequency.value = 1500; gainNode.gain.setValueAtTime(0.4, startTime); gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.2); noise.connect(filter); filter.connect(gainNode); gainNode.connect(panners.drums); noise.start(startTime); noise.stop(startTime + 0.2); activeNodes.push(noise); }
+    else if (type === 'HiHat') { const noise = audioCtx.createBufferSource(); noise.buffer = getNoiseBuffer('HiHat'); const filter = audioCtx.createBiquadFilter(); filter.type = 'highpass'; filter.frequency.value = 8000; gainNode.gain.setValueAtTime(0.2, startTime); gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.05); noise.connect(filter); filter.connect(gainNode); gainNode.connect(panners.drums); noise.start(startTime); noise.stop(startTime + 0.05); activeNodes.push(noise); }
+}
+
+function playBass(freq, startTime, duration) {
+    const osc = audioCtx.createOscillator(); const gainNode = audioCtx.createGain(); const filter = audioCtx.createBiquadFilter();
+    osc.type = 'triangle'; osc.frequency.setValueAtTime(freq, startTime); filter.type = 'lowpass'; filter.frequency.value = 400;
+    gainNode.gain.setValueAtTime(0, startTime);
+    if (duration > 0.15) { gainNode.gain.linearRampToValueAtTime(0.5, startTime + 0.05); gainNode.gain.setValueAtTime(0.5, startTime + duration - 0.1); gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration); }
+    else { gainNode.gain.linearRampToValueAtTime(0.5, startTime + 0.02); gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration); }
+    osc.connect(filter); filter.connect(gainNode); gainNode.connect(panners.bass); osc.start(startTime); osc.stop(startTime + duration); activeNodes.push(osc);
+}
+
+function playChord(freq, startTime, duration) {
+    const osc = audioCtx.createOscillator(); const gainNode = audioCtx.createGain(); const filter = audioCtx.createBiquadFilter();
+    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(freq, startTime); filter.type = 'lowpass'; filter.frequency.value = 1000;
+    gainNode.gain.setValueAtTime(0, startTime);
+    if (duration > 0.15) { gainNode.gain.linearRampToValueAtTime(0.1, startTime + 0.5); gainNode.gain.setValueAtTime(0.1, startTime + duration - 0.5); gainNode.gain.linearRampToValueAtTime(0, startTime + duration); }
+    else { gainNode.gain.linearRampToValueAtTime(0.1, startTime + 0.1); gainNode.gain.linearRampToValueAtTime(0, startTime + duration); }
+    osc.connect(filter); filter.connect(gainNode); gainNode.connect(panners.chords); osc.start(startTime); osc.stop(startTime + duration); activeNodes.push(osc);
+}
+
+function scheduleAudioFrom(startOffsetSec) {
+    stopAllAudio();
+    const secPerBeat = 60 / 115;
+    const startOffsetBeats = startOffsetSec / secPerBeat;
+    const playStartTime = audioCtx.currentTime + 0.1;
+    startTime = playStartTime - startOffsetSec;
+
+    let mt = 0; melodyData.forEach(([n, b]) => { const noteEnd = mt + b; if (noteEnd > startOffsetBeats) { const actualStartBeat = Math.max(mt, startOffsetBeats); const duration = (noteEnd - actualStartBeat) * secPerBeat; const noteStartTime = playStartTime + (actualStartBeat - startOffsetBeats) * secPerBeat; if (duration > 0.05) playVocal(getFrequency(n), noteStartTime, duration); } mt += b; });
+    let db = 0, di = 0; while (db < totalBeats) { const [type, b] = drumData[di % drumData.length]; const noteEnd = db + b; if (noteEnd > startOffsetBeats) { const actualStartBeat = Math.max(db, startOffsetBeats); const noteStartTime = playStartTime + (actualStartBeat - startOffsetBeats) * secPerBeat; playDrum(type, noteStartTime); } db += b; di++; }
+    let bb = 0, bi = 0; while (bb < totalBeats) { const [n, b] = bassData[bi % bassData.length]; const noteEnd = bb + b; if (noteEnd > startOffsetBeats) { const actualStartBeat = Math.max(bb, startOffsetBeats); const duration = (noteEnd - actualStartBeat) * secPerBeat; const noteStartTime = playStartTime + (actualStartBeat - startOffsetBeats) * secPerBeat; if (duration > 0.05) playBass(getFrequency(n), noteStartTime, duration); } bb += b; bi++; }
+    let cb = 0, ci = 0; while (cb < totalBeats) { const [n, b] = chordData[ci % chordData.length]; const noteEnd = cb + b; if (noteEnd > startOffsetBeats) { const actualStartBeat = Math.max(cb, startOffsetBeats); const duration = (noteEnd - actualStartBeat) * secPerBeat; const noteStartTime = playStartTime + (actualStartBeat - startOffsetBeats) * secPerBeat; if (duration > 0.05) playChord(getFrequency(n), noteStartTime, duration); } cb += b; ci++; }
+}
+
+function updateRadar() {
+    if (!isPlaying) return;
+    const mapCoord = (x, y) => ({ left: 50 + (x * 25), top: 50 + (-y * 25) });
+    const updateDot = (id, pos) => { const el = document.getElementById(id); if (el) { el.style.left = pos.left + '%'; el.style.top = pos.top + '%'; } };
+    const t = performance.now() / 2000; const r = 1.5;
+    if (panners.vocal) { panners.vocal.positionX.value = Math.sin(t) * r; panners.vocal.positionZ.value = -Math.cos(t) * r; updateDot('dot-vocal', mapCoord(panners.vocal.positionX.value, panners.vocal.positionZ.value)); }
+    if (panners.drums) { panners.drums.positionX.value = Math.cos(t + 1) * r; panners.drums.positionZ.value = Math.sin(t + 1) * r; updateDot('dot-drums', mapCoord(panners.drums.positionX.value, panners.drums.positionZ.value)); }
+    if (panners.bass) { panners.bass.positionX.value = Math.sin(t + 2) * r; panners.bass.positionZ.value = Math.cos(t + 2) * r; updateDot('dot-bass', mapCoord(panners.bass.positionX.value, panners.bass.positionZ.value)); }
+    if (panners.chords) { panners.chords.positionX.value = Math.cos(t + 3) * r; panners.chords.positionZ.value = Math.sin(t + 3) * r; updateDot('dot-chords', mapCoord(panners.chords.positionX.value, panners.chords.positionZ.value)); }
+    radarAnimId = requestAnimationFrame(updateRadar);
+}
+
+function formatTime(seconds) { const m = Math.floor(seconds / 60).toString().padStart(2, '0'); const s = Math.floor(seconds % 60).toString().padStart(2, '0'); return `${m}:${s}`; }
+
+function updateProgress() {
+    if (!isPlaying) return;
+    if (!isDraggingProgress) {
+        let elapsed = audioCtx.currentTime - startTime;
+        if (elapsed < 0) elapsed = 0;
+        if (elapsed > totalDuration) elapsed = totalDuration;
+        document.getElementById('currentTime').textContent = formatTime(elapsed);
+        const percent = (elapsed / totalDuration) * 100;
+        document.getElementById('progressFill').style.width = percent + '%';
+        document.getElementById('progressThumb').style.left = percent + '%';
+        
+        if (elapsed >= totalDuration - 0.5) { stopAllAudio(); isPlaying = false; document.getElementById('playBtn').textContent = '▶ 开启全景声场'; document.getElementById('statusText').textContent = '演奏完毕'; return; }
+    }
+    progressAnimId = requestAnimationFrame(updateProgress);
+}
+
+const progressWrap = document.getElementById('progressWrap');
+const progressFill = document.getElementById('progressFill');
+const progressThumb = document.getElementById('progressThumb');
+const seekTooltip = document.getElementById('seekTooltip');
+
+function getPercentFromEvent(e) { const rect = document.getElementById('progressBg').getBoundingClientRect(); let clientX = e.touches ? e.touches[0].clientX : e.clientX; let percent = (clientX - rect.left) / rect.width; return Math.max(0, Math.min(1, percent)); }
+
+function updateProgressUIFromPercent(percent) {
+    progressFill.style.width = (percent * 100) + '%';
+    progressThumb.style.left = (percent * 100) + '%';
+    const sec = percent * totalDuration;
+    document.getElementById('currentTime').textContent = formatTime(sec);
+    seekTooltip.textContent = formatTime(sec);
+    const bgRect = document.getElementById('progressBg').getBoundingClientRect();
+    const tipWidth = seekTooltip.offsetWidth;
+    let leftPx = percent * bgRect.width;
+    leftPx = Math.max(tipWidth / 2, Math.min(bgRect.width - tipWidth / 2, leftPx));
+    seekTooltip.style.left = leftPx + 'px';
+}
+
+function startDrag(e) { e.preventDefault(); isDraggingProgress = true; progressWrap.classList.add('dragging'); updateProgressUIFromPercent(getPercentFromEvent(e)); }
+function endDrag(e) { if (!isDraggingProgress) return; isDraggingProgress = false; progressWrap.classList.remove('dragging'); const percent = getPercentFromEvent(e); resumePosition = percent * totalDuration; if (isPlaying) { scheduleAudioFrom(resumePosition); if (!radarAnimId) updateRadar(); if (!progressAnimId) progressAnimId = requestAnimationFrame(updateProgress); } updateProgressUIFromPercent(percent); }
+
+progressWrap.addEventListener('mousedown', startDrag);
+window.addEventListener('mousemove', (e) => { if (isDraggingProgress) updateProgressUIFromPercent(getPercentFromEvent(e)); });
+window.addEventListener('mouseup', endDrag);
+progressWrap.addEventListener('touchstart', startDrag, { passive: false });
+window.addEventListener('touchmove', (e) => { if (isDraggingProgress) updateProgressUIFromPercent(getPercentFromEvent(e)); }, { passive: false });
+window.addEventListener('touchend', endDrag);
+window.addEventListener('touchcancel', endDrag);
+
+function togglePlay() {
+    const btn = document.getElementById('playBtn'), status = document.getElementById('statusText');
+    if (isPlaying) {
+        isPlaying = false; stopAllAudio();
+        if (audioCtx) audioCtx.suspend();
+        btn.textContent = '▶ 开启全景声场'; status.textContent = '声场已暂停';
+        progressFill.style.width = '0%'; progressThumb.style.left = '0%'; document.getElementById('currentTime').textContent = '00:00';
+    } else {
+        initAudio(); isPlaying = true; btn.textContent = '⏹ 停止声场'; status.textContent = '全景声运行中，可拖动进度条穿梭';
+        const secPerBeat = 60 / 115; totalBeats = 0; melodyData.forEach(([n, b]) => totalBeats += b);
+        totalDuration = totalBeats * secPerBeat; 
+        document.getElementById('totalTime').textContent = formatTime(totalDuration);
+        
+        scheduleAudioFrom(resumePosition);
+        updateRadar();
+        progressAnimId = requestAnimationFrame(updateProgress);
+    }
+}
+
+document.querySelectorAll('.liquid-btn').forEach(btn => {
+    btn.addEventListener('mousedown', function(e) {
+        const rect = btn.getBoundingClientRect(); const dia = Math.max(rect.width, rect.height) * 1.6;
+        const ripple = document.createElement('span'); ripple.className = 'ripple-effect';
+        Object.assign(ripple.style, { width: dia+'px', height: dia+'px', left: (e.clientX-rect.left-dia/2)+'px', top: (e.clientY-rect.top-dia/2)+'px', transition: 'transform .55s ease-out, opacity .65s ease' });
+        btn.appendChild(ripple); requestAnimationFrame(() => { ripple.style.transform = 'scale(2.2)'; ripple.style.opacity = '0'; }); setTimeout(() => ripple.remove(), 660);
+    });
+});
+
+window.addEventListener('load', () => { ensureSVG(); setTimeout(buildLiquidGlass, 100); });
+window.addEventListener('resize', () => setTimeout(buildLiquidGlass, 100));
+</script>
+</body>
+</html>
