@@ -69,6 +69,7 @@
   }
   canvas {
     display: block; width: 100%; height: 100%; cursor: crosshair;
+    touch-action: none;
   }
   #overlay {
     position: absolute; inset: 0;
@@ -155,7 +156,7 @@
     min-height: 180px;
   }
   #emptySel .tip { color: #5fd8e0; font-weight: 600; margin-bottom: 2px; }
-  
+
   #selPanel {
     background: rgba(255,255,255,.045);
     border: 1px solid rgba(255,255,255,.09);
@@ -194,7 +195,7 @@
   .btn.sell { background: rgba(200,70,70,.2); border-color: rgba(255,120,120,.4); color: #ffb3b3; }
   .btn.save { background: linear-gradient(180deg, #3a6ea5, #274a70); border-color: #5b8fc7; color: #fff; }
   .btn.load { background: linear-gradient(180deg, #6b4fa8, #4a357a); border-color: #8b6fd0; color: #fff; }
-  
+
   .btn.auto-on { background: linear-gradient(180deg, #2f9e5e, #1f7a45); border-color: #37c47a; color: #fff; }
   .btn.auto-off { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.15); color: #dbe6f2; }
 
@@ -240,7 +241,7 @@
       <div id="status-area">
         <div class="status-line" id="statusLine">
           <span id="statusLabel">下一波</span>
-          <b id="statusValue">8.0s</b>
+          <b id="statusValue">7.0s</b>
         </div>
         <div class="status-track">
           <div class="status-fill" id="statusFill"></div>
@@ -374,7 +375,33 @@ const blocked = new Set();
 })();
 
 /* ============================================================
-   炮塔配置（为满足成就上限，增补数据）
+   HUD 缓存与元素引用（减少每帧 DOM 重建）
+   ============================================================ */
+const _hudCache = {
+  gold: null, hpText: null, hpClass: null, wave: null,
+  pillCls: null, pillTxt: null,
+  sLineCls: null, sFillCls: null, sLabel: null, sValue: null, sWidth: null,
+  ach1: null, ach2: null, ach3: null, ach5: null,
+  wbText: null, wbDis: null, selSig: null
+};
+const _els = {
+  hGold: $('hGold'), hHp: $('hHp'), hWave: $('hWave'),
+  statePill: $('statePill'), statusLine: $('statusLine'),
+  statusLabel: $('statusLabel'), statusValue: $('statusValue'),
+  statusFill: $('statusFill'),
+  selPanel: $('selPanel'), emptySel: $('emptySel'),
+  selName: $('selName'), selLvl: $('selLvl'), selHp: $('selHp'),
+  selStatLabel: $('selStatLabel'), selDmg: $('selDmg'),
+  selRange: $('selRange'), selRate: $('selRate'),
+  btnUpgrade: $('btnUpgrade'), btnSell: $('btnSell'),
+  btnWave: $('btnWave'),
+  achTesla: $('achTesla'), achTesla2: $('achTesla2'),
+  achMag3: $('achMag3'), achMag5: $('achMag5')
+};
+const _towerBtnEls = [];
+
+/* ============================================================
+   炮塔配置
    ============================================================ */
 const TOWER_BASE_HP = { arrow: 150, cannon: 240, repair: 110, flame: 180, lightning: 160, antiair: 160, resource: 120 };
 
@@ -383,8 +410,8 @@ function towerMaxHp(type, level) {
   return Math.round(base * (1 + (level - 1) * 0.4));
 }
 
-// 自动生成连续等级的数据
-function genLevels(baseName, tiers, lvlCount, baseDmg, baseRange, baseCd, extra = {}) {
+// 自动生成连续等级的数据（已移除未使用的 tiers 参数）
+function genLevels(baseName, lvlCount, baseDmg, baseRange, baseCd, extra = {}) {
   let res = [];
   for (let i = 1; i <= lvlCount; i++) {
     let name = baseName + ' T' + i;
@@ -408,37 +435,37 @@ const TOWER_DEFS = {
   arrow: {
     key: 'arrow', name: '机枪塔', icon: '🔫', cost: 50, color: '#4ea3ff',
     kind: 'bullet', desc: '对地高射速单体，物理伤害',
-    levels: genLevels('机枪塔', 20, 20, 11, 100, 0.45, { bulletSpeed: 540, barrels: 1, barrelLen: 18, barrelW: 4.2 })
+    levels: genLevels('机枪塔', 20, 11, 100, 0.45, { bulletSpeed: 540, barrels: 1, barrelLen: 18, barrelW: 4.2 })
   },
   cannon: {
     key: 'cannon', name: '火炮', icon: '💣', cost: 120, color: '#ff8a3d',
     kind: 'shell', desc: '对地超远射程，重火力溅射',
-    levels: genLevels('火炮', 20, 20, 41, 180, 2.5, { bulletSpeed: 320, barrels: 1, barrelLen: 21, barrelW: 7.5, splash: 46 })
+    levels: genLevels('火炮', 20, 41, 180, 2.5, { bulletSpeed: 320, barrels: 1, barrelLen: 21, barrelW: 7.5, splash: 46 })
   },
   flame: {
     key: 'flame', name: '喷火器', icon: '🔥', cost: 80, color: '#ff5a36',
     kind: 'flame', desc: '短射程，穿透范围持续伤害',
-    levels: genLevels('喷火器', 20, 20, 4, 75, 0.12)
+    levels: genLevels('喷火器', 20, 4, 75, 0.12)
   },
   lightning: {
     key: 'lightning', name: '电击器', icon: '⚡', cost: 90, color: '#c084fc',
     kind: 'lightning', desc: '无视电磁护盾，对空伤害更高',
-    levels: genLevels('电击器', 30, 30, 18, 85, 0.8) // 补满 30 级
+    levels: genLevels('电击器', 30, 18, 85, 0.8)
   },
   antiair: {
     key: 'antiair', name: '防空炮', icon: '🚀', cost: 100, color: '#60a5fa',
     kind: 'missile', desc: '仅对空，射程略大于机枪',
-    levels: genLevels('防空炮', 20, 20, 22, 110, 0.65, { bulletSpeed: 600, barrels: 1, barrelLen: 18, barrelW: 5.0 })
+    levels: genLevels('防空炮', 20, 22, 110, 0.65, { bulletSpeed: 600, barrels: 1, barrelLen: 18, barrelW: 5.0 })
   },
   repair: {
     key: 'repair', name: '维修塔', icon: '🔧', cost: 75, color: '#4ade80',
     kind: 'heal', desc: '持续光束修复周围建筑',
-    levels: genLevels('维修塔', 20, 20, 0, 130, 1, { barrels: 1, barrelLen: 12, barrelW: 4, healRate: 15 })
+    levels: genLevels('维修塔', 20, 0, 130, 1, { barrels: 1, barrelLen: 12, barrelW: 4, healRate: 15 })
   },
   resource: {
     key: 'resource', name: '采集器', icon: '⛏️', cost: 80, color: '#facc15',
     kind: 'resource', desc: '持续产出金币，唯一经济来源',
-    levels: genLevels('采集器', 20, 20, 0, 0, 2, { income: 10 })
+    levels: genLevels('采集器', 20, 0, 0, 2, { income: 10 })
   }
 };
 
@@ -556,6 +583,10 @@ let achTesla = false;
 let achTesla2 = false;
 let achMag = 0; // 0: 无, 3: 三层, 5: 五层
 
+// 提升到顶层，使 reset()/applySave() 可重置（修复高倍速残留步进）
+let accumulator = 0;
+let lastTime = performance.now();
+
 const mouse = { x: 0, y: 0, gx: -1, gy: -1, inside: false };
 
 function nextWaveDelay() {
@@ -570,15 +601,25 @@ function reset() {
   selectedType = null; selectedTower = null;
   paused = false; speedMul = 1; gameOver = false;
   wave = { active: false, list: [], idx: 0, time: 0, hpMul: 1, speedMul: 1 };
-  waveTimer = 8;
+  waveTimer = nextWaveDelay();   // 与 nextWaveDelay() 保持一致
   waveStartTotal = 1;
   autoUpgrade = false;
   autoUpgradeTimer = 0;
-  
+
   totalLightningBuilt = 0;
   achTesla = false;
   achTesla2 = false;
   achMag = 0;
+
+  // 清空累积步进，避免重开后第一帧大量补执行
+  accumulator = 0;
+  lastTime = performance.now();
+
+  // 清空战斗日志
+  $('log-content').innerHTML = '';
+
+  // 清空 HUD 缓存
+  for (const k in _hudCache) _hudCache[k] = null;
 
   $('btnAutoUpgrade').textContent = '⚙️ 自动升级：关';
   $('btnAutoUpgrade').className = 'btn auto-off';
@@ -665,6 +706,7 @@ function upgradeCost(t) {
 }
 
 function canBuild(gx, gy) {
+  if (!Number.isInteger(gx) || !Number.isInteger(gy)) return false;
   if (gx < 0 || gy < 0 || gx >= COLS || gy >= ROWS) return false;
   if (blocked.has(gx + ',' + gy)) return false;
   if (towers.some(t => t.gx === gx && t.gy === gy && !t.destroyed)) return false;
@@ -702,93 +744,88 @@ function addFloat(x, y, text, color) {
 }
 
 /* ============================================================
-   成就检测：马奇诺防线
+   成就检测：马奇诺防线（重写版）
+   - 从地图边界对空地 BFS，判断城堡是否被围
+   - 用同心环覆盖率判定层数（每环 ≥75% 覆盖且必须连续）
    ============================================================ */
 function checkEnclosure() {
   if (gameOver) return;
 
-  // 构造当前 20x13 的网格
-  let grid = Array.from({length: ROWS}, () => Array(COLS).fill(0));
-  
-  towers.forEach(t => {
-    if (!t.destroyed) grid[t.gy][t.gx] = 1; // 1 代表炮塔（墙壁）
-  });
-  
-  // 2 代表指挥塔 (9,5 到 10,6)
-  for (let y = CASTLE.gy; y < CASTLE.gy + CASTLE.h; y++) {
-    for (let x = CASTLE.gx; x < CASTLE.gx + CASTLE.w; x++) {
+  // 只统计存活塔
+  const aliveTowers = towers.filter(t => !t.destroyed);
+
+  // 构建网格：0=空地, 1=塔(墙), 2=城堡
+  const grid = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+  for (const t of aliveTowers) grid[t.gy][t.gx] = 1;
+  for (let y = CASTLE.gy; y < CASTLE.gy + CASTLE.h; y++)
+    for (let x = CASTLE.gx; x < CASTLE.gx + CASTLE.w; x++)
       grid[y][x] = 2;
-    }
+
+  // 从地图边界对空地做洪水填充，标记外部可达区
+  const visited = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+  const q = [];
+  const tryPush = (x, y) => {
+    if (x < 0 || x >= COLS || y < 0 || y >= ROWS) return;
+    if (grid[y][x] !== 0 || visited[y][x]) return;
+    visited[y][x] = true;
+    q.push([x, y]);
+  };
+  for (let x = 0; x < COLS; x++) { tryPush(x, 0); tryPush(x, ROWS - 1); }
+  for (let y = 0; y < ROWS; y++) { tryPush(0, y); tryPush(COLS - 1, y); }
+  for (let head = 0; head < q.length; head++) {
+    const [cx, cy] = q[head];
+    tryPush(cx + 1, cy); tryPush(cx - 1, cy);
+    tryPush(cx, cy + 1); tryPush(cx, cy - 1);
   }
 
-  // 从地图边缘空地开始洪水填充（标记外部可达区域）
-  let visited = Array.from({length: ROWS}, () => Array(COLS).fill(false));
-  let q = [];
-  
-  for (let x = 0; x < COLS; x++) {
-    if (grid[0][x] === 0) { q.push([x, 0]); visited[0][x] = true; }
-    if (grid[ROWS-1][x] === 0) { q.push([x, ROWS-1]); visited[ROWS-1][x] = true; }
+  // 检查城堡四周的正交相邻格：若为空地且可达边界 → 城堡暴露
+  let enclosed = true;
+  const checks = [];
+  for (let y = CASTLE.gy; y < CASTLE.gy + CASTLE.h; y++)
+    checks.push([CASTLE.gx - 1, y], [CASTLE.gx + CASTLE.w, y]);
+  for (let x = CASTLE.gx; x < CASTLE.gx + CASTLE.w; x++)
+    checks.push([x, CASTLE.gy - 1], [x, CASTLE.gy + CASTLE.h]);
+  for (const [nx, ny] of checks) {
+    if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) { enclosed = false; break; }
+    if (grid[ny][nx] === 0 && visited[ny][nx]) { enclosed = false; break; }
   }
-  for (let y = 0; y < ROWS; y++) {
-    if (grid[y][0] === 0) { q.push([0, y]); visited[y][0] = true; }
-    if (grid[y][COLS-1] === 0) { q.push([COLS-1, y]); visited[y][COLS-1] = true; }
-  }
+  if (!enclosed) return;   // 未形成闭环 → 不解锁任何成就
 
-  let head = 0;
-  const dirs = [[0,1], [1,0], [0,-1], [-1,0]];
-  while (head < q.length) {
-    let [cx, cy] = q[head++];
-    for (let d of dirs) {
-      let nx = cx + d[0], ny = cy + d[1];
-      if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS) {
-        if (grid[ny][nx] === 0 && !visited[ny][nx]) {
-          visited[ny][nx] = true;
-          q.push([nx, ny]);
+  // 同心环覆盖率判定层数
+  const cx = CASTLE_CX, cy = CASTLE_CY;
+  let layers = 0;
+  for (let R = 1; R <= 8; R++) {
+    const target = R + 0.5;
+    let total = 0, filled = 0;
+    for (let gy = 0; gy < ROWS; gy++) {
+      for (let gx = 0; gx < COLS; gx++) {
+        const px = (gx + 0.5) * TILE, py = (gy + 0.5) * TILE;
+        const d = Math.max(Math.abs(px - cx), Math.abs(py - cy)) / TILE;
+        if (Math.abs(d - target) < 0.01) {
+          total++;
+          if (grid[gy][gx] === 1) filled++;
         }
       }
     }
+    if (total > 0 && filled / total >= 0.75) layers = R;
+    else break;   // 环必须由内向外连续
   }
 
-  // 检查指挥塔是否被完全封闭
-  let enclosed = true;
-  for (let y = CASTLE.gy; y < CASTLE.gy + CASTLE.h; y++) {
-    for (let x = CASTLE.gx; x < CASTLE.gx + CASTLE.w; x++) {
-      if (visited[y][x]) enclosed = false;
+  let newMag = 0;
+  if (layers >= 3) newMag = 3;
+  if (layers >= 5) newMag = 5;
+
+  if (newMag > achMag) {
+    achMag = newMag;
+    if (achMag === 3) {
+      toast('🏆 成就解锁：马奇诺防线！防御塔最大等级+10', true);
+      addLog('🏆 成就解锁：马奇诺防线！', 'success');
     }
-  }
-
-  if (enclosed) {
-    // 计算包围圈的层级厚度
-    // 找所有炮台中，离中心点 (9.5, 5.5) 的最大切比雪夫距离
-    let maxDist = 0;
-    towers.forEach(t => {
-      if (t.destroyed) return;
-      let dist = Math.max(Math.abs(t.gx - 9.5), Math.abs(t.gy - 5.5));
-      if (dist > maxDist) maxDist = dist;
-    });
-
-    // 记录达成状态
-    let newMag = 0;
-    // 距离>=4代表延伸到了至少第三圈外围
-    if (maxDist >= 4 && towers.length >= 12) newMag = 3;
-    // 距离>=6.5代表延伸到了第五圈外围
-    if (maxDist >= 6.5 && towers.length >= 24) newMag = 5;
-
-    if (newMag > achMag) {
-      achMag = newMag;
-      if (achMag === 3) {
-        toast('🏆 成就解锁：马奇诺防线！防御塔最大等级+10', true);
-        addLog('🏆 成就解锁：马奇诺防线！', 'success');
-      }
-      if (achMag === 5) {
-        toast('🏆 成就解锁：终极防线！我方受到所有伤害*0.5', true);
-        addLog('🏆 成就解锁：终极防线！', 'success');
-      }
-      updateHUD();
+    if (achMag === 5) {
+      toast('🏆 成就解锁：终极防线！我方受到所有伤害*0.5', true);
+      addLog('🏆 成就解锁：终极防线！', 'success');
     }
-  } else {
-    // 如果没有闭环，通常不取消已获得的成就，但如果你想取消，可以在这里把 achMag 设为 0
-    // 为了游戏体验，已获得的成就一般保留，这里设为不退回
+    updateHUD();
   }
 }
 
@@ -838,9 +875,8 @@ function startWave() {
 function spawnEnemy(type) {
   const d = ENEMY_DEFS[type];
   const hp = Math.max(1, Math.round(d.hp * wave.hpMul));
-  
+
   let maxShield = 0, shield = 0;
-  // 10% 几率带甲，随波次略微提升最高约 20%
   if (waveNum >= 3 && Math.random() < 0.10 + Math.min(0.10, waveNum * 0.002)) {
     maxShield = Math.round(hp * 1.5);
     shield = maxShield;
@@ -859,7 +895,7 @@ function spawnEnemy(type) {
     shield, maxShield,
     speed: d.speed * wave.speedMul,
     slowFactor: 1, slowTimer: 0,
-    radius: d.radius, 
+    radius: d.radius,
     towerDamage: d.towerDamage,
     attackCooldown: d.attackCooldown,
     attackTimer: Math.random() * 0.6,
@@ -876,7 +912,7 @@ function spawnEnemy(type) {
    ============================================================ */
 function damageEnemy(e, dmg, type) {
   if (!e.alive) return;
-  
+
   if (type === 'lightning') {
     e.hp -= dmg;
   } else {
@@ -890,7 +926,7 @@ function damageEnemy(e, dmg, type) {
       e.hp -= dmg;
     }
   }
-  
+
   if (e.hp <= 0) {
     e.hp = 0;
     e.alive = false;
@@ -901,7 +937,7 @@ function damageEnemy(e, dmg, type) {
 function damageTower(t, dmg) {
   if (t.destroyed) return;
   if (achMag >= 5) dmg *= 0.5; // 5层马奇诺减伤
-  
+
   t.hp -= dmg;
   t.hitFlash = 1;
   if (t.hp <= 0) {
@@ -929,7 +965,7 @@ function findTarget(t, range) {
     } else if (t.type === 'lightning') {
       // 地空双修
     } else {
-      if (isAir) continue; 
+      if (isAir) continue;
     }
 
     const dx = e.x - t.x, dy = e.y - t.y;
@@ -947,16 +983,16 @@ function fire(t, st, target) {
     let dmg = st.damage;
     let isAir = target.def.flying;
     if (isAir) dmg = Math.round(dmg * 1.5);
-    
+
     damageEnemy(target, dmg, 'lightning');
-    
+
     const color = isAir ? '#a78bfa' : '#c084fc';
     lightningEffects.push({ x1: t.x, y1: t.y, x2: target.x, y2: target.y, life: 0.1, color });
     addParticles(target.x, target.y, color, 8, 100);
     if (isAir) addParticles(target.x, target.y, '#fff', 4, 150);
     return;
   }
-  
+
   if (t.type === 'flame') return;
 
   const muzzle = st.barrelLen - 2;
@@ -1019,9 +1055,11 @@ function updateEnemy(e, dt) {
   e.attackTarget = null;
 
   const dCastle = Math.hypot(e.x - CASTLE_CX, e.y - CASTLE_CY);
-  
+  // 地面/飞行统一到城堡中心的停止距离，避免视觉/逻辑错位
+  const CASTLE_STOP = e.attackRange + 40;
+
   if (e.def.flying) {
-    if (dCastle <= e.attackRange + 40) {
+    if (dCastle <= CASTLE_STOP) {
       e.attacking = true;
       e.attackTarget = 'castle';
       e.attackTimer -= dt;
@@ -1043,21 +1081,7 @@ function updateEnemy(e, dt) {
     return;
   }
 
-  if (dCastle <= e.attackRange + 40) {
-    e.attacking = true;
-    e.attackTarget = 'castle';
-    e.attackTimer -= dt;
-    if (e.attackTimer <= 0) {
-      e.attackTimer = e.attackCooldown;
-      let dmg = e.towerDamage * 2;
-      if (achMag >= 5) dmg = Math.round(dmg * 0.5);
-      castleHp -= dmg;
-      addFloat(CASTLE_CX + (Math.random() - 0.5) * 40, CASTLE_CY - 30, '-' + dmg, '#ff6b6b');
-      addParticles(e.x, e.y, '#ff6b6b', 6, 100);
-    }
-    return;
-  }
-
+  // 地面单位：优先攻击附近的塔
   let nearTower = null, nearDist = Infinity;
   for (let i = 0; i < towers.length; i++) {
     const t = towers[i];
@@ -1073,6 +1097,22 @@ function updateEnemy(e, dt) {
       e.attackTimer = e.attackCooldown;
       damageTower(nearTower, e.towerDamage);
       addParticles((e.x + nearTower.x) / 2, (e.y + nearTower.y) / 2, '#ffb066', 4, 70);
+    }
+    return;
+  }
+
+  // 否则推进到城堡
+  if (dCastle <= CASTLE_STOP) {
+    e.attacking = true;
+    e.attackTarget = 'castle';
+    e.attackTimer -= dt;
+    if (e.attackTimer <= 0) {
+      e.attackTimer = e.attackCooldown;
+      let dmg = e.towerDamage * 2;
+      if (achMag >= 5) dmg = Math.round(dmg * 0.5);
+      castleHp -= dmg;
+      addFloat(CASTLE_CX + (Math.random() - 0.5) * 40, CASTLE_CY - 30, '-' + dmg, '#ff6b6b');
+      addParticles(e.x, e.y, '#ff6b6b', 6, 100);
     }
     return;
   }
@@ -1098,8 +1138,8 @@ function update(dt) {
         let maxLv = 10;
         if (achMag >= 3) maxLv += 10;
         if (t.type === 'lightning') {
-            if (achTesla) maxLv += 5;
-            if (achTesla2) maxLv += 5;
+          if (achTesla) maxLv += 5;
+          if (achTesla2) maxLv += 5;
         }
         return t.level < maxLv;
       });
@@ -1107,7 +1147,7 @@ function update(dt) {
         candidates.sort((a, b) => a.level - b.level);
         const lowestTier = candidates[0].level;
         const sameTierCandidates = candidates.filter(t => t.level === lowestTier);
-        
+
         for (const t of sameTierCandidates) {
           const cost = upgradeCost(t);
           if (gold >= cost) {
@@ -1220,7 +1260,7 @@ function update(dt) {
       if (!target) continue;
       t.angle = Math.atan2(target.y - t.y, target.x - t.x);
       t.cool = st.cooldown;
-      
+
       let hitAny = false;
       for (let j = 0; j < enemies.length; j++) {
         const e = enemies[j];
@@ -1233,11 +1273,11 @@ function update(dt) {
       }
       if (hitAny) {
         const flameAng = t.angle;
-        for(let k=0; k<3; k++){
+        for (let k = 0; k < 3; k++) {
           const spread = (Math.random() - 0.5) * 0.6;
           const a = flameAng + spread;
           const dist = Math.random() * st.range;
-          addParticles(t.x + Math.cos(a)*dist, t.y + Math.sin(a)*dist, '#ff5a36', 2, 50);
+          addParticles(t.x + Math.cos(a) * dist, t.y + Math.sin(a) * dist, '#ff5a36', 2, 50);
         }
       }
       continue;
@@ -1357,7 +1397,7 @@ function drawCastle() {
   ctx.fillRect(bx + 10, by + 20, bw - 20, bh - 30);
 
   ctx.fillStyle = '#a3b0c2';
-  for(let i=0; i<4; i++) {
+  for (let i = 0; i < 4; i++) {
     ctx.fillRect(bx + 10 + i * 15, by + 10, 10, 15);
   }
 
@@ -1450,7 +1490,7 @@ function drawTower(t) {
 
   const recoil = t.recoil || 0;
   const back = recoil * 5;
-  
+
   if (t.type !== 'resource') {
     ctx.save();
     ctx.translate(x, y);
@@ -1543,7 +1583,7 @@ function drawTower(t) {
     const angle = performance.now() / 200;
     ctx.rotate(angle);
     ctx.fillStyle = '#facc15';
-    for(let i=0; i<4; i++) {
+    for (let i = 0; i < 4; i++) {
       ctx.rotate(Math.PI/2);
       ctx.beginPath();
       ctx.moveTo(0, 0);
@@ -1596,7 +1636,9 @@ function drawTower(t) {
 }
 
 function drawEnemy(e) {
-  let x = e.x, y = e.y;
+  // 视觉位置严格等于逻辑位置，避免判定错位
+  const x = e.x;
+  const y = e.y;
   const r = e.radius;
 
   if (e.slowFactor < 1) {
@@ -1605,11 +1647,14 @@ function drawEnemy(e) {
   }
 
   if (e.def.flying) {
-    ctx.fillStyle = 'rgba(0,0,0,.2)';
+    // 飞行单位：用阴影 + 光环区分，不再偏移 y
+    ctx.fillStyle = 'rgba(0,0,0,.15)';
     ctx.beginPath();
-    ctx.ellipse(x, y + r + 5, r * 0.8, r * 0.4, 0, 0, Math.PI * 2);
+    ctx.ellipse(x, y + r + 8, r * 0.9, r * 0.4, 0, 0, Math.PI * 2);
     ctx.fill();
-    y -= 10 + Math.sin(performance.now() / 150) * 3;
+    ctx.strokeStyle = 'rgba(150,220,255,.55)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(x, y, r + 5, 0, Math.PI * 2); ctx.stroke();
   } else {
     ctx.fillStyle = 'rgba(0,0,0,.3)';
     ctx.beginPath();
@@ -1654,7 +1699,7 @@ function drawEnemy(e) {
       ctx.fill();
       ctx.restore();
     }
-    
+
     const bw = r * 2.3, bh = 3;
     const bx = x - bw / 2, by = y - r - 16;
     ctx.fillStyle = 'rgba(0,0,0,.6)';
@@ -1701,6 +1746,11 @@ function drawBullet(b) {
 }
 
 function draw() {
+  // 每帧开头重置可能与上一帧耦合的 2D 状态
+  ctx.textAlign = 'left';
+  ctx.font = '10px system-ui, sans-serif';
+  ctx.globalAlpha = 1;
+
   ctx.clearRect(0, 0, W, H);
   ctx.drawImage(mapCanvas, 0, 0);
 
@@ -1728,7 +1778,7 @@ function draw() {
       ctx.strokeStyle = ok ? 'rgba(120,255,160,.85)' : 'rgba(255,120,120,.85)';
       ctx.lineWidth = 2;
       ctx.strokeRect(mouse.gx * TILE + 1.5, mouse.gy * TILE + 1.5, TILE - 3, TILE - 3);
-      
+
       if (L.range > 0) {
         drawRange((mouse.gx + 0.5) * TILE, (mouse.gy + 0.5) * TILE, L.range,
                   selectedType === 'repair' ? 'rgba(74,222,128,.10)' : undefined);
@@ -1768,7 +1818,7 @@ function draw() {
       ctx.shadowBlur = 8;
       ctx.shadowColor = '#4ade80';
       ctx.stroke();
-      
+
       for (let j = 0; j < 3; j++) {
         const pr = (performance.now() / 400 + j / 3) % 1;
         const px = bx + (ex - bx) * pr;
@@ -1831,210 +1881,219 @@ function draw() {
 }
 
 /* ============================================================
-   HUD 更新
+   HUD 更新（带缓存，避免每帧重建 DOM）
    ============================================================ */
 function updateHUD() {
-  $('hGold').textContent = Math.floor(gold);
-  $('hWave').textContent = waveNum;
+  // 金币 / 波次 / HP
+  const goldVal = Math.floor(gold);
+  if (goldVal !== _hudCache.gold) { _els.hGold.textContent = goldVal; _hudCache.gold = goldVal; }
 
-  const hpEl = $('hHp');
-  hpEl.textContent = Math.ceil(castleHp) + ' / ' + CASTLE_MAX_HP;
+  if (waveNum !== _hudCache.wave) { _els.hWave.textContent = waveNum; _hudCache.wave = waveNum; }
+
   const hpFrac = castleHp / CASTLE_MAX_HP;
-  hpEl.className = hpFrac > 0.5 ? '' : hpFrac > 0.25 ? 'hp-mid' : 'hp-low';
+  const hpText = Math.ceil(castleHp) + ' / ' + CASTLE_MAX_HP;
+  const hpClass = hpFrac > 0.5 ? '' : hpFrac > 0.25 ? 'hp-mid' : 'hp-low';
+  if (hpText !== _hudCache.hpText) { _els.hHp.textContent = hpText; _hudCache.hpText = hpText; }
+  if (hpClass !== _hudCache.hpClass) { _els.hHp.className = hpClass; _hudCache.hpClass = hpClass; }
 
-  const pill = $('statePill');
-  pill.className = 'state-pill';
+  // 状态胶囊
+  let pillCls, pillTxt;
+  if (gameOver) { pillCls = 'state-pill over'; pillTxt = '已陷落'; }
+  else if (wave.active) { pillCls = 'state-pill fight'; pillTxt = '战斗中'; }
+  else { pillCls = 'state-pill wait'; pillTxt = '准备中'; }
+  if (pillCls !== _hudCache.pillCls) { _els.statePill.className = pillCls; _hudCache.pillCls = pillCls; }
+  if (pillTxt !== _hudCache.pillTxt) { _els.statePill.textContent = pillTxt; _hudCache.pillTxt = pillTxt; }
+
+  // 状态条
+  let sLineCls, sFillCls, sLabel, sValue, sWidth;
   if (gameOver) {
-    pill.classList.add('over');
-    pill.textContent = '已陷落';
+    sLineCls = 'status-line'; sFillCls = 'status-fill';
+    sLabel = '指挥塔陷落'; sValue = '—'; sWidth = '0%';
   } else if (wave.active) {
-    pill.classList.add('fight');
-    pill.textContent = '战斗中';
-  } else {
-    pill.classList.add('wait');
-    pill.textContent = '准备中';
-  }
-
-  const statusLine = $('statusLine');
-  const statusLabel = $('statusLabel');
-  const statusValue = $('statusValue');
-  const statusFill = $('statusFill');
-  statusLine.className = 'status-line';
-  statusFill.className = 'status-fill';
-
-  if (gameOver) {
-    statusLabel.textContent = '指挥塔陷落';
-    statusValue.textContent = '—';
-    statusFill.style.width = '0%';
-  } else if (wave.active) {
-    statusLine.classList.add('fight');
-    statusFill.classList.add('fight');
+    sLineCls = 'status-line fight'; sFillCls = 'status-fill fight';
     const total = Math.max(1, waveStartTotal);
-    const progress = Math.min(1, wave.time / total);
-    statusLabel.textContent = '第 ' + waveNum + ' 波';
-    statusValue.textContent = '剩余 ' + enemies.length + ' 敌';
-    statusFill.style.width = (progress * 100).toFixed(1) + '%';
+    const prog = Math.min(1, wave.time / total);
+    sLabel = '第 ' + waveNum + ' 波';
+    sValue = '剩余 ' + enemies.length + ' 敌';
+    sWidth = (prog * 100).toFixed(1) + '%';
   } else {
-    statusLine.classList.add('wait');
+    sLineCls = 'status-line wait'; sFillCls = 'status-fill';
     const total = Math.max(0.01, nextWaveDelay());
-    const progress = Math.max(0, 1 - waveTimer / total);
-    statusLabel.textContent = '下一波';
-    statusValue.textContent = waveTimer.toFixed(1) + 's';
-    statusFill.style.width = (progress * 100).toFixed(1) + '%';
+    const prog = Math.max(0, 1 - waveTimer / total);
+    sLabel = '下一波';
+    sValue = waveTimer.toFixed(1) + 's';
+    sWidth = (prog * 100).toFixed(1) + '%';
+  }
+  if (sLineCls !== _hudCache.sLineCls) { _els.statusLine.className = sLineCls; _hudCache.sLineCls = sLineCls; }
+  if (sFillCls !== _hudCache.sFillCls) { _els.statusFill.className = sFillCls; _hudCache.sFillCls = sFillCls; }
+  if (sLabel !== _hudCache.sLabel) { _els.statusLabel.textContent = sLabel; _hudCache.sLabel = sLabel; }
+  if (sValue !== _hudCache.sValue) { _els.statusValue.textContent = sValue; _hudCache.sValue = sValue; }
+  if (sWidth !== _hudCache.sWidth) { _els.statusFill.style.width = sWidth; _hudCache.sWidth = sWidth; }
+
+  // 成就（字符串缓存，变化才写 DOM）
+  const a1 = (achTesla ? '#ffd166|🏆 特斯拉线圈 I：<span style="color:#7ef0a0">已解锁</span>'
+                       : '#6f8499|🏆 特斯拉线圈 I：放置20个电击器 (' + Math.min(20, totalLightningBuilt) + '/20)');
+  if (a1 !== _hudCache.ach1) {
+    const color = a1.slice(0, a1.indexOf('|'));
+    _els.achTesla.style.color = color;
+    _els.achTesla.innerHTML = a1.slice(a1.indexOf('|') + 1);
+    _hudCache.ach1 = a1;
+  }
+  const a2 = (achTesla2 ? '#ffd166|🏆 特斯拉线圈 II：<span style="color:#7ef0a0">已解锁</span>'
+                        : '#6f8499|🏆 特斯拉线圈 II：放置30个电击器 (' + Math.min(30, totalLightningBuilt) + '/30)');
+  if (a2 !== _hudCache.ach2) {
+    const color = a2.slice(0, a2.indexOf('|'));
+    _els.achTesla2.style.color = color;
+    _els.achTesla2.innerHTML = a2.slice(a2.indexOf('|') + 1);
+    _hudCache.ach2 = a2;
+  }
+  const a3 = (achMag >= 3 ? '#ffd166|🏆 马奇诺防线：<span style="color:#7ef0a0">已解锁 (塔上限+10)</span>'
+                          : '#6f8499|🏆 马奇诺防线：三层闭环包围 (未达成)');
+  if (a3 !== _hudCache.ach3) {
+    const color = a3.slice(0, a3.indexOf('|'));
+    _els.achMag3.style.color = color;
+    _els.achMag3.innerHTML = a3.slice(a3.indexOf('|') + 1);
+    _hudCache.ach3 = a3;
+  }
+  const a5 = (achMag >= 5 ? '#ffd166|🏆 终极防线：<span style="color:#7ef0a0">已解锁 (受伤减半)</span>'
+                          : '#6f8499|🏆 终极防线：五层闭环包围 (未达成)');
+  if (a5 !== _hudCache.ach5) {
+    const color = a5.slice(0, a5.indexOf('|'));
+    _els.achMag5.style.color = color;
+    _els.achMag5.innerHTML = a5.slice(a5.indexOf('|') + 1);
+    _hudCache.ach5 = a5;
   }
 
-  // 成就更新
-  const achEl = $('achTesla');
-  if (achTesla) {
-    achEl.style.color = '#ffd166';
-    achEl.innerHTML = '🏆 特斯拉线圈 I：<span style="color:#7ef0a0">已解锁</span>';
-  } else {
-    achEl.style.color = '#6f8499';
-    achEl.innerHTML = `🏆 特斯拉线圈 I：放置20个电击器 (${Math.min(20, totalLightningBuilt)}/20)`;
-  }
-  
-  const achEl2 = $('achTesla2');
-  if (achTesla2) {
-    achEl2.style.color = '#ffd166';
-    achEl2.innerHTML = '🏆 特斯拉线圈 II：<span style="color:#7ef0a0">已解锁</span>';
-  } else {
-    achEl2.style.color = '#6f8499';
-    achEl2.innerHTML = `🏆 特斯拉线圈 II：放置30个电击器 (${Math.min(30, totalLightningBuilt)}/30)`;
-  }
-
-  const achMag3 = $('achMag3');
-  if (achMag >= 3) {
-    achMag3.style.color = '#ffd166';
-    achMag3.innerHTML = '🏆 马奇诺防线：<span style="color:#7ef0a0">已解锁 (塔上限+10)</span>';
-  } else {
-    achMag3.style.color = '#6f8499';
-    achMag3.innerHTML = `🏆 马奇诺防线：三层闭环包围 (未达成)`;
-  }
-
-  const achMag5 = $('achMag5');
-  if (achMag >= 5) {
-    achMag5.style.color = '#ffd166';
-    achMag5.innerHTML = '🏆 终极防线：<span style="color:#7ef0a0">已解锁 (受伤减半)</span>';
-  } else {
-    achMag5.style.color = '#6f8499';
-    achMag5.innerHTML = `🏆 终极防线：五层闭环包围 (未达成)`;
-  }
-
-  const btns = document.querySelectorAll('.tower-btn');
-  for (let i = 0; i < btns.length; i++) {
-    const b = btns[i];
+  // 建造按钮：元素级缓存状态
+  for (const b of _towerBtnEls) {
     if (b.dataset.type === 'hammer') {
-      b.classList.toggle('active', selectedType === 'hammer');
-      b.classList.toggle('hammer', true);
+      const active = selectedType === 'hammer';
+      if (b._active !== active) { b.classList.toggle('active', active); b._active = active; }
     } else {
       const def = TOWER_DEFS[b.dataset.type];
-      b.classList.toggle('disabled', gold < def.cost);
-      b.classList.toggle('active', selectedType === b.dataset.type);
+      const disabled = gold < def.cost;
+      if (b._disabled !== disabled) { b.classList.toggle('disabled', disabled); b._disabled = disabled; }
+      const active = selectedType === b.dataset.type;
+      if (b._active !== active) { b.classList.toggle('active', active); b._active = active; }
     }
   }
 
-  const wb = $('btnWave');
-  if (gameOver) {
-    wb.disabled = true;
-    wb.textContent = '游戏结束';
-  } else if (wave.active) {
-    wb.disabled = true;
-    wb.textContent = '⚔️ 第 ' + waveNum + ' 波';
-  } else {
-    wb.disabled = false;
-    wb.textContent = '⏭ 开始第 ' + (waveNum + 1) + ' 波';
-  }
+  // 开始波次按钮
+  let wbText, wbDis;
+  if (gameOver) { wbText = '游戏结束'; wbDis = true; }
+  else if (wave.active) { wbText = '⚔️ 第 ' + waveNum + ' 波'; wbDis = true; }
+  else { wbText = '⏭ 开始第 ' + (waveNum + 1) + ' 波'; wbDis = false; }
+  if (wbText !== _hudCache.wbText) { _els.btnWave.textContent = wbText; _hudCache.wbText = wbText; }
+  if (wbDis !== _hudCache.wbDis) { _els.btnWave.disabled = wbDis; _hudCache.wbDis = wbDis; }
 
-  if (selectedTower && !selectedTower.destroyed && towers.indexOf(selectedTower) !== -1) {
-    $('emptySel').classList.add('hidden');
-    $('selPanel').classList.remove('hidden');
-
+  // 选中面板：签名变化才渲染
+  const selValid = selectedTower && !selectedTower.destroyed && towers.indexOf(selectedTower) !== -1;
+  let selSig = 'none';
+  if (selValid) {
     const t = selectedTower;
-    const st = towerStats(t);
-    
     let maxLv = 10;
     if (achMag >= 3) maxLv += 10;
     if (t.type === 'lightning') {
       if (achTesla) maxLv += 5;
       if (achTesla2) maxLv += 5;
     }
-    
-    $('selName').innerHTML = t.def.icon + ' ' + st.name +
-      '<span class="tier-tag">' + TIER_NAMES[t.level - 1] + '</span>';
-    $('selLvl').textContent = TIER_NAMES[t.level - 1] + ' / T' + maxLv;
-
-    const hpEl = $('selHp');
-    hpEl.textContent = Math.ceil(t.hp) + ' / ' + t.maxHp;
-    const frac = t.hp / t.maxHp;
-    hpEl.className = frac > 0.5 ? 'hp-ok' : frac > 0.25 ? 'hp-mid' : 'hp-low';
-
-    if (t.type === 'resource') {
-      $('selStatLabel').textContent = '产出';
-      $('selDmg').textContent = '+' + st.income + ' / ' + st.interval + 's';
-      $('selRange').textContent = '—';
-      $('selRate').textContent = '—';
-    } else if (t.type === 'repair') {
-      $('selStatLabel').textContent = '修复/秒';
-      $('selDmg').textContent = '+' + Math.round(st.healRate);
-      $('selRange').textContent = Math.round(st.range);
-      $('selRate').textContent = '持续';
-    } else {
-      $('selStatLabel').textContent = t.type === 'lightning' ? '伤害(地/空)' : '伤害';
+    selSig = [
+      t.type, t.level, Math.ceil(t.hp), t.maxHp,
+      Math.ceil(t.buildingTimer), Math.ceil(t.upgradingTimer),
+      gold >= upgradeCost(t), maxLv, t.invested
+    ].join('|');
+  }
+  if (selSig !== _hudCache.selSig) {
+    _hudCache.selSig = selSig;
+    if (selValid) {
+      const t = selectedTower;
+      const st = towerStats(t);
+      let maxLv = 10;
+      if (achMag >= 3) maxLv += 10;
       if (t.type === 'lightning') {
-        $('selDmg').textContent = st.damage + ' / ' + Math.round(st.damage * 1.5);
-      } else {
-        $('selDmg').textContent = st.damage;
+        if (achTesla) maxLv += 5;
+        if (achTesla2) maxLv += 5;
       }
-      $('selRange').textContent = Math.round(st.range);
-      $('selRate').textContent = (1 / st.cooldown).toFixed(2) + '/s';
-    }
+      _els.emptySel.classList.add('hidden');
+      _els.selPanel.classList.remove('hidden');
 
-    const ub = $('btnUpgrade');
-    if (t.buildingTimer > 0) {
-      ub.textContent = '建造中 ' + Math.ceil(t.buildingTimer) + 's';
-      ub.disabled = true;
-    } else if (t.upgradingTimer > 0) {
-      ub.textContent = '升级中 ' + Math.ceil(t.upgradingTimer) + 's';
-      ub.disabled = true;
-    } else if (t.level >= maxLv) {
-      ub.textContent = '已满级 T' + maxLv;
-      ub.disabled = true;
+      // 直接使用 def.name，避免 "机枪塔 T1 T1" 重复
+      _els.selName.innerHTML = t.def.icon + ' ' + t.def.name +
+        '<span class="tier-tag">' + TIER_NAMES[t.level - 1] + '</span>';
+      _els.selLvl.textContent = TIER_NAMES[t.level - 1] + ' / T' + maxLv;
+
+      _els.selHp.textContent = Math.ceil(t.hp) + ' / ' + t.maxHp;
+      const frac = t.hp / t.maxHp;
+      _els.selHp.className = frac > 0.5 ? 'hp-ok' : frac > 0.25 ? 'hp-mid' : 'hp-low';
+
+      if (t.type === 'resource') {
+        _els.selStatLabel.textContent = '产出';
+        _els.selDmg.textContent = '+' + st.income + ' / ' + st.interval + 's';
+        _els.selRange.textContent = '—';
+        _els.selRate.textContent = '—';
+      } else if (t.type === 'repair') {
+        _els.selStatLabel.textContent = '修复/秒';
+        _els.selDmg.textContent = '+' + Math.round(st.healRate);
+        _els.selRange.textContent = Math.round(st.range);
+        _els.selRate.textContent = '持续';
+      } else {
+        _els.selStatLabel.textContent = t.type === 'lightning' ? '伤害(地/空)' : '伤害';
+        if (t.type === 'lightning') {
+          _els.selDmg.textContent = st.damage + ' / ' + Math.round(st.damage * 1.5);
+        } else {
+          _els.selDmg.textContent = st.damage;
+        }
+        _els.selRange.textContent = Math.round(st.range);
+        _els.selRate.textContent = (1 / st.cooldown).toFixed(2) + '/s';
+      }
+
+      if (t.buildingTimer > 0) {
+        _els.btnUpgrade.textContent = '建造中 ' + Math.ceil(t.buildingTimer) + 's';
+        _els.btnUpgrade.disabled = true;
+      } else if (t.upgradingTimer > 0) {
+        _els.btnUpgrade.textContent = '升级中 ' + Math.ceil(t.upgradingTimer) + 's';
+        _els.btnUpgrade.disabled = true;
+      } else if (t.level >= maxLv) {
+        _els.btnUpgrade.textContent = '已满级 T' + maxLv;
+        _els.btnUpgrade.disabled = true;
+      } else {
+        const c = upgradeCost(t);
+        _els.btnUpgrade.textContent = '升级到 T' + (t.level + 1) + ' · 💰' + c;
+        _els.btnUpgrade.disabled = gold < c;
+      }
+      _els.btnSell.textContent = '出售 +💰' + Math.round(t.invested * 0.6);
     } else {
-      const c = upgradeCost(t);
-      ub.textContent = '升级到 T' + (t.level + 1) + ' · 💰' + c;
-      ub.disabled = gold < c;
+      _els.emptySel.classList.remove('hidden');
+      _els.selPanel.classList.add('hidden');
+      if (selectedTower) selectedTower = null;
     }
-    $('btnSell').textContent = '出售 +💰' + Math.round(t.invested * 0.6);
-  } else {
-    $('emptySel').classList.remove('hidden');
-    $('selPanel').classList.add('hidden');
-    if (selectedTower) selectedTower = null;
   }
 }
 
 /* ============================================================
-   交互
+   交互（鼠标 + 触摸统一处理）
    ============================================================ */
-function getMousePos(evt) {
+function getPosFromClient(clientX, clientY) {
   const r = cv.getBoundingClientRect();
   return {
-    x: (evt.clientX - r.left) * (W / r.width),
-    y: (evt.clientY - r.top) * (H / r.height)
+    x: (clientX - r.left) * (W / r.width),
+    y: (clientY - r.top) * (H / r.height)
   };
 }
 
-cv.addEventListener('mousemove', evt => {
-  const p = getMousePos(evt);
+function handlePointerMove(p) {
   mouse.x = p.x; mouse.y = p.y;
   mouse.gx = Math.floor(p.x / TILE);
   mouse.gy = Math.floor(p.y / TILE);
   mouse.inside = true;
-});
-cv.addEventListener('mouseleave', () => { mouse.inside = false; });
+}
 
-cv.addEventListener('click', evt => {
+function handlePointerLeave() {
+  mouse.inside = false;
+}
+
+function handlePointerClick(p) {
   if (gameOver) return;
-  const p = getMousePos(evt);
   const gx = Math.floor(p.x / TILE);
   const gy = Math.floor(p.y / TILE);
 
@@ -2066,13 +2125,41 @@ cv.addEventListener('click', evt => {
     return;
   }
   selectedTower = null;
-});
+}
 
+cv.addEventListener('mousemove', evt => {
+  handlePointerMove(getPosFromClient(evt.clientX, evt.clientY));
+});
+cv.addEventListener('mouseleave', handlePointerLeave);
+cv.addEventListener('click', evt => {
+  handlePointerClick(getPosFromClient(evt.clientX, evt.clientY));
+});
 cv.addEventListener('contextmenu', evt => {
   evt.preventDefault();
   selectedType = null;
   selectedTower = null;
 });
+
+// 触摸事件（阻止浏览器模拟 click，避免重复触发）
+cv.addEventListener('touchstart', evt => {
+  if (evt.touches.length !== 1) return;
+  evt.preventDefault();
+  const p = getPosFromClient(evt.touches[0].clientX, evt.touches[0].clientY);
+  handlePointerMove(p);
+  handlePointerClick(p);
+}, { passive: false });
+
+cv.addEventListener('touchmove', evt => {
+  if (evt.touches.length !== 1) return;
+  evt.preventDefault();
+  const p = getPosFromClient(evt.touches[0].clientX, evt.touches[0].clientY);
+  handlePointerMove(p);
+}, { passive: false });
+
+cv.addEventListener('touchend', evt => {
+  evt.preventDefault();
+  setTimeout(() => { mouse.inside = false; }, 60);
+}, { passive: false });
 
 function tryBuild(gx, gy, type) {
   const def = TOWER_DEFS[type];
@@ -2102,15 +2189,15 @@ function tryBuild(gx, gy, type) {
   towers.push(t);
   addParticles(t.x, t.y, def.color, 12, 120);
   addLog(`正在建造 ${def.name}...`, 'info');
-  selectedTower = t; 
-  
+  selectedTower = t;
+
   if (type === 'lightning') {
     totalLightningBuilt++;
     if (totalLightningBuilt >= 20 && !achTesla) {
       achTesla = true;
       toast('🏆 成就解锁：特斯拉线圈 I！电击器上限+5', true);
       addLog('🏆 成就解锁：特斯拉线圈 I！', 'success');
-      for(let i=0; i<30; i++){
+      for (let i = 0; i < 30; i++) {
         addParticles(t.x, t.y, '#c084fc', 5, 300);
       }
     }
@@ -2118,12 +2205,12 @@ function tryBuild(gx, gy, type) {
       achTesla2 = true;
       toast('🏆 成就解锁：特斯拉线圈 II！电击器上限再+5', true);
       addLog('🏆 成就解锁：特斯拉线圈 II！', 'success');
-      for(let i=0; i<30; i++){
+      for (let i = 0; i < 30; i++) {
         addParticles(t.x, t.y, '#c084fc', 5, 300);
       }
     }
   }
-  
+
   checkEnclosure();
 }
 
@@ -2150,6 +2237,7 @@ function selectType(type) {
       '<span class="cost">💰' + def.cost + '</span>';
     btn.addEventListener('click', () => selectType(key));
     list.appendChild(btn);
+    _towerBtnEls.push(btn);
   });
 
   // 追加锤子按钮
@@ -2163,19 +2251,20 @@ function selectType(type) {
     '<span class="cost" style="color:#ff6b6b">返还60%</span>';
   hammerBtn.addEventListener('click', () => selectType('hammer'));
   list.appendChild(hammerBtn);
+  _towerBtnEls.push(hammerBtn);
 })();
 
 $('btnUpgrade').addEventListener('click', () => {
   const t = selectedTower;
   if (!t || t.destroyed) return;
-  
+
   let maxLv = 10;
   if (achMag >= 3) maxLv += 10;
   if (t.type === 'lightning') {
     if (achTesla) maxLv += 5;
     if (achTesla2) maxLv += 5;
   }
-  
+
   if (t.level >= maxLv) { toast('已达到最大等级'); return; }
   if (t.buildingTimer > 0) { toast('建造中'); return; }
   if (t.upgradingTimer > 0) { toast('正在升级中'); return; }
@@ -2278,10 +2367,13 @@ async function saveGame() {
 function applySave(data) {
   if (!data || typeof data !== 'object') throw new Error('存档数据无效');
   reset();
+  // 清空 reset 写入的默认日志，让读档后的日志干净
+  $('log-content').innerHTML = '';
+
   gold = Math.max(0, Math.floor(data.gold) || 0);
   castleHp = Math.max(1, Math.floor(data.castleHp) || CASTLE_MAX_HP);
   waveNum = Math.max(0, Math.floor(data.waveNum) || 0);
-  waveTimer = Math.max(0.5, Number(data.waveTimer) || 4);
+  waveTimer = Math.max(0.5, Number(data.waveTimer) || nextWaveDelay());
   totalLightningBuilt = Math.max(0, Math.floor(data.totalLightningBuilt) || 0);
   achTesla = !!data.achTesla;
   achTesla2 = !!data.achTesla2;
@@ -2291,8 +2383,14 @@ function applySave(data) {
   (data.towers || []).forEach(td => {
     const def = TOWER_DEFS[td.type];
     if (!def) return;
-    const gx = Math.floor(td.gx), gy = Math.floor(td.gy);
+
+    // 对 gx/gy 做 NaN 防护
+    const gx = Math.floor(td.gx);
+    const gy = Math.floor(td.gy);
+    if (!Number.isInteger(gx) || !Number.isInteger(gy)) return;
+    if (gx < 0 || gy < 0 || gx >= COLS || gy >= ROWS) return;
     if (!canBuild(gx, gy)) return;
+
     const level = Math.min(def.levels.length, Math.max(1, Math.floor(td.level) || 1));
     const maxHp = towerMaxHp(td.type, level);
     const hp = td.hp ? Math.min(maxHp, Math.max(1, Math.floor(td.hp))) : maxHp;
@@ -2319,6 +2417,8 @@ function applySave(data) {
   paused = false;
   selectedType = null;
   selectedTower = null;
+  accumulator = 0;
+  lastTime = performance.now();
   $('overlay').classList.add('hidden');
   $('btnPause').textContent = '⏸';
   updateHUD();
@@ -2365,8 +2465,6 @@ window.addEventListener('keydown', e => {
    主循环（固定步长，支持高倍速）
    ============================================================ */
 const FIXED_DT = 1 / 60;
-let accumulator = 0;
-let lastTime = performance.now();
 
 function loop(now) {
   let dt = (now - lastTime) / 1000;
@@ -2375,7 +2473,7 @@ function loop(now) {
 
   if (!paused && !gameOver) {
     accumulator += dt * speedMul;
-    
+
     let currentStep = FIXED_DT;
     let maxSteps = 400;
     if (speedMul >= 100) {
@@ -2393,7 +2491,7 @@ function loop(now) {
       accumulator -= currentStep;
       steps++;
     }
-    
+
     if (steps >= maxSteps) {
       accumulator = 0;
     }
