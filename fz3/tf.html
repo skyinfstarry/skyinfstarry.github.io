@@ -375,7 +375,7 @@ const blocked = new Set();
 })();
 
 /* ============================================================
-   HUD 缓存与元素引用（减少每帧 DOM 重建）
+   HUD 缓存与元素引用（避免每帧重建 DOM）
    ============================================================ */
 const _hudCache = {
   gold: null, hpText: null, hpClass: null, wave: null,
@@ -404,6 +404,12 @@ const _towerBtnEls = [];
    炮塔配置
    ============================================================ */
 const TOWER_BASE_HP = { arrow: 150, cannon: 240, repair: 110, flame: 180, lightning: 160, antiair: 160, resource: 120 };
+
+/* 视觉效果上限：防止高倍速下粒子/闪电对象爆炸导致卡死 */
+const MAX_PARTICLES = 500;
+const MAX_LIGHTNING_EFFECTS = 40;
+const MAX_FLOATS = 80;
+const VISUAL_SKIP_SPEED = 20;   // ≥此倍速不再生成新视觉，逻辑照常运算
 
 function towerMaxHp(type, level) {
   const base = TOWER_BASE_HP[type] || 150;
@@ -669,6 +675,8 @@ mapCanvas.width = W; mapCanvas.height = H;
    工具函数
    ============================================================ */
 function addLog(msg, type = 'info') {
+  // 高倍速下跳过普通 info 日志，避免 DOM 爆炸（保留危险/成功/警告信息）
+  if (speedMul >= VISUAL_SKIP_SPEED && type === 'info') return;
   const logContent = $('log-content');
   if (!logContent) return;
   const div = document.createElement('div');
@@ -724,8 +732,14 @@ function toast(msg, ok) {
 }
 
 function addParticles(x, y, color, count, spd) {
+  // 高倍速下完全跳过视觉生成（逻辑不受影响）
+  if (speedMul >= VISUAL_SKIP_SPEED) return;
+  // 硬上限兜底：超过 500 个粒子后不再新增
+  const avail = MAX_PARTICLES - particles.length;
+  if (avail <= 0) return;
+  const n = Math.min(count, avail);
   spd = spd || 100;
-  for (let i = 0; i < count; i++) {
+  for (let i = 0; i < n; i++) {
     const a = Math.random() * Math.PI * 2;
     const v = spd * (0.35 + Math.random() * 0.85);
     particles.push({
@@ -740,6 +754,8 @@ function addParticles(x, y, color, count, spd) {
   }
 }
 function addFloat(x, y, text, color) {
+  if (speedMul >= VISUAL_SKIP_SPEED) return;
+  if (floats.length >= MAX_FLOATS) return;
   floats.push({ x, y, text, color, life: 1.0 });
 }
 
@@ -984,12 +1000,17 @@ function fire(t, st, target) {
     let isAir = target.def.flying;
     if (isAir) dmg = Math.round(dmg * 1.5);
 
-    damageEnemy(target, dmg, 'lightning');
+    damageEnemy(target, dmg, 'lightning');   // 伤害照常结算
 
-    const color = isAir ? '#a78bfa' : '#c084fc';
-    lightningEffects.push({ x1: t.x, y1: t.y, x2: target.x, y2: target.y, life: 0.1, color });
-    addParticles(target.x, target.y, color, 8, 100);
-    if (isAir) addParticles(target.x, target.y, '#fff', 4, 150);
+    // 仅正常倍速下生成视觉，且闪电对象有上限
+    if (speedMul < VISUAL_SKIP_SPEED) {
+      const color = isAir ? '#a78bfa' : '#c084fc';
+      if (lightningEffects.length < MAX_LIGHTNING_EFFECTS) {
+        lightningEffects.push({ x1: t.x, y1: t.y, x2: target.x, y2: target.y, life: 0.1, color });
+      }
+      addParticles(target.x, target.y, color, 6, 100);
+      if (isAir) addParticles(target.x, target.y, '#fff', 3, 150);
+    }
     return;
   }
 
@@ -1271,7 +1292,7 @@ function update(dt) {
           hitAny = true;
         }
       }
-      if (hitAny) {
+      if (hitAny && speedMul < VISUAL_SKIP_SPEED) {
         const flameAng = t.angle;
         for (let k = 0; k < 3; k++) {
           const spread = (Math.random() - 0.5) * 0.6;
@@ -2463,6 +2484,7 @@ window.addEventListener('keydown', e => {
 
 /* ============================================================
    主循环（固定步长，支持高倍速）
+   - 限制每帧最大步数 & 高倍速下增大步长，避免帧耗时爆炸
    ============================================================ */
 const FIXED_DT = 1 / 60;
 
@@ -2475,14 +2497,14 @@ function loop(now) {
     accumulator += dt * speedMul;
 
     let currentStep = FIXED_DT;
-    let maxSteps = 400;
+    let maxSteps = 200;
     if (speedMul >= 100) {
       currentStep = 1 / 30;
-      maxSteps = 1000;
+      maxSteps = 400;
     }
     if (speedMul >= 500) {
-      currentStep = 1 / 20;
-      maxSteps = 1000;
+      currentStep = 1 / 10;
+      maxSteps = 300;
     }
 
     let steps = 0;
