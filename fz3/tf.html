@@ -341,7 +341,7 @@
       <p>🚀 <b>防空炮</b>：仅对空，拦截飞行器。</p>
       <p>🔧 <b>维修塔</b>：修复建筑，或为拦截器充能。</p>
       <p>🛰️ <b>拦截器</b>：消耗 100 能量发射红色激光拦截炮弹。</p>
-      <p style="color:#ff8a8a; margin-top:6px;">⚠️ 10波后出现远程怪，60秒强制下一波，20倍速跳过间隙！</p>
+      <p style="color:#ff8a8a; margin-top:6px;">⚠️ 10波后出现远程怪，30秒强制下一波，无波次间隔！</p>
     </div>
   </div>
 </div>
@@ -607,7 +607,7 @@ let achMag = 0; // 0: 无, 3: 三层, 5: 五层
 const mouse = { x: 0, y: 0, gx: -1, gy: -1, inside: false };
 
 function nextWaveDelay() {
-  return Math.max(3, 7 - waveNum * 0.05);
+  return 0; // 移除了波次冷却
 }
 
 function reset() {
@@ -618,7 +618,7 @@ function reset() {
   selectedType = null; selectedTower = null;
   paused = false; speedMul = 1; gameOver = false;
   wave = { active: false, list: [], idx: 0, time: 0, hpMul: 1, speedMul: 1 };
-  waveTimer = 8;
+  waveTimer = 8; // 开局倒计时
   waveStartTotal = 1;
   autoUpgrade = false;
   autoUpgradeTimer = 0;
@@ -910,7 +910,7 @@ function finishWave(isTimeout = false) {
   } else {
     addLog(`第 ${waveNum} 波超时，强制推进！`, 'warning');
   }
-  waveTimer = nextWaveDelay();
+  waveTimer = 0; // 立刻开启下一波
   updateHUD();
 }
 
@@ -1267,7 +1267,7 @@ function update(dt) {
   }
 
   if (!wave.active && !gameOver) {
-    if (speedMul >= 20) waveTimer = 0; // 高倍速跳过间隙
+    if (speedMul >= 20) waveTimer = 0;
     waveTimer -= dt;
     if (waveTimer <= 0) {
       waveTimer = 0;
@@ -1278,8 +1278,8 @@ function update(dt) {
   if (wave.active) {
     wave.time += dt;
     
-    // 60秒超时机制
-    if (wave.time >= 60) {
+    // 30秒超时机制
+    if (wave.time >= 30) {
       finishWave(true);
       startWave();
     } else {
@@ -2171,7 +2171,7 @@ function updateHUD() {
     const progress = Math.min(1, wave.time / total);
     statusLabel.textContent = '第 ' + waveNum + ' 波';
     
-    const timeLeft = Math.max(0, 60 - wave.time).toFixed(0);
+    const timeLeft = Math.max(0, 30 - wave.time).toFixed(0);
     statusValue.textContent = '剩余 ' + enemies.length + ' 敌 (' + timeLeft + 's超时)';
     statusFill.style.width = (progress * 100).toFixed(1) + '%';
   } else {
@@ -2597,7 +2597,7 @@ function applySave(data) {
   gold = Math.max(0, Math.floor(data.gold) || 0);
   castleHp = Math.max(1, Math.floor(data.castleHp) || CASTLE_MAX_HP);
   waveNum = Math.max(0, Math.floor(data.waveNum) || 0);
-  waveTimer = Math.max(0.5, Number(data.waveTimer) || 4);
+  waveTimer = Math.max(0, Number(data.waveTimer) || 0);
   totalLightningBuilt = Math.max(0, Math.floor(data.totalLightningBuilt) || 0);
   achTesla = !!data.achTesla;
   achTesla2 = !!data.achTesla2;
