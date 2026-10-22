@@ -1337,6 +1337,7 @@ function update(dt) {
   // 怪物炮弹更新
   for (let i = 0; i < enemyBullets.length; i++) {
     const b = enemyBullets[i];
+    if (!b.alive) continue;                       // ← 修复 1：跳过已被拦截的炮弹
     let tx = b.lx, ty = b.ly;
 
     if (b.target === 'castle') {
@@ -1381,6 +1382,7 @@ function update(dt) {
       if (t.buildingTimer <= 0) {
         t.buildingTimer = 0;
         addLog(`${t.def.name} 建造完成`, 'success');
+        checkEnclosure();                       // ← 修复 3：建造完成时补触发包围检测
       }
       continue;
     }
@@ -1442,7 +1444,15 @@ function update(dt) {
           t.angle = Math.atan2(targetTower.y - t.y, targetTower.x - t.x);
           if (targetTower.type === 'laser' || targetTower.type === 'battery' || targetTower.type === 'prism') {
             const targetSt = towerStats(targetTower);
-            targetTower.energy = Math.min(targetSt.maxEnergy, targetTower.energy + st.healRate * dt);
+            // ← 修复 11：优先修复耐久，其次充能；两者都满则不再锁定
+            if (targetTower.hp < targetTower.maxHp) {
+              targetTower.hp = Math.min(targetTower.maxHp, targetTower.hp + st.healRate * dt);
+            } else if (targetTower.energy < targetSt.maxEnergy) {
+              targetTower.energy = Math.min(targetSt.maxEnergy, targetTower.energy + st.healRate * dt);
+            } else {
+              // 目标已满，取消光束
+              t.beamTarget = null;
+            }
           } else {
             targetTower.hp = Math.min(targetTower.maxHp, targetTower.hp + st.healRate * dt);
           }
@@ -1763,6 +1773,11 @@ function update(dt) {
     if (floats[i].life <= 0) floats.splice(i, 1);
   }
 
+  // ← 修复 8：波次完成判定前，再做一次死亡敌人清理，避免延迟一帧
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    if (!enemies[i].alive || enemies[i].hp <= 0) enemies.splice(i, 1);
+  }
+
   if (wave.active && wave.idx >= wave.list.length && enemies.length === 0) {
     finishWave(false);
   }
@@ -2034,7 +2049,9 @@ function drawTower(t) {
     }
     ctx.restore();
   } else if (t.type === 'battery') {
-    // 电池：内部电池格
+    // ← 修复 2：电池绘制必须平移到 (x, y)，否则画到画布左上角
+    ctx.save();
+    ctx.translate(x, y);
     ctx.fillStyle = t.def.color;
     ctx.fillRect(-6, -8, 12, 16);
     ctx.fillStyle = '#1e293b';
@@ -2043,6 +2060,7 @@ function drawTower(t) {
     const energyFrac = t.energy / st.maxEnergy;
     ctx.fillStyle = '#38bdf8';
     ctx.fillRect(-4, 6 - 12 * energyFrac, 8, 12 * energyFrac);
+    ctx.restore();
   } else if (t.type === 'mmwave') {
     // 毫米波：三个发射圆环
     ctx.save();
@@ -2115,6 +2133,8 @@ function drawTower(t) {
 }
 
 function drawEnemy(e) {
+  // ← 修复 7：不再绘制已死亡敌人
+  if (!e.alive) return;
   let x = e.x, y = e.y;
   const r = e.radius;
 
@@ -2281,7 +2301,8 @@ function draw() {
     ctx.strokeRect(
       selectedTower.gx * TILE + 1.5,
       selectedTower.gy * TILE + 1.5,
-      TILE - 3, TILE - 3
+      TILE - 3,
+      TILE - 3
     );
   }
 
@@ -2409,7 +2430,9 @@ function draw() {
   for (let i = 0; i < enemies.length; i++) drawEnemy(enemies[i]);
   for (let i = 0; i < bullets.length; i++) drawBullet(bullets[i]);
   
-  for (let i = 0; i < enemyBullets.length; i++) drawEnemyBullet(enemyBullets[i]);
+  for (let i = 0; i < enemyBullets.length; i++) {
+    if (enemyBullets[i].alive) drawEnemyBullet(enemyBullets[i]);
+  }
 
   for (let i = 0; i < particles.length; i++) {
     const p = particles[i];
@@ -2551,6 +2574,9 @@ function updateHUD() {
   if (selectedTower && !selectedTower.destroyed && towers.indexOf(selectedTower) !== -1) {
     $('emptySel').classList.add('hidden');
     $('selPanel').classList.remove('hidden');
+
+    // ← 修复 6：先重置伤害颜色的内联样式，避免光棱炮颜色残留
+    $('selDmg').style.color = '';
 
     const t = selectedTower;
     const st = towerStats(t);
@@ -2893,7 +2919,8 @@ async function saveGame() {
       wave: wave.active ? {
         list: wave.list, idx: wave.idx, time: wave.time, hpMul: wave.hpMul, speedMul: wave.speedMul
       } : null,
-      enemies: enemies.map(e => ({
+      // ← 修复 4：过滤已死亡敌人，避免读档复活
+      enemies: enemies.filter(e => e.alive).map(e => ({
         type: e.type, hp: e.hp, maxHp: e.maxHp, x: e.x, y: e.y,
         shield: e.shield, maxShield: e.maxShield, speed: e.speed, slowFactor: e.slowFactor, slowTimer: e.slowTimer,
         towerDamage: e.towerDamage, attackRange: e.attackRange, isRanged: e.isRanged
@@ -2902,12 +2929,24 @@ async function saveGame() {
       achTesla,
       achTesla2,
       achMag,
-      towers: towers.filter(t => !t.destroyed).map(t => ({
-        type: t.type, gx: t.gx, gy: t.gy,
-        level: t.level, invested: t.invested,
-        hp: Math.ceil(t.hp), maxHp: t.maxHp,
-        energy: t.energy
-      }))
+      // ← 修复 5：升级中的塔按「已完成」结算，避免费用被吃掉而等级没涨
+      towers: towers.filter(t => !t.destroyed).map(t => {
+        let lvl = t.level;
+        let hp = Math.ceil(t.hp);
+        let maxHp = t.maxHp;
+        if (t.upgradingTimer > 0) {
+          lvl = Math.min(MAX_LEVEL, t.level + 1);
+          const newMaxHp = towerMaxHp(t.type, lvl);
+          hp = Math.min(newMaxHp, hp + (newMaxHp - maxHp));
+          maxHp = newMaxHp;
+        }
+        return {
+          type: t.type, gx: t.gx, gy: t.gy,
+          level: lvl, invested: t.invested,
+          hp: hp, maxHp: maxHp,
+          energy: t.energy
+        };
+      })
     };
     const b64 = await encryptSave(data);
     const blob = new Blob([b64], { type: 'text/plain' });
@@ -2932,8 +2971,13 @@ function applySave(data) {
   if (!data || typeof data !== 'object') throw new Error('存档数据无效');
   reset();
   gold = Math.max(0, Math.floor(data.gold) || 0);
-  // 修复：防止 castleHp = 0 被 falsy 判定恢复满血
-  castleHp = Math.max(1, data.castleHp !== undefined ? Math.floor(data.castleHp) : CASTLE_MAX_HP);
+  // ← 修复 9：对 castleHp 做 NaN 兜底
+  {
+    const raw = (data.castleHp !== undefined) ? Math.floor(data.castleHp) : CASTLE_MAX_HP;
+    castleHp = Number.isFinite(raw)
+      ? Math.max(1, Math.min(CASTLE_MAX_HP, raw))
+      : CASTLE_MAX_HP;
+  }
   waveNum = Math.max(0, Math.floor(data.waveNum) || 0);
   totalLightningBuilt = Math.max(0, Math.floor(data.totalLightningBuilt) || 0);
   achTesla = !!data.achTesla;
@@ -2960,7 +3004,8 @@ function applySave(data) {
     waveStartTotal = Math.max(1, wave.list[wave.list.length - 1].t);
   } else {
     wave = { active: false, list: [], idx: 0, time: 0, hpMul: 1, speedMul: 1 };
-    waveTimer = 0;
+    // ← 修复 10：非战斗存档，恢复默认准备时间而不是 0
+    waveTimer = 8;
     enemies = [];
   }
 
