@@ -59,13 +59,17 @@
   .top-ctrls { display: flex; gap: 8px; align-items: center; }
   .top-ctrls .btn { min-width: 70px; }
 
+  /* 关键修复：严格的宽高比约束，绝不拉伸 */
   #stage {
-    position: relative; width: 100%; aspect-ratio: 20 / 13;
+    position: relative;
+    width: 100%;
+    aspect-ratio: 20 / 13;
     max-height: calc(100vh - 300px);
-    max-width: calc((100vh - 300px) * 1.5384);
+    max-width: calc((100vh - 300px) * 20 / 13);
     margin: 0 auto; border-radius: 12px; overflow: hidden;
     box-shadow: 0 12px 48px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.06);
-    background: #2c4a34; flex-shrink: 0;
+    background: #2c4a34; 
+    flex-shrink: 1; /* 允许在空间不足时收缩 */
   }
   canvas {
     display: block; width: 100%; height: 100%; cursor: crosshair;
@@ -86,26 +90,32 @@
   }
   #build-panel {
     width: 640px; flex: 0 0 auto; display: flex; flex-direction: column;
+    overflow: hidden;
   }
   .section-title {
     font-size: 11px; letter-spacing: 2px; color: #6f8499;
     text-transform: uppercase; margin-bottom: 6px;
   }
+  /* 关键修复：8 列 => 15 个按钮变成 8+7 两行，不会因 3 行超出面板高度 */
   .tower-list {
-    display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: auto;
+    display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin-top: auto;
   }
   .tower-btn {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     padding: 6px 2px; gap: 2px; border-radius: 10px;
     background: rgba(255,255,255,.05); border: 1.5px solid rgba(255,255,255,.12);
     cursor: pointer; transition: 0.15s; color: #dbe6f2; font-family: inherit;
+    min-width: 0; overflow: hidden;
   }
   .tower-btn:hover { background: rgba(255,255,255,.1); transform: translateY(-2px); }
   .tower-btn.active { border-color: #5fd8e0; background: rgba(95,216,224,.16); }
   .tower-btn.active.hammer { border-color: #ff6b6b; background: rgba(255,80,80,.16); }
   .tower-btn.disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
   .tower-btn .ic { font-size: 18px; }
-  .tower-btn .nm { font-size: 12px; font-weight: 600; }
+  .tower-btn .nm {
+    font-size: 12px; font-weight: 600;
+    max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
   .tower-btn .cost { font-size: 11px; color: #ffd166; }
 
   #log-panel {
@@ -222,12 +232,20 @@
   #toast.ok { background: rgba(40,160,90,.95); }
 
   @media (max-width: 1200px) {
-    #game { flex-direction: column; height: auto; }
+    #game { flex-direction: column; height: auto; min-height: 100vh; }
     #left-col { width: 100%; }
-    #stage { max-height: 60vh; width: 100%; max-width: 100%; }
+    
+    /* 核心修复：高度受限时，同步限制最大宽度以保证比例 */
+    #stage {
+      width: 100%;
+      max-height: 60vh;
+      max-width: calc(60vh * 20 / 13);
+      margin: 0 auto;
+    }
+    
     #bottom-bar { flex-direction: column; }
     #build-panel { width: 100%; }
-    .tower-list { grid-template-columns: repeat(7, 1fr); }
+    .tower-list { grid-template-columns: repeat(8, 1fr); }
     #right-col { width: 100%; }
   }
 </style>
@@ -347,13 +365,13 @@
       <p>💣 <b>火炮</b>：超远射程重炮。</p>
       <p>🚀 <b>防空炮</b>：仅对空，拦截飞行器。</p>
       <p>🔧 <b>维修塔</b>：修复建筑，或为拦截器/电池/光棱炮/能量转换器充能。</p>
-      <p>🔄 <b>能量转换器</b>：接收维修塔/毫米波供能并转化为金币。T1 汇率 1 能量=0.1 金币，每级 +0.1，有多少转多少。优先级最低（仅在范围内无掉血建筑、无待充能设施时才会被供能）。</p>
+      <p>🔄 <b>能量转换器</b>：接收维修塔/毫米波供能并转化为金币。T1 汇率 1 能量=0.1 金币，每级 +0.1，有多少转多少。优先级最低。</p>
       <p>🛰️ <b>拦截器</b>：消耗 100 能量发射红色激光拦截炮弹。</p>
-      <p>🔋 <b>能量电池</b>：储存能量（容量已提升至 2.5 倍），供毫米波使用。</p>
+      <p>🔋 <b>能量电池</b>：储存能量，供毫米波使用。</p>
       <p>📡 <b>毫米波</b>：瞬间从电池抽电修复范围内所有建筑，传输损耗 10%。</p>
-      <p>💠 <b>光棱炮</b>：造价 1000。T1-T19 为充能状态。T20 且满 10 万能量时，引发轨道激光打击。</p>
-      <p>☢️ <b>核弹发射井</b>：1000万（不可升级）。建核弹300万/30s，最多存5枚。发射后直径90%范围秒杀，留下直径40%辐射区。可开启自动建造。</p>
-      <p>🚀 <b>导弹发射井</b>：造价500。可升级，升级加速建弹（最低0.2s）、增加伤害与弹夹。点任意井的发射按钮，全图导弹将集群齐射。</p>
+      <p>💠 <b>光棱炮</b>：T1-T19 为充能状态。T20 且满 10 万能量时，引发轨道激光打击。</p>
+      <p>☢️ <b>核弹发射井</b>：建核弹300万/30s，最多存5枚。发射后直径90%范围秒杀。</p>
+      <p>🚀 <b>导弹发射井</b>：可升级，升级加速建弹、增加伤害与弹夹。全图集群齐射。</p>
     </div>
   </div>
 </div>
@@ -531,7 +549,7 @@ const TOWER_DEFS = {
   },
   nukeSilo: {
     key: 'nukeSilo', name: '核弹发射井', icon: '☢️', cost: 10000000, color: '#84cc16',
-    kind: 'nuke', desc: '消耗300万建造核弹(30s)，发射后造成巨大范围秒杀并留下辐射区',
+    kind: 'nuke', desc: '消耗300万建造核弹(30s)，发射后造成巨大范围秒杀并留下辐射区（不可升级）',
     levels: [{ name: '核弹发射井', damage: 0, range: 0, cooldown: 1, armor: 0, maxEnergy: 0 }]
   },
   missileSilo: {
@@ -565,9 +583,6 @@ const MAX_LEVEL = 30;
 const TIER_NAMES = [];
 for (let i = 1; i <= MAX_LEVEL; i++) TIER_NAMES.push('T' + i);
 
-/* ============================================================
-   AES-256-GCM 存档
-   ============================================================ */
 const SAVE_PASSWORD = '123456';
 const SAVE_ITER = 100000;
 
@@ -653,9 +668,6 @@ async function decryptSave(b64) {
   return JSON.parse(new TextDecoder().decode(pt));
 }
 
-/* ============================================================
-   游戏状态
-   ============================================================ */
 let gold, waveNum, enemies, towers, bullets, missiles, particles, floats, lightningEffects, enemyBullets, interceptorBeams, mmwaveBeams, orbitalStrikes, radiationZones;
 let selectedType, selectedTower, aimingNukeTower, aimingMissile;
 let paused, speedMul, gameOver;
@@ -1443,12 +1455,10 @@ function update(dt) {
       finishWave(true);
       startWave();
     } else {
-      // 正常时间轴生成
       while (wave.idx < wave.list.length && wave.list[wave.idx].t <= wave.time) {
         spawnEnemy(wave.list[wave.idx++].type);
       }
 
-      // 动态难度：场上存活敌人少于 3 个且本波仍有待生成敌人时，加速补充
       if (wave.idx < wave.list.length) {
         if (enemies.length < 3) {
           wave.earlySpawnTimer = (wave.earlySpawnTimer || 0) + dt;
@@ -3374,10 +3384,9 @@ function selectType(type) {
     btn.className = 'tower-btn';
     btn.dataset.type = key;
     btn.title = def.desc;
-    const isNuke = key === 'nukeSilo';
     btn.innerHTML =
       '<span class="ic">' + def.icon + '</span>' +
-      '<span class="nm">' + def.name + (isNuke ? '(不可升)' : '') + '</span>' +
+      '<span class="nm">' + def.name + '</span>' +
       '<span class="cost">💰' + (def.cost >= 10000 ? (def.cost/10000) + '万' : def.cost) + '</span>';
     btn.addEventListener('click', () => selectType(key));
     list.appendChild(btn);
