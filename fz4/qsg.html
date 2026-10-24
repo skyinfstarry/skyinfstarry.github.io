@@ -1,0 +1,1807 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>切水果 · 商城存档版</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;overflow:hidden;background:#0d0a06;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;
+  }
+  #game{
+    position:fixed;inset:0;width:100%;height:100%;display:block;
+    touch-action:none;cursor:crosshair;
+  }
+  #hud{
+    position:fixed;top:0;left:0;right:0;
+    padding:14px 18px;
+    display:flex;justify-content:space-between;align-items:center;
+    pointer-events:none;gap:8px;
+  }
+  #score{
+    font-size:30px;font-weight:900;color:#fff;letter-spacing:1px;
+    text-shadow:0 0 18px rgba(255,190,80,.9),0 2px 6px rgba(0,0,0,.8);
+    font-variant-numeric:tabular-nums;flex-shrink:0;
+  }
+  #coinHud{
+    font-size:20px;font-weight:900;color:#ffd166;
+    text-shadow:0 0 16px rgba(255,200,80,.85),0 2px 6px rgba(0,0,0,.8);
+    font-variant-numeric:tabular-nums;flex-shrink:0;
+  }
+  #lives{
+    font-size:18px;letter-spacing:2px;white-space:nowrap;
+    filter:drop-shadow(0 2px 8px rgba(255,80,80,.6));
+    text-align:right;flex-shrink:1;min-width:0;overflow:hidden;
+  }
+
+  .overlay{
+    position:fixed;inset:0;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 45%,rgba(60,30,10,.82),rgba(6,4,2,.94));
+    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    transition:opacity .3s ease;
+    z-index:10;padding:20px;
+  }
+  .overlay.hide{
+    opacity:0;pointer-events:none;visibility:hidden;
+    transition:opacity .3s ease, visibility 0s .3s;
+  }
+  #ovTitle{
+    font-size:clamp(34px,9vw,70px);
+    font-weight:900;letter-spacing:8px;color:#ffd166;
+    text-shadow:0 0 30px rgba(255,140,0,.7),0 6px 0 #8a4b00;
+    animation:float 3s ease-in-out infinite;
+  }
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+  #ovText{
+    margin:18px 0 26px;text-align:center;line-height:2;
+    color:#c9b8a0;font-size:15px;letter-spacing:1px;
+  }
+  #ovText b{font-size:26px;font-weight:900;}
+  .menu-stats{
+    display:flex;gap:22px;margin:6px 0 4px;
+    font-size:18px;font-weight:800;color:#ffd166;
+    text-shadow:0 0 12px rgba(255,200,80,.6);
+  }
+  .menu-btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+  button{
+    padding:15px 34px;font-size:16px;font-weight:800;letter-spacing:2px;
+    color:#2a1600;
+    background:linear-gradient(180deg,#ffe08a,#ff9f1c);
+    border:none;border-radius:999px;cursor:pointer;
+    box-shadow:0 6px 0 #b96b00,0 12px 34px rgba(255,150,0,.45);
+    transition:transform .08s,box-shadow .08s,filter .15s;
+  }
+  button:hover{filter:brightness(1.06);}
+  button:active{transform:translateY(4px);box-shadow:0 2px 0 #b96b00,0 6px 18px rgba(255,150,0,.35);}
+  button.secondary{
+    background:linear-gradient(180deg,#4a5670,#2a3348);
+    color:#ffe08a;box-shadow:0 6px 0 #151c2b,0 12px 30px rgba(0,0,0,.5);
+  }
+  button.secondary:active{box-shadow:0 2px 0 #151c2b;}
+  button.danger{
+    background:linear-gradient(180deg,#ff8a8a,#e53935);
+    color:#fff;box-shadow:0 6px 0 #8e1616,0 12px 30px rgba(229,57,53,.4);
+  }
+  button.danger:active{box-shadow:0 2px 0 #8e1616;}
+  button:disabled{opacity:.5;cursor:not-allowed;filter:grayscale(.5);}
+
+  #shopOverlay{
+    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 40%,rgba(20,35,60,.9),rgba(4,6,12,.97));
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    z-index:20;padding:20px;transition:opacity .3s ease;
+  }
+  #shopOverlay.hide{
+    opacity:0;pointer-events:none;visibility:hidden;
+    transition:opacity .3s ease, visibility 0s .3s;
+  }
+  .shop-card{
+    width:100%;max-width:420px;max-height:92vh;overflow-y:auto;
+    background:linear-gradient(180deg,#1b2942,#0b1220);
+    border:1px solid rgba(255,200,100,.28);
+    border-radius:26px;padding:24px 22px;
+    box-shadow:0 24px 70px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.08);
+    display:flex;flex-direction:column;gap:14px;
+  }
+  .shop-title{
+    font-size:26px;font-weight:900;letter-spacing:4px;color:#ffd166;text-align:center;
+    text-shadow:0 0 20px rgba(255,160,0,.6);
+  }
+  .shop-balance{
+    text-align:center;font-size:20px;font-weight:800;color:#ffd166;
+    background:rgba(255,209,102,.08);border:1px solid rgba(255,209,102,.2);
+    border-radius:14px;padding:10px;
+  }
+  .shop-item{
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:16px;padding:16px;
+    display:flex;flex-direction:column;gap:12px;
+  }
+  .shop-item-name{font-size:16px;font-weight:800;color:#fff;letter-spacing:1px;}
+  .shop-item-desc{font-size:13px;color:#9fb0c8;margin-top:4px;line-height:1.6;}
+  .shop-item-desc em{color:#ffd166;font-style:normal;font-weight:800;}
+  .buy-btn{
+    width:100%;padding:13px;font-size:15px;letter-spacing:1px;
+    background:linear-gradient(180deg,#ffe08a,#ff9f1c);
+    color:#2a1600;border-radius:30px;box-shadow:0 4px 0 #b96b00;
+  }
+  .buy-btn:active{transform:translateY(3px);box-shadow:0 1px 0 #b96b00;}
+  .shop-footer{display:flex;gap:10px;}
+  .shop-footer button{flex:1;padding:13px;font-size:15px;}
+  .secure-note{
+    text-align:center;font-size:11px;color:#5c6b82;letter-spacing:.5px;
+  }
+
+  #saveOverlay{
+    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 40%,rgba(20,35,60,.9),rgba(4,6,12,.97));
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    z-index:20;padding:20px;transition:opacity .3s ease;
+  }
+  #saveOverlay.hide{
+    opacity:0;pointer-events:none;visibility:hidden;
+    transition:opacity .3s ease, visibility 0s .3s;
+  }
+  .save-card{
+    width:100%;max-width:480px;max-height:92vh;overflow-y:auto;
+    background:linear-gradient(180deg,#1b2942,#0b1220);
+    border:1px solid rgba(255,200,100,.28);
+    border-radius:26px;padding:24px 20px;
+    box-shadow:0 24px 70px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.08);
+    display:flex;flex-direction:column;gap:14px;
+  }
+  .save-title{
+    font-size:24px;font-weight:900;letter-spacing:4px;color:#ffd166;text-align:center;
+    text-shadow:0 0 20px rgba(255,160,0,.6);
+  }
+  .slot-list{display:flex;flex-direction:column;gap:12px;}
+  .slot-card{
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:16px;padding:14px;
+    display:flex;flex-direction:column;gap:10px;
+  }
+  .slot-card.active{
+    border-color:rgba(255,209,102,.6);
+    box-shadow:0 0 0 1px rgba(255,209,102,.3) inset;
+  }
+  .slot-head{display:flex;justify-content:space-between;align-items:center;}
+  .slot-name{font-size:15px;font-weight:800;color:#fff;letter-spacing:1px;}
+  .slot-badge{
+    font-size:11px;font-weight:800;color:#2a1600;
+    background:linear-gradient(180deg,#ffe08a,#ff9f1c);
+    padding:2px 10px;border-radius:999px;
+  }
+  .slot-stats{display:flex;gap:8px;flex-wrap:wrap;font-size:12px;color:#c7d3e3;font-weight:700;}
+  .slot-stats span{background:rgba(255,255,255,.06);padding:2px 8px;border-radius:8px;}
+  .slot-time{font-size:11px;color:#6b7a90;}
+  .slot-empty{font-size:13px;color:#6b7a90;padding:6px 0;}
+  .slot-actions{display:flex;gap:6px;flex-wrap:wrap;}
+  .slot-actions button{
+    flex:1;min-width:56px;padding:9px 4px;font-size:12px;letter-spacing:.5px;
+    border-radius:20px;box-shadow:0 3px 0 #b96b00;
+  }
+  .slot-actions button.secondary{box-shadow:0 3px 0 #151c2b;}
+  .slot-actions button.danger{box-shadow:0 3px 0 #8e1616;}
+  .save-footer{display:flex;gap:10px;}
+  .save-footer button{flex:1;padding:12px;font-size:15px;}
+
+  #autoToggle{
+    position:fixed;right:16px;bottom:16px;z-index:15;
+    display:none;align-items:center;gap:6px;
+    padding:11px 18px;font-size:13px;font-weight:800;letter-spacing:1px;
+    color:#2a1600;border:none;border-radius:999px;cursor:pointer;
+    background:linear-gradient(180deg,#ffe08a,#ff9f1c);
+    box-shadow:0 4px 0 #b96b00,0 8px 24px rgba(0,0,0,.45);
+    opacity:.62;transition:opacity .2s,transform .08s;
+    touch-action:manipulation;
+  }
+  #autoToggle.show{display:inline-flex;}
+  #autoToggle.on{opacity:1;}
+  #autoToggle:active{transform:translateY(3px);box-shadow:0 1px 0 #b96b00;}
+
+  #confirmOverlay{
+    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:rgba(4,6,12,.82);
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    z-index:50;padding:20px;transition:opacity .25s ease;
+  }
+  #confirmOverlay.hide{
+    opacity:0;pointer-events:none;visibility:hidden;
+    transition:opacity .25s ease, visibility 0s .25s;
+  }
+  .confirm-card{
+    width:100%;max-width:380px;
+    background:linear-gradient(180deg,#2a1c1c,#120c0c);
+    border:1px solid rgba(255,120,100,.35);
+    border-radius:24px;padding:26px 24px;
+    box-shadow:0 24px 70px rgba(0,0,0,.75),inset 0 1px 0 rgba(255,255,255,.06);
+    display:flex;flex-direction:column;gap:16px;
+    animation:popIn .25s ease;
+  }
+  @keyframes popIn{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
+  .confirm-title{
+    font-size:20px;font-weight:900;letter-spacing:2px;color:#ff9e8a;text-align:center;
+    text-shadow:0 0 18px rgba(255,90,60,.5);
+  }
+  .confirm-msg{
+    font-size:14px;line-height:1.8;color:#d8c8c0;text-align:center;
+  }
+  .confirm-msg b{color:#ffd166;}
+  .confirm-actions{display:flex;gap:10px;}
+  .confirm-actions button{flex:1;padding:13px;font-size:15px;letter-spacing:1px;}
+
+  #toast{
+    position:fixed;left:50%;top:14%;
+    transform:translateX(-50%) translateY(-10px);
+    background:rgba(20,30,45,.96);color:#ffd166;
+    padding:12px 26px;border-radius:999px;
+    font-weight:800;font-size:15px;letter-spacing:1px;
+    opacity:0;transition:opacity .25s,transform .25s;
+    pointer-events:none;z-index:999;
+    border:1px solid rgba(255,209,102,.3);
+    box-shadow:0 10px 30px rgba(0,0,0,.5);
+    max-width:80vw;text-align:center;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<div id="hud">
+  <div id="score">0</div>
+  <div id="coinHud">💰 0</div>
+  <div id="lives">❤️❤️❤️</div>
+</div>
+
+<div id="overlay" class="overlay">
+  <h1 id="ovTitle">切水果</h1>
+  <div class="menu-stats">
+    <div>💰 <span id="menuCoins">0</span></div>
+    <div>🏆 <span id="menuBest">0</span></div>
+  </div>
+  <p id="ovText">滑动鼠标或手指，切开飞起的水果<br>每个水果 +1 💰 &nbsp;|&nbsp; 小心炸弹 💣</p>
+  <div class="menu-btns">
+    <button id="startBtn" disabled>加载中…</button>
+    <button id="shopBtn" class="secondary">🛒 商城</button>
+    <button id="saveBtn" class="secondary">💾 存档</button>
+    <button id="autoBtn" class="secondary">🤖 自动模式：关</button>
+    <button id="resetBtn" class="danger">🔄 重置存档</button>
+  </div>
+</div>
+
+<div id="shopOverlay" class="hide">
+  <div class="shop-card">
+    <div class="shop-title">🛒 商城</div>
+    <div class="shop-balance">💰 <span id="shopCoins">0</span></div>
+
+    <div class="shop-item">
+      <div>
+        <div class="shop-item-name">❤️ 生命上限 +1</div>
+        <div class="shop-item-desc">
+          当前上限：<em id="shopLives">3</em> → <em id="shopLivesNext">4</em><br>
+          生命越多，能承受的失误就越多。
+        </div>
+      </div>
+      <button id="buyLifeBtn" class="buy-btn">100 金币</button>
+    </div>
+
+    <div class="shop-item">
+      <div>
+        <div class="shop-item-name">✋ 切割范围 +5px</div>
+        <div class="shop-item-desc">
+          当前范围：<em id="shopRange">12</em>px → <em id="shopRangeNext">17</em>px<br>
+          光标与剑气的判定半径。
+        </div>
+      </div>
+      <button id="buyRangeBtn" class="buy-btn">150 金币</button>
+    </div>
+
+    <div class="shop-item">
+      <div>
+        <div class="shop-item-name">⚔️ 剑气滞留 +0.05s</div>
+        <div class="shop-item-desc">
+          当前滞留：<em id="shopBlade">0.10</em>s → <em id="shopBladeNext">0.15</em>s<br>
+          剑气停留更久，划过后仍能持续切割。
+        </div>
+      </div>
+      <button id="buyBladeBtn" class="buy-btn">200 金币</button>
+    </div>
+
+    <div class="shop-item">
+      <div>
+        <div class="shop-item-name">💥 炸弹免伤概率 +10%</div>
+        <div class="shop-item-desc">
+          当前免伤：<em id="shopDefuse">10</em>% → <em id="shopDefuseNext">20</em>%<br>
+          切到炸弹时，有概率用剑气直接砍爆而不受伤。
+        </div>
+      </div>
+      <button id="buyDefuseBtn" class="buy-btn">300 金币</button>
+    </div>
+
+    <div class="shop-item">
+      <div>
+        <div class="shop-item-name">🤖 自动指针速度 +5</div>
+        <div class="shop-item-desc">
+          当前速度：<em id="shopAutoSpeed">15</em> → <em id="shopAutoSpeedNext">20</em><br>
+          开启自动模式后，虚拟指针自动追踪水果移动，速度越快切割越迅速。
+        </div>
+      </div>
+      <button id="buyAutoSpeedBtn" class="buy-btn">250 金币</button>
+    </div>
+
+    <div class="shop-item">
+      <div>
+        <div class="shop-item-name">💰 金币加成 +1</div>
+        <div class="shop-item-desc">
+          当前每果：<em id="shopCoin">1</em> 💰 → <em id="shopCoinNext">2</em> 💰<br>
+          每切开一个水果获得的金币数提升，赚钱更快。
+        </div>
+      </div>
+      <button id="buyCoinBtn" class="buy-btn">500 金币</button>
+    </div>
+
+    <div class="shop-footer">
+      <button id="closeShopBtn" class="secondary">返回</button>
+    </div>
+    <div class="secure-note">🔒 存档已使用 AES-256-GCM 加密保护</div>
+  </div>
+</div>
+
+<div id="saveOverlay" class="hide">
+  <div class="save-card">
+    <div class="save-title">💾 存档</div>
+    <div id="slotList" class="slot-list"></div>
+    <div class="save-footer">
+      <button id="closeSaveBtn" class="secondary">返回</button>
+    </div>
+    <div class="secure-note">🔒 AES-256-GCM 加密 · 支持导出 / 导入 · 重置会清空该槽位</div>
+  </div>
+</div>
+
+<div id="confirmOverlay" class="hide">
+  <div class="confirm-card">
+    <div class="confirm-title" id="confirmTitle">⚠️ 确认操作</div>
+    <div class="confirm-msg" id="confirmMsg">确定吗？</div>
+    <div class="confirm-actions">
+      <button id="confirmOkBtn" class="danger">确认重置</button>
+      <button id="confirmCancelBtn" class="secondary">取消</button>
+    </div>
+  </div>
+</div>
+
+<button id="autoToggle">🤖 自动: 关</button>
+
+<input type="file" id="importFileInput" accept=".txt,.json" style="display:none">
+
+<script>
+(function () {
+'use strict';
+
+/* ================= 基础 ================= */
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score');
+const coinHudEl = document.getElementById('coinHud');
+const livesEl = document.getElementById('lives');
+const overlay = document.getElementById('overlay');
+const ovTitle = document.getElementById('ovTitle');
+const ovText = document.getElementById('ovText');
+const startBtn = document.getElementById('startBtn');
+const shopBtn = document.getElementById('shopBtn');
+const saveBtn = document.getElementById('saveBtn');
+const autoBtn = document.getElementById('autoBtn');
+const resetBtn = document.getElementById('resetBtn');
+const autoToggle = document.getElementById('autoToggle');
+const shopOverlay = document.getElementById('shopOverlay');
+const shopCoinsEl = document.getElementById('shopCoins');
+const shopLivesEl = document.getElementById('shopLives');
+const shopLivesNextEl = document.getElementById('shopLivesNext');
+const shopRangeEl = document.getElementById('shopRange');
+const shopRangeNextEl = document.getElementById('shopRangeNext');
+const shopBladeEl = document.getElementById('shopBlade');
+const shopBladeNextEl = document.getElementById('shopBladeNext');
+const shopDefuseEl = document.getElementById('shopDefuse');
+const shopDefuseNextEl = document.getElementById('shopDefuseNext');
+const shopAutoSpeedEl = document.getElementById('shopAutoSpeed');
+const shopAutoSpeedNextEl = document.getElementById('shopAutoSpeedNext');
+const shopCoinEl = document.getElementById('shopCoin');
+const shopCoinNextEl = document.getElementById('shopCoinNext');
+const buyLifeBtn = document.getElementById('buyLifeBtn');
+const buyRangeBtn = document.getElementById('buyRangeBtn');
+const buyBladeBtn = document.getElementById('buyBladeBtn');
+const buyDefuseBtn = document.getElementById('buyDefuseBtn');
+const buyAutoSpeedBtn = document.getElementById('buyAutoSpeedBtn');
+const buyCoinBtn = document.getElementById('buyCoinBtn');
+const closeShopBtn = document.getElementById('closeShopBtn');
+const saveOverlay = document.getElementById('saveOverlay');
+const slotListEl = document.getElementById('slotList');
+const closeSaveBtn = document.getElementById('closeSaveBtn');
+const importFileInput = document.getElementById('importFileInput');
+const menuCoinsEl = document.getElementById('menuCoins');
+const menuBestEl = document.getElementById('menuBest');
+const confirmOverlay = document.getElementById('confirmOverlay');
+const confirmTitle = document.getElementById('confirmTitle');
+const confirmMsg = document.getElementById('confirmMsg');
+const confirmOkBtn = document.getElementById('confirmOkBtn');
+const confirmCancelBtn = document.getElementById('confirmCancelBtn');
+
+const G = 1500;
+
+/* ----- 升级常量 ----- */
+const BASE_LIFE = 3;
+const MAX_UPGRADE_LEVEL = 12;
+
+const BASE_CUT_RANGE = 12;
+const CUT_RANGE_PER_LEVEL = 5;
+const MAX_RANGE_LEVEL = 8;
+
+const BASE_BLADE_LIFE = 0.1;
+const BLADE_LIFE_PER_LEVEL = 0.05;
+const MAX_BLADE_LEVEL = 8;
+
+const BASE_BOMB_DEFUSE = 0.1;
+const BOMB_DEFUSE_PER_LEVEL = 0.1;
+const MAX_BOMB_DEFUSE_LEVEL = 9;
+
+const BASE_AUTO_SPEED = 15;
+const AUTO_SPEED_PER_LEVEL = 5;
+const MAX_AUTO_SPEED_LEVEL = 10;
+const AUTO_SPEED_PX_FACTOR = 20;
+
+const BASE_COIN_PER_FRUIT = 1;
+const COIN_PER_FRUIT_PER_LEVEL = 1;
+const MAX_COIN_LEVEL = 5;
+
+let W = 0, H = 0, bgGrad = null;
+
+function resize() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = canvas.clientWidth  || window.innerWidth;
+  H = canvas.clientHeight || window.innerHeight;
+  canvas.width  = Math.round(W * dpr);
+  canvas.height = Math.round(H * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  bgGrad = ctx.createRadialGradient(W * 0.5, H * 0.32, 0, W * 0.5, H * 0.55, Math.max(W, H) * 0.9);
+  bgGrad.addColorStop(0,   '#2e1d10');
+  bgGrad.addColorStop(0.5, '#170e07');
+  bgGrad.addColorStop(1,   '#060402');
+}
+window.addEventListener('resize', resize);
+
+/* ================= 水果配置 ================= */
+const FRUIT_TYPES = [
+  { id:'watermelon', r:48, skin:'#2e7d32', light:'#8ce06a', dark:'#1b4d1f', inner:'#ff4d6d', inner2:'#ff8095', seed:'#2b1a12' },
+  { id:'orange',     r:38, skin:'#e8791a', light:'#ffc05c', dark:'#b95400', inner:'#ff9f1c', inner2:'#ffd08a', seed:null     },
+  { id:'apple',      r:38, skin:'#c62828', light:'#ff6b6b', dark:'#8e1616', inner:'#fff3d6', inner2:'#fffaf0', seed:'#6b4a1f' },
+  { id:'lemon',      r:34, skin:'#d9c400', light:'#fff68f', dark:'#a89500', inner:'#fff9a0', inner2:'#fffde0', seed:'#e8dc70' },
+  { id:'kiwi',       r:34, skin:'#8b6b3d', light:'#c49a5f', dark:'#5e4726', inner:'#a8e063', inner2:'#d8f5a8', seed:'#20301a' },
+  { id:'grape',      r:30, skin:'#7b1fa2', light:'#c26bd6', dark:'#4a148c', inner:'#ce93d8', inner2:'#ecc7f5', seed:'#3a0d52' }
+];
+
+/* ================= 游戏状态 ================= */
+let state = 'menu';
+let fruits = [], halves = [], particles = [], floaters = [];
+let score = 0, lives = BASE_LIFE, combo = 0, comboTimer = 0;
+let runCoins = 0;
+let elapsed = 0, spawnTimer = 0;
+let shake = 0, flash = 0;
+
+let trailPts = [];
+let pointerActive = false;
+let pointerX = 0, pointerY = 0;
+
+const autoPointer = { x: null, y: null, target: null };
+
+/* ================= 存档系统 ================= */
+const SLOT_COUNT = 3;
+const SAVE_KEY_PREFIX = 'fruit_slice_save_slot_';
+const CURRENT_SLOT_KEY = 'fruit_slice_current_slot';
+const LEGACY_KEY = 'fruit_slice_secure_save_v1';
+const SAVE_PASSWORD = '123456';
+const SAVE_ITER = 100000;
+
+const save = {
+  coins: 0,
+  lifeLevel: 0,
+  rangeLevel: 0,
+  bladeLevel: 0,
+  bombDefuseLevel: 0,
+  autoSpeedLevel: 0,
+  coinLevel: 0,
+  bestScore: 0,
+  autoMode: false
+};
+let slotSummaries = [null, null, null];
+let currentSlot = 0;
+let saveReady = false;
+let pendingImportSlot = 0;
+
+let confirmResolver = null;
+
+function subtleAvailable() {
+  return !!(window.crypto && window.crypto.subtle &&
+            typeof window.crypto.subtle.importKey === 'function' &&
+            typeof window.crypto.getRandomValues === 'function');
+}
+
+function bufToB64(buf) {
+  let bin = '';
+  const CHUNK = 8192;
+  for (let i = 0; i < buf.length; i += CHUNK) {
+    bin += String.fromCharCode.apply(null, buf.subarray(i, i + CHUNK));
+  }
+  return btoa(bin);
+}
+function b64ToBuf(b64) {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+async function deriveSaveKey(salt) {
+  const km = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(SAVE_PASSWORD),
+    { name: 'PBKDF2' },
+    false,
+    ['deriveKey']
+  );
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: SAVE_ITER, hash: 'SHA-256' },
+    km,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+async function encryptSave(obj) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv   = crypto.getRandomValues(new Uint8Array(12));
+  const key  = await deriveSaveKey(salt);
+  const data = new TextEncoder().encode(JSON.stringify(obj));
+  const enc  = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, data);
+
+  const combined = new Uint8Array(16 + 12 + enc.byteLength);
+  combined.set(salt, 0);
+  combined.set(iv, 16);
+  combined.set(new Uint8Array(enc), 28);
+  return bufToB64(combined);
+}
+
+async function decryptSave(b64) {
+  const bytes = b64ToBuf(b64);
+  if (bytes.length < 28) throw new Error('存档数据损坏');
+  const salt = bytes.slice(0, 16);
+  const iv   = bytes.slice(16, 28);
+  const ct   = bytes.slice(28);
+  const key  = await deriveSaveKey(salt);
+  const dec  = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+  return JSON.parse(new TextDecoder().decode(dec));
+}
+
+async function decodeSavePayload(raw) {
+  const text = String(raw).trim();
+  if (text.startsWith('PLAIN:')) {
+    const buf = b64ToBuf(text.slice(6));
+    return JSON.parse(new TextDecoder().decode(buf));
+  }
+  if (text.startsWith('{')) {
+    return JSON.parse(text);
+  }
+  return await decryptSave(text);
+}
+
+async function encodeSavePayload(obj) {
+  if (subtleAvailable()) {
+    return await encryptSave(obj);
+  }
+  return 'PLAIN:' + bufToB64(new TextEncoder().encode(JSON.stringify(obj)));
+}
+
+function normalizeSave(obj) {
+  return {
+    coins:          Math.max(0, Math.floor(Number(obj.coins)          || 0)),
+    lifeLevel:      Math.min(MAX_UPGRADE_LEVEL,     Math.max(0, Math.floor(Number(obj.lifeLevel)     || 0))),
+    rangeLevel:     Math.min(MAX_RANGE_LEVEL,       Math.max(0, Math.floor(Number(obj.rangeLevel)    || 0))),
+    bladeLevel:     Math.min(MAX_BLADE_LEVEL,       Math.max(0, Math.floor(Number(obj.bladeLevel)    || 0))),
+    bombDefuseLevel:Math.min(MAX_BOMB_DEFUSE_LEVEL, Math.max(0, Math.floor(Number(obj.bombDefuseLevel)|| 0))),
+    autoSpeedLevel: Math.min(MAX_AUTO_SPEED_LEVEL,  Math.max(0, Math.floor(Number(obj.autoSpeedLevel) || 0))),
+    coinLevel:      Math.min(MAX_COIN_LEVEL,        Math.max(0, Math.floor(Number(obj.coinLevel)      || 0))),
+    bestScore:      Math.max(0, Math.floor(Number(obj.bestScore)      || 0)),
+    autoMode:       !!obj.autoMode,
+    ts:             Number(obj.ts) || Date.now()
+  };
+}
+
+function applySave(obj) {
+  save.coins           = obj.coins;
+  save.lifeLevel       = obj.lifeLevel;
+  save.rangeLevel      = obj.rangeLevel;
+  save.bladeLevel      = obj.bladeLevel;
+  save.bombDefuseLevel = obj.bombDefuseLevel;
+  save.autoSpeedLevel  = obj.autoSpeedLevel;
+  save.coinLevel       = obj.coinLevel;
+  save.bestScore       = obj.bestScore;
+  save.autoMode        = obj.autoMode;
+}
+
+async function writeSlotToLocal(slot, data) {
+  const obj = normalizeSave({ ...data, ts: Date.now() });
+  try {
+    const payload = await encodeSavePayload(obj);
+    localStorage.setItem(SAVE_KEY_PREFIX + slot, payload);
+    slotSummaries[slot] = obj;
+    return obj;
+  } catch (e) {
+    console.warn('[存档] 写入失败：', e);
+    slotSummaries[slot] = obj;
+    return obj;
+  }
+}
+
+let persistChain = Promise.resolve();
+function persistCurrent() {
+  persistChain = persistChain.then(async () => {
+    if (!saveReady) return;
+    await writeSlotToLocal(currentSlot, { ...save });
+    if (!saveOverlay.classList.contains('hide')) renderSlots();
+  }).catch(() => {});
+  return persistChain;
+}
+
+async function migrateLegacy() {
+  try {
+    const legacyRaw = localStorage.getItem(LEGACY_KEY);
+    if (!legacyRaw) return;
+    const exists0 = localStorage.getItem(SAVE_KEY_PREFIX + 0);
+    if (!exists0) {
+      const obj = await decodeSavePayload(legacyRaw);
+      if (obj) await writeSlotToLocal(0, normalizeSave(obj));
+    }
+    localStorage.removeItem(LEGACY_KEY);
+  } catch (e) { /* 忽略迁移错误 */ }
+}
+
+async function initSave() {
+  await migrateLegacy();
+
+  for (let i = 0; i < SLOT_COUNT; i++) {
+    slotSummaries[i] = null;
+    try {
+      const raw = localStorage.getItem(SAVE_KEY_PREFIX + i);
+      if (raw) {
+        const obj = await decodeSavePayload(raw);
+        if (obj) slotSummaries[i] = normalizeSave(obj);
+      }
+    } catch (e) {
+      console.warn('[存档] 槽位 ' + (i + 1) + ' 读取失败：', e);
+    }
+  }
+
+  let s = 0;
+  try {
+    const v = parseInt(localStorage.getItem(CURRENT_SLOT_KEY) || '0', 10);
+    if (!isNaN(v) && v >= 0 && v < SLOT_COUNT) s = v;
+  } catch (e) { /* 忽略 */ }
+  currentSlot = s;
+
+  if (slotSummaries[currentSlot]) {
+    applySave(slotSummaries[currentSlot]);
+  } else {
+    applySave(normalizeSave(save));
+    await writeSlotToLocal(currentSlot, save);
+  }
+
+  saveReady = true;
+}
+
+/* ================= 工具 ================= */
+function rnd(s) {
+  const v = Math.sin(s * 127.1) * 43758.5453;
+  return v - Math.floor(v);
+}
+function distToSegment(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const len2 = dx * dx + dy * dy;
+  let t = len2 ? ((px - x1) * dx + (py - y1) * dy) / len2 : 0;
+  t = t < 0 ? 0 : t > 1 ? 1 : t;
+  const cx = x1 + t * dx, cy = y1 + t * dy;
+  return Math.hypot(px - cx, py - cy);
+}
+
+let toastTimer = null;
+function toast(msg) {
+  let el = document.getElementById('toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+function downloadText(text, filename) {
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function formatTime(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/* ================= 确认弹窗 ================= */
+function showConfirm(title, msg, okText) {
+  confirmTitle.textContent = title;
+  confirmMsg.innerHTML = msg;
+  confirmOkBtn.textContent = okText || '确认';
+  confirmOverlay.classList.remove('hide');
+  return new Promise((resolve) => {
+    confirmResolver = resolve;
+  });
+}
+function closeConfirm(result) {
+  confirmOverlay.classList.add('hide');
+  const r = confirmResolver;
+  confirmResolver = null;
+  if (r) r(result);
+}
+confirmOkBtn.addEventListener('click', () => closeConfirm(true));
+confirmCancelBtn.addEventListener('click', () => closeConfirm(false));
+confirmOverlay.addEventListener('click', (e) => {
+  if (e.target === confirmOverlay) closeConfirm(false);
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !confirmOverlay.classList.contains('hide')) {
+    closeConfirm(false);
+  }
+});
+
+/* ================= 数值 ================= */
+function lifePrice(level)       { return Math.floor(100 * Math.pow(1.5, level)); }
+function rangePrice(level)      { return Math.floor(150 * Math.pow(1.5, level)); }
+function bladePrice(level)      { return Math.floor(200 * Math.pow(1.5, level)); }
+function defusePrice(level)     { return Math.floor(300 * Math.pow(1.5, level)); }
+function autoSpeedPrice(level)  { return Math.floor(250 * Math.pow(1.5, level)); }
+function coinPrice(level)       { return Math.floor(500 * Math.pow(1.8, level)); }
+
+function maxLives()             { return BASE_LIFE + save.lifeLevel; }
+function cutRadius()            { return BASE_CUT_RANGE + save.rangeLevel * CUT_RANGE_PER_LEVEL; }
+function bladeLife()            { return BASE_BLADE_LIFE + save.bladeLevel * BLADE_LIFE_PER_LEVEL; }
+function bombDefuseChance()     { return Math.min(1, BASE_BOMB_DEFUSE + save.bombDefuseLevel * BOMB_DEFUSE_PER_LEVEL); }
+function autoSpeed()            { return BASE_AUTO_SPEED + save.autoSpeedLevel * AUTO_SPEED_PER_LEVEL; }
+function coinPerFruit()         { return BASE_COIN_PER_FRUIT + save.coinLevel * COIN_PER_FRUIT_PER_LEVEL; }
+
+/* ================= UI 刷新 ================= */
+function refreshCoinHud() {
+  coinHudEl.textContent = '💰 ' + (save.coins + runCoins);
+}
+function refreshMenuStats() {
+  menuCoinsEl.textContent = save.coins;
+  menuBestEl.textContent = save.bestScore;
+}
+function refreshAutoUI() {
+  const on = save.autoMode;
+  autoBtn.textContent = '🤖 自动模式：' + (on ? '开' : '关');
+  autoToggle.textContent = on ? '🤖 自动: 开' : '🤖 自动: 关';
+  autoToggle.classList.toggle('on', on);
+}
+function setBuyButton(btn, level, maxLevel, price) {
+  if (level >= maxLevel) {
+    btn.textContent = '已满级';
+    btn.disabled = true;
+    return;
+  }
+  if (save.coins < price) {
+    btn.textContent = price + ' 金币 · 金币不足';
+    btn.disabled = true;
+  } else {
+    btn.textContent = price + ' 金币';
+    btn.disabled = false;
+  }
+}
+function refreshShopUI() {
+  shopCoinsEl.textContent = save.coins;
+
+  shopLivesEl.textContent = BASE_LIFE + save.lifeLevel;
+  shopLivesNextEl.textContent = BASE_LIFE + save.lifeLevel + 1;
+  setBuyButton(buyLifeBtn, save.lifeLevel, MAX_UPGRADE_LEVEL, lifePrice(save.lifeLevel));
+
+  shopRangeEl.textContent = BASE_CUT_RANGE + save.rangeLevel * CUT_RANGE_PER_LEVEL;
+  shopRangeNextEl.textContent = BASE_CUT_RANGE + (save.rangeLevel + 1) * CUT_RANGE_PER_LEVEL;
+  setBuyButton(buyRangeBtn, save.rangeLevel, MAX_RANGE_LEVEL, rangePrice(save.rangeLevel));
+
+  shopBladeEl.textContent = (BASE_BLADE_LIFE + save.bladeLevel * BLADE_LIFE_PER_LEVEL).toFixed(2);
+  shopBladeNextEl.textContent = (BASE_BLADE_LIFE + (save.bladeLevel + 1) * BLADE_LIFE_PER_LEVEL).toFixed(2);
+  setBuyButton(buyBladeBtn, save.bladeLevel, MAX_BLADE_LEVEL, bladePrice(save.bladeLevel));
+
+  shopDefuseEl.textContent = Math.round((BASE_BOMB_DEFUSE + save.bombDefuseLevel * BOMB_DEFUSE_PER_LEVEL) * 100);
+  shopDefuseNextEl.textContent = Math.round(Math.min(1, BASE_BOMB_DEFUSE + (save.bombDefuseLevel + 1) * BOMB_DEFUSE_PER_LEVEL) * 100);
+  setBuyButton(buyDefuseBtn, save.bombDefuseLevel, MAX_BOMB_DEFUSE_LEVEL, defusePrice(save.bombDefuseLevel));
+
+  shopAutoSpeedEl.textContent = BASE_AUTO_SPEED + save.autoSpeedLevel * AUTO_SPEED_PER_LEVEL;
+  shopAutoSpeedNextEl.textContent = BASE_AUTO_SPEED + (save.autoSpeedLevel + 1) * AUTO_SPEED_PER_LEVEL;
+  setBuyButton(buyAutoSpeedBtn, save.autoSpeedLevel, MAX_AUTO_SPEED_LEVEL, autoSpeedPrice(save.autoSpeedLevel));
+
+  shopCoinEl.textContent = BASE_COIN_PER_FRUIT + save.coinLevel * COIN_PER_FRUIT_PER_LEVEL;
+  shopCoinNextEl.textContent = BASE_COIN_PER_FRUIT + (save.coinLevel + 1) * COIN_PER_FRUIT_PER_LEVEL;
+  setBuyButton(buyCoinBtn, save.coinLevel, MAX_COIN_LEVEL, coinPrice(save.coinLevel));
+}
+function refreshAll() {
+  updateHUD();
+  refreshCoinHud();
+  refreshMenuStats();
+  refreshAutoUI();
+  refreshShopUI();
+  if (!saveOverlay.classList.contains('hide')) renderSlots();
+}
+
+/* ================= 商城行为 ================= */
+async function buyUpgrade(kind) {
+  if (kind === 'life') {
+    if (save.lifeLevel >= MAX_UPGRADE_LEVEL) return;
+    const p = lifePrice(save.lifeLevel);
+    if (save.coins < p) return;
+    save.coins -= p; save.lifeLevel++;
+    toast('生命上限提升至 ' + maxLives());
+  } else if (kind === 'range') {
+    if (save.rangeLevel >= MAX_RANGE_LEVEL) return;
+    const p = rangePrice(save.rangeLevel);
+    if (save.coins < p) return;
+    save.coins -= p; save.rangeLevel++;
+    toast('切割范围提升至 ' + cutRadius() + 'px');
+  } else if (kind === 'blade') {
+    if (save.bladeLevel >= MAX_BLADE_LEVEL) return;
+    const p = bladePrice(save.bladeLevel);
+    if (save.coins < p) return;
+    save.coins -= p; save.bladeLevel++;
+    toast('剑气滞留提升至 ' + bladeLife().toFixed(2) + 's');
+  } else if (kind === 'defuse') {
+    if (save.bombDefuseLevel >= MAX_BOMB_DEFUSE_LEVEL) return;
+    const p = defusePrice(save.bombDefuseLevel);
+    if (save.coins < p) return;
+    save.coins -= p; save.bombDefuseLevel++;
+    toast('炸弹免伤概率提升至 ' + Math.round(bombDefuseChance() * 100) + '%');
+  } else if (kind === 'autospeed') {
+    if (save.autoSpeedLevel >= MAX_AUTO_SPEED_LEVEL) return;
+    const p = autoSpeedPrice(save.autoSpeedLevel);
+    if (save.coins < p) return;
+    save.coins -= p; save.autoSpeedLevel++;
+    toast('自动指针速度提升至 ' + autoSpeed());
+  } else if (kind === 'coin') {
+    if (save.coinLevel >= MAX_COIN_LEVEL) return;
+    const p = coinPrice(save.coinLevel);
+    if (save.coins < p) return;
+    save.coins -= p; save.coinLevel++;
+    toast('每个水果可获得 ' + coinPerFruit() + ' 💰');
+  }
+  refreshShopUI();
+  refreshCoinHud();
+  refreshMenuStats();
+  await persistCurrent();
+}
+
+function openShop() {
+  if (!saveReady) return;
+  overlay.classList.add('hide');
+  shopOverlay.classList.remove('hide');
+  refreshShopUI();
+}
+function closeShop() {
+  shopOverlay.classList.add('hide');
+  overlay.classList.remove('hide');
+  refreshMenuStats();
+}
+
+/* ================= 存档面板 ================= */
+function renderSlots() {
+  slotListEl.innerHTML = '';
+  for (let i = 0; i < SLOT_COUNT; i++) {
+    const s = slotSummaries[i];
+    const card = document.createElement('div');
+    card.className = 'slot-card' + (i === currentSlot ? ' active' : '');
+
+    let body;
+    if (s) {
+      body = `
+        <div class="slot-stats">
+          <span>💰 ${s.coins}</span>
+          <span>🏆 ${s.bestScore}</span>
+          <span>❤️ ${s.lifeLevel}</span>
+          <span>✋ ${s.rangeLevel}</span>
+          <span>⚔️ ${s.bladeLevel}</span>
+          <span>💥 ${s.bombDefuseLevel}</span>
+          <span>🤖 ${s.autoSpeedLevel}</span>
+          <span>🪙 ${s.coinLevel}</span>
+        </div>
+        <div class="slot-time">${formatTime(s.ts)}</div>
+      `;
+    } else {
+      body = `<div class="slot-empty">空槽位</div>`;
+    }
+
+    card.innerHTML = `
+      <div class="slot-head">
+        <span class="slot-name">槽位 ${i + 1}</span>
+        ${i === currentSlot ? '<span class="slot-badge">当前</span>' : ''}
+      </div>
+      ${body}
+      <div class="slot-actions">
+        <button data-act="save"   data-slot="${i}">保存</button>
+        <button data-act="load"   data-slot="${i}" ${s ? '' : 'disabled'}>读取</button>
+        <button data-act="export" data-slot="${i}" ${s ? '' : 'disabled'} class="secondary">导出</button>
+        <button data-act="import" data-slot="${i}" class="secondary">导入</button>
+        <button data-act="reset"  data-slot="${i}" class="danger">重置</button>
+      </div>
+    `;
+    slotListEl.appendChild(card);
+  }
+}
+
+async function saveSlot(slot) {
+  await writeSlotToLocal(slot, { ...save });
+  currentSlot = slot;
+  try { localStorage.setItem(CURRENT_SLOT_KEY, String(slot)); } catch (e) { /* 忽略 */ }
+  renderSlots();
+  refreshAll();
+  toast('已保存到槽位 ' + (slot + 1));
+}
+
+async function loadSlot(slot) {
+  const obj = slotSummaries[slot];
+  if (!obj) return;
+  applySave(obj);
+  currentSlot = slot;
+  try { localStorage.setItem(CURRENT_SLOT_KEY, String(slot)); } catch (e) { /* 忽略 */ }
+  if (state === 'over') resetMenuOverlay();
+  refreshAll();
+  renderSlots();
+  toast('已读取槽位 ' + (slot + 1));
+}
+
+async function exportSlot(slot) {
+  let raw = null;
+  try { raw = localStorage.getItem(SAVE_KEY_PREFIX + slot); } catch (e) { /* 忽略 */ }
+  if (!raw) {
+    toast('该槽位没有存档');
+    return;
+  }
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+  downloadText(raw, `fruit_save_slot${slot + 1}_${stamp}.txt`);
+  toast('已导出槽位 ' + (slot + 1));
+}
+
+function importSlot(slot) {
+  pendingImportSlot = slot;
+  importFileInput.value = '';
+  importFileInput.click();
+}
+
+importFileInput.addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const slot = pendingImportSlot;
+  try {
+    const text = await file.text();
+    const obj = await decodeSavePayload(text);
+    if (!obj || typeof obj !== 'object') throw new Error('无效存档内容');
+    const data = normalizeSave(obj);
+    await writeSlotToLocal(slot, data);
+    applySave(data);
+    currentSlot = slot;
+    try { localStorage.setItem(CURRENT_SLOT_KEY, String(slot)); } catch (e2) { /* 忽略 */ }
+    if (state === 'over') resetMenuOverlay();
+    refreshAll();
+    renderSlots();
+    toast('已导入并读取槽位 ' + (slot + 1));
+  } catch (err) {
+    console.warn('[存档] 导入失败：', err);
+    toast('导入失败：文件格式不正确');
+  }
+  importFileInput.value = '';
+});
+
+/* ================= 重置逻辑 ================= */
+function forceBackToMenu() {
+  state = 'menu';
+  fruits = []; halves = []; particles = []; floaters = [];
+  trailPts = [];
+  pointerActive = false;
+  autoPointer.x = null;
+  autoPointer.y = null;
+  autoPointer.target = null;
+  score = 0;
+  lives = BASE_LIFE;
+  runCoins = 0;
+  combo = 0;
+  comboTimer = 0;
+  shake = 0;
+  flash = 0;
+  autoToggle.classList.remove('show');
+}
+
+async function resetSlot(slot) {
+  const fresh = normalizeSave({});
+  await writeSlotToLocal(slot, fresh);
+
+  const wasCurrent = (slot === currentSlot);
+  if (wasCurrent) {
+    applySave(fresh);
+    forceBackToMenu();
+  }
+
+  refreshAll();
+  renderSlots();
+  resetMenuOverlay();
+
+  toast('槽位 ' + (slot + 1) + ' 已重置，开始新局！');
+}
+
+async function requestResetSlot(slot) {
+  const isCurrent = (slot === currentSlot);
+  const note = isCurrent
+    ? '这是<b>当前使用</b>的槽位，重置后立即生效。'
+    : '该槽位<b>不是</b>当前使用槽位，重置只影响该槽位。';
+  const ok = await showConfirm(
+    '⚠️ 确认重置',
+    `将清空<b>槽位 ${slot + 1}</b> 的全部进度：<br>` +
+    `金币、生命/范围/剑气/免伤/自动速度/金币加成升级、最高分<br><br>` +
+    note + '<br><br>此操作<b>不可撤销</b>，确定吗？',
+    '确认重置'
+  );
+  if (!ok) return;
+  await resetSlot(slot);
+}
+
+async function requestResetCurrent() {
+  const ok = await showConfirm(
+    '🔄 重置当前存档',
+    `将把<b>当前槽位（槽位 ${currentSlot + 1}）</b>重置为初始状态：<br>` +
+    `金币归零、所有升级清空、最高分归零。<br><br>` +
+    '你会立即回到主菜单，开始全新的一局。<br><br>此操作<b>不可撤销</b>，确定吗？',
+    '开新局'
+  );
+  if (!ok) return;
+  await resetSlot(currentSlot);
+}
+
+slotListEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  const slot = parseInt(btn.dataset.slot, 10);
+  const act = btn.dataset.act;
+  if (isNaN(slot)) return;
+  if (act === 'save') saveSlot(slot);
+  else if (act === 'load') loadSlot(slot);
+  else if (act === 'export') exportSlot(slot);
+  else if (act === 'import') importSlot(slot);
+  else if (act === 'reset') requestResetSlot(slot);
+});
+
+function openSave() {
+  if (!saveReady) return;
+  overlay.classList.add('hide');
+  saveOverlay.classList.remove('hide');
+  renderSlots();
+}
+function closeSave() {
+  saveOverlay.classList.add('hide');
+  overlay.classList.remove('hide');
+  refreshMenuStats();
+}
+
+/* ================= 自动模式 ================= */
+function setAutoMode(v) {
+  save.autoMode = !!v;
+  autoPointer.x = null;
+  autoPointer.y = null;
+  autoPointer.target = null;
+  pointerActive = false;
+  trailPts = [];
+  refreshAutoUI();
+  persistCurrent();
+}
+
+/* ================= 生成 ================= */
+function scaleFactor() {
+  return Math.min(1.2, Math.max(0.62, Math.min(W, H) / 760));
+}
+
+function spawnOne(isBomb) {
+  const sf = scaleFactor();
+  const cfg = isBomb ? null : FRUIT_TYPES[(Math.random() * FRUIT_TYPES.length) | 0];
+  const r = (isBomb ? 30 : cfg.r) * sf;
+
+  const x = W * 0.12 + Math.random() * W * 0.76;
+  const y = H + r + 10;
+  const peakH = H * (0.55 + Math.random() * 0.28);
+  const vy = -Math.sqrt(2 * G * peakH);
+  const t = -2 * vy / G;
+  const targetX = W * 0.15 + Math.random() * W * 0.7;
+  const vx = (targetX - x) / t;
+
+  fruits.push({
+    x, y, vx, vy, r,
+    rot: Math.random() * Math.PI * 2,
+    vrot: (Math.random() - 0.5) * 3,
+    cfg, isBomb
+  });
+}
+
+function spawnWave() {
+  const diff = Math.min(elapsed / 50, 1);
+  let count = 1 + Math.floor(Math.random() * (1 + diff * 2.2));
+  if (count > 4) count = 4;
+
+  for (let i = 0; i < count; i++) {
+    setTimeout(() => { if (state === 'playing') spawnOne(false); }, i * 110);
+  }
+
+  const bombCount = fruits.filter(f => f.isBomb).length;
+  if (bombCount < 2 && Math.random() < 0.07 + diff * 0.24) {
+    setTimeout(() => { if (state === 'playing') spawnOne(true); }, 150 + Math.random() * 380);
+  }
+}
+
+/* ================= 切割判定 ================= */
+function processCutting() {
+  if (state !== 'playing') return;
+
+  const cr = cutRadius();
+  const segR = cr * 0.75;
+
+  const blades = [];
+  if (pointerActive) {
+    blades.push({ circle: true, x: pointerX, y: pointerY, r: cr });
+  }
+  for (let i = 1; i < trailPts.length; i++) {
+    const a = trailPts[i - 1];
+    const b = trailPts[i];
+    blades.push({ x1: a.x, y1: a.y, x2: b.x, y2: b.y, r: segR });
+  }
+  if (!blades.length) return;
+
+  for (let i = fruits.length - 1; i >= 0; i--) {
+    if (state !== 'playing') break;
+    const f = fruits[i];
+
+    let hitBlade = null;
+    for (let j = 0; j < blades.length; j++) {
+      const b = blades[j];
+      if (b.circle) {
+        if (Math.hypot(f.x - b.x, f.y - b.y) < f.r + b.r) { hitBlade = b; break; }
+      } else {
+        if (distToSegment(f.x, f.y, b.x1, b.y1, b.x2, b.y2) < f.r + b.r) { hitBlade = b; break; }
+      }
+    }
+    if (!hitBlade) continue;
+
+    let angle = Math.random() * Math.PI;
+    if (!hitBlade.circle) {
+      angle = Math.atan2(hitBlade.y2 - hitBlade.y1, hitBlade.x2 - hitBlade.x1);
+    }
+
+    fruits.splice(i, 1);
+    if (f.isBomb) hitBomb(f);
+    else sliceFruit(f, angle);
+  }
+}
+
+/* ================= 自动虚拟指针 ================= */
+function updateAutoPointer(dt) {
+  if (state !== 'playing' || !save.autoMode) return;
+
+  if (autoPointer.x === null || autoPointer.y === null) {
+    autoPointer.x = W * 0.5;
+    autoPointer.y = H * 0.8;
+  }
+
+  let target = autoPointer.target;
+  if (!target || !fruits.includes(target) || target.isBomb) {
+    let best = null;
+    let bestD = Infinity;
+    for (let i = 0; i < fruits.length; i++) {
+      const f = fruits[i];
+      if (f.isBomb) continue;
+      const d = Math.hypot(f.x - autoPointer.x, f.y - autoPointer.y);
+      if (d < bestD) { bestD = d; best = f; }
+    }
+    if (!best) {
+      for (let i = 0; i < fruits.length; i++) {
+        const f = fruits[i];
+        const d = Math.hypot(f.x - autoPointer.x, f.y - autoPointer.y);
+        if (d < bestD) { bestD = d; best = f; }
+      }
+    }
+    target = best;
+    autoPointer.target = target;
+  }
+
+  if (target && fruits.includes(target)) {
+    const dx = target.x - autoPointer.x;
+    const dy = target.y - autoPointer.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > 0.5) {
+      const speed = autoSpeed() * AUTO_SPEED_PX_FACTOR;
+      const step = speed * dt;
+      if (step >= dist) {
+        autoPointer.x = target.x;
+        autoPointer.y = target.y;
+      } else {
+        autoPointer.x += (dx / dist) * step;
+        autoPointer.y += (dy / dist) * step;
+      }
+    }
+  } else {
+    autoPointer.x += (Math.random() - 0.5) * 120 * dt;
+    autoPointer.y += (Math.random() - 0.5) * 120 * dt;
+  }
+
+  autoPointer.x = Math.max(0, Math.min(W, autoPointer.x));
+  autoPointer.y = Math.max(0, Math.min(H, autoPointer.y));
+
+  pointerActive = true;
+  pointerX = autoPointer.x;
+  pointerY = autoPointer.y;
+
+  trailPts.push({ x: pointerX, y: pointerY, t: performance.now() });
+  if (trailPts.length > 70) trailPts.shift();
+}
+
+/* ================= 切割 / 炸弹效果 ================= */
+function spawnBombBurst(f) {
+  for (let i = 0; i < 70; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = 100 + Math.random() * 520;
+    const life = 0.5 + Math.random() * 0.7;
+    const c = Math.random();
+    particles.push({
+      x: f.x, y: f.y,
+      vx: Math.cos(a) * sp,
+      vy: Math.sin(a) * sp,
+      r: 2 + Math.random() * 7,
+      color: c < 0.4 ? '#ff8a00' : c < 0.75 ? '#ffe066' : '#ff3b00',
+      life, maxLife: life
+    });
+  }
+}
+
+function hitBomb(f) {
+  if (Math.random() < bombDefuseChance()) {
+    spawnBombBurst(f);
+    floaters.push({ x: f.x, y: f.y - 30, text: '剑气砍爆! 💥', life: 1, maxLife: 1, color: '#8ef6ff' });
+    shake = 10;
+    return;
+  }
+
+  spawnBombBurst(f);
+  shake = 26;
+  flash = 1;
+  floaters.push({ x: f.x, y: f.y - 30, text: '-1 ❤️', life: 1, maxLife: 1, color: '#ff6b6b' });
+  loseLife();
+}
+
+function sliceFruit(f, angle) {
+  const nx = Math.cos(angle + Math.PI / 2);
+  const ny = Math.sin(angle + Math.PI / 2);
+
+  for (const side of [1, -1]) {
+    halves.push({
+      x: f.x + nx * side * f.r * 0.22,
+      y: f.y + ny * side * f.r * 0.22,
+      vx: f.vx * 0.55 + nx * side * 175,
+      vy: f.vy * 0.55 + ny * side * 175 - 40,
+      r: f.r,
+      rot: angle,
+      vrot: side * (1.0 + Math.random() * 1.3),
+      side,
+      cfg: f.cfg,
+      seed: Math.random() * 1000
+    });
+  }
+
+  for (let i = 0; i < 18; i++) {
+    const dir = Math.random() < 0.5 ? 1 : -1;
+    const sp = 80 + Math.random() * 260;
+    const ang = angle + (Math.PI / 2) * dir + (Math.random() - 0.5) * 1.2;
+    const life = 0.4 + Math.random() * 0.45;
+    particles.push({
+      x: f.x + (Math.random() - 0.5) * f.r * 0.6,
+      y: f.y + (Math.random() - 0.5) * f.r * 0.6,
+      vx: Math.cos(ang) * sp,
+      vy: Math.sin(ang) * sp,
+      r: 2 + Math.random() * 4.5,
+      color: Math.random() < 0.35 ? (f.cfg.inner2 || f.cfg.inner) : f.cfg.inner,
+      life, maxLife: life
+    });
+  }
+
+  combo++;
+  comboTimer = 0.9;
+  const gain = combo >= 5 ? 3 : combo >= 3 ? 2 : 1;
+  score += gain;
+
+  const gainedCoins = coinPerFruit();
+  runCoins += gainedCoins;
+
+  floaters.push({ x: f.x, y: f.y - f.r * 0.4, text: '+' + gain, life: 0.8, maxLife: 0.8, color: '#fff3c4' });
+  floaters.push({ x: f.x + f.r * 0.55, y: f.y - f.r * 0.9, text: '+' + gainedCoins + '💰', life: 0.9, maxLife: 0.9, color: '#ffd166' });
+  if (combo >= 3) {
+    floaters.push({ x: f.x, y: f.y - f.r * 1.15, text: combo + ' 连击!', life: 0.95, maxLife: 0.95, color: '#ffd166' });
+  }
+
+  refreshCoinHud();
+  updateHUD();
+}
+
+/* ================= 主循环 ================= */
+function update(dt) {
+  const now = performance.now();
+  const cutoff = now - bladeLife() * 1000;
+  while (trailPts.length && trailPts[0].t < cutoff) trailPts.shift();
+
+  if (comboTimer > 0) {
+    comboTimer -= dt;
+    if (comboTimer <= 0) combo = 0;
+  }
+
+  if (state === 'playing') {
+    elapsed += dt;
+    spawnTimer -= dt;
+    if (spawnTimer <= 0) {
+      spawnWave();
+      const diff = Math.min(elapsed / 50, 1);
+      spawnTimer = 1.15 - 0.6 * diff + Math.random() * 0.5;
+    }
+  }
+
+  updateAutoPointer(dt);
+  processCutting();
+
+  for (let i = fruits.length - 1; i >= 0; i--) {
+    const f = fruits[i];
+    f.vy += G * dt;
+    f.x += f.vx * dt;
+    f.y += f.vy * dt;
+    f.rot += f.vrot * dt;
+    if (f.y - f.r > H + 90 && f.vy > 0) {
+      fruits.splice(i, 1);
+      if (!f.isBomb) loseLife();
+    }
+  }
+
+  for (let i = halves.length - 1; i >= 0; i--) {
+    const h = halves[i];
+    h.vy += G * dt;
+    h.x += h.vx * dt;
+    h.y += h.vy * dt;
+    h.rot += h.vrot * dt;
+    if (h.y - h.r > H + 110) halves.splice(i, 1);
+  }
+
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.vy += G * 0.7 * dt;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.life -= dt;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+
+  for (let i = floaters.length - 1; i >= 0; i--) {
+    const t = floaters[i];
+    t.y -= 62 * dt;
+    t.life -= dt;
+    if (t.life <= 0) floaters.splice(i, 1);
+  }
+
+  if (shake > 0) shake = Math.max(0, shake - dt * 70);
+  if (flash > 0) flash = Math.max(0, flash - dt * 2.6);
+}
+
+/* ================= 绘制 ================= */
+function drawWholeFruit(x, y, r, rot, cfg) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+
+  const g = ctx.createRadialGradient(-r * 0.35, -r * 0.4, r * 0.05, 0, 0, r * 1.05);
+  g.addColorStop(0, cfg.light);
+  g.addColorStop(0.6, cfg.skin);
+  g.addColorStop(1, cfg.dark);
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fillStyle = g;
+  ctx.fill();
+
+  if (cfg.id === 'watermelon') {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.strokeStyle = 'rgba(16,60,26,0.5)';
+    ctx.lineWidth = r * 0.12;
+    for (let i = -2; i <= 2; i++) {
+      ctx.beginPath();
+      ctx.ellipse(i * r * 0.45, 0, r * 0.09, r * 1.15, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  ctx.beginPath();
+  ctx.ellipse(-r * 0.33, -r * 0.37, r * 0.23, r * 0.15, -0.7, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.38)';
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawHalf(h) {
+  const cfg = h.cfg, r = h.r;
+  ctx.save();
+  ctx.translate(h.x, h.y);
+  ctx.rotate(h.rot);
+
+  const a0 = h.side > 0 ? 0 : Math.PI;
+  const a1 = h.side > 0 ? Math.PI : Math.PI * 2;
+
+  ctx.beginPath();
+  ctx.arc(0, 0, r, a0, a1);
+  ctx.closePath();
+  const ig = ctx.createRadialGradient(0, h.side > 0 ? r * 0.35 : -r * 0.35, r * 0.05, 0, 0, r);
+  ig.addColorStop(0, cfg.inner2 || cfg.inner);
+  ig.addColorStop(1, cfg.inner);
+  ctx.fillStyle = ig;
+  ctx.fill();
+
+  if (cfg.seed) {
+    ctx.fillStyle = cfg.seed;
+    for (let i = 0; i < 7; i++) {
+      const rr = r * (0.22 + 0.5 * rnd(h.seed + i * 3.1));
+      const aa = rnd(h.seed + i * 7.7) * Math.PI;
+      const px = Math.cos(aa) * rr;
+      const py = Math.sin(aa) * rr * (h.side > 0 ? 1 : -1);
+      ctx.beginPath();
+      ctx.ellipse(px, py, r * 0.05, r * 0.085, aa, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  const lw = Math.max(3, r * 0.18);
+  ctx.beginPath();
+  ctx.arc(0, 0, r - lw / 2, a0, a1);
+  ctx.lineWidth = lw;
+  ctx.strokeStyle = cfg.skin;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(0, 0, r - lw - 1, a0, a1);
+  ctx.lineWidth = Math.max(1.2, r * 0.045);
+  ctx.strokeStyle = cfg.dark;
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawBomb(x, y, r, rot) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+
+  const g = ctx.createRadialGradient(-r * 0.3, -r * 0.35, r * 0.05, 0, 0, r * 1.05);
+  g.addColorStop(0, '#6b6b6b');
+  g.addColorStop(0.65, '#2b2b2b');
+  g.addColorStop(1, '#0a0a0a');
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fillStyle = g;
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(0, -r * 0.95);
+  ctx.quadraticCurveTo(r * 0.75, -r * 1.5, r * 0.25, -r * 1.95);
+  ctx.lineWidth = Math.max(2, r * 0.13);
+  ctx.strokeStyle = '#8b6b3d';
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  const t = performance.now() / 1000;
+  const fr = r * 0.24 + Math.sin(t * 32) * r * 0.07;
+  ctx.beginPath();
+  ctx.arc(r * 0.25, -r * 1.95, fr, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffcc00';
+  ctx.shadowColor = '#ff8800';
+  ctx.shadowBlur = 18;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ctx.beginPath();
+  ctx.ellipse(-r * 0.35, -r * 0.35, r * 0.2, r * 0.12, -0.7, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.32)';
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawParticle(p) {
+  const a = Math.max(0, p.life / p.maxLife);
+  ctx.globalAlpha = a;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, p.r * (0.35 + 0.65 * a), 0, Math.PI * 2);
+  ctx.fillStyle = p.color;
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+function drawFloater(t) {
+  const a = Math.min(1, t.life / t.maxLife * 1.6);
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.font = '900 22px -apple-system,"PingFang SC",sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = t.color;
+  ctx.shadowBlur = 14;
+  ctx.fillStyle = t.color;
+  ctx.fillText(t.text, t.x, t.y);
+  ctx.restore();
+}
+
+function drawTrail() {
+  if (trailPts.length < 2) return;
+  const cutoff = performance.now() - bladeLife() * 1000;
+  const pts = [];
+  for (let i = 0; i < trailPts.length; i++) {
+    if (trailPts[i].t >= cutoff) pts.push(trailPts[i]);
+  }
+  if (pts.length < 2) return;
+
+  const cr = cutRadius();
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.shadowColor = '#8ef6ff';
+  ctx.shadowBlur = 16;
+  for (let i = 1; i < pts.length; i++) {
+    const t = i / pts.length;
+    ctx.beginPath();
+    ctx.moveTo(pts[i - 1].x, pts[i - 1].y);
+    ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.lineWidth = 2 + (8 + cr * 0.25) * t;
+    ctx.strokeStyle = 'rgba(190,248,255,' + (0.08 + 0.72 * t) + ')';
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawPointerRange() {
+  if (state !== 'playing' || !pointerActive) return;
+  const cr = cutRadius();
+  ctx.save();
+  const rg = ctx.createRadialGradient(pointerX, pointerY, 0, pointerX, pointerY, cr);
+  rg.addColorStop(0, 'rgba(160,240,255,0.20)');
+  rg.addColorStop(1, 'rgba(160,240,255,0)');
+  ctx.beginPath();
+  ctx.arc(pointerX, pointerY, cr, 0, Math.PI * 2);
+  ctx.fillStyle = rg;
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(pointerX, pointerY, cr, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(160,240,255,0.55)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function render() {
+  ctx.save();
+  if (shake > 0) {
+    ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+  }
+
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(-60, -60, W + 120, H + 120);
+
+  for (const f of fruits) {
+    if (f.isBomb) drawBomb(f.x, f.y, f.r, f.rot);
+    else drawWholeFruit(f.x, f.y, f.r, f.rot, f.cfg);
+  }
+
+  for (const h of halves) drawHalf(h);
+  for (const p of particles) drawParticle(p);
+  for (const t of floaters) drawFloater(t);
+
+  ctx.restore();
+
+  drawTrail();
+  drawPointerRange();
+
+  if (flash > 0) {
+    ctx.fillStyle = 'rgba(255,225,160,' + (flash * 0.6) + ')';
+    ctx.fillRect(0, 0, W, H);
+  }
+}
+
+/* ================= 流程 ================= */
+function updateHUD() {
+  scoreEl.textContent = score;
+  const full = Math.max(0, Math.min(lives, maxLives()));
+  const total = maxLives();
+  if (total <= 5) {
+    livesEl.textContent = '❤️'.repeat(full) + '🖤'.repeat(Math.max(0, total - full));
+  } else {
+    livesEl.textContent = '❤️ ' + full + ' / ' + total;
+  }
+}
+
+function loseLife() {
+  if (state !== 'playing') return;
+  lives--;
+  updateHUD();
+  if (lives <= 0) gameOver();
+}
+
+function resetMenuOverlay() {
+  state = 'menu';
+  ovTitle.textContent = '切水果';
+  ovText.innerHTML = '滑动鼠标或手指，切开飞起的水果<br>每个水果 +' + coinPerFruit() + ' 💰 &nbsp;|&nbsp; 小心炸弹 💣';
+  startBtn.textContent = '开始游戏';
+  refreshMenuStats();
+  refreshAutoUI();
+}
+
+function startGame() {
+  if (!saveReady) return;
+  state = 'playing';
+  fruits = []; halves = []; particles = []; floaters = [];
+  trailPts = [];
+  pointerActive = false;
+  autoPointer.x = null;
+  autoPointer.y = null;
+  autoPointer.target = null;
+  score = 0;
+  lives = maxLives();
+  runCoins = 0;
+  combo = 0; comboTimer = 0;
+  elapsed = 0; spawnTimer = 0.6;
+  shake = 0; flash = 0;
+  updateHUD();
+  refreshCoinHud();
+  refreshAutoUI();
+  overlay.classList.add('hide');
+  autoToggle.classList.add('show');
+}
+
+function gameOver() {
+  if (state === 'over') return;
+  state = 'over';
+  autoToggle.classList.remove('show');
+
+  const earned = runCoins;
+  save.coins += earned;
+  if (score > save.bestScore) save.bestScore = score;
+  runCoins = 0;
+
+  refreshCoinHud();
+  refreshMenuStats();
+  persistCurrent();
+
+  ovTitle.textContent = '游戏结束';
+  ovText.innerHTML =
+    '本局得分 <b style="color:#ffd166">' + score + '</b><br>' +
+    '获得金币 <b style="color:#ffd166">+' + earned + '</b><br>' +
+    '金币总数 <b style="color:#ffd166">' + save.coins + '</b><br>' +
+    '最高分 <b style="color:#ffd166">' + save.bestScore + '</b>';
+  startBtn.textContent = '再来一局';
+
+  overlay.classList.remove('hide');
+}
+
+/* ================= 事件绑定 ================= */
+startBtn.addEventListener('click', startGame);
+shopBtn.addEventListener('click', openShop);
+closeShopBtn.addEventListener('click', closeShop);
+saveBtn.addEventListener('click', openSave);
+closeSaveBtn.addEventListener('click', closeSave);
+resetBtn.addEventListener('click', requestResetCurrent);
+buyLifeBtn.addEventListener('click', () => buyUpgrade('life'));
+buyRangeBtn.addEventListener('click', () => buyUpgrade('range'));
+buyBladeBtn.addEventListener('click', () => buyUpgrade('blade'));
+buyDefuseBtn.addEventListener('click', () => buyUpgrade('defuse'));
+buyAutoSpeedBtn.addEventListener('click', () => buyUpgrade('autospeed'));
+buyCoinBtn.addEventListener('click', () => buyUpgrade('coin'));
+autoBtn.addEventListener('click', () => setAutoMode(!save.autoMode));
+autoToggle.addEventListener('click', () => setAutoMode(!save.autoMode));
+
+/* ================= 输入 ================= */
+function getPos(e) {
+  const r = canvas.getBoundingClientRect();
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+  if (save.autoMode && state === 'playing') return;
+  const p = getPos(e);
+  pointerActive = true;
+  pointerX = p.x; pointerY = p.y;
+  trailPts.push({ x: p.x, y: p.y, t: performance.now() });
+  if (trailPts.length > 70) trailPts.shift();
+});
+
+canvas.addEventListener('pointermove', (e) => {
+  if (save.autoMode && state === 'playing') return;
+  const p = getPos(e);
+  pointerActive = true;
+  pointerX = p.x; pointerY = p.y;
+  trailPts.push({ x: p.x, y: p.y, t: performance.now() });
+  if (trailPts.length > 70) trailPts.shift();
+});
+
+canvas.addEventListener('pointerup', () => {
+  if (save.autoMode && state === 'playing') return;
+  pointerActive = false;
+});
+canvas.addEventListener('pointercancel', () => {
+  if (save.autoMode && state === 'playing') return;
+  pointerActive = false;
+});
+canvas.addEventListener('pointerleave', () => {
+  if (save.autoMode && state === 'playing') return;
+  pointerActive = false;
+});
+
+/* ================= 启动 ================= */
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min((now - last) / 1000, 0.05);
+  last = now;
+  update(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+
+resize();
+updateHUD();
+refreshCoinHud();
+refreshAutoUI();
+requestAnimationFrame(loop);
+
+initSave().then(() => {
+  startBtn.disabled = false;
+  startBtn.textContent = '开始游戏';
+  refreshAll();
+  resetMenuOverlay();
+  renderSlots();
+});
+
+})();
+</script>
+</body>
+</html>
