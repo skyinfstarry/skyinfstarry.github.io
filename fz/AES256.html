@@ -253,6 +253,13 @@
         .modal-actions .btn-danger:hover { background: #d9363e; }
         .modal-actions .btn-success { background: #52c41a; color: white; }
         .modal-actions .btn-success:hover { background: #389e0d; }
+        .modal-input {
+            width: 100%; padding: 12px 14px; font-family: monospace;
+            font-size: 16px; border: 2px solid #ccc; border-radius: 12px;
+            outline: none; margin-bottom: 20px; transition: border-color 0.2s;
+            background: white;
+        }
+        .modal-input:focus { border-color: #1890ff; }
         @media (max-width: 600px) {
             .container { padding: 16px; }
             h1 { font-size: 1.3rem; }
@@ -291,7 +298,7 @@
     </div>
 
     <div class="password-wrapper">
-        <input type="password" id="password" placeholder="加密/解密口令" autocomplete="off">
+        <input type="password" id="password" placeholder="文本加密/解密口令（文件加解密使用独立弹窗）" autocomplete="off">
         <button id="togglePasswordBtn" class="secondary" style="width:70px; min-width:60px;">👁️ 显示</button>
         <button class="copy-btn" id="copyPwdBtn">📋 复制密码</button>
     </div>
@@ -344,7 +351,7 @@
         </div>
         <div class="checkbox-group">
             <input type="checkbox" id="clearPasswordCheck">
-            <label for="clearPasswordCheck">加密后清空密码</label>
+            <label for="clearPasswordCheck">加密后清空文本密码框</label>
         </div>
         <div class="checkbox-group">
             <input type="checkbox" id="autoDownloadKey">
@@ -357,8 +364,8 @@
     </div>
 
     <div class="buttons">
-        <button id="encryptBtn">🔒 加密 → 生成密文</button>
-        <button id="decryptBtn">🔓 解密 → 恢复明文</button>
+        <button id="encryptBtn">🔒 加密文本 → 生成密文</button>
+        <button id="decryptBtn">🔓 解密文本 → 恢复明文</button>
     </div>
     <div class="cancel-wrapper" id="cancelWrapper" style="display: none; text-align:center; margin:10px 0;">
         <button id="cancelOpBtn" class="cancel-btn">❌ 取消当前操作</button>
@@ -398,10 +405,10 @@
         ⚠️ 安全提示：<br>
         • 本工具使用 AES-256-GCM 认证加密。<br>
         • 单文件加密后为 .aes；文件夹加密后为 .aes，解密后还原为 .zip。<br>
-        • 密码强度建议达到“中等”以上。<br>
+        • 文本加密/解密使用上方“文本密码框”。<br>
+        • 文件/文件夹的加密与解密均使用**独立密码弹窗**，与文本密码框互不影响。<br>
         • 超大文件（>50MB）可能导致浏览器卡顿或崩溃，请谨慎操作。<br>
         • 点击“⚡ 校准”可基于您的设备精确估算耗时。<br>
-        • 自定义迭代次数过高可能导致严重卡顿，请合理设置。<br>
         • 📁 支持拖拽文本文件到明文/密文框自动填充。
     </div>
 </div>
@@ -414,6 +421,19 @@
         <div class="modal-actions" id="modalActions">
             <button class="btn-primary" id="modalConfirmBtn">确定</button>
             <button class="btn-secondary" id="modalCancelBtn" style="display:none;">取消</button>
+        </div>
+    </div>
+</div>
+
+<div id="pwdPromptOverlay" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-icon" id="pwdPromptIcon">🔐</div>
+        <div class="modal-title" id="pwdPromptTitle">输入文件解密密码</div>
+        <div class="modal-message"><span id="pwdPromptPrefix">文件：</span><strong id="pwdPromptFileName"></strong><br><span id="pwdPromptHint">请输入该文件的解密密码：</span></div>
+        <input type="password" id="pwdPromptInput" class="modal-input" placeholder="密码" autocomplete="off">
+        <div class="modal-actions">
+            <button class="btn-primary" id="pwdPromptConfirm">解密</button>
+            <button class="btn-secondary" id="pwdPromptCancel">取消</button>
         </div>
     </div>
 </div>
@@ -526,6 +546,69 @@
 
         function alertDialog(message, title = '提示', icon = 'ℹ️', type = 'info') {
             return showModal({ icon, title, message, confirmText: '确定', showCancel: false, type });
+        }
+
+        // ----- 文件加解密专用密码输入弹窗（与主密码框完全独立） -----
+        // mode: 'encrypt' 或 'decrypt'
+        function promptPassword(fileName, mode = 'decrypt') {
+            return new Promise((resolve) => {
+                const overlay = document.getElementById('pwdPromptOverlay');
+                const fileNameEl = document.getElementById('pwdPromptFileName');
+                const input = document.getElementById('pwdPromptInput');
+                const confirmBtn = document.getElementById('pwdPromptConfirm');
+                const cancelBtn = document.getElementById('pwdPromptCancel');
+                const titleEl = document.getElementById('pwdPromptTitle');
+                const iconEl = document.getElementById('pwdPromptIcon');
+                const hintEl = document.getElementById('pwdPromptHint');
+
+                const isEncrypt = mode === 'encrypt';
+                titleEl.textContent = isEncrypt ? '设置文件加密密码' : '输入文件解密密码';
+                iconEl.textContent = isEncrypt ? '🔒' : '🔐';
+                hintEl.textContent = isEncrypt ? '请为该文件设置加密密码：' : '请输入该文件的解密密码：';
+                confirmBtn.textContent = isEncrypt ? '加密' : '解密';
+                confirmBtn.className = isEncrypt ? 'btn-primary' : 'btn-primary';
+
+                fileNameEl.textContent = fileName || '';
+                input.value = '';
+                input.type = 'password';
+                input.placeholder = isEncrypt ? '加密密码' : '解密密码';
+                overlay.classList.add('active');
+
+                const cleanup = () => {
+                    overlay.classList.remove('active');
+                    confirmBtn.removeEventListener('click', onConfirm);
+                    cancelBtn.removeEventListener('click', onCancel);
+                    input.removeEventListener('keydown', onKeydown);
+                    overlay.removeEventListener('click', onOverlayClick);
+                    document.removeEventListener('keydown', onEsc);
+                };
+                const onConfirm = () => {
+                    const value = input.value;
+                    cleanup();
+                    resolve(value);
+                };
+                const onCancel = () => {
+                    cleanup();
+                    resolve(null);
+                };
+                const onKeydown = (e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); onConfirm(); }
+                };
+                const onOverlayClick = (e) => {
+                    if (e.target === overlay) onCancel();
+                };
+                const onEsc = (e) => {
+                    if (e.key === 'Escape') onCancel();
+                };
+
+                confirmBtn.addEventListener('click', onConfirm);
+                cancelBtn.addEventListener('click', onCancel);
+                input.addEventListener('keydown', onKeydown);
+                overlay.addEventListener('click', onOverlayClick);
+                document.addEventListener('keydown', onEsc);
+
+                setTimeout(() => input.focus(), 60);
+            });
         }
 
         const plaintextEl = document.getElementById('plaintext');
@@ -714,7 +797,6 @@
                     return;
                 }
                 const file = files[0];
-                // 检查文件大小，若太大则警告
                 if (file.size > 10 * 1024 * 1024) {
                     confirmDialog(
                         `文件大小为 ${(file.size / (1024 * 1024)).toFixed(1)} MB，读取大文件可能影响性能。\n确定继续吗？`,
@@ -737,7 +819,6 @@
                 try {
                     const content = e.target.result;
                     textarea.value = content;
-                    // 触发 input 事件以更新估算
                     textarea.dispatchEvent(new Event('input'));
                     showTopStatus(`已从 ${file.name} 导入${targetName}`, 'success');
                     addLog('info', `拖拽导入 ${targetName}：${file.name}（${(file.size / 1024).toFixed(1)} KB）`);
@@ -753,7 +834,6 @@
             reader.readAsText(file);
         }
 
-        // 初始化拖拽目标
         setupDropTarget(plainWrapper, plaintextEl, '明文');
         setupDropTarget(cipherWrapper, ciphertextEl, '密文');
 
@@ -1180,8 +1260,9 @@
             addLog('info', `下载文件：${filename}`);
         }
 
-        function handleAutoDownloads(operationType, cipherText) {
-            const pwd = passwordEl.value;
+        // pwdOverride: 若不传则使用文本密码框的值；传入则使用传入的值（用于文件/文件夹加密）
+        function handleAutoDownloads(operationType, cipherText, pwdOverride) {
+            const pwd = pwdOverride !== undefined ? pwdOverride : passwordEl.value;
             if (autoDownloadKey.checked && pwd) {
                 const ts = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
                 downloadFile(pwd, `aes_key_${ts}.txt`, true, true);
@@ -1537,7 +1618,7 @@
                     }
                     handleAutoDownloads('text', cipher);
                     return cipher;
-                }, '加密');
+                }, '加密文本');
             } finally {
                 pwd = null;
             }
@@ -1553,15 +1634,16 @@
                     const plain = await decryptText(cipher, pwd);
                     plaintextEl.value = plain;
                     return plain;
-                }, '解密');
+                }, '解密文本');
             } finally {
                 pwd = null;
             }
         });
 
+        // ===== 文件加密：独立密码弹窗 =====
         fileEncryptBtn.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', async (e) => {
-            let pwd = passwordEl.value;
+            let pwd = null;
             try {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -1572,7 +1654,19 @@
                     return;
                 }
 
-                if (!pwd) { showTopStatus('请先输入密码', 'error'); fileInput.value = ''; return; }
+                // 独立密码弹窗
+                pwd = await promptPassword(file.name, 'encrypt');
+                if (pwd === null) {
+                    showTopStatus('已取消加密', 'info', true, 2000);
+                    fileInput.value = '';
+                    return;
+                }
+                if (!pwd) {
+                    showTopStatus('密码不能为空', 'error');
+                    fileInput.value = '';
+                    return;
+                }
+
                 let iter;
                 try { iter = getIterations(); } catch (e) { showTopStatus(e.message, 'error'); fileInput.value = ''; return; }
                 const strength = evaluateStrength(pwd);
@@ -1592,18 +1686,17 @@
                     const ext = file.name.includes('.') ? file.name.substring(file.name.lastIndexOf('.')) : '';
                     const baseName = file.name.replace(/\.[^.]+$/, '');
                     downloadBlob(new Blob([combined], { type: 'application/octet-stream' }), `${baseName}${ext}.aes`);
-                    handleAutoDownloads('file', null);
-                    if (clearPasswordCheck.checked) {
-                        passwordEl.value = '';
-                        updateStrength();
-                    }
+                    handleAutoDownloads('file', null, pwd);
                     return combined;
                 }, `加密文件 ${file.name}`, true);
-            } catch (err) { showTopStatus(`文件加密失败: ${err.message}`, 'error'); }
+            } catch (err) {
+                showTopStatus(`文件加密失败: ${err.message}`, 'error');
+            }
             fileInput.value = '';
             pwd = null;
         });
 
+        // ===== 文件夹加密：独立密码弹窗 =====
         folderEncryptBtn.addEventListener('click', () => {
             if (typeof JSZip === 'undefined') {
                 showTopStatus('❌ JSZip 库加载失败，请检查网络连接后刷新页面重试。', 'error');
@@ -1614,7 +1707,7 @@
         });
 
         folderInput.addEventListener('change', async (e) => {
-            let pwd = passwordEl.value;
+            let pwd = null;
             try {
                 const files = e.target.files;
                 if (!files || files.length === 0) { showTopStatus('未选择文件夹', 'error'); folderInput.value = ''; return; }
@@ -1624,35 +1717,36 @@
                     folderInput.value = '';
                     return;
                 }
-                processing = true;
-                currentOperationAborted = false;
-                setButtonsDisabled(true);
-                cancelWrapper.style.display = 'block';
-                showTopStatus('📦 正在压缩文件夹（请耐心等待）...', 'processing', false);
 
-                if (currentOperationAborted) {
-                    folderInput.value = '';
-                    showTopStatus('操作已取消', 'error', true, 2000);
-                    processing = false;
-                    setButtonsDisabled(false);
-                    cancelWrapper.style.display = 'none';
-                    return;
-                }
+                // 先确定文件夹名与总大小
+                let folderName = '';
+                const pathParts = files[0].webkitRelativePath.split('/');
+                if (pathParts.length > 0) folderName = pathParts[0];
+                if (!folderName) folderName = '文件夹';
 
                 let totalSize = 0;
                 for (let f of files) totalSize += f.size;
-                const sizeOk = await checkSizeWarning(totalSize, '文件夹');
+                const sizeOk = await checkSizeWarning(totalSize, `文件夹 "${folderName}"`);
                 if (!sizeOk) {
                     folderInput.value = '';
-                    processing = false;
-                    setButtonsDisabled(false);
-                    cancelWrapper.style.display = 'none';
                     return;
                 }
 
-                if (!pwd) { showTopStatus('请先输入密码', 'error'); folderInput.value = ''; processing = false; setButtonsDisabled(false); cancelWrapper.style.display = 'none'; return; }
+                // 独立密码弹窗
+                pwd = await promptPassword(folderName, 'encrypt');
+                if (pwd === null) {
+                    showTopStatus('已取消加密', 'info', true, 2000);
+                    folderInput.value = '';
+                    return;
+                }
+                if (!pwd) {
+                    showTopStatus('密码不能为空', 'error');
+                    folderInput.value = '';
+                    return;
+                }
+
                 let iter;
-                try { iter = getIterations(); } catch (e) { showTopStatus(e.message, 'error'); folderInput.value = ''; processing = false; setButtonsDisabled(false); cancelWrapper.style.display = 'none'; return; }
+                try { iter = getIterations(); } catch (e) { showTopStatus(e.message, 'error'); folderInput.value = ''; return; }
                 const strength = evaluateStrength(pwd);
                 if (strength.score <= 3) {
                     const go = await confirmDialog(
@@ -1660,13 +1754,15 @@
                         '密码强度不足',
                         '⚠️'
                     );
-                    if (!go) { folderInput.value = ''; processing = false; setButtonsDisabled(false); cancelWrapper.style.display = 'none'; return; }
+                    if (!go) { folderInput.value = ''; return; }
                 }
 
-                let folderName = '';
-                const pathParts = files[0].webkitRelativePath.split('/');
-                if (pathParts.length > 0) folderName = pathParts[0];
-                if (!folderName) folderName = '文件夹';
+                // 开始压缩
+                processing = true;
+                currentOperationAborted = false;
+                setButtonsDisabled(true);
+                cancelWrapper.style.display = 'block';
+                showTopStatus('📦 正在压缩文件夹（请耐心等待）...', 'processing', false);
 
                 isCompressing = true;
                 addLog('info', `开始压缩文件夹 "${folderName}"，包含 ${files.length} 个文件。`);
@@ -1706,11 +1802,7 @@
                 try {
                     const combined = await encryptFileData(packageData, pwd, iter);
                     downloadBlob(new Blob([combined], { type: 'application/octet-stream' }), `${folderName}.aes`);
-                    handleAutoDownloads('folder', null);
-                    if (clearPasswordCheck.checked) {
-                        passwordEl.value = '';
-                        updateStrength();
-                    }
+                    handleAutoDownloads('folder', null, pwd);
                     showTopStatus(`加密文件夹 ${folderName} 成功`, 'success');
                     addLog('success', `加密文件夹 ${folderName} 成功。`);
                 } catch (err) {
@@ -1747,9 +1839,10 @@
             pwd = null;
         });
 
+        // ===== 文件解密：独立密码弹窗 =====
         fileDecryptBtn.addEventListener('click', () => aesFileInput.click());
         aesFileInput.addEventListener('change', async (e) => {
-            let pwd = passwordEl.value;
+            let pwd = null;
             try {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -1760,7 +1853,18 @@
                     return;
                 }
 
-                if (!pwd) { showTopStatus('请先输入密码', 'error'); aesFileInput.value = ''; return; }
+                pwd = await promptPassword(file.name, 'decrypt');
+                if (pwd === null) {
+                    showTopStatus('已取消解密', 'info', true, 2000);
+                    aesFileInput.value = '';
+                    return;
+                }
+                if (!pwd) {
+                    showTopStatus('密码不能为空', 'error');
+                    aesFileInput.value = '';
+                    return;
+                }
+
                 const arrayBuffer = await file.arrayBuffer();
                 const data = new Uint8Array(arrayBuffer);
                 await runOperation(async () => {
