@@ -362,7 +362,7 @@
     <div class="save-footer">
       <button id="closeSaveBtn" class="secondary">返回</button>
     </div>
-    <div class="secure-note">🔒 AES-256-GCM 加密 · 支持导出 / 导入 · 重置会清空该槽位</div>
+    <div class="secure-note">🔒 AES-256-GCM · 导出 .aes 文件 · 密码 123456 · 可用加密工具解密</div>
   </div>
 </div>
 
@@ -379,7 +379,7 @@
 
 <button id="autoToggle">🤖 自动: 关</button>
 
-<input type="file" id="importFileInput" accept=".txt,.json" style="display:none">
+<input type="file" id="importFileInput" accept=".aes,.txt,.json" style="display:none">
 
 <script>
 (function () {
@@ -501,7 +501,17 @@ let pointerX = 0, pointerY = 0;
 
 const autoPointer = { x: null, y: null, target: null };
 
-/* ================= 存档系统 ================= */
+/* ================= 存档系统 =================
+ * 内置存档：AES-256-GCM + PBKDF2(100000) → Base64 → localStorage
+ * 导出存档：与 AES256.html 工具完全一致的二进制 .aes 格式
+ *   [0]       version = 0x01
+ *   [1..4]    iterations (uint32 big-endian)
+ *   [5..20]   salt (16 bytes)
+ *   [21..32]  iv   (12 bytes)
+ *   [33..]    ciphertext + 16-byte GCM tag
+ *   AAD = 前 33 字节
+ * 口令固定为 123456，用 AES256 工具在“解密文件”里输入 123456 即可读取。
+ * ============================================ */
 const SLOT_COUNT = 3;
 const SAVE_KEY_PREFIX = 'fruit_slice_save_slot_';
 const CURRENT_SLOT_KEY = 'fruit_slice_current_slot';
@@ -548,7 +558,8 @@ function b64ToBuf(b64) {
   return out;
 }
 
-async function deriveSaveKey(salt) {
+async function deriveSaveKey(salt, iterations) {
+  if (iterations === undefined) iterations = SAVE_ITER;
   const km = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(SAVE_PASSWORD),
@@ -557,7 +568,7 @@ async function deriveSaveKey(salt) {
     ['deriveKey']
   );
   return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: SAVE_ITER, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
     km,
     { name: 'AES-GCM', length: 256 },
     false,
@@ -607,6 +618,60 @@ async function encodeSavePayload(obj) {
     return await encryptSave(obj);
   }
   return 'PLAIN:' + bufToB64(new TextEncoder().encode(JSON.stringify(obj)));
+}
+
+/* ----- 与 AES256.html 工具一致的二进制 .aes 格式 ----- */
+async function encryptToAesBytes(plainBuffer, iterations) {
+  if (iterations === undefined) iterations = SAVE_ITER;
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv   = crypto.getRandomValues(new Uint8Array(12));
+  const version = new Uint8Array([0x01]);
+  const iterBytes = new Uint8Array(4);
+  new DataView(iterBytes.buffer).setUint32(0, iterations, false);
+
+  const aadBuffer = new Uint8Array(1 + 4 + 16 + 12);
+  let off = 0;
+  aadBuffer.set(version, off); off += 1;
+  aadBuffer.set(iterBytes, off); off += 4;
+  aadBuffer.set(salt, off); off += 16;
+  aadBuffer.set(iv, off);
+
+  const key = await deriveSaveKey(salt, iterations);
+  const enc = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv, tagLength: 128, additionalData: aadBuffer },
+    key, plainBuffer
+  );
+  const encArr = new Uint8Array(enc);
+  const combined = new Uint8Array(33 + encArr.length);
+  combined.set(aadBuffer, 0);
+  combined.set(encArr, 33);
+  return combined;
+}
+
+async function decryptAesBytes(bytes) {
+  if (bytes.length < 49) throw new Error('数据长度不足，可能已损坏');
+  if (bytes[0] !== 0x01) throw new Error('不支持的密文格式');
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const iterations = view.getUint32(1, false);
+  const salt = bytes.slice(5, 21);
+  const iv   = bytes.slice(21, 33);
+  const aad  = bytes.slice(0, 33);
+  const ct   = bytes.slice(33);
+  const key  = await deriveSaveKey(salt, iterations);
+  try {
+    const dec = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv, tagLength: 128, additionalData: aad },
+      key, ct
+    );
+    return new Uint8Array(dec);
+  } catch (e) {
+    throw new Error('解密失败：密码错误或文件已被篡改');
+  }
+}
+
+async function decryptAesToJson(bytes) {
+  const plain = await decryptAesBytes(bytes);
+  return JSON.parse(new TextDecoder().decode(plain));
 }
 
 function normalizeSave(obj) {
@@ -736,6 +801,10 @@ function toast(msg) {
 
 function downloadText(text, filename) {
   const blob = new Blob([text], { type: 'text/plain' });
+  downloadBlob(blob, filename);
+}
+
+function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -982,18 +1051,45 @@ async function loadSlot(slot) {
   toast('已读取槽位 ' + (slot + 1));
 }
 
+/* 导出为 .aes 二进制文件（与 AES256.html 工具完全兼容） */
 async function exportSlot(slot) {
-  let raw = null;
-  try { raw = localStorage.getItem(SAVE_KEY_PREFIX + slot); } catch (e) { /* 忽略 */ }
-  if (!raw) {
+  const s = (slot === currentSlot) ? { ...save, ts: Date.now() } : slotSummaries[slot];
+  if (!s) {
     toast('该槽位没有存档');
     return;
   }
-  const d = new Date();
-  const pad = n => String(n).padStart(2, '0');
-  const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
-  downloadText(raw, `fruit_save_slot${slot + 1}_${stamp}.txt`);
-  toast('已导出槽位 ' + (slot + 1));
+  if (!subtleAvailable()) {
+    toast('当前环境不支持加密导出');
+    return;
+  }
+  try {
+    const payload = {
+      __game: 'fruit_slice',
+      __version: 1,
+      coins:          s.coins || 0,
+      lifeLevel:      s.lifeLevel || 0,
+      rangeLevel:     s.rangeLevel || 0,
+      bladeLevel:     s.bladeLevel || 0,
+      bombDefuseLevel:s.bombDefuseLevel || 0,
+      autoSpeedLevel: s.autoSpeedLevel || 0,
+      coinLevel:      s.coinLevel || 0,
+      bestScore:      s.bestScore || 0,
+      autoMode:       !!s.autoMode,
+      ts:             s.ts || Date.now()
+    };
+    const plain = new TextEncoder().encode(JSON.stringify(payload));
+    const enc = await encryptToAesBytes(plain, SAVE_ITER);
+
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+    const blob = new Blob([enc], { type: 'application/octet-stream' });
+    downloadBlob(blob, `fruit_save_slot${slot + 1}_${stamp}.aes`);
+    toast('已导出槽位 ' + (slot + 1) + ' → .aes');
+  } catch (e) {
+    console.warn('[存档] 导出失败：', e);
+    toast('导出失败：' + (e.message || '未知错误'));
+  }
 }
 
 function importSlot(slot) {
@@ -1007,8 +1103,19 @@ importFileInput.addEventListener('change', async (e) => {
   if (!file) return;
   const slot = pendingImportSlot;
   try {
-    const text = await file.text();
-    const obj = await decodeSavePayload(text);
+    const buffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+
+    let obj;
+    if (bytes.length >= 49 && bytes[0] === 0x01) {
+      // 标准 .aes 二进制（与 AES256.html 工具互通）
+      obj = await decryptAesToJson(bytes);
+    } else {
+      // 兼容旧版：Base64 / 明文 / PLAIN:
+      const text = new TextDecoder().decode(bytes);
+      obj = await decodeSavePayload(text);
+    }
+
     if (!obj || typeof obj !== 'object') throw new Error('无效存档内容');
     const data = normalizeSave(obj);
     await writeSlotToLocal(slot, data);
@@ -1021,7 +1128,7 @@ importFileInput.addEventListener('change', async (e) => {
     toast('已导入并读取槽位 ' + (slot + 1));
   } catch (err) {
     console.warn('[存档] 导入失败：', err);
-    toast('导入失败：文件格式不正确');
+    toast('导入失败：' + (err.message || '文件格式不正确'));
   }
   importFileInput.value = '';
 });
@@ -1790,8 +1897,10 @@ function loop(now) {
 resize();
 updateHUD();
 refreshCoinHud();
-refreshAutoUI();
+refreshAutoUiSafe();
 requestAnimationFrame(loop);
+
+function refreshAutoUiSafe() { refreshAutoUI(); }
 
 initSave().then(() => {
   startBtn.disabled = false;

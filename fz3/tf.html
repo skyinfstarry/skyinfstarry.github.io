@@ -2,3831 +2,1913 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🏰 塔防 - 指挥塔保卫战</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>切水果 · 商城存档版</title>
 <style>
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  body {
-    margin: 0; min-height: 100vh;
-    background: radial-gradient(circle at 50% -10%, #1e3348, #0a0e14 65%);
-    color: #e6edf5;
-    font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-    display: flex; align-items: center; justify-content: center;
-    padding: 16px;
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;overflow:hidden;background:#0d0a06;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;
+  }
+  #game{
+    position:fixed;inset:0;width:100%;height:100%;display:block;
+    touch-action:none;cursor:crosshair;
+  }
+  #hud{
+    position:fixed;top:0;left:0;right:0;
+    padding:14px 18px;
+    display:flex;justify-content:space-between;align-items:center;
+    pointer-events:none;gap:8px;
+  }
+  #score{
+    font-size:30px;font-weight:900;color:#fff;letter-spacing:1px;
+    text-shadow:0 0 18px rgba(255,190,80,.9),0 2px 6px rgba(0,0,0,.8);
+    font-variant-numeric:tabular-nums;flex-shrink:0;
+  }
+  #coinHud{
+    font-size:20px;font-weight:900;color:#ffd166;
+    text-shadow:0 0 16px rgba(255,200,80,.85),0 2px 6px rgba(0,0,0,.8);
+    font-variant-numeric:tabular-nums;flex-shrink:0;
+  }
+  #lives{
+    font-size:18px;letter-spacing:2px;white-space:nowrap;
+    filter:drop-shadow(0 2px 8px rgba(255,80,80,.6));
+    text-align:right;flex-shrink:1;min-width:0;overflow:hidden;
   }
 
-  #game {
-    display: flex; gap: 12px; align-items: stretch;
-    width: 100%; max-width: 1440px; height: calc(100vh - 32px); min-height: 720px;
-    margin: 0 auto;
+  .overlay{
+    position:fixed;inset:0;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 45%,rgba(60,30,10,.82),rgba(6,4,2,.94));
+    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    transition:opacity .3s ease;
+    z-index:10;padding:20px;
+  }
+  .overlay.hide{
+    opacity:0;pointer-events:none;visibility:hidden;
+    transition:opacity .3s ease, visibility 0s .3s;
+  }
+  #ovTitle{
+    font-size:clamp(34px,9vw,70px);
+    font-weight:900;letter-spacing:8px;color:#ffd166;
+    text-shadow:0 0 30px rgba(255,140,0,.7),0 6px 0 #8a4b00;
+    animation:float 3s ease-in-out infinite;
+  }
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+  #ovText{
+    margin:18px 0 26px;text-align:center;line-height:2;
+    color:#c9b8a0;font-size:15px;letter-spacing:1px;
+  }
+  #ovText b{font-size:26px;font-weight:900;}
+  .menu-stats{
+    display:flex;gap:22px;margin:6px 0 4px;
+    font-size:18px;font-weight:800;color:#ffd166;
+    text-shadow:0 0 12px rgba(255,200,80,.6);
+  }
+  .menu-btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+  button{
+    padding:15px 34px;font-size:16px;font-weight:800;letter-spacing:2px;
+    color:#2a1600;
+    background:linear-gradient(180deg,#ffe08a,#ff9f1c);
+    border:none;border-radius:999px;cursor:pointer;
+    box-shadow:0 6px 0 #b96b00,0 12px 34px rgba(255,150,0,.45);
+    transition:transform .08s,box-shadow .08s,filter .15s;
+  }
+  button:hover{filter:brightness(1.06);}
+  button:active{transform:translateY(4px);box-shadow:0 2px 0 #b96b00,0 6px 18px rgba(255,150,0,.35);}
+  button.secondary{
+    background:linear-gradient(180deg,#4a5670,#2a3348);
+    color:#ffe08a;box-shadow:0 6px 0 #151c2b,0 12px 30px rgba(0,0,0,.5);
+  }
+  button.secondary:active{box-shadow:0 2px 0 #151c2b;}
+  button.danger{
+    background:linear-gradient(180deg,#ff8a8a,#e53935);
+    color:#fff;box-shadow:0 6px 0 #8e1616,0 12px 30px rgba(229,57,53,.4);
+  }
+  button.danger:active{box-shadow:0 2px 0 #8e1616;}
+  button:disabled{opacity:.5;cursor:not-allowed;filter:grayscale(.5);}
+
+  #shopOverlay{
+    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 40%,rgba(20,35,60,.9),rgba(4,6,12,.97));
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    z-index:20;padding:20px;transition:opacity .3s ease;
+  }
+  #shopOverlay.hide{
+    opacity:0;pointer-events:none;visibility:hidden;
+    transition:opacity .3s ease, visibility 0s .3s;
+  }
+  .shop-card{
+    width:100%;max-width:420px;max-height:92vh;overflow-y:auto;
+    background:linear-gradient(180deg,#1b2942,#0b1220);
+    border:1px solid rgba(255,200,100,.28);
+    border-radius:26px;padding:24px 22px;
+    box-shadow:0 24px 70px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.08);
+    display:flex;flex-direction:column;gap:14px;
+  }
+  .shop-title{
+    font-size:26px;font-weight:900;letter-spacing:4px;color:#ffd166;text-align:center;
+    text-shadow:0 0 20px rgba(255,160,0,.6);
+  }
+  .shop-balance{
+    text-align:center;font-size:20px;font-weight:800;color:#ffd166;
+    background:rgba(255,209,102,.08);border:1px solid rgba(255,209,102,.2);
+    border-radius:14px;padding:10px;
+  }
+  .shop-item{
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:16px;padding:16px;
+    display:flex;flex-direction:column;gap:12px;
+  }
+  .shop-item-name{font-size:16px;font-weight:800;color:#fff;letter-spacing:1px;}
+  .shop-item-desc{font-size:13px;color:#9fb0c8;margin-top:4px;line-height:1.6;}
+  .shop-item-desc em{color:#ffd166;font-style:normal;font-weight:800;}
+  .buy-btn{
+    width:100%;padding:13px;font-size:15px;letter-spacing:1px;
+    background:linear-gradient(180deg,#ffe08a,#ff9f1c);
+    color:#2a1600;border-radius:30px;box-shadow:0 4px 0 #b96b00;
+  }
+  .buy-btn:active{transform:translateY(3px);box-shadow:0 1px 0 #b96b00;}
+  .shop-footer{display:flex;gap:10px;}
+  .shop-footer button{flex:1;padding:13px;font-size:15px;}
+  .secure-note{
+    text-align:center;font-size:11px;color:#5c6b82;letter-spacing:.5px;
   }
 
-  .panel {
-    background: rgba(18,26,36,.94);
-    border: 1px solid rgba(255,255,255,.08);
-    border-radius: 12px; padding: 12px;
-    box-shadow: 0 8px 32px rgba(0,0,0,.5);
+  #saveOverlay{
+    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 40%,rgba(20,35,60,.9),rgba(4,6,12,.97));
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    z-index:20;padding:20px;transition:opacity .3s ease;
   }
+  #saveOverlay.hide{
+    opacity:0;pointer-events:none;visibility:hidden;
+    transition:opacity .3s ease, visibility 0s .3s;
+  }
+  .save-card{
+    width:100%;max-width:480px;max-height:92vh;overflow-y:auto;
+    background:linear-gradient(180deg,#1b2942,#0b1220);
+    border:1px solid rgba(255,200,100,.28);
+    border-radius:26px;padding:24px 20px;
+    box-shadow:0 24px 70px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.08);
+    display:flex;flex-direction:column;gap:14px;
+  }
+  .save-title{
+    font-size:24px;font-weight:900;letter-spacing:4px;color:#ffd166;text-align:center;
+    text-shadow:0 0 20px rgba(255,160,0,.6);
+  }
+  .slot-list{display:flex;flex-direction:column;gap:12px;}
+  .slot-card{
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:16px;padding:14px;
+    display:flex;flex-direction:column;gap:10px;
+  }
+  .slot-card.active{
+    border-color:rgba(255,209,102,.6);
+    box-shadow:0 0 0 1px rgba(255,209,102,.3) inset;
+  }
+  .slot-head{display:flex;justify-content:space-between;align-items:center;}
+  .slot-name{font-size:15px;font-weight:800;color:#fff;letter-spacing:1px;}
+  .slot-badge{
+    font-size:11px;font-weight:800;color:#2a1600;
+    background:linear-gradient(180deg,#ffe08a,#ff9f1c);
+    padding:2px 10px;border-radius:999px;
+  }
+  .slot-stats{display:flex;gap:8px;flex-wrap:wrap;font-size:12px;color:#c7d3e3;font-weight:700;}
+  .slot-stats span{background:rgba(255,255,255,.06);padding:2px 8px;border-radius:8px;}
+  .slot-time{font-size:11px;color:#6b7a90;}
+  .slot-empty{font-size:13px;color:#6b7a90;padding:6px 0;}
+  .slot-actions{display:flex;gap:6px;flex-wrap:wrap;}
+  .slot-actions button{
+    flex:1;min-width:56px;padding:9px 4px;font-size:12px;letter-spacing:.5px;
+    border-radius:20px;box-shadow:0 3px 0 #b96b00;
+  }
+  .slot-actions button.secondary{box-shadow:0 3px 0 #151c2b;}
+  .slot-actions button.danger{box-shadow:0 3px 0 #8e1616;}
+  .save-footer{display:flex;gap:10px;}
+  .save-footer button{flex:1;padding:12px;font-size:15px;}
 
-  #left-col {
-    flex: 1; display: flex; flex-direction: column; gap: 12px;
-    min-width: 0;
+  #autoToggle{
+    position:fixed;right:16px;bottom:16px;z-index:15;
+    display:none;align-items:center;gap:6px;
+    padding:11px 18px;font-size:13px;font-weight:800;letter-spacing:1px;
+    color:#2a1600;border:none;border-radius:999px;cursor:pointer;
+    background:linear-gradient(180deg,#ffe08a,#ff9f1c);
+    box-shadow:0 4px 0 #b96b00,0 8px 24px rgba(0,0,0,.45);
+    opacity:.62;transition:opacity .2s,transform .08s;
+    touch-action:manipulation;
   }
+  #autoToggle.show{display:inline-flex;}
+  #autoToggle.on{opacity:1;}
+  #autoToggle:active{transform:translateY(3px);box-shadow:0 1px 0 #b96b00;}
 
-  #top-bar {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 8px 16px; height: 60px; flex: 0 0 auto;
+  #confirmOverlay{
+    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:rgba(4,6,12,.82);
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    z-index:50;padding:20px;transition:opacity .25s ease;
   }
-  .top-stats { display: flex; gap: 24px; }
-  .stat { display: flex; flex-direction: column; line-height: 1.2; }
-  .stat span { font-size: 11px; color: #6f8499; letter-spacing: 1px; }
-  .stat b { font-size: 18px; color: #ffd166; font-weight: 700; }
-  .stat b.hp-mid { color: #ffd166; }
-  .stat b.hp-low { color: #ff8a8a; }
+  #confirmOverlay.hide{
+    opacity:0;pointer-events:none;visibility:hidden;
+    transition:opacity .25s ease, visibility 0s .25s;
+  }
+  .confirm-card{
+    width:100%;max-width:380px;
+    background:linear-gradient(180deg,#2a1c1c,#120c0c);
+    border:1px solid rgba(255,120,100,.35);
+    border-radius:24px;padding:26px 24px;
+    box-shadow:0 24px 70px rgba(0,0,0,.75),inset 0 1px 0 rgba(255,255,255,.06);
+    display:flex;flex-direction:column;gap:16px;
+    animation:popIn .25s ease;
+  }
+  @keyframes popIn{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
+  .confirm-title{
+    font-size:20px;font-weight:900;letter-spacing:2px;color:#ff9e8a;text-align:center;
+    text-shadow:0 0 18px rgba(255,90,60,.5);
+  }
+  .confirm-msg{
+    font-size:14px;line-height:1.8;color:#d8c8c0;text-align:center;
+  }
+  .confirm-msg b{color:#ffd166;}
+  .confirm-actions{display:flex;gap:10px;}
+  .confirm-actions button{flex:1;padding:13px;font-size:15px;letter-spacing:1px;}
 
-  #status-area {
-    flex: 1; max-width: 320px; margin: 0 24px;
-    display: flex; flex-direction: column; gap: 6px;
+  #toast{
+    position:fixed;left:50%;top:14%;
+    transform:translateX(-50%) translateY(-10px);
+    background:rgba(20,30,45,.96);color:#ffd166;
+    padding:12px 26px;border-radius:999px;
+    font-weight:800;font-size:15px;letter-spacing:1px;
+    opacity:0;transition:opacity .25s,transform .25s;
+    pointer-events:none;z-index:999;
+    border:1px solid rgba(255,209,102,.3);
+    box-shadow:0 10px 30px rgba(0,0,0,.5);
+    max-width:80vw;text-align:center;
   }
-  .status-line { display: flex; justify-content: space-between; font-size: 13px; color: #9fb0c4; }
-  .status-line b { color: #dbe6f2; }
-  .status-line.fight b { color: #ff9a9a; }
-  .status-line.wait b { color: #ffd166; }
-  .status-track { height: 6px; background: rgba(0,0,0,.4); border-radius: 3px; overflow: hidden; }
-  .status-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #37c47a, #5fd8e0); border-radius: 3px; transition: width .1s linear; }
-  .status-fill.fight { background: linear-gradient(90deg, #ff6b6b, #ffb066); }
-
-  .top-ctrls { display: flex; gap: 8px; align-items: center; }
-  .top-ctrls .btn { min-width: 70px; }
-
-  /* 关键修复：严格的宽高比约束，绝不拉伸 */
-  #stage {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 20 / 13;
-    max-height: calc(100vh - 300px);
-    max-width: calc((100vh - 300px) * 20 / 13);
-    margin: 0 auto; border-radius: 12px; overflow: hidden;
-    box-shadow: 0 12px 48px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.06);
-    background: #2c4a34; 
-    flex-shrink: 1; /* 允许在空间不足时收缩 */
-  }
-  canvas {
-    display: block; width: 100%; height: 100%; cursor: crosshair;
-  }
-  #overlay {
-    position: absolute; inset: 0;
-    background: rgba(6,10,16,.86); backdrop-filter: blur(4px);
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 14px; z-index: 10;
-  }
-  #overlay.hidden { display: none; }
-  #overlay h2 { margin: 0; font-size: 34px; letter-spacing: 3px; color: #ff6b6b; }
-  #overlay p { margin: 0; color: #9fb0c4; font-size: 16px; }
-  #overlay b { color: #ffd166; }
-
-  #bottom-bar {
-    display: flex; gap: 12px; flex: 1; min-height: 170px;
-  }
-  #build-panel {
-    width: 640px; flex: 0 0 auto; display: flex; flex-direction: column;
-    overflow: hidden;
-  }
-  .section-title {
-    font-size: 11px; letter-spacing: 2px; color: #6f8499;
-    text-transform: uppercase; margin-bottom: 6px;
-  }
-  /* 关键修复：8 列 => 15 个按钮变成 8+7 两行，不会因 3 行超出面板高度 */
-  .tower-list {
-    display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin-top: auto;
-  }
-  .tower-btn {
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 6px 2px; gap: 2px; border-radius: 10px;
-    background: rgba(255,255,255,.05); border: 1.5px solid rgba(255,255,255,.12);
-    cursor: pointer; transition: 0.15s; color: #dbe6f2; font-family: inherit;
-    min-width: 0; overflow: hidden;
-  }
-  .tower-btn:hover { background: rgba(255,255,255,.1); transform: translateY(-2px); }
-  .tower-btn.active { border-color: #5fd8e0; background: rgba(95,216,224,.16); }
-  .tower-btn.active.hammer { border-color: #ff6b6b; background: rgba(255,80,80,.16); }
-  .tower-btn.disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-  .tower-btn .ic { font-size: 18px; }
-  .tower-btn .nm {
-    font-size: 12px; font-weight: 600;
-    max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .tower-btn .cost { font-size: 11px; color: #ffd166; }
-
-  #log-panel {
-    flex: 1; display: flex; flex-direction: column; min-width: 0;
-  }
-  #log-content {
-    flex: 1; overflow-y: auto; font-family: monospace;
-    font-size: 12px; line-height: 1.6; margin-top: 4px;
-    padding-right: 4px;
-  }
-  #log-content::-webkit-scrollbar { width: 4px; }
-  #log-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
-  .log-entry { display: flex; gap: 8px; color: #b0c0d0; }
-  .log-time { color: #5a6c7e; }
-  .log-entry.success { color: #7ef0a0; }
-  .log-entry.danger { color: #ff8a8a; }
-  .log-entry.info { color: #8fd6ff; }
-  .log-entry.warning { color: #ffd166; }
-
-  #right-col {
-    width: 280px; flex: 0 0 auto;
-    display: flex; flex-direction: column; gap: 10px;
-    overflow-y: auto;
-  }
-  #right-col::-webkit-scrollbar { width: 6px; }
-  #right-col::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 3px; }
-
-  .panel-head {
-    display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;
-  }
-  .panel-head h1 { margin: 0; font-size: 16px; letter-spacing: 2px; color: #8fd6ff; font-weight: 700; }
-  .state-pill {
-    font-size: 10px; font-weight: 700; padding: 2px 8px;
-    border-radius: 10px; letter-spacing: 1px;
-    background: #2b3a4a; color: #8fd6ff;
-  }
-  .state-pill.fight { background: rgba(255,80,80,.18); color: #ff8a8a; }
-  .state-pill.wait { background: rgba(255,209,102,.16); color: #ffd166; }
-  .state-pill.over { background: rgba(255,60,60,.28); color: #ff6b6b; }
-
-  .divider { height: 1px; background: rgba(255,255,255,.07); margin: 4px 0; }
-
-  #emptySel {
-    flex: 1; display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    text-align: center; color: #6f8499; font-size: 13px; line-height: 1.6;
-    min-height: 180px;
-  }
-  #emptySel .tip { color: #5fd8e0; font-weight: 600; margin-bottom: 2px; }
-  
-  #selPanel {
-    background: rgba(255,255,255,.045);
-    border: 1px solid rgba(255,255,255,.09);
-    border-radius: 9px; padding: 12px;
-    display: flex; flex-direction: column; gap: 6px;
-  }
-  #selPanel.hidden { display: none; }
-  #selPanel h3 { margin: 0 0 4px; font-size: 14px; color: #8fd6ff; }
-  .row { display: flex; justify-content: space-between; font-size: 13px; color: #9fb0c4; }
-  .row b { color: #dbe6f2; }
-  .row b.hp-ok { color: #7ef0a0; }
-  .row b.hp-mid { color: #ffd166; }
-  .row b.hp-low { color: #ff8a8a; }
-  .row b.energy-full { color: #ff00ff; }
-  .row b.energy-mid { color: #d8b4fe; }
-  .row b.radiation { color: #84cc16; }
-  .tier-tag {
-    display: inline-block; font-size: 10px; font-weight: 700;
-    padding: 1px 6px; border-radius: 6px; margin-left: 4px;
-    background: #2b3a4a; color: #8fd6ff; vertical-align: middle;
-  }
-
-  .btn {
-    font-family: inherit; font-size: 13px; font-weight: 600;
-    padding: 8px 10px; border-radius: 9px; cursor: pointer;
-    border: 1.5px solid rgba(255,255,255,.15);
-    background: rgba(255,255,255,.07); color: #dbe6f2;
-    transition: .15s;
-  }
-  .btn:hover:not(:disabled) { background: rgba(255,255,255,.14); }
-  .btn:disabled { opacity: .38; cursor: not-allowed; }
-  .btn.primary {
-    background: linear-gradient(180deg, #2f9e5e, #1f7a45);
-    border-color: #37c47a; color: #fff;
-  }
-  .btn.primary:hover:not(:disabled) { background: linear-gradient(180deg, #37b56d, #259153); }
-  .btn.up { background: linear-gradient(180deg, #b8862f, #8a621f); border-color: #e0a83e; color: #fff; }
-  .btn.up:disabled { background: rgba(184,134,47,.3); border-color: rgba(224,168,62,.3); }
-  .btn.sell { background: rgba(200,70,70,.2); border-color: rgba(255,120,120,.4); color: #ffb3b3; }
-  .btn.save { background: linear-gradient(180deg, #3a6ea5, #274a70); border-color: #5b8fc7; color: #fff; }
-  .btn.load { background: linear-gradient(180deg, #6b4fa8, #4a357a); border-color: #8b6fd0; color: #fff; }
-  
-  .btn.nuke-btn { background: linear-gradient(180deg, #ea580c, #9a3412); border-color: #f97316; color: #fff; }
-  .btn.nuke-btn:disabled { background: rgba(234,88,12,.3); border-color: rgba(249,115,22,.3); }
-
-  .btn.auto-on { background: linear-gradient(180deg, #2f9e5e, #1f7a45); border-color: #37c47a; color: #fff; }
-  .btn.auto-off { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.15); color: #dbe6f2; }
-
-  .ctrl { display: flex; gap: 6px; }
-  .ctrl .btn { flex: 1; }
-
-  .help-text { font-size: 12px; color: #8fa0b5; line-height: 1.6; flex: 1; }
-  .help-text p { margin: 0 0 6px; }
-  .help-text b { color: #cbd8e6; }
-
-  #toast {
-    position: fixed; left: 50%; top: 24px; transform: translateX(-50%) translateY(-70px);
-    background: rgba(220,70,70,.95); color: #fff; padding: 9px 20px;
-    border-radius: 20px; font-size: 13px; font-weight: 600;
-    transition: transform .28s cubic-bezier(.2,1.4,.5,1); z-index: 100;
-    pointer-events: none; box-shadow: 0 6px 20px rgba(0,0,0,.4);
-  }
-  #toast.show { transform: translateX(-50%) translateY(0); }
-  #toast.ok { background: rgba(40,160,90,.95); }
-
-  @media (max-width: 1200px) {
-    #game { flex-direction: column; height: auto; min-height: 100vh; }
-    #left-col { width: 100%; }
-    
-    /* 核心修复：高度受限时，同步限制最大宽度以保证比例 */
-    #stage {
-      width: 100%;
-      max-height: 60vh;
-      max-width: calc(60vh * 20 / 13);
-      margin: 0 auto;
-    }
-    
-    #bottom-bar { flex-direction: column; }
-    #build-panel { width: 100%; }
-    .tower-list { grid-template-columns: repeat(8, 1fr); }
-    #right-col { width: 100%; }
-  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 </style>
 </head>
 <body>
 
-<div id="game">
-  <div id="left-col">
-    <div id="top-bar" class="panel">
-      <div class="top-stats">
-        <div class="stat"><span>💰 金币</span><b id="hGold">300</b></div>
-        <div class="stat"><span>🏰 指挥塔</span><b id="hHp">1000 / 1000</b></div>
-        <div class="stat"><span>🌊 波次</span><b id="hWave">0</b></div>
-      </div>
-      <div id="status-area">
-        <div class="status-line" id="statusLine">
-          <span id="statusLabel">下一波</span>
-          <b id="statusValue">8.0s</b>
-        </div>
-        <div class="status-track">
-          <div class="status-fill" id="statusFill"></div>
-        </div>
-      </div>
-      <div class="top-ctrls">
-        <button class="btn primary" id="btnWave">开始波次</button>
-        <button class="btn" id="btnPause">⏸</button>
-        <button class="btn" id="btnSpeed">1×</button>
-      </div>
-    </div>
+<canvas id="game"></canvas>
 
-    <div id="stage">
-      <canvas id="cv"></canvas>
-      <div id="overlay" class="hidden">
-        <h2>指 挥 塔 陷 落</h2>
-        <p>你坚守到了第 <b id="finalWave">0</b> 波</p>
-        <button class="btn primary" id="btnRestart" style="padding:10px 28px">重新开始</button>
-      </div>
-    </div>
+<div id="hud">
+  <div id="score">0</div>
+  <div id="coinHud">💰 0</div>
+  <div id="lives">❤️❤️❤️</div>
+</div>
 
-    <div id="bottom-bar">
-      <div id="build-panel" class="panel">
-        <div class="section-title">建造防御设施 <span style="color:#6f8499;font-size:10px;margin-left:8px;">(点击后连续放置，右键取消)</span></div>
-        <div class="tower-list" id="towerList"></div>
-      </div>
-      <div id="log-panel" class="panel">
-        <div class="section-title">战斗日志</div>
-        <div id="log-content"></div>
-      </div>
-    </div>
+<div id="overlay" class="overlay">
+  <h1 id="ovTitle">切水果</h1>
+  <div class="menu-stats">
+    <div>💰 <span id="menuCoins">0</span></div>
+    <div>🏆 <span id="menuBest">0</span></div>
   </div>
+  <p id="ovText">滑动鼠标或手指，切开飞起的水果<br>每个水果 +1 💰 &nbsp;|&nbsp; 小心炸弹 💣</p>
+  <div class="menu-btns">
+    <button id="startBtn" disabled>加载中…</button>
+    <button id="shopBtn" class="secondary">🛒 商城</button>
+    <button id="saveBtn" class="secondary">💾 存档</button>
+    <button id="autoBtn" class="secondary">🤖 自动模式：关</button>
+    <button id="resetBtn" class="danger">🔄 重置存档</button>
+  </div>
+</div>
 
-  <div id="right-col" class="panel">
-    <div class="panel-head">
-      <h1>🏰 指挥中心</h1>
-      <span class="state-pill wait" id="statePill">准备中</span>
+<div id="shopOverlay" class="hide">
+  <div class="shop-card">
+    <div class="shop-title">🛒 商城</div>
+    <div class="shop-balance">💰 <span id="shopCoins">0</span></div>
+
+    <div class="shop-item">
+      <div>
+        <div class="shop-item-name">❤️ 生命上限 +1</div>
+        <div class="shop-item-desc">
+          当前上限：<em id="shopLives">3</em> → <em id="shopLivesNext">4</em><br>
+          生命越多，能承受的失误就越多。
+        </div>
+      </div>
+      <button id="buyLifeBtn" class="buy-btn">100 金币</button>
     </div>
 
-    <div id="emptySel">
-      <div class="tip">💡 提示</div>
-      <div>点击地图上的设施查看详情</div>
-      <div style="margin-top:4px; opacity:0.7">右键或空白处取消选中</div>
+    <div class="shop-item">
+      <div>
+        <div class="shop-item-name">✋ 切割范围 +5px</div>
+        <div class="shop-item-desc">
+          当前范围：<em id="shopRange">12</em>px → <em id="shopRangeNext">17</em>px<br>
+          光标与剑气的判定半径。
+        </div>
+      </div>
+      <button id="buyRangeBtn" class="buy-btn">150 金币</button>
     </div>
 
-    <div id="selPanel" class="hidden">
-      <h3 id="selName">—</h3>
-      <div class="row"><span>等级</span><b id="selLvl">T1</b></div>
-      <div class="row"><span>耐久</span><b id="selHp">0</b></div>
-      <div class="row" id="rowEnergy" style="display:none;"><span>能量</span><b id="selEnergy">0 / 0</b></div>
-      <div class="row"><span id="selStatLabel">伤害</span><b id="selDmg">0</b></div>
-      <div class="row"><span>射程</span><b id="selRange">0</b></div>
-      <div class="row"><span>攻速</span><b id="selRate">0</b></div>
-      <button class="btn up" id="btnUpgrade">升级</button>
-      <button class="btn sell" id="btnSell">出售</button>
-      
-      <button class="btn nuke-btn" id="btnNukeBuild" style="display:none; margin-top:4px;">☢️ 建造核弹 (💰300万, 30s)</button>
-      <button class="btn nuke-btn" id="btnNukeLaunch" style="display:none; margin-top:4px;">💥 发射核弹</button>
-      <button class="btn auto-off" id="btnAutoBuildNuke" style="display:none; margin-top:4px;">☢️ 自动建造核弹：关</button>
-      
-      <button class="btn up" id="btnBuildMissile" style="display:none; margin-top:4px;">🔨 建造导弹</button>
-      <button class="btn nuke-btn" id="btnLaunchMissile" style="display:none; margin-top:4px;">🚀 发射导弹</button>
-      <button class="btn auto-off" id="btnAutoBuildMissile" style="display:none; margin-top:4px;">🔨 自动建造导弹：关</button>
-      <button class="btn auto-off" id="btnAutoStrikeMissile" style="display:none; margin-top:4px;">🎯 自动发射导弹：关</button>
+    <div class="shop-item">
+      <div>
+        <div class="shop-item-name">⚔️ 剑气滞留 +0.05s</div>
+        <div class="shop-item-desc">
+          当前滞留：<em id="shopBlade">0.10</em>s → <em id="shopBladeNext">0.15</em>s<br>
+          剑气停留更久，划过后仍能持续切割。
+        </div>
+      </div>
+      <button id="buyBladeBtn" class="buy-btn">200 金币</button>
     </div>
 
-    <div class="divider"></div>
-
-    <div class="section-title">成就</div>
-    <div class="help-text" style="margin-bottom: 8px; display: flex; flex-direction: column; gap: 6px;">
-      <p id="achTesla" style="color: #6f8499;">🏆 特斯拉线圈 I：放置20个电击器 (0/20)</p>
-      <p id="achTesla2" style="color: #6f8499;">🏆 特斯拉线圈 II：放置30个电击器 (0/30)</p>
-      <p id="achMag3" style="color: #6f8499;">🏆 马奇诺防线：三层闭环包围 (未达成)</p>
-      <p id="achMag5" style="color: #6f8499;">🏆 终极防线：五层闭环包围 (未达成)</p>
+    <div class="shop-item">
+      <div>
+        <div class="shop-item-name">💥 炸弹免伤概率 +10%</div>
+        <div class="shop-item-desc">
+          当前免伤：<em id="shopDefuse">10</em>% → <em id="shopDefuseNext">20</em>%<br>
+          切到炸弹时，有概率用剑气直接砍爆而不受伤。
+        </div>
+      </div>
+      <button id="buyDefuseBtn" class="buy-btn">300 金币</button>
     </div>
 
-    <div class="divider"></div>
-
-    <div class="section-title">自动化</div>
-    <button class="btn auto-off" id="btnAutoUpgrade" style="margin-bottom:8px;">⚙️ 自动升级：关</button>
-
-    <div class="divider"></div>
-
-    <div class="section-title">AES 存档 (.aes)</div>
-    <div class="ctrl">
-      <button class="btn save" id="btnSave">💾 保存</button>
-      <button class="btn load" id="btnLoad">📂 读取</button>
+    <div class="shop-item">
+      <div>
+        <div class="shop-item-name">🤖 自动指针速度 +5</div>
+        <div class="shop-item-desc">
+          当前速度：<em id="shopAutoSpeed">15</em> → <em id="shopAutoSpeedNext">20</em><br>
+          开启自动模式后，虚拟指针自动追踪水果移动，速度越快切割越迅速。
+        </div>
+      </div>
+      <button id="buyAutoSpeedBtn" class="buy-btn">250 金币</button>
     </div>
-    <input type="file" id="saveFileInput" accept=".aes" style="display:none">
 
-    <div class="divider"></div>
+    <div class="shop-item">
+      <div>
+        <div class="shop-item-name">💰 金币加成 +1</div>
+        <div class="shop-item-desc">
+          当前每果：<em id="shopCoin">1</em> 💰 → <em id="shopCoinNext">2</em> 💰<br>
+          每切开一个水果获得的金币数提升，赚钱更快。
+        </div>
+      </div>
+      <button id="buyCoinBtn" class="buy-btn">500 金币</button>
+    </div>
 
-    <div class="section-title">战术指南</div>
-    <div class="help-text">
-      <p>⛏️ <b>采集器</b>：唯一经济来源（开局赠送 1 个）。</p>
-      <p>🔫 <b>机枪塔</b>：对地物理单体伤害。</p>
-      <p>🔥 <b>喷火器</b>：短射程持续范围穿透。</p>
-      <p>⚡ <b>电击器</b>：无视护盾真伤，对空加成。</p>
-      <p>💣 <b>火炮</b>：超远射程重炮。</p>
-      <p>🚀 <b>防空炮</b>：仅对空，拦截飞行器。</p>
-      <p>🔧 <b>维修塔</b>：修复建筑，或为拦截器/电池/光棱炮/能量转换器充能。</p>
-      <p>🔄 <b>能量转换器</b>：接收维修塔/毫米波供能并转化为金币。T1 汇率 1 能量=0.1 金币，每级 +0.1，有多少转多少。优先级最低。</p>
-      <p>🛰️ <b>拦截器</b>：消耗 100 能量发射红色激光拦截炮弹。</p>
-      <p>🔋 <b>能量电池</b>：储存能量，供毫米波使用。</p>
-      <p>📡 <b>毫米波</b>：瞬间从电池抽电修复范围内所有建筑，传输损耗 10%。</p>
-      <p>💠 <b>光棱炮</b>：T1-T19 为充能状态。T20 且满 10 万能量时，引发轨道激光打击。</p>
-      <p>☢️ <b>核弹发射井</b>：建核弹300万/30s，最多存5枚。发射后直径90%范围秒杀。</p>
-      <p>🚀 <b>导弹发射井</b>：可升级，升级加速建弹、增加伤害与弹夹。全图集群齐射。</p>
+    <div class="shop-footer">
+      <button id="closeShopBtn" class="secondary">返回</button>
+    </div>
+    <div class="secure-note">🔒 存档已使用 AES-256-GCM 加密保护</div>
+  </div>
+</div>
+
+<div id="saveOverlay" class="hide">
+  <div class="save-card">
+    <div class="save-title">💾 存档</div>
+    <div id="slotList" class="slot-list"></div>
+    <div class="save-footer">
+      <button id="closeSaveBtn" class="secondary">返回</button>
+    </div>
+    <div class="secure-note">🔒 AES-256-GCM · 导出 .aes 文件 · 密码 123456 · 可用加密工具解密</div>
+  </div>
+</div>
+
+<div id="confirmOverlay" class="hide">
+  <div class="confirm-card">
+    <div class="confirm-title" id="confirmTitle">⚠️ 确认操作</div>
+    <div class="confirm-msg" id="confirmMsg">确定吗？</div>
+    <div class="confirm-actions">
+      <button id="confirmOkBtn" class="danger">确认重置</button>
+      <button id="confirmCancelBtn" class="secondary">取消</button>
     </div>
   </div>
 </div>
 
-<div id="toast"></div>
+<button id="autoToggle">🤖 自动: 关</button>
+
+<input type="file" id="importFileInput" accept=".aes,.txt,.json" style="display:none">
 
 <script>
 (function () {
 'use strict';
 
-const TILE = 40, COLS = 20, ROWS = 13;
-const W = COLS * TILE, H = ROWS * TILE;
-const MAP_DIAG = Math.max(W, H);
+/* ================= 基础 ================= */
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score');
+const coinHudEl = document.getElementById('coinHud');
+const livesEl = document.getElementById('lives');
+const overlay = document.getElementById('overlay');
+const ovTitle = document.getElementById('ovTitle');
+const ovText = document.getElementById('ovText');
+const startBtn = document.getElementById('startBtn');
+const shopBtn = document.getElementById('shopBtn');
+const saveBtn = document.getElementById('saveBtn');
+const autoBtn = document.getElementById('autoBtn');
+const resetBtn = document.getElementById('resetBtn');
+const autoToggle = document.getElementById('autoToggle');
+const shopOverlay = document.getElementById('shopOverlay');
+const shopCoinsEl = document.getElementById('shopCoins');
+const shopLivesEl = document.getElementById('shopLives');
+const shopLivesNextEl = document.getElementById('shopLivesNext');
+const shopRangeEl = document.getElementById('shopRange');
+const shopRangeNextEl = document.getElementById('shopRangeNext');
+const shopBladeEl = document.getElementById('shopBlade');
+const shopBladeNextEl = document.getElementById('shopBladeNext');
+const shopDefuseEl = document.getElementById('shopDefuse');
+const shopDefuseNextEl = document.getElementById('shopDefuseNext');
+const shopAutoSpeedEl = document.getElementById('shopAutoSpeed');
+const shopAutoSpeedNextEl = document.getElementById('shopAutoSpeedNext');
+const shopCoinEl = document.getElementById('shopCoin');
+const shopCoinNextEl = document.getElementById('shopCoinNext');
+const buyLifeBtn = document.getElementById('buyLifeBtn');
+const buyRangeBtn = document.getElementById('buyRangeBtn');
+const buyBladeBtn = document.getElementById('buyBladeBtn');
+const buyDefuseBtn = document.getElementById('buyDefuseBtn');
+const buyAutoSpeedBtn = document.getElementById('buyAutoSpeedBtn');
+const buyCoinBtn = document.getElementById('buyCoinBtn');
+const closeShopBtn = document.getElementById('closeShopBtn');
+const saveOverlay = document.getElementById('saveOverlay');
+const slotListEl = document.getElementById('slotList');
+const closeSaveBtn = document.getElementById('closeSaveBtn');
+const importFileInput = document.getElementById('importFileInput');
+const menuCoinsEl = document.getElementById('menuCoins');
+const menuBestEl = document.getElementById('menuBest');
+const confirmOverlay = document.getElementById('confirmOverlay');
+const confirmTitle = document.getElementById('confirmTitle');
+const confirmMsg = document.getElementById('confirmMsg');
+const confirmOkBtn = document.getElementById('confirmOkBtn');
+const confirmCancelBtn = document.getElementById('confirmCancelBtn');
 
-const cv  = document.getElementById('cv');
-cv.width = W; cv.height = H;
-const ctx = cv.getContext('2d');
+const G = 1500;
 
-const $ = id => document.getElementById(id);
+/* ----- 升级常量 ----- */
+const BASE_LIFE = 3;
+const MAX_UPGRADE_LEVEL = 12;
 
-const CASTLE = { gx: 9, gy: 5, w: 2, h: 2 };
-const CASTLE_CX = (CASTLE.gx + 1) * TILE;
-const CASTLE_CY = (CASTLE.gy + 1) * TILE;
-let castleHp = 1000;
-const CASTLE_MAX_HP = 1000;
+const BASE_CUT_RANGE = 12;
+const CUT_RANGE_PER_LEVEL = 5;
+const MAX_RANGE_LEVEL = 8;
 
-const blocked = new Set();
-(function markCastle() {
-  for (let x = CASTLE.gx; x < CASTLE.gx + CASTLE.w; x++)
-    for (let y = CASTLE.gy; y < CASTLE.gy + CASTLE.h; y++)
-      blocked.add(x + ',' + y);
-})();
+const BASE_BLADE_LIFE = 0.1;
+const BLADE_LIFE_PER_LEVEL = 0.05;
+const MAX_BLADE_LEVEL = 8;
 
-const GRID_COLS = COLS;
-const GRID_ROWS = ROWS;
-let grid = Array.from({ length: GRID_ROWS }, () => Array.from({ length: GRID_COLS }, () => []));
+const BASE_BOMB_DEFUSE = 0.1;
+const BOMB_DEFUSE_PER_LEVEL = 0.1;
+const MAX_BOMB_DEFUSE_LEVEL = 9;
 
-function rebuildGrid() {
-  for (let r = 0; r < GRID_ROWS; r++) {
-    for (let c = 0; c < GRID_COLS; c++) {
-      grid[r][c].length = 0;
-    }
-  }
-  for (let i = 0; i < enemies.length; i++) {
-    const e = enemies[i];
-    if (!e.alive) continue;
-    let cx = Math.floor(e.x / TILE);
-    let cy = Math.floor(e.y / TILE);
-    if (cx < 0) cx = 0; if (cx >= GRID_COLS) cx = GRID_COLS - 1;
-    if (cy < 0) cy = 0; if (cy >= GRID_ROWS) cy = GRID_ROWS - 1;
-    grid[cy][cx].push(e);
-  }
+const BASE_AUTO_SPEED = 15;
+const AUTO_SPEED_PER_LEVEL = 5;
+const MAX_AUTO_SPEED_LEVEL = 10;
+const AUTO_SPEED_PX_FACTOR = 20;
+
+const BASE_COIN_PER_FRUIT = 1;
+const COIN_PER_FRUIT_PER_LEVEL = 1;
+const MAX_COIN_LEVEL = 5;
+
+let W = 0, H = 0, bgGrad = null;
+
+function resize() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = canvas.clientWidth  || window.innerWidth;
+  H = canvas.clientHeight || window.innerHeight;
+  canvas.width  = Math.round(W * dpr);
+  canvas.height = Math.round(H * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  bgGrad = ctx.createRadialGradient(W * 0.5, H * 0.32, 0, W * 0.5, H * 0.55, Math.max(W, H) * 0.9);
+  bgGrad.addColorStop(0,   '#2e1d10');
+  bgGrad.addColorStop(0.5, '#170e07');
+  bgGrad.addColorStop(1,   '#060402');
 }
+window.addEventListener('resize', resize);
 
-const TOWER_BASE_HP = { 
-  arrow: 150, cannon: 240, repair: 110, flame: 180, lightning: 160, 
-  antiair: 160, resource: 120, laser: 130, battery: 200, mmwave: 150, 
-  prism: 500, nukeSilo: 1000, missileSilo: 600, converter: 160
-};
+/* ================= 水果配置 ================= */
+const FRUIT_TYPES = [
+  { id:'watermelon', r:48, skin:'#2e7d32', light:'#8ce06a', dark:'#1b4d1f', inner:'#ff4d6d', inner2:'#ff8095', seed:'#2b1a12' },
+  { id:'orange',     r:38, skin:'#e8791a', light:'#ffc05c', dark:'#b95400', inner:'#ff9f1c', inner2:'#ffd08a', seed:null     },
+  { id:'apple',      r:38, skin:'#c62828', light:'#ff6b6b', dark:'#8e1616', inner:'#fff3d6', inner2:'#fffaf0', seed:'#6b4a1f' },
+  { id:'lemon',      r:34, skin:'#d9c400', light:'#fff68f', dark:'#a89500', inner:'#fff9a0', inner2:'#fffde0', seed:'#e8dc70' },
+  { id:'kiwi',       r:34, skin:'#8b6b3d', light:'#c49a5f', dark:'#5e4726', inner:'#a8e063', inner2:'#d8f5a8', seed:'#20301a' },
+  { id:'grape',      r:30, skin:'#7b1fa2', light:'#c26bd6', dark:'#4a148c', inner:'#ce93d8', inner2:'#ecc7f5', seed:'#3a0d52' }
+];
 
-function towerMaxHp(type, level) {
-  const base = TOWER_BASE_HP[type] || 150;
-  return Math.round(base * (1 + (level - 1) * 0.4));
-}
+/* ================= 游戏状态 ================= */
+let state = 'menu';
+let fruits = [], halves = [], particles = [], floaters = [];
+let score = 0, lives = BASE_LIFE, combo = 0, comboTimer = 0;
+let runCoins = 0;
+let elapsed = 0, spawnTimer = 0;
+let shake = 0, flash = 0;
 
-function genLevels(baseName, tiers, lvlCount, baseDmg, baseRange, baseCd, extra = {}) {
-  let res = [];
-  for (let i = 1; i <= lvlCount; i++) {
-    let name = baseName + ' T' + i;
-    let dmg = Math.round(baseDmg * Math.pow(1.35, i - 1));
-    let range = baseRange > 0 ? baseRange + (i - 1) * 8 : 0;
-    let cd = Math.max(0.05, baseCd * Math.pow(0.9, i - 1));
-    let obj = { name, damage: dmg, range, cooldown: cd, armor: Math.floor((i-1)/2) };
-    if (extra.splash) obj.splash = extra.splash + (i - 1) * 5;
-    if (extra.bulletSpeed) obj.bulletSpeed = extra.bulletSpeed + (i - 1) * 10;
-    if (extra.barrels) obj.barrels = Math.min(6, extra.barrels + Math.floor((i - 1) / 3));
-    if (extra.barrelLen) obj.barrelLen = extra.barrelLen + (i - 1) * 0.5;
-    if (extra.barrelW) obj.barrelW = extra.barrelW + (i - 1) * 0.2;
-    
-    if (extra.healRate) obj.healRate = Math.round(extra.healRate * Math.pow(1.3, i - 1));
-    if (extra.income) obj.income = Math.round(extra.income * Math.pow(1.4, i - 1));
-    if (extra.interval) obj.interval = Math.max(0.2, extra.interval * Math.pow(0.95, i - 1));
-    
-    if (extra.isLaser) obj.maxEnergy = i * 100;
-    if (extra.isBattery) obj.maxEnergy = i * 2500;
-    if (extra.isPrism) obj.maxEnergy = 100000;
-    
-    res.push(obj);
-  }
-  return res;
-}
+let trailPts = [];
+let pointerActive = false;
+let pointerX = 0, pointerY = 0;
 
-const TOWER_DEFS = {
-  arrow: {
-    key: 'arrow', name: '机枪塔', icon: '🔫', cost: 50, color: '#4ea3ff',
-    kind: 'bullet', desc: '对地高射速单体，物理伤害',
-    levels: genLevels('机枪塔', 20, 20, 11, 100, 0.45, { bulletSpeed: 540, barrels: 1, barrelLen: 18, barrelW: 4.2 })
-  },
-  cannon: {
-    key: 'cannon', name: '火炮', icon: '💣', cost: 120, color: '#ff8a3d',
-    kind: 'shell', desc: '对地超远射程，重火力溅射',
-    levels: genLevels('火炮', 20, 20, 41, 180, 2.5, { bulletSpeed: 320, barrels: 1, barrelLen: 21, barrelW: 7.5, splash: 46 })
-  },
-  flame: {
-    key: 'flame', name: '喷火器', icon: '🔥', cost: 80, color: '#ff5a36',
-    kind: 'flame', desc: '短射程，穿透范围持续伤害',
-    levels: genLevels('喷火器', 20, 20, 4, 75, 0.12)
-  },
-  lightning: {
-    key: 'lightning', name: '电击器', icon: '⚡', cost: 90, color: '#c084fc',
-    kind: 'lightning', desc: '无视护盾真伤，T25/T30 解锁闪电链',
-    levels: (function() {
-      let res = [];
-      for (let i = 1; i <= 30; i++) {
-        let dmg = Math.round(18 * Math.pow(1.35, i - 1));
-        let range = 85 + (Math.min(i, 20) - 1) * 8;
-        let cd = 0.8 * Math.pow(0.9, i - 1); 
-        res.push({ name: '电击器 T' + i, damage: dmg, range, cooldown: cd, armor: Math.floor((i-1)/2) });
-      }
-      return res;
-    })()
-  },
-  antiair: {
-    key: 'antiair', name: '防空炮', icon: '🚀', cost: 100, color: '#60a5fa',
-    kind: 'missile', desc: '仅对空，射程略大于机枪',
-    levels: genLevels('防空炮', 20, 20, 22, 110, 0.65, { bulletSpeed: 600, barrels: 1, barrelLen: 18, barrelW: 5.0 })
-  },
-  repair: {
-    key: 'repair', name: '维修塔', icon: '🔧', cost: 75, color: '#4ade80',
-    kind: 'heal', desc: '修复建筑，或为拦截器/电池/光棱炮/转换器充能',
-    levels: genLevels('维修塔', 20, 20, 0, 130, 1, { barrels: 1, barrelLen: 12, barrelW: 4, healRate: 15 })
-  },
-  laser: {
-    key: 'laser', name: '拦截器', icon: '🛰️', cost: 150, color: '#ff00ff',
-    kind: 'laser', desc: '消耗 100 能量发射红色激光拦截敌方炮弹',
-    levels: genLevels('拦截器', 20, 20, 0, 150, 1, { isLaser: true })
-  },
-  battery: {
-    key: 'battery', name: '能量电池', icon: '🔋', cost: 100, color: '#38bdf8',
-    kind: 'battery', desc: '储存能量，供毫米波使用',
-    levels: genLevels('能量电池', 20, 20, 0, 0, 1, { isBattery: true })
-  },
-  mmwave: {
-    key: 'mmwave', name: '毫米波', icon: '📡', cost: 180, color: '#c084fc',
-    kind: 'mmwave', desc: '瞬间从电池抽电修复范围内所有建筑，损耗 10%',
-    levels: genLevels('毫米波', 20, 20, 0, 75, 0.1)
-  },
-  converter: {
-    key: 'converter', name: '能量转换器', icon: '🔄', cost: 200, color: '#22d3ee',
-    kind: 'converter', desc: '把接收到的能量转化为金币，等级越高汇率越高',
-    levels: Array.from({ length: 20 }, (_, i) => {
-      const lv = i + 1;
-      return {
-        name: '能量转换器 T' + lv,
-        damage: 0, range: 0, cooldown: 1,
-        armor: Math.floor(lv / 2),
-        isConverter: true,
-        maxEnergy: lv * 1000,
-        convertRate: Math.round(lv * 10) / 100
-      };
-    })
-  },
-  prism: {
-    key: 'prism', name: '光棱炮', icon: '💠', cost: 1000, color: '#f8fafc',
-    kind: 'prism', desc: 'T1-T19无攻击。T20满10万能量时触发轨道打击。',
-    levels: Array.from({length: 20}, (_, i) => ({
-      name: '光棱炮 T' + (i+1), damage: 0, range: 0, cooldown: 1,
-      armor: Math.floor(i/2), isPrism: true, maxEnergy: 100000
-    }))
-  },
-  resource: {
-    key: 'resource', name: '采集器', icon: '⛏️', cost: 80, color: '#facc15',
-    kind: 'resource', desc: '持续产出金币，唯一经济来源',
-    levels: genLevels('采集器', 20, 20, 0, 0, 2, { income: 10, interval: 2 })
-  },
-  nukeSilo: {
-    key: 'nukeSilo', name: '核弹发射井', icon: '☢️', cost: 10000000, color: '#84cc16',
-    kind: 'nuke', desc: '消耗300万建造核弹(30s)，发射后造成巨大范围秒杀并留下辐射区（不可升级）',
-    levels: [{ name: '核弹发射井', damage: 0, range: 0, cooldown: 1, armor: 0, maxEnergy: 0 }]
-  },
-  missileSilo: {
-    key: 'missileSilo', name: '导弹发射井', icon: '🚀', cost: 500, color: '#f97316',
-    kind: 'missileSilo', desc: '建造并发射战术导弹，清空弹夹进行范围打击',
-    levels: Array.from({length: 20}, (_, i) => {
-      const lv = i + 1;
-      return {
-        name: '导弹井 T' + lv,
-        damage: Math.round(1000 * Math.pow(1.35, lv - 1)),
-        range: 0,
-        cooldown: 1,
-        armor: Math.floor(lv/2),
-        missileCost: Math.round(100 * Math.pow(1.35, lv - 1)),
-        buildTime: Math.max(0.2, 5 * Math.pow(0.85, lv - 1)),
-        maxMissiles: lv * 10
-      };
-    })
-  }
-};
+const autoPointer = { x: null, y: null, target: null };
 
-const ENEMY_DEFS = {
-  grunt:  { hp: 42,   speed: 55,  radius: 11, color: '#e05a5a', towerDamage: 5,  attackCooldown: 1.0, name: '小兵' },
-  runner: { hp: 28,   speed: 110, radius: 9,  color: '#f2c53d', towerDamage: 3,  attackCooldown: 0.8, name: '疾行' },
-  tank:   { hp: 240,  speed: 34,  radius: 15, color: '#9b6bf2', towerDamage: 14, attackCooldown: 1.2, name: '重甲' },
-  flyer:  { hp: 35,   speed: 85,  radius: 10, color: '#38bdf8', towerDamage: 8,  attackCooldown: 1.0, name: '飞行器', flying: true },
-  boss:   { hp: 1600, speed: 28,  radius: 21, color: '#ff2d6f', towerDamage: 45, attackCooldown: 1.4, name: 'BOSS' }
-};
-
-const MAX_LEVEL = 30;
-const TIER_NAMES = [];
-for (let i = 1; i <= MAX_LEVEL; i++) TIER_NAMES.push('T' + i);
-
+/* ================= 存档系统 =================
+ * 内置存档：AES-256-GCM + PBKDF2(100000) → Base64 → localStorage
+ * 导出存档：与 AES256.html 工具完全一致的二进制 .aes 格式
+ *   [0]       version = 0x01
+ *   [1..4]    iterations (uint32 big-endian)
+ *   [5..20]   salt (16 bytes)
+ *   [21..32]  iv   (12 bytes)
+ *   [33..]    ciphertext + 16-byte GCM tag
+ *   AAD = 前 33 字节
+ * 口令固定为 123456，用 AES256 工具在“解密文件”里输入 123456 即可读取。
+ * ============================================ */
+const SLOT_COUNT = 3;
+const SAVE_KEY_PREFIX = 'fruit_slice_save_slot_';
+const CURRENT_SLOT_KEY = 'fruit_slice_current_slot';
+const LEGACY_KEY = 'fruit_slice_secure_save_v1';
 const SAVE_PASSWORD = '123456';
 const SAVE_ITER = 100000;
 
-function bufToBase64(buf) {
-  const bytes = new Uint8Array(buf);
-  let binary = '';
-  const CHUNK = 0x8000;
-  for (let i = 0; i < bytes.length; i += CHUNK) {
-    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
-  }
-  return btoa(binary);
+const save = {
+  coins: 0,
+  lifeLevel: 0,
+  rangeLevel: 0,
+  bladeLevel: 0,
+  bombDefuseLevel: 0,
+  autoSpeedLevel: 0,
+  coinLevel: 0,
+  bestScore: 0,
+  autoMode: false
+};
+let slotSummaries = [null, null, null];
+let currentSlot = 0;
+let saveReady = false;
+let pendingImportSlot = 0;
+
+let confirmResolver = null;
+
+function subtleAvailable() {
+  return !!(window.crypto && window.crypto.subtle &&
+            typeof window.crypto.subtle.importKey === 'function' &&
+            typeof window.crypto.getRandomValues === 'function');
 }
 
-function base64ToBuf(b64) {
+function bufToB64(buf) {
+  let bin = '';
+  const CHUNK = 8192;
+  for (let i = 0; i < buf.length; i += CHUNK) {
+    bin += String.fromCharCode.apply(null, buf.subarray(i, i + CHUNK));
+  }
+  return btoa(bin);
+}
+function b64ToBuf(b64) {
   const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return bytes.buffer;
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+async function deriveSaveKey(salt, iterations) {
+  if (iterations === undefined) iterations = SAVE_ITER;
+  const km = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(SAVE_PASSWORD),
+    { name: 'PBKDF2' },
+    false,
+    ['deriveKey']
+  );
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+    km,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
 }
 
 async function encryptSave(obj) {
-  if (!window.crypto || !crypto.subtle) throw new Error('当前环境不支持 Web Crypto（请用 http(s) 打开）');
-  const plain = new TextEncoder().encode(JSON.stringify(obj));
   const salt = crypto.getRandomValues(new Uint8Array(16));
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const iterBytes = new Uint8Array(4);
-  new DataView(iterBytes.buffer).setUint32(0, SAVE_ITER, false);
-  const aad = new Uint8Array(33);
-  aad[0] = 0x01;
-  aad.set(iterBytes, 1);
-  aad.set(salt, 5);
-  aad.set(iv, 21);
+  const iv   = crypto.getRandomValues(new Uint8Array(12));
+  const key  = await deriveSaveKey(salt);
+  const data = new TextEncoder().encode(JSON.stringify(obj));
+  const enc  = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, data);
 
-  const baseKey = await crypto.subtle.importKey(
-    'raw', new TextEncoder().encode(SAVE_PASSWORD),
-    { name: 'PBKDF2' }, false, ['deriveKey']
-  );
-  const key = await crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: SAVE_ITER, hash: 'SHA-256' },
-    baseKey, { name: 'AES-GCM', length: 256 }, false, ['encrypt']
-  );
-  const ct = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv, tagLength: 128, additionalData: aad },
-    key, plain
-  );
-  const combined = new Uint8Array(33 + ct.byteLength);
-  combined.set(aad, 0);
-  combined.set(new Uint8Array(ct), 33);
-  return bufToBase64(combined.buffer);
+  const combined = new Uint8Array(16 + 12 + enc.byteLength);
+  combined.set(salt, 0);
+  combined.set(iv, 16);
+  combined.set(new Uint8Array(enc), 28);
+  return bufToB64(combined);
 }
 
 async function decryptSave(b64) {
-  if (!window.crypto || !crypto.subtle) throw new Error('当前环境不支持 Web Crypto（请用 http(s) 打开）');
-  const combined = new Uint8Array(base64ToBuf(b64.trim()));
-  if (combined.length < 49) throw new Error('存档格式错误：数据长度不足');
-  if (combined[0] !== 0x01) throw new Error('不支持的存档版本');
-  
-  const rawIter = new DataView(combined.buffer).getUint32(1, false);
-  const iterations = Math.min(5000000, Math.max(10000, rawIter));
-  
-  const salt = combined.slice(5, 21);
-  const iv = combined.slice(21, 33);
-  const aad = combined.slice(0, 33);
-  const ct = combined.slice(33);
+  const bytes = b64ToBuf(b64);
+  if (bytes.length < 28) throw new Error('存档数据损坏');
+  const salt = bytes.slice(0, 16);
+  const iv   = bytes.slice(16, 28);
+  const ct   = bytes.slice(28);
+  const key  = await deriveSaveKey(salt);
+  const dec  = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+  return JSON.parse(new TextDecoder().decode(dec));
+}
 
-  const baseKey = await crypto.subtle.importKey(
-    'raw', new TextEncoder().encode(SAVE_PASSWORD),
-    { name: 'PBKDF2' }, false, ['deriveKey']
+async function decodeSavePayload(raw) {
+  const text = String(raw).trim();
+  if (text.startsWith('PLAIN:')) {
+    const buf = b64ToBuf(text.slice(6));
+    return JSON.parse(new TextDecoder().decode(buf));
+  }
+  if (text.startsWith('{')) {
+    return JSON.parse(text);
+  }
+  return await decryptSave(text);
+}
+
+async function encodeSavePayload(obj) {
+  if (subtleAvailable()) {
+    return await encryptSave(obj);
+  }
+  return 'PLAIN:' + bufToB64(new TextEncoder().encode(JSON.stringify(obj)));
+}
+
+/* ----- 与 AES256.html 工具一致的二进制 .aes 格式 ----- */
+async function encryptToAesBytes(plainBuffer, iterations) {
+  if (iterations === undefined) iterations = SAVE_ITER;
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv   = crypto.getRandomValues(new Uint8Array(12));
+  const version = new Uint8Array([0x01]);
+  const iterBytes = new Uint8Array(4);
+  new DataView(iterBytes.buffer).setUint32(0, iterations, false);
+
+  const aadBuffer = new Uint8Array(1 + 4 + 16 + 12);
+  let off = 0;
+  aadBuffer.set(version, off); off += 1;
+  aadBuffer.set(iterBytes, off); off += 4;
+  aadBuffer.set(salt, off); off += 16;
+  aadBuffer.set(iv, off);
+
+  const key = await deriveSaveKey(salt, iterations);
+  const enc = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv, tagLength: 128, additionalData: aadBuffer },
+    key, plainBuffer
   );
-  const key = await crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
-    baseKey, { name: 'AES-GCM', length: 256 }, false, ['decrypt']
-  );
-  let pt;
+  const encArr = new Uint8Array(enc);
+  const combined = new Uint8Array(33 + encArr.length);
+  combined.set(aadBuffer, 0);
+  combined.set(encArr, 33);
+  return combined;
+}
+
+async function decryptAesBytes(bytes) {
+  if (bytes.length < 49) throw new Error('数据长度不足，可能已损坏');
+  if (bytes[0] !== 0x01) throw new Error('不支持的密文格式');
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const iterations = view.getUint32(1, false);
+  const salt = bytes.slice(5, 21);
+  const iv   = bytes.slice(21, 33);
+  const aad  = bytes.slice(0, 33);
+  const ct   = bytes.slice(33);
+  const key  = await deriveSaveKey(salt, iterations);
   try {
-    pt = await crypto.subtle.decrypt(
+    const dec = await crypto.subtle.decrypt(
       { name: 'AES-GCM', iv, tagLength: 128, additionalData: aad },
       key, ct
     );
+    return new Uint8Array(dec);
   } catch (e) {
-    throw new Error('解密失败：密码错误或存档损坏');
-  }
-  return JSON.parse(new TextDecoder().decode(pt));
-}
-
-let gold, waveNum, enemies, towers, bullets, missiles, particles, floats, lightningEffects, enemyBullets, interceptorBeams, mmwaveBeams, orbitalStrikes, radiationZones;
-let selectedType, selectedTower, aimingNukeTower, aimingMissile;
-let paused, speedMul, gameOver;
-let wave;
-let waveTimer;
-let waveStartTotal = 0;
-let autoUpgrade = false;
-let autoBuildMissile = false;
-let autoStrikeMissile = false;
-let autoBuildNuke = false;
-let autoUpgradeTimer = 0;
-let gameTime = 0;
-
-let totalLightningBuilt = 0;
-let achTesla = false;
-let achTesla2 = false;
-let achMag = 0; 
-
-const mouse = { x: 0, y: 0, gx: -1, gy: -1, inside: false };
-
-function reset() {
-  gold = 300;
-  castleHp = CASTLE_MAX_HP;
-  waveNum = 0;
-  enemies = []; towers = []; bullets = []; missiles = []; particles = []; floats = []; lightningEffects = []; enemyBullets = []; interceptorBeams = []; mmwaveBeams = []; orbitalStrikes = []; radiationZones = [];
-  selectedType = null; selectedTower = null; aimingNukeTower = null; aimingMissile = false;
-  paused = false; speedMul = 1; gameOver = false;
-  wave = { active: false, list: [], idx: 0, time: 0, hpMul: 1, speedMul: 1, earlySpawnTimer: 0 };
-  waveTimer = 8;
-  waveStartTotal = 1;
-  autoUpgrade = false;
-  autoBuildMissile = false;
-  autoStrikeMissile = false;
-  autoBuildNuke = false;
-  autoUpgradeTimer = 0;
-  gameTime = 0;
-  
-  totalLightningBuilt = 0;
-  achTesla = false;
-  achTesla2 = false;
-  achMag = 0;
-
-  $('btnAutoUpgrade').textContent = '⚙️ 自动升级：关';
-  $('btnAutoUpgrade').className = 'btn auto-off';
-  
-  $('overlay').classList.add('hidden');
-  $('selPanel').classList.add('hidden');
-  $('emptySel').classList.remove('hidden');
-  $('btnPause').textContent = '⏸';
-  $('btnSpeed').textContent = '1×';
-
-  const def = TOWER_DEFS['resource'];
-  const maxHp = towerMaxHp('resource', 1);
-  towers.push({
-    type: 'resource', def, gx: 8, gy: 5,
-    x: (8 + 0.5) * TILE,
-    y: (5 + 0.5) * TILE,
-    angle: -Math.PI / 2,
-    cool: 0,
-    recoil: 0,
-    hitFlash: 0,
-    level: 1,
-    invested: def.cost,
-    hp: maxHp,
-    maxHp,
-    destroyed: false,
-    buildingTimer: 0,
-    upgradingTimer: 0,
-    beamTarget: null,
-    goldTimer: 0,
-    energy: 0,
-    nukeStatus: 'idle',
-    nukeTimer: 0,
-    nukeCount: 0,
-    missileCount: 0,
-    missileBuildProgress: 0,
-    isBuildingMissile: false,
-    lastStrikeTime: 0,
-    convertAccum: 0,
-    convertFloatTimer: 0
-  });
-
-  addLog('指挥塔已部署，准备迎战。', 'info');
-  addLog('获得初始设施：采集器', 'success');
-}
-
-const mapCanvas = document.createElement('canvas');
-mapCanvas.width = W; mapCanvas.height = H;
-
-(function buildMap() {
-  const c = mapCanvas.getContext('2d');
-
-  for (let y = 0; y < ROWS; y++) {
-    for (let x = 0; x < COLS; x++) {
-      c.fillStyle = ((x + y) % 2 === 0) ? '#31533a' : '#2c4a34';
-      c.fillRect(x * TILE, y * TILE, TILE, TILE);
-    }
-  }
-  for (let i = 0; i < 420; i++) {
-    const x = Math.random() * W, y = Math.random() * H;
-    c.fillStyle = `rgba(160,220,160,${0.03 + Math.random() * 0.05})`;
-    c.fillRect(x, y, 2, 2);
-  }
-
-  for (let i = 0; i < 45; i++) {
-    const x = 30 + Math.random() * (W - 60);
-    const y = 20 + Math.random() * (H - 40);
-    if (x > CASTLE.gx * TILE - 30 && x < (CASTLE.gx + CASTLE.w) * TILE + 30 &&
-        y > CASTLE.gy * TILE - 30 && y < (CASTLE.gy + CASTLE.h) * TILE + 30) continue;
-    const r = 2 + Math.random() * 3;
-    c.fillStyle = 'rgba(70,62,52,.45)';
-    c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
-    c.fillStyle = 'rgba(140,130,115,.25)';
-    c.beginPath(); c.arc(x - r * 0.3, y - r * 0.3, r * 0.5, 0, Math.PI * 2); c.fill();
-  }
-})();
-
-function addLog(msg, type = 'info') {
-  const logContent = $('log-content');
-  if (!logContent) return;
-  const div = document.createElement('div');
-  div.className = 'log-entry ' + type;
-  const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' });
-  div.innerHTML = `<span class="log-time">[${time}]</span> <span>${msg}</span>`;
-  logContent.appendChild(div);
-  logContent.scrollTop = logContent.scrollHeight;
-  if (logContent.children.length > 50) {
-    logContent.removeChild(logContent.firstChild);
+    throw new Error('解密失败：密码错误或文件已被篡改');
   }
 }
 
-function towerStats(t) {
-  const L = t.def.levels[t.level - 1];
+async function decryptAesToJson(bytes) {
+  const plain = await decryptAesBytes(bytes);
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+
+function normalizeSave(obj) {
   return {
-    name: L.name,
-    damage: L.damage || 0,
-    range: L.range || 0,
-    cooldown: L.cooldown || 1,
-    splash: L.splash || 0,
-    bulletSpeed: L.bulletSpeed || 500,
-    barrels: L.barrels || 1,
-    barrelLen: L.barrelLen || 18,
-    barrelW: L.barrelW || 4,
-    armor: L.armor || 0,
-    healRate: L.healRate || 0,
-    income: L.income || 0,
-    interval: L.interval || 2.0,
-    maxEnergy: L.maxEnergy || 0,
-    convertRate: L.convertRate || 0,
-    missileCost: L.missileCost || 100,
-    buildTime: L.buildTime || 5,
-    maxMissiles: L.maxMissiles || 10
+    coins:          Math.max(0, Math.floor(Number(obj.coins)          || 0)),
+    lifeLevel:      Math.min(MAX_UPGRADE_LEVEL,     Math.max(0, Math.floor(Number(obj.lifeLevel)     || 0))),
+    rangeLevel:     Math.min(MAX_RANGE_LEVEL,       Math.max(0, Math.floor(Number(obj.rangeLevel)    || 0))),
+    bladeLevel:     Math.min(MAX_BLADE_LEVEL,       Math.max(0, Math.floor(Number(obj.bladeLevel)    || 0))),
+    bombDefuseLevel:Math.min(MAX_BOMB_DEFUSE_LEVEL, Math.max(0, Math.floor(Number(obj.bombDefuseLevel)|| 0))),
+    autoSpeedLevel: Math.min(MAX_AUTO_SPEED_LEVEL,  Math.max(0, Math.floor(Number(obj.autoSpeedLevel) || 0))),
+    coinLevel:      Math.min(MAX_COIN_LEVEL,        Math.max(0, Math.floor(Number(obj.coinLevel)      || 0))),
+    bestScore:      Math.max(0, Math.floor(Number(obj.bestScore)      || 0)),
+    autoMode:       !!obj.autoMode,
+    ts:             Number(obj.ts) || Date.now()
   };
 }
 
-function upgradeCost(t) {
-  return Math.round(t.def.cost * Math.pow(1.6, t.level - 1) * (1 + t.level * 0.1));
+function applySave(obj) {
+  save.coins           = obj.coins;
+  save.lifeLevel       = obj.lifeLevel;
+  save.rangeLevel      = obj.rangeLevel;
+  save.bladeLevel      = obj.bladeLevel;
+  save.bombDefuseLevel = obj.bombDefuseLevel;
+  save.autoSpeedLevel  = obj.autoSpeedLevel;
+  save.coinLevel       = obj.coinLevel;
+  save.bestScore       = obj.bestScore;
+  save.autoMode        = obj.autoMode;
 }
 
-function canBuild(gx, gy) {
-  if (gx < 0 || gy < 0 || gx >= COLS || gy >= ROWS) return false;
-  if (blocked.has(gx + ',' + gy)) return false;
-  if (towers.some(t => t.gx === gx && t.gy === gy && !t.destroyed)) return false;
-  return true;
+async function writeSlotToLocal(slot, data) {
+  const obj = normalizeSave({ ...data, ts: Date.now() });
+  try {
+    const payload = await encodeSavePayload(obj);
+    localStorage.setItem(SAVE_KEY_PREFIX + slot, payload);
+    slotSummaries[slot] = obj;
+    return obj;
+  } catch (e) {
+    console.warn('[存档] 写入失败：', e);
+    slotSummaries[slot] = obj;
+    return obj;
+  }
+}
+
+let persistChain = Promise.resolve();
+function persistCurrent() {
+  persistChain = persistChain.then(async () => {
+    if (!saveReady) return;
+    await writeSlotToLocal(currentSlot, { ...save });
+    if (!saveOverlay.classList.contains('hide')) renderSlots();
+  }).catch(() => {});
+  return persistChain;
+}
+
+async function migrateLegacy() {
+  try {
+    const legacyRaw = localStorage.getItem(LEGACY_KEY);
+    if (!legacyRaw) return;
+    const exists0 = localStorage.getItem(SAVE_KEY_PREFIX + 0);
+    if (!exists0) {
+      const obj = await decodeSavePayload(legacyRaw);
+      if (obj) await writeSlotToLocal(0, normalizeSave(obj));
+    }
+    localStorage.removeItem(LEGACY_KEY);
+  } catch (e) { /* 忽略迁移错误 */ }
+}
+
+async function initSave() {
+  await migrateLegacy();
+
+  for (let i = 0; i < SLOT_COUNT; i++) {
+    slotSummaries[i] = null;
+    try {
+      const raw = localStorage.getItem(SAVE_KEY_PREFIX + i);
+      if (raw) {
+        const obj = await decodeSavePayload(raw);
+        if (obj) slotSummaries[i] = normalizeSave(obj);
+      }
+    } catch (e) {
+      console.warn('[存档] 槽位 ' + (i + 1) + ' 读取失败：', e);
+    }
+  }
+
+  let s = 0;
+  try {
+    const v = parseInt(localStorage.getItem(CURRENT_SLOT_KEY) || '0', 10);
+    if (!isNaN(v) && v >= 0 && v < SLOT_COUNT) s = v;
+  } catch (e) { /* 忽略 */ }
+  currentSlot = s;
+
+  if (slotSummaries[currentSlot]) {
+    applySave(slotSummaries[currentSlot]);
+  } else {
+    applySave(normalizeSave(save));
+    await writeSlotToLocal(currentSlot, save);
+  }
+
+  saveReady = true;
+}
+
+/* ================= 工具 ================= */
+function rnd(s) {
+  const v = Math.sin(s * 127.1) * 43758.5453;
+  return v - Math.floor(v);
+}
+function distToSegment(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const len2 = dx * dx + dy * dy;
+  let t = len2 ? ((px - x1) * dx + (py - y1) * dy) / len2 : 0;
+  t = t < 0 ? 0 : t > 1 ? 1 : t;
+  const cx = x1 + t * dx, cy = y1 + t * dy;
+  return Math.hypot(px - cx, py - cy);
 }
 
 let toastTimer = null;
-function toast(msg, ok) {
-  const el = $('toast');
+function toast(msg) {
+  let el = document.getElementById('toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toast';
+    document.body.appendChild(el);
+  }
   el.textContent = msg;
-  el.classList.toggle('ok', !!ok);
   el.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
 }
 
-function addParticles(x, y, color, count, spd) {
-  spd = spd || 100;
+function downloadText(text, filename) {
+  const blob = new Blob([text], { type: 'text/plain' });
+  downloadBlob(blob, filename);
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function formatTime(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/* ================= 确认弹窗 ================= */
+function showConfirm(title, msg, okText) {
+  confirmTitle.textContent = title;
+  confirmMsg.innerHTML = msg;
+  confirmOkBtn.textContent = okText || '确认';
+  confirmOverlay.classList.remove('hide');
+  return new Promise((resolve) => {
+    confirmResolver = resolve;
+  });
+}
+function closeConfirm(result) {
+  confirmOverlay.classList.add('hide');
+  const r = confirmResolver;
+  confirmResolver = null;
+  if (r) r(result);
+}
+confirmOkBtn.addEventListener('click', () => closeConfirm(true));
+confirmCancelBtn.addEventListener('click', () => closeConfirm(false));
+confirmOverlay.addEventListener('click', (e) => {
+  if (e.target === confirmOverlay) closeConfirm(false);
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !confirmOverlay.classList.contains('hide')) {
+    closeConfirm(false);
+  }
+});
+
+/* ================= 数值 ================= */
+function lifePrice(level)       { return Math.floor(100 * Math.pow(1.5, level)); }
+function rangePrice(level)      { return Math.floor(150 * Math.pow(1.5, level)); }
+function bladePrice(level)      { return Math.floor(200 * Math.pow(1.5, level)); }
+function defusePrice(level)     { return Math.floor(300 * Math.pow(1.5, level)); }
+function autoSpeedPrice(level)  { return Math.floor(250 * Math.pow(1.5, level)); }
+function coinPrice(level)       { return Math.floor(500 * Math.pow(1.8, level)); }
+
+function maxLives()             { return BASE_LIFE + save.lifeLevel; }
+function cutRadius()            { return BASE_CUT_RANGE + save.rangeLevel * CUT_RANGE_PER_LEVEL; }
+function bladeLife()            { return BASE_BLADE_LIFE + save.bladeLevel * BLADE_LIFE_PER_LEVEL; }
+function bombDefuseChance()     { return Math.min(1, BASE_BOMB_DEFUSE + save.bombDefuseLevel * BOMB_DEFUSE_PER_LEVEL); }
+function autoSpeed()            { return BASE_AUTO_SPEED + save.autoSpeedLevel * AUTO_SPEED_PER_LEVEL; }
+function coinPerFruit()         { return BASE_COIN_PER_FRUIT + save.coinLevel * COIN_PER_FRUIT_PER_LEVEL; }
+
+/* ================= UI 刷新 ================= */
+function refreshCoinHud() {
+  coinHudEl.textContent = '💰 ' + (save.coins + runCoins);
+}
+function refreshMenuStats() {
+  menuCoinsEl.textContent = save.coins;
+  menuBestEl.textContent = save.bestScore;
+}
+function refreshAutoUI() {
+  const on = save.autoMode;
+  autoBtn.textContent = '🤖 自动模式：' + (on ? '开' : '关');
+  autoToggle.textContent = on ? '🤖 自动: 开' : '🤖 自动: 关';
+  autoToggle.classList.toggle('on', on);
+}
+function setBuyButton(btn, level, maxLevel, price) {
+  if (level >= maxLevel) {
+    btn.textContent = '已满级';
+    btn.disabled = true;
+    return;
+  }
+  if (save.coins < price) {
+    btn.textContent = price + ' 金币 · 金币不足';
+    btn.disabled = true;
+  } else {
+    btn.textContent = price + ' 金币';
+    btn.disabled = false;
+  }
+}
+function refreshShopUI() {
+  shopCoinsEl.textContent = save.coins;
+
+  shopLivesEl.textContent = BASE_LIFE + save.lifeLevel;
+  shopLivesNextEl.textContent = BASE_LIFE + save.lifeLevel + 1;
+  setBuyButton(buyLifeBtn, save.lifeLevel, MAX_UPGRADE_LEVEL, lifePrice(save.lifeLevel));
+
+  shopRangeEl.textContent = BASE_CUT_RANGE + save.rangeLevel * CUT_RANGE_PER_LEVEL;
+  shopRangeNextEl.textContent = BASE_CUT_RANGE + (save.rangeLevel + 1) * CUT_RANGE_PER_LEVEL;
+  setBuyButton(buyRangeBtn, save.rangeLevel, MAX_RANGE_LEVEL, rangePrice(save.rangeLevel));
+
+  shopBladeEl.textContent = (BASE_BLADE_LIFE + save.bladeLevel * BLADE_LIFE_PER_LEVEL).toFixed(2);
+  shopBladeNextEl.textContent = (BASE_BLADE_LIFE + (save.bladeLevel + 1) * BLADE_LIFE_PER_LEVEL).toFixed(2);
+  setBuyButton(buyBladeBtn, save.bladeLevel, MAX_BLADE_LEVEL, bladePrice(save.bladeLevel));
+
+  shopDefuseEl.textContent = Math.round((BASE_BOMB_DEFUSE + save.bombDefuseLevel * BOMB_DEFUSE_PER_LEVEL) * 100);
+  shopDefuseNextEl.textContent = Math.round(Math.min(1, BASE_BOMB_DEFUSE + (save.bombDefuseLevel + 1) * BOMB_DEFUSE_PER_LEVEL) * 100);
+  setBuyButton(buyDefuseBtn, save.bombDefuseLevel, MAX_BOMB_DEFUSE_LEVEL, defusePrice(save.bombDefuseLevel));
+
+  shopAutoSpeedEl.textContent = BASE_AUTO_SPEED + save.autoSpeedLevel * AUTO_SPEED_PER_LEVEL;
+  shopAutoSpeedNextEl.textContent = BASE_AUTO_SPEED + (save.autoSpeedLevel + 1) * AUTO_SPEED_PER_LEVEL;
+  setBuyButton(buyAutoSpeedBtn, save.autoSpeedLevel, MAX_AUTO_SPEED_LEVEL, autoSpeedPrice(save.autoSpeedLevel));
+
+  shopCoinEl.textContent = BASE_COIN_PER_FRUIT + save.coinLevel * COIN_PER_FRUIT_PER_LEVEL;
+  shopCoinNextEl.textContent = BASE_COIN_PER_FRUIT + (save.coinLevel + 1) * COIN_PER_FRUIT_PER_LEVEL;
+  setBuyButton(buyCoinBtn, save.coinLevel, MAX_COIN_LEVEL, coinPrice(save.coinLevel));
+}
+function refreshAll() {
+  updateHUD();
+  refreshCoinHud();
+  refreshMenuStats();
+  refreshAutoUI();
+  refreshShopUI();
+  if (!saveOverlay.classList.contains('hide')) renderSlots();
+}
+
+/* ================= 商城行为 ================= */
+async function buyUpgrade(kind) {
+  if (kind === 'life') {
+    if (save.lifeLevel >= MAX_UPGRADE_LEVEL) return;
+    const p = lifePrice(save.lifeLevel);
+    if (save.coins < p) return;
+    save.coins -= p; save.lifeLevel++;
+    toast('生命上限提升至 ' + maxLives());
+  } else if (kind === 'range') {
+    if (save.rangeLevel >= MAX_RANGE_LEVEL) return;
+    const p = rangePrice(save.rangeLevel);
+    if (save.coins < p) return;
+    save.coins -= p; save.rangeLevel++;
+    toast('切割范围提升至 ' + cutRadius() + 'px');
+  } else if (kind === 'blade') {
+    if (save.bladeLevel >= MAX_BLADE_LEVEL) return;
+    const p = bladePrice(save.bladeLevel);
+    if (save.coins < p) return;
+    save.coins -= p; save.bladeLevel++;
+    toast('剑气滞留提升至 ' + bladeLife().toFixed(2) + 's');
+  } else if (kind === 'defuse') {
+    if (save.bombDefuseLevel >= MAX_BOMB_DEFUSE_LEVEL) return;
+    const p = defusePrice(save.bombDefuseLevel);
+    if (save.coins < p) return;
+    save.coins -= p; save.bombDefuseLevel++;
+    toast('炸弹免伤概率提升至 ' + Math.round(bombDefuseChance() * 100) + '%');
+  } else if (kind === 'autospeed') {
+    if (save.autoSpeedLevel >= MAX_AUTO_SPEED_LEVEL) return;
+    const p = autoSpeedPrice(save.autoSpeedLevel);
+    if (save.coins < p) return;
+    save.coins -= p; save.autoSpeedLevel++;
+    toast('自动指针速度提升至 ' + autoSpeed());
+  } else if (kind === 'coin') {
+    if (save.coinLevel >= MAX_COIN_LEVEL) return;
+    const p = coinPrice(save.coinLevel);
+    if (save.coins < p) return;
+    save.coins -= p; save.coinLevel++;
+    toast('每个水果可获得 ' + coinPerFruit() + ' 💰');
+  }
+  refreshShopUI();
+  refreshCoinHud();
+  refreshMenuStats();
+  await persistCurrent();
+}
+
+function openShop() {
+  if (!saveReady) return;
+  overlay.classList.add('hide');
+  shopOverlay.classList.remove('hide');
+  refreshShopUI();
+}
+function closeShop() {
+  shopOverlay.classList.add('hide');
+  overlay.classList.remove('hide');
+  refreshMenuStats();
+}
+
+/* ================= 存档面板 ================= */
+function renderSlots() {
+  slotListEl.innerHTML = '';
+  for (let i = 0; i < SLOT_COUNT; i++) {
+    const s = slotSummaries[i];
+    const card = document.createElement('div');
+    card.className = 'slot-card' + (i === currentSlot ? ' active' : '');
+
+    let body;
+    if (s) {
+      body = `
+        <div class="slot-stats">
+          <span>💰 ${s.coins}</span>
+          <span>🏆 ${s.bestScore}</span>
+          <span>❤️ ${s.lifeLevel}</span>
+          <span>✋ ${s.rangeLevel}</span>
+          <span>⚔️ ${s.bladeLevel}</span>
+          <span>💥 ${s.bombDefuseLevel}</span>
+          <span>🤖 ${s.autoSpeedLevel}</span>
+          <span>🪙 ${s.coinLevel}</span>
+        </div>
+        <div class="slot-time">${formatTime(s.ts)}</div>
+      `;
+    } else {
+      body = `<div class="slot-empty">空槽位</div>`;
+    }
+
+    card.innerHTML = `
+      <div class="slot-head">
+        <span class="slot-name">槽位 ${i + 1}</span>
+        ${i === currentSlot ? '<span class="slot-badge">当前</span>' : ''}
+      </div>
+      ${body}
+      <div class="slot-actions">
+        <button data-act="save"   data-slot="${i}">保存</button>
+        <button data-act="load"   data-slot="${i}" ${s ? '' : 'disabled'}>读取</button>
+        <button data-act="export" data-slot="${i}" ${s ? '' : 'disabled'} class="secondary">导出</button>
+        <button data-act="import" data-slot="${i}" class="secondary">导入</button>
+        <button data-act="reset"  data-slot="${i}" class="danger">重置</button>
+      </div>
+    `;
+    slotListEl.appendChild(card);
+  }
+}
+
+async function saveSlot(slot) {
+  await writeSlotToLocal(slot, { ...save });
+  currentSlot = slot;
+  try { localStorage.setItem(CURRENT_SLOT_KEY, String(slot)); } catch (e) { /* 忽略 */ }
+  renderSlots();
+  refreshAll();
+  toast('已保存到槽位 ' + (slot + 1));
+}
+
+async function loadSlot(slot) {
+  const obj = slotSummaries[slot];
+  if (!obj) return;
+  applySave(obj);
+  currentSlot = slot;
+  try { localStorage.setItem(CURRENT_SLOT_KEY, String(slot)); } catch (e) { /* 忽略 */ }
+  if (state === 'over') resetMenuOverlay();
+  refreshAll();
+  renderSlots();
+  toast('已读取槽位 ' + (slot + 1));
+}
+
+/* 导出为 .aes 二进制文件（与 AES256.html 工具完全兼容） */
+async function exportSlot(slot) {
+  const s = (slot === currentSlot) ? { ...save, ts: Date.now() } : slotSummaries[slot];
+  if (!s) {
+    toast('该槽位没有存档');
+    return;
+  }
+  if (!subtleAvailable()) {
+    toast('当前环境不支持加密导出');
+    return;
+  }
+  try {
+    const payload = {
+      __game: 'fruit_slice',
+      __version: 1,
+      coins:          s.coins || 0,
+      lifeLevel:      s.lifeLevel || 0,
+      rangeLevel:     s.rangeLevel || 0,
+      bladeLevel:     s.bladeLevel || 0,
+      bombDefuseLevel:s.bombDefuseLevel || 0,
+      autoSpeedLevel: s.autoSpeedLevel || 0,
+      coinLevel:      s.coinLevel || 0,
+      bestScore:      s.bestScore || 0,
+      autoMode:       !!s.autoMode,
+      ts:             s.ts || Date.now()
+    };
+    const plain = new TextEncoder().encode(JSON.stringify(payload));
+    const enc = await encryptToAesBytes(plain, SAVE_ITER);
+
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+    const blob = new Blob([enc], { type: 'application/octet-stream' });
+    downloadBlob(blob, `fruit_save_slot${slot + 1}_${stamp}.aes`);
+    toast('已导出槽位 ' + (slot + 1) + ' → .aes');
+  } catch (e) {
+    console.warn('[存档] 导出失败：', e);
+    toast('导出失败：' + (e.message || '未知错误'));
+  }
+}
+
+function importSlot(slot) {
+  pendingImportSlot = slot;
+  importFileInput.value = '';
+  importFileInput.click();
+}
+
+importFileInput.addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const slot = pendingImportSlot;
+  try {
+    const buffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+
+    let obj;
+    if (bytes.length >= 49 && bytes[0] === 0x01) {
+      // 标准 .aes 二进制（与 AES256.html 工具互通）
+      obj = await decryptAesToJson(bytes);
+    } else {
+      // 兼容旧版：Base64 / 明文 / PLAIN:
+      const text = new TextDecoder().decode(bytes);
+      obj = await decodeSavePayload(text);
+    }
+
+    if (!obj || typeof obj !== 'object') throw new Error('无效存档内容');
+    const data = normalizeSave(obj);
+    await writeSlotToLocal(slot, data);
+    applySave(data);
+    currentSlot = slot;
+    try { localStorage.setItem(CURRENT_SLOT_KEY, String(slot)); } catch (e2) { /* 忽略 */ }
+    if (state === 'over') resetMenuOverlay();
+    refreshAll();
+    renderSlots();
+    toast('已导入并读取槽位 ' + (slot + 1));
+  } catch (err) {
+    console.warn('[存档] 导入失败：', err);
+    toast('导入失败：' + (err.message || '文件格式不正确'));
+  }
+  importFileInput.value = '';
+});
+
+/* ================= 重置逻辑 ================= */
+function forceBackToMenu() {
+  state = 'menu';
+  fruits = []; halves = []; particles = []; floaters = [];
+  trailPts = [];
+  pointerActive = false;
+  autoPointer.x = null;
+  autoPointer.y = null;
+  autoPointer.target = null;
+  score = 0;
+  lives = BASE_LIFE;
+  runCoins = 0;
+  combo = 0;
+  comboTimer = 0;
+  shake = 0;
+  flash = 0;
+  autoToggle.classList.remove('show');
+}
+
+async function resetSlot(slot) {
+  const fresh = normalizeSave({});
+  await writeSlotToLocal(slot, fresh);
+
+  const wasCurrent = (slot === currentSlot);
+  if (wasCurrent) {
+    applySave(fresh);
+    forceBackToMenu();
+  }
+
+  refreshAll();
+  renderSlots();
+  resetMenuOverlay();
+
+  toast('槽位 ' + (slot + 1) + ' 已重置，开始新局！');
+}
+
+async function requestResetSlot(slot) {
+  const isCurrent = (slot === currentSlot);
+  const note = isCurrent
+    ? '这是<b>当前使用</b>的槽位，重置后立即生效。'
+    : '该槽位<b>不是</b>当前使用槽位，重置只影响该槽位。';
+  const ok = await showConfirm(
+    '⚠️ 确认重置',
+    `将清空<b>槽位 ${slot + 1}</b> 的全部进度：<br>` +
+    `金币、生命/范围/剑气/免伤/自动速度/金币加成升级、最高分<br><br>` +
+    note + '<br><br>此操作<b>不可撤销</b>，确定吗？',
+    '确认重置'
+  );
+  if (!ok) return;
+  await resetSlot(slot);
+}
+
+async function requestResetCurrent() {
+  const ok = await showConfirm(
+    '🔄 重置当前存档',
+    `将把<b>当前槽位（槽位 ${currentSlot + 1}）</b>重置为初始状态：<br>` +
+    `金币归零、所有升级清空、最高分归零。<br><br>` +
+    '你会立即回到主菜单，开始全新的一局。<br><br>此操作<b>不可撤销</b>，确定吗？',
+    '开新局'
+  );
+  if (!ok) return;
+  await resetSlot(currentSlot);
+}
+
+slotListEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  const slot = parseInt(btn.dataset.slot, 10);
+  const act = btn.dataset.act;
+  if (isNaN(slot)) return;
+  if (act === 'save') saveSlot(slot);
+  else if (act === 'load') loadSlot(slot);
+  else if (act === 'export') exportSlot(slot);
+  else if (act === 'import') importSlot(slot);
+  else if (act === 'reset') requestResetSlot(slot);
+});
+
+function openSave() {
+  if (!saveReady) return;
+  overlay.classList.add('hide');
+  saveOverlay.classList.remove('hide');
+  renderSlots();
+}
+function closeSave() {
+  saveOverlay.classList.add('hide');
+  overlay.classList.remove('hide');
+  refreshMenuStats();
+}
+
+/* ================= 自动模式 ================= */
+function setAutoMode(v) {
+  save.autoMode = !!v;
+  autoPointer.x = null;
+  autoPointer.y = null;
+  autoPointer.target = null;
+  pointerActive = false;
+  trailPts = [];
+  refreshAutoUI();
+  persistCurrent();
+}
+
+/* ================= 生成 ================= */
+function scaleFactor() {
+  return Math.min(1.2, Math.max(0.62, Math.min(W, H) / 760));
+}
+
+function spawnOne(isBomb) {
+  const sf = scaleFactor();
+  const cfg = isBomb ? null : FRUIT_TYPES[(Math.random() * FRUIT_TYPES.length) | 0];
+  const r = (isBomb ? 30 : cfg.r) * sf;
+
+  const x = W * 0.12 + Math.random() * W * 0.76;
+  const y = H + r + 10;
+  const peakH = H * (0.55 + Math.random() * 0.28);
+  const vy = -Math.sqrt(2 * G * peakH);
+  const t = -2 * vy / G;
+  const targetX = W * 0.15 + Math.random() * W * 0.7;
+  const vx = (targetX - x) / t;
+
+  fruits.push({
+    x, y, vx, vy, r,
+    rot: Math.random() * Math.PI * 2,
+    vrot: (Math.random() - 0.5) * 3,
+    cfg, isBomb
+  });
+}
+
+function spawnWave() {
+  const diff = Math.min(elapsed / 50, 1);
+  let count = 1 + Math.floor(Math.random() * (1 + diff * 2.2));
+  if (count > 4) count = 4;
+
   for (let i = 0; i < count; i++) {
+    setTimeout(() => { if (state === 'playing') spawnOne(false); }, i * 110);
+  }
+
+  const bombCount = fruits.filter(f => f.isBomb).length;
+  if (bombCount < 2 && Math.random() < 0.07 + diff * 0.24) {
+    setTimeout(() => { if (state === 'playing') spawnOne(true); }, 150 + Math.random() * 380);
+  }
+}
+
+/* ================= 切割判定 ================= */
+function processCutting() {
+  if (state !== 'playing') return;
+
+  const cr = cutRadius();
+  const segR = cr * 0.75;
+
+  const blades = [];
+  if (pointerActive) {
+    blades.push({ circle: true, x: pointerX, y: pointerY, r: cr });
+  }
+  for (let i = 1; i < trailPts.length; i++) {
+    const a = trailPts[i - 1];
+    const b = trailPts[i];
+    blades.push({ x1: a.x, y1: a.y, x2: b.x, y2: b.y, r: segR });
+  }
+  if (!blades.length) return;
+
+  for (let i = fruits.length - 1; i >= 0; i--) {
+    if (state !== 'playing') break;
+    const f = fruits[i];
+
+    let hitBlade = null;
+    for (let j = 0; j < blades.length; j++) {
+      const b = blades[j];
+      if (b.circle) {
+        if (Math.hypot(f.x - b.x, f.y - b.y) < f.r + b.r) { hitBlade = b; break; }
+      } else {
+        if (distToSegment(f.x, f.y, b.x1, b.y1, b.x2, b.y2) < f.r + b.r) { hitBlade = b; break; }
+      }
+    }
+    if (!hitBlade) continue;
+
+    let angle = Math.random() * Math.PI;
+    if (!hitBlade.circle) {
+      angle = Math.atan2(hitBlade.y2 - hitBlade.y1, hitBlade.x2 - hitBlade.x1);
+    }
+
+    fruits.splice(i, 1);
+    if (f.isBomb) hitBomb(f);
+    else sliceFruit(f, angle);
+  }
+}
+
+/* ================= 自动虚拟指针 ================= */
+function updateAutoPointer(dt) {
+  if (state !== 'playing' || !save.autoMode) return;
+
+  if (autoPointer.x === null || autoPointer.y === null) {
+    autoPointer.x = W * 0.5;
+    autoPointer.y = H * 0.8;
+  }
+
+  let target = autoPointer.target;
+  if (!target || !fruits.includes(target) || target.isBomb) {
+    let best = null;
+    let bestD = Infinity;
+    for (let i = 0; i < fruits.length; i++) {
+      const f = fruits[i];
+      if (f.isBomb) continue;
+      const d = Math.hypot(f.x - autoPointer.x, f.y - autoPointer.y);
+      if (d < bestD) { bestD = d; best = f; }
+    }
+    if (!best) {
+      for (let i = 0; i < fruits.length; i++) {
+        const f = fruits[i];
+        const d = Math.hypot(f.x - autoPointer.x, f.y - autoPointer.y);
+        if (d < bestD) { bestD = d; best = f; }
+      }
+    }
+    target = best;
+    autoPointer.target = target;
+  }
+
+  if (target && fruits.includes(target)) {
+    const dx = target.x - autoPointer.x;
+    const dy = target.y - autoPointer.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > 0.5) {
+      const speed = autoSpeed() * AUTO_SPEED_PX_FACTOR;
+      const step = speed * dt;
+      if (step >= dist) {
+        autoPointer.x = target.x;
+        autoPointer.y = target.y;
+      } else {
+        autoPointer.x += (dx / dist) * step;
+        autoPointer.y += (dy / dist) * step;
+      }
+    }
+  } else {
+    autoPointer.x += (Math.random() - 0.5) * 120 * dt;
+    autoPointer.y += (Math.random() - 0.5) * 120 * dt;
+  }
+
+  autoPointer.x = Math.max(0, Math.min(W, autoPointer.x));
+  autoPointer.y = Math.max(0, Math.min(H, autoPointer.y));
+
+  pointerActive = true;
+  pointerX = autoPointer.x;
+  pointerY = autoPointer.y;
+
+  trailPts.push({ x: pointerX, y: pointerY, t: performance.now() });
+  if (trailPts.length > 70) trailPts.shift();
+}
+
+/* ================= 切割 / 炸弹效果 ================= */
+function spawnBombBurst(f) {
+  for (let i = 0; i < 70; i++) {
     const a = Math.random() * Math.PI * 2;
-    const v = spd * (0.35 + Math.random() * 0.85);
+    const sp = 100 + Math.random() * 520;
+    const life = 0.5 + Math.random() * 0.7;
+    const c = Math.random();
     particles.push({
-      x, y,
-      vx: Math.cos(a) * v,
-      vy: Math.sin(a) * v,
-      life: 0.35 + Math.random() * 0.35,
-      maxLife: 0.7,
-      size: 1.5 + Math.random() * 2.5,
-      color
+      x: f.x, y: f.y,
+      vx: Math.cos(a) * sp,
+      vy: Math.sin(a) * sp,
+      r: 2 + Math.random() * 7,
+      color: c < 0.4 ? '#ff8a00' : c < 0.75 ? '#ffe066' : '#ff3b00',
+      life, maxLife: life
     });
   }
 }
-function addFloat(x, y, text, color) {
-  floats.push({ x, y, text, color, life: 1.0 });
+
+function hitBomb(f) {
+  if (Math.random() < bombDefuseChance()) {
+    spawnBombBurst(f);
+    floaters.push({ x: f.x, y: f.y - 30, text: '剑气砍爆! 💥', life: 1, maxLife: 1, color: '#8ef6ff' });
+    shake = 10;
+    return;
+  }
+
+  spawnBombBurst(f);
+  shake = 26;
+  flash = 1;
+  floaters.push({ x: f.x, y: f.y - 30, text: '-1 ❤️', life: 1, maxLife: 1, color: '#ff6b6b' });
+  loseLife();
 }
 
-function checkEnclosure() {
-  if (gameOver) return;
+function sliceFruit(f, angle) {
+  const nx = Math.cos(angle + Math.PI / 2);
+  const ny = Math.sin(angle + Math.PI / 2);
 
-  let gridMap = Array.from({length: ROWS}, () => Array(COLS).fill(0));
-  
-  const activeTowers = towers.filter(t => !t.destroyed && t.buildingTimer <= 0);
-  activeTowers.forEach(t => {
-    gridMap[t.gy][t.gx] = 1;
-  });
-  
-  for (let y = CASTLE.gy; y < CASTLE.gy + CASTLE.h; y++) {
-    for (let x = CASTLE.gx; x < CASTLE.gx + CASTLE.w; x++) {
-      gridMap[y][x] = 2;
-    }
-  }
-
-  let visited = Array.from({length: ROWS}, () => Array(COLS).fill(false));
-  let q = [];
-  
-  for (let x = 0; x < COLS; x++) {
-    if (gridMap[0][x] === 0) { q.push([x, 0]); visited[0][x] = true; }
-    if (gridMap[ROWS-1][x] === 0) { q.push([x, ROWS-1]); visited[ROWS-1][x] = true; }
-  }
-  for (let y = 0; y < ROWS; y++) {
-    if (gridMap[y][0] === 0) { q.push([0, y]); visited[y][0] = true; }
-    if (gridMap[y][COLS-1] === 0) { q.push([COLS-1, y]); visited[y][COLS-1] = true; }
-  }
-
-  let head = 0;
-  const dirs = [[0,1], [1,0], [0,-1], [-1,0]];
-  while (head < q.length) {
-    let [cx, cy] = q[head++];
-    for (let d of dirs) {
-      let nx = cx + d[0], ny = cy + d[1];
-      if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS) {
-        if (gridMap[ny][nx] === 0 && !visited[ny][nx]) {
-          visited[ny][nx] = true;
-          q.push([nx, ny]);
-        }
-      }
-    }
-  }
-
-  let enclosed = true;
-  for (let y = CASTLE.gy - 1; y <= CASTLE.gy + CASTLE.h; y++) {
-    for (let x = CASTLE.gx - 1; x <= CASTLE.gx + CASTLE.w; x++) {
-      if (x >= 0 && x < COLS && y >= 0 && y < ROWS) {
-        if (gridMap[y][x] === 0 && visited[y][x]) {
-          enclosed = false;
-        }
-      }
-    }
-  }
-
-  if (enclosed) {
-    let maxDist = 0;
-    activeTowers.forEach(t => {
-      let dist = Math.max(Math.abs(t.gx - 9.5), Math.abs(t.gy - 5.5));
-      if (dist > maxDist) maxDist = dist;
+  for (const side of [1, -1]) {
+    halves.push({
+      x: f.x + nx * side * f.r * 0.22,
+      y: f.y + ny * side * f.r * 0.22,
+      vx: f.vx * 0.55 + nx * side * 175,
+      vy: f.vy * 0.55 + ny * side * 175 - 40,
+      r: f.r,
+      rot: angle,
+      vrot: side * (1.0 + Math.random() * 1.3),
+      side,
+      cfg: f.cfg,
+      seed: Math.random() * 1000
     });
-
-    let newMag = 0;
-    if (maxDist >= 4 && activeTowers.length >= 12) newMag = 3;
-    if (maxDist >= 6.5 && activeTowers.length >= 24) newMag = 5;
-
-    if (newMag > achMag) {
-      achMag = newMag;
-      if (achMag === 3) {
-        toast('🏆 成就解锁：马奇诺防线！防御塔最大等级+10', true);
-        addLog('🏆 成就解锁：马奇诺防线！', 'success');
-      }
-      if (achMag === 5) {
-        toast('🏆 成就解锁：终极防线！我方受到所有伤害*0.5', true);
-        addLog('🏆 成就解锁：终极防线！', 'success');
-      }
-      updateHUD();
-    }
   }
-}
 
-function buildSpawnList(w) {
-  const list = [];
-  const add = (type, count, gap, delay) => {
-    for (let i = 0; i < count; i++) list.push({ type, t: delay + i * gap });
-  };
-
-  if (w % 10 === 0) {
-    add('boss', 1 + Math.floor(w / 20), 1.6, 0);
-    add('grunt', Math.min(60, 10 + w), 0.3, 1.2);
-    add('runner', Math.min(40, Math.floor(w * 0.8)), 0.2, 3);
-    if (w >= 10) add('flyer', Math.min(25, 5 + Math.floor(w / 2)), 0.5, 2);
-    if (w >= 20) add('tank', Math.min(20, 2 + Math.floor(w / 10)), 0.8, 4);
-  } else {
-    const n = Math.min(60, 6 + Math.floor(w * 1.2));
-    add('grunt', n, Math.max(0.18, 0.55 - w * 0.004), 0);
-    if (w >= 3) add('runner', Math.min(30, Math.floor(n * 0.6)), 0.3, 1.2);
-    if (w >= 5) add('tank', Math.min(16, 1 + Math.floor(w / 4)), 1.1, 2.5);
-    if (w >= 4) add('flyer', Math.min(20, 2 + Math.floor(w / 3)), 0.8, 1.5);
+  for (let i = 0; i < 18; i++) {
+    const dir = Math.random() < 0.5 ? 1 : -1;
+    const sp = 80 + Math.random() * 260;
+    const ang = angle + (Math.PI / 2) * dir + (Math.random() - 0.5) * 1.2;
+    const life = 0.4 + Math.random() * 0.45;
+    particles.push({
+      x: f.x + (Math.random() - 0.5) * f.r * 0.6,
+      y: f.y + (Math.random() - 0.5) * f.r * 0.6,
+      vx: Math.cos(ang) * sp,
+      vy: Math.sin(ang) * sp,
+      r: 2 + Math.random() * 4.5,
+      color: Math.random() < 0.35 ? (f.cfg.inner2 || f.cfg.inner) : f.cfg.inner,
+      life, maxLife: life
+    });
   }
-  list.sort((a, b) => a.t - b.t);
-  return list;
-}
 
-function startWave() {
-  if (gameOver) return;
-  waveNum++;
-  const w = waveNum;
-  wave = {
-    active: true,
-    list: buildSpawnList(w),
-    idx: 0,
-    time: 0,
-    hpMul: 1 + (w - 1) * 0.16 + Math.pow(w, 1.5) * 0.05,
-    speedMul: 1 + Math.min(3.0, w * 0.015),
-    earlySpawnTimer: 0
-  };
-  waveStartTotal = Math.max(1, wave.list[wave.list.length - 1].t);
-  waveTimer = 0;
-  addLog(`第 ${waveNum} 波来袭！`, 'danger');
+  combo++;
+  comboTimer = 0.9;
+  const gain = combo >= 5 ? 3 : combo >= 3 ? 2 : 1;
+  score += gain;
+
+  const gainedCoins = coinPerFruit();
+  runCoins += gainedCoins;
+
+  floaters.push({ x: f.x, y: f.y - f.r * 0.4, text: '+' + gain, life: 0.8, maxLife: 0.8, color: '#fff3c4' });
+  floaters.push({ x: f.x + f.r * 0.55, y: f.y - f.r * 0.9, text: '+' + gainedCoins + '💰', life: 0.9, maxLife: 0.9, color: '#ffd166' });
+  if (combo >= 3) {
+    floaters.push({ x: f.x, y: f.y - f.r * 1.15, text: combo + ' 连击!', life: 0.95, maxLife: 0.95, color: '#ffd166' });
+  }
+
+  refreshCoinHud();
   updateHUD();
 }
 
-function finishWave(isTimeout = false) {
-  wave.active = false;
-  if (!isTimeout) {
-    const bonus = 50 + waveNum * 20;
-    gold += bonus;
-    castleHp = Math.min(CASTLE_MAX_HP, castleHp + 50);
-    addFloat(W / 2, H / 2 - 40, '波次奖励 +' + bonus, '#7ef0a0');
-    addLog(`第 ${waveNum} 波清空，获得 ${bonus} 金币`, 'success');
-    waveTimer = 8;
-  } else {
-    addLog(`第 ${waveNum} 波超时，强制推进！`, 'warning');
-    waveTimer = 0;
-  }
-  updateHUD();
-}
-
-function spawnEnemy(type) {
-  const d = ENEMY_DEFS[type];
-  const hp = Math.max(1, Math.round(d.hp * wave.hpMul));
-  
-  const dmgMul = 1 + (waveNum - 1) * 0.05;
-  const currentDmg = Math.round(d.towerDamage * dmgMul);
-
-  let maxShield = 0, shield = 0;
-  if (waveNum >= 3 && Math.random() < 0.10 + Math.min(0.10, waveNum * 0.002)) {
-    maxShield = Math.round(hp * 1.5);
-    shield = maxShield;
-  }
-
-  const isRanged = waveNum >= 10 && Math.random() < 0.2 + Math.min(0.6, (waveNum - 10) * 0.02);
-  const attackRange = isRanged ? 160 + d.radius : d.radius + 8;
-
-  const side = Math.floor(Math.random() * 4);
-  let x, y;
-  if (side === 0) { x = Math.random() * W; y = -30; }
-  else if (side === 1) { x = W + 30; y = Math.random() * H; }
-  else if (side === 2) { x = Math.random() * W; y = H + 30; }
-  else { x = -30; y = Math.random() * H; }
-
-  enemies.push({
-    type, def: d,
-    hp, maxHp: hp,
-    shield, maxShield,
-    speed: d.speed * wave.speedMul,
-    slowFactor: 1, slowTimer: 0,
-    radius: d.radius, 
-    towerDamage: currentDmg,
-    attackCooldown: d.attackCooldown,
-    attackTimer: Math.random() * 0.6,
-    attackRange: attackRange,
-    isRanged: isRanged,
-    x, y,
-    alive: true,
-    attacking: false,
-    attackTarget: null
-  });
-}
-
-function damageEnemy(e, dmg, type) {
-  if (!e.alive) return;
-  
-  if (type === 'lightning') {
-    e.hp -= dmg;
-  } else {
-    if (e.shield > 0) {
-      e.shield -= dmg;
-      if (e.shield < 0) {
-        e.hp += e.shield;
-        e.shield = 0;
-      }
-    } else {
-      e.hp -= dmg;
-    }
-  }
-  
-  if (e.hp <= 0) {
-    e.hp = 0;
-    e.alive = false;
-    addParticles(e.x, e.y, e.def.color, 12, 130);
-  }
-}
-
-function damageTower(t, dmg) {
-  if (t.destroyed) return;
-  if (achMag >= 5) dmg *= 0.5;
-  
-  t.hp -= dmg;
-  t.hitFlash = 1;
-  if (t.hp <= 0) {
-    t.hp = 0;
-    t.destroyed = true;
-    addParticles(t.x, t.y, t.def.color, 22, 190);
-    addParticles(t.x, t.y, '#ff6b6b', 10, 120);
-    addFloat(t.x, t.y - 20, '摧毁', '#ff6b6b');
-    addLog(`警告：${t.def.name} 被摧毁！`, 'danger');
-    if (selectedTower === t) selectedTower = null;
-    if (aimingNukeTower === t) aimingNukeTower = null;
-    checkEnclosure();
-  }
-}
-
-function findTarget(t, range) {
-  let best = null, bestD = Infinity;
-  const r2 = range * range;
-  
-  let minC = Math.floor((t.x - range) / TILE);
-  let maxC = Math.floor((t.x + range) / TILE);
-  let minR = Math.floor((t.y - range) / TILE);
-  let maxR = Math.floor((t.y + range) / TILE);
-  
-  minC = Math.max(0, minC);
-  maxC = Math.min(GRID_COLS - 1, maxC);
-  minR = Math.max(0, minR);
-  maxR = Math.min(GRID_ROWS - 1, maxR);
-  
-  for (let r = minR; r <= maxR; r++) {
-    for (let c = minC; c <= maxC; c++) {
-      const cellEnemies = grid[r][c];
-      for (let i = 0; i < cellEnemies.length; i++) {
-        const e = cellEnemies[i];
-        if (!e.alive) continue;
-        const isAir = e.def.flying || false;
-        if (t.type === 'antiair') {
-          if (!isAir) continue;
-        } else if (t.type !== 'lightning') {
-          if (isAir) continue; 
-        }
-        const dx = e.x - t.x, dy = e.y - t.y;
-        if (dx * dx + dy * dy <= r2) {
-          const dc = Math.hypot(e.x - CASTLE_CX, e.y - CASTLE_CY);
-          if (dc < bestD) { bestD = dc; best = e; }
-        }
-      }
-    }
-  }
-  return best;
-}
-
-function fire(t, st, target) {
-  t.recoil = 1;
-  if (t.type === 'lightning') {
-    let chainCount = 0;
-    if (t.level >= 25) chainCount = 1;
-    if (t.level >= 30) chainCount = 2;
-    
-    let currentTarget = target;
-    let hitEnemies = new Set();
-    let currentDmg = st.damage;
-    
-    for (let c = 0; c <= chainCount; c++) {
-      if (!currentTarget || !currentTarget.alive) break;
-      
-      hitEnemies.add(currentTarget);
-      
-      let dmg = currentDmg;
-      let isAir = currentTarget.def.flying;
-      if (isAir) dmg = Math.round(dmg * 1.5);
-      
-      damageEnemy(currentTarget, dmg, 'lightning');
-      
-      const color = isAir ? '#a78bfa' : '#c084fc';
-      lightningEffects.push({ x1: t.x, y1: t.y, x2: currentTarget.x, y2: currentTarget.y, life: 0.1, color });
-      
-      if (c < chainCount) {
-        let nextTarget = null;
-        let minDist = 100;
-        for (let e of enemies) {
-          if (!e.alive || hitEnemies.has(e)) continue;
-          let d = Math.hypot(e.x - currentTarget.x, e.y - currentTarget.y);
-          if (d < minDist) {
-            minDist = d;
-            nextTarget = e;
-          }
-        }
-        currentTarget = nextTarget;
-        currentDmg *= 0.8;
-      }
-    }
-    return;
-  }
-  
-  if (t.type === 'flame') return;
-
-  const layout = barrelLayout(st.barrels, st.barrelW);
-  const cosA = Math.cos(t.angle), sinA = Math.sin(t.angle);
-  for (let i = 0; i < layout.length; i++) {
-    const { ox, oy } = layout[i];
-    const localMuzzle = ox + st.barrelLen - 2;
-    const wx = t.x + cosA * localMuzzle - sinA * oy;
-    const wy = t.y + sinA * localMuzzle + cosA * oy;
-    bullets.push({
-      x: wx, y: wy,
-      target,
-      lx: target.x, ly: target.y,
-      speed: st.bulletSpeed,
-      kind: t.def.kind,
-      damage: st.damage,
-      splash: st.splash,
-      color: t.def.color,
-      angle: t.angle,
-      trail: [],
-      dead: false
-    });
-    const mx = wx + cosA * 6;
-    const my = wy + sinA * 6;
-    const flameColor = t.type === 'cannon' ? '#ffb066' : (t.type === 'antiair' ? '#93c5fd' : '#ffe08a');
-    addParticles(mx, my, flameColor, t.type === 'cannon' ? 8 : 4, 160);
-  }
-}
-
-function impact(b, x, y) {
-  if (b.kind === 'shell') {
-    for (let i = 0; i < enemies.length; i++) {
-      const e = enemies[i];
-      if (!e.alive) continue;
-      if (e.def.flying) continue;
-      const d = Math.hypot(e.x - x, e.y - y);
-      if (d <= b.splash) {
-        damageEnemy(e, b.damage * (1 - 0.4 * (d / b.splash)), 'shell');
-      }
-    }
-    addParticles(x, y, '#ffb066', 16, 170);
-    addParticles(x, y, '#ff6b3d', 8, 90);
-  } else {
-    if (b.target && b.target.alive) damageEnemy(b.target, b.damage, 'bullet');
-    addParticles(x, y, '#ffe08a', 3, 90);
-  }
-}
-
-function spawnMissile(x, y, tx, ty, damage, splash, delay = 0) {
-  missiles.push({
-    x, y, targetX: tx, targetY: ty,
-    speed: 1000, damage, splash,
-    dead: false, color: '#f97316', delay
-  });
-}
-
-function launchMissileSwarm(tx, ty) {
-  let count = 0;
-  for (let t of towers) {
-    if (t.type === 'missileSilo' && t.missileCount > 0) {
-      const n = t.missileCount;
-      const st = towerStats(t);
-      for (let i = 0; i < n; i++) {
-        const offsetX = (Math.random() - 0.5) * 300;
-        const offsetY = (Math.random() - 0.5) * 300;
-        spawnMissile(t.x, t.y, tx + offsetX, ty + offsetY, st.damage, 150, i * 0.1);
-        count++;
-      }
-      t.missileCount = 0;
-    }
-  }
-  if (count > 0) {
-    addLog(`🚀 导弹集群发射！共发射 ${count} 枚导弹`, 'danger');
-    toast(`🚀 导弹集群发射！(${count}枚)`, true);
-  } else {
-    toast('没有可用的导弹');
-  }
-}
-
-function launchNuke(t, tx, ty) {
-  if (!t || t.destroyed || t.nukeCount <= 0) return;
-  t.nukeCount--;
-  if (t.nukeCount < 5 && t.nukeStatus === 'ready') t.nukeStatus = 'idle';
-  addLog('💥 核弹发射！世界核平！', 'danger');
-  toast('💥 核弹发射！', true); 
-  
-  const blastRadius = MAP_DIAG * 0.45;
-  const radRadius = MAP_DIAG * 0.2;
-
-  orbitalStrikes.push({
-    x: tx, y: ty, radius: blastRadius, 
-    life: 3.0, maxLife: 3.0, isNuke: true
-  });
-
-  for (let e of enemies) {
-    if (e.alive && Math.hypot(e.x - tx, e.y - ty) <= blastRadius) {
-      e.hp = 0;
-      e.alive = false;
-      addParticles(e.x, e.y, '#fff', 10, 200);
-    }
-  }
-  for (let o of towers) {
-    if (!o.destroyed && Math.hypot(o.x - tx, o.y - ty) <= blastRadius) {
-      o.hp = Math.max(1, Math.floor(o.maxHp * 0.1));
-      addParticles(o.x, o.y, '#ff8a8a', 5, 80);
-    }
-  }
-  radiationZones.push({
-    x: tx, y: ty,
-    radius: radRadius, 
-    life: 100, maxLife: 100
-  });
-}
-
-function updateEnemy(e, dt) {
-  if (!e.alive) return;
-
-  if (e.maxShield > 0 && e.shield < e.maxShield) {
-    e.shield = Math.min(e.maxShield, e.shield + e.maxShield * 0.05 * dt);
-  }
-
-  if (e.slowTimer > 0) {
-    e.slowTimer -= dt;
-    if (e.slowTimer <= 0) e.slowFactor = 1;
-  }
-
-  e.attacking = false;
-  e.attackTarget = null;
-
-  const dCastle = Math.hypot(e.x - CASTLE_CX, e.y - CASTLE_CY);
-
-  if (dCastle <= e.attackRange + 40) {
-    e.attacking = true;
-    e.attackTarget = 'castle';
-    
-    if (e.isRanged) {
-      e.attackTimer -= dt;
-      if (e.attackTimer <= 0) {
-        e.attackTimer = e.attackCooldown / 1.25;
-        enemyBullets.push({
-          x: e.x, y: e.y,
-          target: 'castle',
-          lx: CASTLE_CX, ly: CASTLE_CY,
-          speed: 180,
-          damage: e.towerDamage * 3.5,
-          alive: true
-        });
-      }
-    } else {
-      let dps = e.towerDamage * 2 / e.attackCooldown;
-      let dmg = dps * dt;
-      if (achMag >= 5) dmg *= 0.5;
-      castleHp -= dmg;
-      
-      if (Math.random() < 0.15) {
-        addFloat(CASTLE_CX + (Math.random() - 0.5) * 40, CASTLE_CY - 30, '-' + Math.round(dmg), '#ff6b6b');
-        addParticles(e.x, e.y, '#ff6b6b', 1, 100);
-      }
-    }
-    return;
-  }
-
-  let nearTower = null, nearDist = Infinity;
-  for (let i = 0; i < towers.length; i++) {
-    const t = towers[i];
-    if (t.destroyed) continue;
-    const d = Math.hypot(e.x - t.x, e.y - t.y);
-    if (d < nearDist) { nearDist = d; nearTower = t; }
-  }
-  if (nearTower && nearDist <= e.attackRange + 16) {
-    e.attacking = true;
-    e.attackTarget = nearTower;
-    
-    if (e.isRanged) {
-      e.attackTimer -= dt;
-      if (e.attackTimer <= 0) {
-        e.attackTimer = e.attackCooldown / 1.25;
-        enemyBullets.push({
-          x: e.x, y: e.y,
-          target: nearTower,
-          lx: nearTower.x, ly: nearTower.y,
-          speed: 180,
-          damage: e.towerDamage * 3.5,
-          alive: true
-        });
-      }
-    } else {
-      let dps = e.towerDamage / e.attackCooldown;
-      let dmg = dps * dt;
-      damageTower(nearTower, dmg);
-      
-      if (Math.random() < 0.15) {
-        addParticles((e.x + nearTower.x) / 2, (e.y + nearTower.y) / 2, '#ffb066', 1, 70);
-      }
-    }
-    return;
-  }
-
-  const dx = CASTLE_CX - e.x;
-  const dy = CASTLE_CY - e.y;
-  const dist = Math.hypot(dx, dy) || 1;
-  const step = e.speed * e.slowFactor * dt;
-  e.x += (dx / dist) * step;
-  e.y += (dy / dist) * step;
-}
-
+/* ================= 主循环 ================= */
 function update(dt) {
-  gameTime += dt;
+  const now = performance.now();
+  const cutoff = now - bladeLife() * 1000;
+  while (trailPts.length && trailPts[0].t < cutoff) trailPts.shift();
 
-  if (castleHp <= 0 && !gameOver) {
-    castleHp = 0;
-    gameOver = true;
-    addLog('指挥塔陷落！', 'danger');
-    $('finalWave').textContent = waveNum;
-    $('overlay').classList.remove('hidden');
-    return;
+  if (comboTimer > 0) {
+    comboTimer -= dt;
+    if (comboTimer <= 0) combo = 0;
   }
 
-  rebuildGrid();
-
-  for (let i = radiationZones.length - 1; i >= 0; i--) {
-    let rz = radiationZones[i];
-    rz.life -= dt;
-    if (rz.life <= 0) {
-      radiationZones.splice(i, 1);
-      addLog('☢️ 辐射区已消散', 'info');
-      continue;
-    }
-    for (let j = 0; j < enemies.length; j++) {
-      const e = enemies[j];
-      if (e.alive && Math.hypot(e.x - rz.x, e.y - rz.y) <= rz.radius) {
-        e.hp -= 30 * dt;
-        if (e.hp <= 0) { e.hp = 0; e.alive = false; addParticles(e.x, e.y, e.def.color, 5, 50); }
-      }
-    }
-    for (let j = 0; j < towers.length; j++) {
-      const t = towers[j];
-      if (t.destroyed) continue;
-      if (Math.hypot(t.x - rz.x, t.y - rz.y) <= rz.radius) {
-        damageTower(t, 15 * dt);
-        t.hitFlash = Math.max(t.hitFlash, 0.1);
-      }
+  if (state === 'playing') {
+    elapsed += dt;
+    spawnTimer -= dt;
+    if (spawnTimer <= 0) {
+      spawnWave();
+      const diff = Math.min(elapsed / 50, 1);
+      spawnTimer = 1.15 - 0.6 * diff + Math.random() * 0.5;
     }
   }
 
-  if (autoUpgrade && !gameOver && !paused) {
-    const candidates = towers.filter(t => {
-      if (t.destroyed || t.buildingTimer > 0 || t.upgradingTimer > 0) return false;
-      if (t.type === 'nukeSilo') return false;
-      let maxLv = 10;
-      if (achMag >= 3) maxLv += 10;
-      if (t.type === 'lightning') {
-          if (achTesla) maxLv += 5;
-          if (achTesla2) maxLv += 5;
-      }
-      if (t.type === 'prism' || t.type === 'missileSilo' || t.type === 'converter') maxLv = 20;
-      return t.level < maxLv;
-    });
-    if (candidates.length > 0) {
-      candidates.sort((a, b) => a.level - b.level);
-      for (const t of candidates) {
-        const cost = upgradeCost(t);
-        if (gold >= cost) {
-          gold -= cost;
-          t.invested += cost;
-          t.upgradingTimer = 2.0;
-          addLog(`自动升级 ${t.def.name} 至 T${t.level + 1}...`, 'info');
-        }
-      }
+  updateAutoPointer(dt);
+  processCutting();
+
+  for (let i = fruits.length - 1; i >= 0; i--) {
+    const f = fruits[i];
+    f.vy += G * dt;
+    f.x += f.vx * dt;
+    f.y += f.vy * dt;
+    f.rot += f.vrot * dt;
+    if (f.y - f.r > H + 90 && f.vy > 0) {
+      fruits.splice(i, 1);
+      if (!f.isBomb) loseLife();
     }
   }
 
-  if (!wave.active && !gameOver) {
-    if (speedMul >= 20) waveTimer = 0;
-    waveTimer -= dt;
-    if (waveTimer <= 0) {
-      waveTimer = 0;
-      startWave();
-    }
+  for (let i = halves.length - 1; i >= 0; i--) {
+    const h = halves[i];
+    h.vy += G * dt;
+    h.x += h.vx * dt;
+    h.y += h.vy * dt;
+    h.rot += h.vrot * dt;
+    if (h.y - h.r > H + 110) halves.splice(i, 1);
   }
 
-  if (wave.active) {
-    wave.time += dt;
-    
-    if (wave.time >= 30) {
-      finishWave(true);
-      startWave();
-    } else {
-      while (wave.idx < wave.list.length && wave.list[wave.idx].t <= wave.time) {
-        spawnEnemy(wave.list[wave.idx++].type);
-      }
-
-      if (wave.idx < wave.list.length) {
-        if (enemies.length < 3) {
-          wave.earlySpawnTimer = (wave.earlySpawnTimer || 0) + dt;
-          const EARLY_SPAWN_INTERVAL = 0.4;
-          while (wave.earlySpawnTimer >= EARLY_SPAWN_INTERVAL &&
-                 wave.idx < wave.list.length &&
-                 enemies.length < 3) {
-            wave.earlySpawnTimer -= EARLY_SPAWN_INTERVAL;
-            spawnEnemy(wave.list[wave.idx++].type);
-          }
-        } else {
-          wave.earlySpawnTimer = 0;
-        }
-      }
-    }
-  }
-
-  for (let i = 0; i < enemies.length; i++) {
-    updateEnemy(enemies[i], dt);
-  }
-  for (let i = enemies.length - 1; i >= 0; i--) {
-    if (!enemies[i].alive || enemies[i].hp <= 0) enemies.splice(i, 1);
-  }
-
-  for (let i = 0; i < enemyBullets.length; i++) {
-    const b = enemyBullets[i];
-    if (!b.alive) continue;
-    let tx = b.lx, ty = b.ly;
-
-    if (b.target === 'castle') {
-      tx = CASTLE_CX; ty = CASTLE_CY;
-    } else if (b.target && !b.target.destroyed) {
-      tx = b.target.x; ty = b.target.y;
-    }
-
-    const dx = tx - b.x, dy = ty - b.y;
-    const d = Math.hypot(dx, dy);
-    const step = b.speed * dt;
-
-    if (d <= step || d < 5) {
-      b.alive = false;
-      addParticles(tx, ty, '#ff4444', 8, 100);
-      
-      if (b.target === 'castle') {
-        let dmg = b.damage;
-        if (achMag >= 5) dmg *= 0.5;
-        castleHp -= dmg;
-        addFloat(CASTLE_CX + (Math.random() - 0.5) * 40, CASTLE_CY - 30, '-' + Math.round(dmg), '#ff6b6b');
-      } else if (b.target && !b.target.destroyed) {
-        damageTower(b.target, b.damage);
-        addFloat(b.target.x, b.target.y - 20, '-' + Math.round(b.damage), '#ff8a8a');
-      }
-    } else {
-      b.x += (dx / d) * step;
-      b.y += (dy / d) * step;
-    }
-  }
-  for (let i = enemyBullets.length - 1; i >= 0; i--) {
-    if (!enemyBullets[i].alive) enemyBullets.splice(i, 1);
-  }
-
-  for (let i = 0; i < missiles.length; i++) {
-    const m = missiles[i];
-    if (m.delay > 0) {
-      m.delay -= dt;
-      continue;
-    }
-    const dx = m.targetX - m.x, dy = m.targetY - m.y;
-    const d = Math.hypot(dx, dy);
-    const step = m.speed * dt;
-    
-    if (d <= step || d < 10) {
-      m.dead = true;
-      addParticles(m.x, m.y, '#f97316', 6, 120); 
-      for (let j = 0; j < enemies.length; j++) {
-        const e = enemies[j];
-        if (e.alive && Math.hypot(e.x - m.x, e.y - m.y) <= m.splash) {
-          damageEnemy(e, m.damage, 'shell');
-        }
-      }
-    } else {
-      m.x += (dx / d) * step;
-      m.y += (dy / d) * step;
-    }
-  }
-  for (let i = missiles.length - 1; i >= 0; i--) {
-    if (missiles[i].dead) missiles.splice(i, 1);
-  }
-
-  for (let i = 0; i < towers.length; i++) {
-    const t = towers[i];
-    if (t.destroyed) continue;
-
-    if (t.buildingTimer > 0) {
-      t.buildingTimer -= dt;
-      if (t.buildingTimer <= 0) {
-        t.buildingTimer = 0;
-        addLog(`${t.def.name} 建造完成`, 'success');
-        checkEnclosure();
-      }
-      continue;
-    }
-
-    if (t.upgradingTimer > 0) {
-      t.upgradingTimer -= dt;
-      if (t.upgradingTimer <= 0) {
-        t.upgradingTimer = 0;
-        const oldMax = t.maxHp;
-        t.level++;
-        t.maxHp = towerMaxHp(t.type, t.level);
-        t.hp = Math.min(t.maxHp, t.hp + (t.maxHp - oldMax));
-        addParticles(t.x, t.y, '#ffd166', 16, 140);
-        addFloat(t.x, t.y - 24, 'T' + t.level + ' 完成', '#ffd166');
-        addLog(`升级完成：${t.def.name} 已达到 T${t.level}`, 'success');
-      }
-    }
-
-    if (t.recoil > 0) t.recoil = Math.max(0, t.recoil - dt * 6);
-    if (t.hitFlash > 0) t.hitFlash = Math.max(0, t.hitFlash - dt * 4);
-
-    const st = towerStats(t);
-    
-    let inRadiation = false;
-    for (let rz of radiationZones) {
-      if (Math.hypot(t.x - rz.x, t.y - rz.y) <= rz.radius) {
-        inRadiation = true; break;
-      }
-    }
-    
-    t.cool -= dt * (inRadiation ? 0.7 : 1.0);
-
-    if (t.type === 'nukeSilo') {
-      if (t.nukeStatus === 'building') {
-        t.nukeTimer -= dt;
-        if (t.nukeTimer <= 0) {
-          t.nukeCount++;
-          if (t.nukeCount < 5) {
-            t.nukeStatus = 'idle';
-          } else {
-            t.nukeStatus = 'ready';
-          }
-          addLog(`☢️ 核弹建造完成 (${t.nukeCount}/5)`, 'success');
-          addParticles(t.x, t.y, '#ea580c', 20, 100);
-        }
-      } else if (autoBuildNuke && t.nukeCount < 5 && gold >= 3000000) {
-        gold -= 3000000;
-        t.invested += 3000000;
-        t.nukeStatus = 'building';
-        t.nukeTimer = 30;
-        addLog('自动开始建造核弹...', 'info');
-      }
-      continue;
-    }
-
-    if (t.type === 'missileSilo') {
-      if (t.isBuildingMissile) {
-        t.missileBuildProgress += dt / st.buildTime;
-        if (t.missileBuildProgress >= 1) {
-          t.missileBuildProgress = 0;
-          t.isBuildingMissile = false;
-          t.missileCount++;
-          addLog(`导弹井建造完成一枚导弹`, 'info');
-        }
-      } else if (autoBuildMissile && t.missileCount < st.maxMissiles && gold >= st.missileCost) {
-        gold -= st.missileCost;
-        t.isBuildingMissile = true;
-        t.missileBuildProgress = 0;
-      }
-
-      if (autoStrikeMissile && t.missileCount > 0 && enemies.length > 0) {
-        if (gameTime - t.lastStrikeTime > 0.2) {
-          t.lastStrikeTime = gameTime;
-          const target = enemies[Math.floor(Math.random() * enemies.length)];
-          if (target) {
-            t.missileCount--;
-            spawnMissile(t.x, t.y, target.x, target.y, st.damage, 150);
-          }
-        }
-      }
-      continue;
-    }
-
-    if (t.type === 'repair') {
-      let targetTower = null, minD = Infinity;
-
-      for (let j = 0; j < towers.length; j++) {
-        const o = towers[j];
-        if (o === t || o.destroyed || o.hp >= o.maxHp || o.buildingTimer > 0) continue;
-        const d = Math.hypot(o.x - t.x, o.y - t.y);
-        if (d <= st.range && d < minD) { minD = d; targetTower = o; }
-      }
-      if (castleHp < CASTLE_MAX_HP) {
-        const dCastle = Math.hypot(CASTLE_CX - t.x, CASTLE_CY - t.y);
-        if (dCastle <= st.range && dCastle < minD) {
-          minD = dCastle;
-          targetTower = 'castle';
-        }
-      }
-
-      if (!targetTower) {
-        for (let j = 0; j < towers.length; j++) {
-          const o = towers[j];
-          if (o === t || o.destroyed || o.buildingTimer > 0) continue;
-          const oSt = towerStats(o);
-          if ((o.type === 'laser' || o.type === 'battery' || o.type === 'prism') && o.energy < oSt.maxEnergy) {
-            const d = Math.hypot(o.x - t.x, o.y - t.y);
-            if (d <= st.range && d < minD) { minD = d; targetTower = o; }
-          }
-        }
-      }
-
-      if (!targetTower) {
-        for (let j = 0; j < towers.length; j++) {
-          const o = towers[j];
-          if (o === t || o.destroyed || o.type !== 'converter' || o.buildingTimer > 0) continue;
-          const oSt = towerStats(o);
-          if (o.energy < oSt.maxEnergy) {
-            const d = Math.hypot(o.x - t.x, o.y - t.y);
-            if (d <= st.range && d < minD) { minD = d; targetTower = o; }
-          }
-        }
-      }
-
-      t.beamTarget = targetTower;
-      if (targetTower) {
-        if (targetTower === 'castle') {
-          t.angle = Math.atan2(CASTLE_CY - t.y, CASTLE_CX - t.x);
-          castleHp = Math.min(CASTLE_MAX_HP, castleHp + st.healRate * dt);
-        } else {
-          t.angle = Math.atan2(targetTower.y - t.y, targetTower.x - t.x);
-          if (targetTower.type === 'laser' || targetTower.type === 'battery' || targetTower.type === 'prism') {
-            const targetSt = towerStats(targetTower);
-            if (targetTower.hp < targetTower.maxHp) {
-              targetTower.hp = Math.min(targetTower.maxHp, targetTower.hp + st.healRate * dt);
-            } else if (targetTower.energy < targetSt.maxEnergy) {
-              targetTower.energy = Math.min(targetSt.maxEnergy, targetTower.energy + st.healRate * dt);
-            } else {
-              t.beamTarget = null;
-            }
-          } else if (targetTower.type === 'converter') {
-            const targetSt = towerStats(targetTower);
-            if (targetTower.hp < targetTower.maxHp) {
-              targetTower.hp = Math.min(targetTower.maxHp, targetTower.hp + st.healRate * dt);
-            } else if (targetTower.energy < targetSt.maxEnergy) {
-              targetTower.energy = Math.min(targetSt.maxEnergy, targetTower.energy + st.healRate * dt);
-            } else {
-              t.beamTarget = null;
-            }
-          } else {
-            targetTower.hp = Math.min(targetTower.maxHp, targetTower.hp + st.healRate * dt);
-          }
-        }
-      }
-      continue;
-    }
-
-    if (t.type === 'laser') {
-      if (t.cool > 0) continue;
-      if (t.energy >= 100) {
-        for (let j = 0; j < enemyBullets.length; j++) {
-          const b = enemyBullets[j];
-          if (b.alive && Math.hypot(b.x - t.x, b.y - t.y) <= st.range) {
-            b.alive = false;
-            t.energy -= 100;
-            t.cool = st.cooldown;
-            interceptorBeams.push({ x1: t.x, y1: t.y, x2: b.x, y2: b.y, life: 0.15 });
-            addParticles(b.x, b.y, '#ff0000', 10, 150);
-            break;
-          }
-        }
-      }
-      continue;
-    }
-
-    if (t.type === 'converter') {
-      if (t.energy > 0) {
-        const money = t.energy * st.convertRate;
-        gold += money;
-        t.energy = 0;
-        t.convertAccum = (t.convertAccum || 0) + money;
-      }
-      t.convertFloatTimer = (t.convertFloatTimer || 0) - dt;
-      if (t.convertFloatTimer <= 0) {
-        t.convertFloatTimer = 1.0;
-        if (t.convertAccum >= 1) {
-          const txt = t.convertAccum >= 1000
-            ? '+' + (t.convertAccum / 1000).toFixed(1) + 'k'
-            : '+' + Math.round(t.convertAccum);
-          addFloat(t.x, t.y - 16, txt, '#ffd166');
-          addParticles(t.x, t.y, '#22d3ee', 3, 40);
-        }
-        t.convertAccum = 0;
-      }
-      continue;
-    }
-
-    if (t.type === 'battery') {
-      continue;
-    }
-
-    if (t.type === 'prism') {
-      if (t.level === 20 && t.energy >= 100000 && enemies.length > 0) {
-        t.energy -= 100000;
-        
-        const targetEnemy = enemies[Math.floor(Math.random() * enemies.length)];
-        const targetX = targetEnemy.x;
-        const targetY = targetEnemy.y;
-
-        const strikeRadius = TOWER_DEFS['arrow'].levels[0].range; 
-        
-        addLog(`💠 光棱炮发射！轨道激光打击降临！`, 'danger');
-        
-        orbitalStrikes.push({
-          x: targetX, y: targetY,
-          radius: strikeRadius,
-          life: 0.8, maxLife: 0.8,
-          isNuke: false
-        });
-
-        for (let e of enemies) {
-          if (e.alive && Math.hypot(e.x - targetX, e.y - targetY) <= strikeRadius) {
-            e.hp = 0;
-            e.alive = false;
-            addParticles(e.x, e.y, '#fff', 10, 200);
-          }
-        }
-        for (let o of towers) {
-          if (!o.destroyed && o !== t && Math.hypot(o.x - targetX, o.y - targetY) <= strikeRadius) {
-            o.hp = 1;
-            addParticles(o.x, o.y, '#ff8a8a', 5, 80);
-          }
-        }
-      }
-      continue;
-    }
-
-    if (t.type === 'mmwave') {
-      if (t.cool > 0) continue;
-      const r2 = st.range * st.range;
-      const tier1 = [];
-      const tier2 = [];
-      const tier3 = [];
-
-      for (let j = 0; j < towers.length; j++) {
-        const o = towers[j];
-        if (o === t || o.destroyed || o.buildingTimer > 0) continue;
-        const d2 = (o.x - t.x) ** 2 + (o.y - t.y) ** 2;
-        if (d2 > r2) continue;
-        const oSt = towerStats(o);
-
-        if (o.type === 'converter') {
-          if (o.energy < oSt.maxEnergy) {
-            tier3.push({ obj: o, need: oSt.maxEnergy - o.energy, isCastle: false, kind: 'energy' });
-          }
-          continue;
-        }
-        if (o.hp < o.maxHp) {
-          tier1.push({ obj: o, need: o.maxHp - o.hp, isCastle: false, kind: 'hp' });
-        }
-        if ((o.type === 'laser' || o.type === 'battery' || o.type === 'prism') && o.energy < oSt.maxEnergy) {
-          tier2.push({ obj: o, need: oSt.maxEnergy - o.energy, isCastle: false, kind: 'energy' });
-        }
-      }
-      const dCastle = Math.hypot(CASTLE_CX - t.x, CASTLE_CY - t.y);
-      if (dCastle <= st.range && castleHp < CASTLE_MAX_HP) {
-        tier1.push({ obj: 'castle', need: CASTLE_MAX_HP - castleHp, isCastle: true, kind: 'hp' });
-      }
-
-      const targets = tier1.concat(tier2, tier3);
-      if (targets.length === 0) continue;
-
-      let sources = [];
-      let queue = [{ tower: t, loss: 1.0 }];
-      let visited = new Set([t]);
-      
-      while (queue.length > 0) {
-        let { tower, loss } = queue.shift();
-        let tRange = towerStats(tower).range;
-        for (let k = 0; k < towers.length; k++) {
-          const other = towers[k];
-          if (other.destroyed || other.buildingTimer > 0) continue;
-          if (Math.hypot(other.x - tower.x, other.y - tower.y) <= tRange) {
-            if (other.type === 'battery' && other.energy > 0) {
-              sources.push({ battery: other, loss: loss });
-            } else if (other.type === 'mmwave' && !visited.has(other)) {
-              visited.add(other);
-              queue.push({ tower: other, loss: loss * 0.9 });
-            }
-          }
-        }
-      }
-
-      sources.sort((a, b) => b.loss - a.loss);
-
-      let anyRepaired = false;
-      for (let tgt of targets) {
-        let remainNeed = tgt.need;
-        for (let src of sources) {
-          if (remainNeed <= 0) break;
-          const bat = src.battery;
-          if (bat.energy <= 0) continue;
-          
-          const neededFromBat = remainNeed / src.loss;
-          const take = Math.min(bat.energy, neededFromBat);
-          
-          bat.energy -= take;
-          const actualRepair = take * src.loss;
-          remainNeed -= actualRepair;
-          anyRepaired = true;
-        }
-
-        const amount = tgt.need - remainNeed;
-        if (amount <= 0) continue;
-        tgt.applied = true;
-
-        if (tgt.isCastle) {
-          castleHp = Math.min(CASTLE_MAX_HP, castleHp + amount);
-        } else {
-          const o = tgt.obj;
-          const oSt = towerStats(o);
-          if (tgt.kind === 'hp') {
-            o.hp = Math.min(o.maxHp, o.hp + amount);
-          } else {
-            o.energy = Math.min(oSt.maxEnergy, o.energy + amount);
-          }
-        }
-      }
-
-      if (anyRepaired) {
-        t.cool = st.cooldown;
-        for (let tgt of targets) {
-          if (!tgt.applied) continue;
-          let tx = tgt.isCastle ? CASTLE_CX : tgt.obj.x;
-          let ty = tgt.isCastle ? CASTLE_CY : tgt.obj.y;
-          mmwaveBeams.push({ x1: t.x, y1: t.y, x2: tx, y2: ty, life: 0.15 });
-        }
-        addParticles(t.x, t.y, '#c084fc', 6, 80);
-      }
-      continue;
-    }
-
-    if (t.type === 'resource') {
-      t.goldTimer = (t.goldTimer || 0) - dt;
-      if (t.goldTimer <= 0) {
-        t.goldTimer = st.interval;
-        gold += st.income;
-        addFloat(t.x, t.y - 15, '+' + st.income, '#ffd166');
-        addParticles(t.x, t.y, '#facc15', 4, 40);
-      }
-      continue;
-    }
-
-    if (t.type === 'flame') {
-      if (t.cool > 0) continue;
-      const target = findTarget(t, st.range);
-      if (!target) continue;
-      t.angle = Math.atan2(target.y - t.y, target.x - t.x);
-      t.cool = st.cooldown;
-      
-      let hitAny = false;
-      for (let j = 0; j < enemies.length; j++) {
-        const e = enemies[j];
-        if (!e.alive || e.def.flying) continue;
-        const dx = e.x - t.x, dy = e.y - t.y;
-        if (dx * dx + dy * dy <= st.range * st.range) {
-          damageEnemy(e, st.damage, 'flame');
-          hitAny = true;
-        }
-      }
-      if (hitAny) {
-        const flameAng = t.angle;
-        for(let k=0; k<3; k++){
-          const spread = (Math.random() - 0.5) * 0.6;
-          const a = flameAng + spread;
-          const dist = Math.random() * st.range;
-          addParticles(t.x + Math.cos(a)*dist, t.y + Math.sin(a)*dist, '#ff5a36', 2, 50);
-        }
-      }
-      continue;
-    }
-
-    if (t.cool > 0) continue;
-    const target = findTarget(t, st.range);
-    if (!target) continue;
-    t.angle = Math.atan2(target.y - t.y, target.x - t.x);
-    t.cool = st.cooldown;
-    fire(t, st, target);
-  }
-
-  for (let i = towers.length - 1; i >= 0; i--) {
-    if (towers[i].destroyed) {
-      if (selectedTower === towers[i]) selectedTower = null;
-      towers.splice(i, 1);
-    }
-  }
-
-  for (let i = 0; i < bullets.length; i++) {
-    const b = bullets[i];
-    const tgt = b.target;
-    if (tgt && tgt.alive) { b.lx = tgt.x; b.ly = tgt.y; }
-
-    const dx = b.lx - b.x, dy = b.ly - b.y;
-    const d = Math.hypot(dx, dy);
-    const step = b.speed * dt;
-
-    if (d <= step || d < 2) {
-      impact(b, b.lx, b.ly);
-      b.dead = true;
-    } else {
-      b.x += (dx / d) * step;
-      b.y += (dy / d) * step;
-      b.angle = Math.atan2(dy, dx);
-      if (b.kind === 'shell') {
-        b.trail.push({ x: b.x, y: b.y });
-        if (b.trail.length > 5) b.trail.shift();
-      }
-    }
-  }
-  for (let i = bullets.length - 1; i >= 0; i--) {
-    if (bullets[i].dead) bullets.splice(i, 1);
-  }
-
-  for (let i = 0; i < particles.length; i++) {
+  for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
+    p.vy += G * 0.7 * dt;
     p.x += p.vx * dt;
     p.y += p.vy * dt;
-    p.vx *= 0.94;
-    p.vy *= 0.94;
     p.life -= dt;
-  }
-  for (let i = particles.length - 1; i >= 0; i--) {
-    if (particles[i].life <= 0) particles.splice(i, 1);
+    if (p.life <= 0) particles.splice(i, 1);
   }
 
-  for (let i = 0; i < lightningEffects.length; i++) {
-    lightningEffects[i].life -= dt;
-  }
-  for (let i = lightningEffects.length - 1; i >= 0; i--) {
-    if (lightningEffects[i].life <= 0) lightningEffects.splice(i, 1);
-  }
-
-  for (let i = 0; i < interceptorBeams.length; i++) {
-    interceptorBeams[i].life -= dt;
-  }
-  for (let i = interceptorBeams.length - 1; i >= 0; i--) {
-    if (interceptorBeams[i].life <= 0) interceptorBeams.splice(i, 1);
+  for (let i = floaters.length - 1; i >= 0; i--) {
+    const t = floaters[i];
+    t.y -= 62 * dt;
+    t.life -= dt;
+    if (t.life <= 0) floaters.splice(i, 1);
   }
 
-  for (let i = 0; i < mmwaveBeams.length; i++) {
-    mmwaveBeams[i].life -= dt;
-  }
-  for (let i = mmwaveBeams.length - 1; i >= 0; i--) {
-    if (mmwaveBeams[i].life <= 0) mmwaveBeams.splice(i, 1);
-  }
-
-  for (let i = 0; i < orbitalStrikes.length; i++) {
-    orbitalStrikes[i].life -= dt;
-  }
-  for (let i = orbitalStrikes.length - 1; i >= 0; i--) {
-    if (orbitalStrikes[i].life <= 0) orbitalStrikes.splice(i, 1);
-  }
-
-  for (let i = 0; i < floats.length; i++) {
-    const f = floats[i];
-    f.y -= 26 * dt;
-    f.life -= dt;
-  }
-  for (let i = floats.length - 1; i >= 0; i--) {
-    if (floats[i].life <= 0) floats.splice(i, 1);
-  }
-
-  for (let i = enemies.length - 1; i >= 0; i--) {
-    if (!enemies[i].alive || enemies[i].hp <= 0) enemies.splice(i, 1);
-  }
-
-  if (wave.active && wave.idx >= wave.list.length && enemies.length === 0) {
-    finishWave(false);
-  }
+  if (shake > 0) shake = Math.max(0, shake - dt * 70);
+  if (flash > 0) flash = Math.max(0, flash - dt * 2.6);
 }
 
-function drawRange(x, y, r, color) {
+/* ================= 绘制 ================= */
+function drawWholeFruit(x, y, r, rot, cfg) {
   ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+
+  const g = ctx.createRadialGradient(-r * 0.35, -r * 0.4, r * 0.05, 0, 0, r * 1.05);
+  g.addColorStop(0, cfg.light);
+  g.addColorStop(0.6, cfg.skin);
+  g.addColorStop(1, cfg.dark);
   ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fillStyle = color || 'rgba(120,200,255,.10)';
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fillStyle = g;
   ctx.fill();
-  ctx.setLineDash([6, 6]);
-  ctx.strokeStyle = 'rgba(140,210,255,.5)';
+
+  if (cfg.id === 'watermelon') {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.strokeStyle = 'rgba(16,60,26,0.5)';
+    ctx.lineWidth = r * 0.12;
+    for (let i = -2; i <= 2; i++) {
+      ctx.beginPath();
+      ctx.ellipse(i * r * 0.45, 0, r * 0.09, r * 1.15, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  ctx.beginPath();
+  ctx.ellipse(-r * 0.33, -r * 0.37, r * 0.23, r * 0.15, -0.7, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.38)';
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawHalf(h) {
+  const cfg = h.cfg, r = h.r;
+  ctx.save();
+  ctx.translate(h.x, h.y);
+  ctx.rotate(h.rot);
+
+  const a0 = h.side > 0 ? 0 : Math.PI;
+  const a1 = h.side > 0 ? Math.PI : Math.PI * 2;
+
+  ctx.beginPath();
+  ctx.arc(0, 0, r, a0, a1);
+  ctx.closePath();
+  const ig = ctx.createRadialGradient(0, h.side > 0 ? r * 0.35 : -r * 0.35, r * 0.05, 0, 0, r);
+  ig.addColorStop(0, cfg.inner2 || cfg.inner);
+  ig.addColorStop(1, cfg.inner);
+  ctx.fillStyle = ig;
+  ctx.fill();
+
+  if (cfg.seed) {
+    ctx.fillStyle = cfg.seed;
+    for (let i = 0; i < 7; i++) {
+      const rr = r * (0.22 + 0.5 * rnd(h.seed + i * 3.1));
+      const aa = rnd(h.seed + i * 7.7) * Math.PI;
+      const px = Math.cos(aa) * rr;
+      const py = Math.sin(aa) * rr * (h.side > 0 ? 1 : -1);
+      ctx.beginPath();
+      ctx.ellipse(px, py, r * 0.05, r * 0.085, aa, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  const lw = Math.max(3, r * 0.18);
+  ctx.beginPath();
+  ctx.arc(0, 0, r - lw / 2, a0, a1);
+  ctx.lineWidth = lw;
+  ctx.strokeStyle = cfg.skin;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(0, 0, r - lw - 1, a0, a1);
+  ctx.lineWidth = Math.max(1.2, r * 0.045);
+  ctx.strokeStyle = cfg.dark;
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawBomb(x, y, r, rot) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+
+  const g = ctx.createRadialGradient(-r * 0.3, -r * 0.35, r * 0.05, 0, 0, r * 1.05);
+  g.addColorStop(0, '#6b6b6b');
+  g.addColorStop(0.65, '#2b2b2b');
+  g.addColorStop(1, '#0a0a0a');
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fillStyle = g;
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(0, -r * 0.95);
+  ctx.quadraticCurveTo(r * 0.75, -r * 1.5, r * 0.25, -r * 1.95);
+  ctx.lineWidth = Math.max(2, r * 0.13);
+  ctx.strokeStyle = '#8b6b3d';
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  const t = performance.now() / 1000;
+  const fr = r * 0.24 + Math.sin(t * 32) * r * 0.07;
+  ctx.beginPath();
+  ctx.arc(r * 0.25, -r * 1.95, fr, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffcc00';
+  ctx.shadowColor = '#ff8800';
+  ctx.shadowBlur = 18;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ctx.beginPath();
+  ctx.ellipse(-r * 0.35, -r * 0.35, r * 0.2, r * 0.12, -0.7, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.32)';
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawParticle(p) {
+  const a = Math.max(0, p.life / p.maxLife);
+  ctx.globalAlpha = a;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, p.r * (0.35 + 0.65 * a), 0, Math.PI * 2);
+  ctx.fillStyle = p.color;
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+function drawFloater(t) {
+  const a = Math.min(1, t.life / t.maxLife * 1.6);
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.font = '900 22px -apple-system,"PingFang SC",sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = t.color;
+  ctx.shadowBlur = 14;
+  ctx.fillStyle = t.color;
+  ctx.fillText(t.text, t.x, t.y);
+  ctx.restore();
+}
+
+function drawTrail() {
+  if (trailPts.length < 2) return;
+  const cutoff = performance.now() - bladeLife() * 1000;
+  const pts = [];
+  for (let i = 0; i < trailPts.length; i++) {
+    if (trailPts[i].t >= cutoff) pts.push(trailPts[i]);
+  }
+  if (pts.length < 2) return;
+
+  const cr = cutRadius();
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.shadowColor = '#8ef6ff';
+  ctx.shadowBlur = 16;
+  for (let i = 1; i < pts.length; i++) {
+    const t = i / pts.length;
+    ctx.beginPath();
+    ctx.moveTo(pts[i - 1].x, pts[i - 1].y);
+    ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.lineWidth = 2 + (8 + cr * 0.25) * t;
+    ctx.strokeStyle = 'rgba(190,248,255,' + (0.08 + 0.72 * t) + ')';
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawPointerRange() {
+  if (state !== 'playing' || !pointerActive) return;
+  const cr = cutRadius();
+  ctx.save();
+  const rg = ctx.createRadialGradient(pointerX, pointerY, 0, pointerX, pointerY, cr);
+  rg.addColorStop(0, 'rgba(160,240,255,0.20)');
+  rg.addColorStop(1, 'rgba(160,240,255,0)');
+  ctx.beginPath();
+  ctx.arc(pointerX, pointerY, cr, 0, Math.PI * 2);
+  ctx.fillStyle = rg;
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(pointerX, pointerY, cr, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(160,240,255,0.55)';
   ctx.lineWidth = 1.5;
   ctx.stroke();
   ctx.restore();
 }
 
-function drawCastle() {
-  const bx = CASTLE.gx * TILE;
-  const by = CASTLE.gy * TILE;
-  const bw = CASTLE.w * TILE;
-  const bh = CASTLE.h * TILE;
-  const hpFrac = castleHp / CASTLE_MAX_HP;
-
-  ctx.fillStyle = 'rgba(0,0,0,.4)';
-  ctx.beginPath();
-  ctx.ellipse(bx + bw/2, by + bh - 5, bw * 0.6, 15, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  const grad = ctx.createLinearGradient(bx, by, bx, by + bh);
-  grad.addColorStop(0, '#8a97a8');
-  grad.addColorStop(1, '#5b6777');
-  ctx.fillStyle = grad;
-  ctx.fillRect(bx + 10, by + 20, bw - 20, bh - 30);
-
-  ctx.fillStyle = '#a3b0c2';
-  for(let i=0; i<4; i++) {
-    ctx.fillRect(bx + 10 + i * 15, by + 10, 10, 15);
-  }
-
+function render() {
   ctx.save();
-  ctx.shadowBlur = 15;
-  ctx.shadowColor = hpFrac > 0.5 ? '#4ea3ff' : (hpFrac > 0.25 ? '#facc15' : '#ef4444');
-  ctx.fillStyle = hpFrac > 0.5 ? '#4ea3ff' : (hpFrac > 0.25 ? '#facc15' : '#ef4444');
-  ctx.beginPath();
-  ctx.arc(bx + bw/2, by + bh/2 + 5, 12, 0, Math.PI*2);
-  ctx.fill();
-  ctx.restore();
-
-  const barW = bw - 20;
-  const barH = 6;
-  const barX = bx + 10;
-  const barY = by - 10;
-  ctx.fillStyle = 'rgba(0,0,0,.7)';
-  ctx.fillRect(barX, barY, barW, barH);
-  ctx.fillStyle = hpFrac > 0.5 ? '#4ade80' : hpFrac > 0.25 ? '#facc15' : '#ef4444';
-  ctx.fillRect(barX, barY, barW * hpFrac, barH);
-  ctx.strokeStyle = '#fff';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(barX, barY, barW, barH);
-}
-
-function barrelLayout(n, w) {
-  const s = Math.max(3.2, w * 0.85);
-  if (n <= 1) return [{ ox: 0, oy: 0 }];
-  if (n === 2) return [{ ox: 0, oy: -s }, { ox: 0, oy: s }];
-  if (n === 3) return [{ ox: 0, oy: -s * 1.25 }, { ox: 0, oy: 0 }, { ox: 0, oy: s * 1.25 }];
-  if (n === 4) return [
-    { ox: -4, oy: -s }, { ox: -4, oy: s },
-    { ox: 2, oy: -s }, { ox: 2, oy: s }
-  ];
-  if (n === 5) return [
-    { ox: -4, oy: -s * 1.3 }, { ox: -4, oy: 0 }, { ox: -4, oy: s * 1.3 },
-    { ox: 2, oy: -s * 0.9 }, { ox: 2, oy: s * 0.9 }
-  ];
-  return [
-    { ox: -5, oy: -s * 1.3 }, { ox: -5, oy: 0 }, { ox: -5, oy: s * 1.3 },
-    { ox: 1, oy: -s * 1.3 }, { ox: 1, oy: 0 }, { ox: 1, oy: s * 1.3 }
-  ];
-}
-
-function drawTower(t) {
-  const x = t.x, y = t.y;
-  const st = towerStats(t);
-  const lv = t.level;
-  const hpFrac = t.hp / t.maxHp;
-
-  let inRadiation = false;
-  for (let rz of radiationZones) {
-    if (Math.hypot(t.x - rz.x, t.y - rz.y) <= rz.radius) { inRadiation = true; break; }
+  if (shake > 0) {
+    ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
   }
 
-  ctx.save();
-  if (t.buildingTimer > 0) {
-    ctx.globalAlpha = 0.4 + 0.4 * (1 - t.buildingTimer / 1.5);
-  } else if (t.upgradingTimer > 0) {
-    ctx.globalAlpha = 0.6 + 0.2 * Math.sin(performance.now() / 150);
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(-60, -60, W + 120, H + 120);
+
+  for (const f of fruits) {
+    if (f.isBomb) drawBomb(f.x, f.y, f.r, f.rot);
+    else drawWholeFruit(f.x, f.y, f.r, f.rot, f.cfg);
   }
 
-  if (lv >= 7) {
-    ctx.save();
-    ctx.globalAlpha = ctx.globalAlpha * (0.15 + 0.07 * Math.sin(performance.now() / 350));
-    ctx.fillStyle = t.def.color;
-    ctx.beginPath(); ctx.arc(x, y, 19, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-  }
-
-  ctx.fillStyle = 'rgba(0,0,0,.35)';
-  ctx.beginPath();
-  ctx.ellipse(x, y + 3, 15 + lv * 0.4, 12, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = '#2b3340';
-  ctx.beginPath(); ctx.arc(x, y, 14, 0, Math.PI * 2); ctx.fill();
-
-  if (t.hitFlash > 0) {
-    ctx.fillStyle = `rgba(255,80,80,${t.hitFlash * 0.4})`;
-    ctx.beginPath(); ctx.arc(x, y, 15, 0, Math.PI * 2); ctx.fill();
-  }
-
-  if (inRadiation) {
-    ctx.fillStyle = 'rgba(132, 204, 22, 0.4)';
-    ctx.beginPath(); ctx.arc(x, y, 15, 0, Math.PI * 2); ctx.fill();
-  }
-
-  for (let i = 0; i < st.armor; i++) {
-    let r = Math.max(1, 14 - i * 1.5);
-    ctx.strokeStyle = i % 2 === 0 ? '#6d7a8c' : '#8a97a8';
-    ctx.lineWidth = 1.8;
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-
-  if (t.type === 'laser' || t.type === 'battery' || t.type === 'prism') {
-    const energyFrac = t.energy / st.maxEnergy;
-    ctx.strokeStyle = t.type === 'laser' ? '#ff00ff' : t.type === 'battery' ? '#38bdf8' : '#f8fafc';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(x, y, 14, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * energyFrac);
-    ctx.stroke();
-  }
-
-  ctx.strokeStyle = t.def.color;
-  ctx.lineWidth = 2.5;
-  ctx.beginPath(); ctx.arc(x, y, 14, 0, Math.PI * 2); ctx.stroke();
-
-  const recoil = t.recoil || 0;
-  const back = recoil * 5;
-  
-  if (t.type !== 'resource' && t.type !== 'battery' && t.type !== 'mmwave' && t.type !== 'nukeSilo' && t.type !== 'missileSilo' && t.type !== 'converter') {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(t.angle);
-
-    const layout = barrelLayout(st.barrels, st.barrelW);
-
-    if (t.type === 'arrow') {
-      for (let i = 0; i < layout.length; i++) {
-        const { ox, oy } = layout[i];
-        const bw = st.barrelW, bl = st.barrelLen;
-        ctx.fillStyle = '#3a4450';
-        ctx.fillRect(ox - back, oy - bw / 2, bl, bw);
-        ctx.fillStyle = 'rgba(255,255,255,.18)';
-        ctx.fillRect(ox - back, oy - bw / 2, bl, 1);
-        ctx.fillStyle = t.def.color;
-        ctx.fillRect(ox + bl - back - 5, oy - bw / 2 - 0.5, 5, bw + 1);
-      }
-    } else if (t.type === 'cannon') {
-      for (let i = 0; i < layout.length; i++) {
-        const { ox, oy } = layout[i];
-        const bw = st.barrelW, bl = st.barrelLen;
-        ctx.fillStyle = '#3a4450';
-        ctx.fillRect(ox - back, oy - bw / 2, bl, bw);
-        ctx.fillStyle = t.def.color;
-        ctx.fillRect(ox + bl - back - 6, oy - bw / 2 - 1, 6, bw + 2);
-        if (lv >= 3) {
-          ctx.fillStyle = '#5b6777';
-          ctx.fillRect(ox + bl - back - 9, oy - bw / 2 - 2, 3, bw + 4);
-        }
-      }
-      ctx.fillStyle = '#4a5563';
-      ctx.fillRect(-back - 7, -7, 8, 14);
-    } else if (t.type === 'flame') {
-      ctx.fillStyle = '#3a4450';
-      ctx.fillRect(0, -5, 16, 10);
-      ctx.fillStyle = t.def.color;
-      ctx.fillRect(14, -6, 4, 12);
-      ctx.fillStyle = '#992222';
-      ctx.beginPath(); ctx.arc(-2, -8, 4, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(-2, 8, 4, 0, Math.PI*2); ctx.fill();
-    } else if (t.type === 'lightning') {
-      ctx.fillStyle = '#3a4450';
-      ctx.fillRect(0, -4, 14, 8);
-      ctx.strokeStyle = t.def.color;
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(14, -8); ctx.lineTo(14, 8); ctx.stroke();
-      ctx.fillStyle = t.def.color;
-      ctx.beginPath(); ctx.arc(14, 0, 3, 0, Math.PI*2); ctx.fill();
-      if (Math.random() > 0.5) {
-        ctx.strokeStyle = '#fff';
-        ctx.beginPath(); ctx.moveTo(14, -4); ctx.lineTo(18, 0); ctx.lineTo(14, 4); ctx.stroke();
-      }
-    } else if (t.type === 'antiair') {
-      for (let i = 0; i < layout.length; i++) {
-        const { ox, oy } = layout[i];
-        const bw = st.barrelW, bl = st.barrelLen;
-        ctx.fillStyle = '#3a4450';
-        ctx.fillRect(ox - back, oy - bw / 2, bl, bw);
-        ctx.fillStyle = t.def.color;
-        ctx.beginPath();
-        ctx.moveTo(ox + bl - back, oy);
-        ctx.lineTo(ox + bl - back - 6, oy - bw/2);
-        ctx.lineTo(ox + bl - back - 6, oy + bw/2);
-        ctx.closePath();
-        ctx.fill();
-      }
-    } else if (t.type === 'repair') {
-      const bw = st.barrelW, bl = st.barrelLen;
-      for (let i = 0; i < layout.length; i++) {
-        const { ox, oy } = layout[i];
-        ctx.fillStyle = '#2b3a34';
-        ctx.fillRect(ox - back, oy - bw / 2, bl, bw);
-        ctx.fillStyle = '#4ade80';
-        ctx.fillRect(ox + bl - back - 3, oy - bw / 2, 3, bw);
-      }
-      const ringR = 5 + lv * 0.8;
-      for (let i = 0; i < 3; i++) {
-        ctx.strokeStyle = `rgba(74,222,128,${0.7 - i * 0.18})`;
-        ctx.lineWidth = 1.4;
-        ctx.beginPath();
-        ctx.arc(bl - back + 2 + i * 2.2, 0, ringR + i * 1.4, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-    } else if (t.type === 'laser') {
-      ctx.fillStyle = '#3a2b4a';
-      ctx.beginPath();
-      ctx.arc(0, 0, 12, -0.8, 0.8);
-      ctx.fill();
-      ctx.strokeStyle = '#ff00ff';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      
-      ctx.fillStyle = '#ff00ff';
-      ctx.beginPath(); ctx.arc(12, 0, 3, 0, Math.PI*2); ctx.fill();
-    } else if (t.type === 'prism') {
-      const pulse = Math.sin(performance.now() / 200) * 2;
-      ctx.save();
-      ctx.shadowBlur = 10 + (t.energy >= st.maxEnergy ? 20 : 0);
-      ctx.shadowColor = '#f8fafc';
-      
-      if (t.energy >= st.maxEnergy && t.level === 20) {
-        ctx.fillStyle = 'rgba(248, 250, 252, 0.4)';
-        ctx.beginPath(); ctx.arc(0, 0, 22 + pulse, 0, Math.PI * 2); ctx.fill();
-      }
-      
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.moveTo(0, -10);
-      ctx.lineTo(8, 0);
-      ctx.lineTo(0, 10);
-      ctx.lineTo(-8, 0);
-      ctx.closePath();
-      ctx.fill();
-      
-      ctx.strokeStyle = '#93c5fd';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-      ctx.restore();
-    }
-    ctx.restore();
-  } else if (t.type === 'battery') {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.fillStyle = t.def.color;
-    ctx.fillRect(-6, -8, 12, 16);
-    ctx.fillStyle = '#1e293b';
-    ctx.fillRect(-4, -6, 8, 12);
-    
-    const energyFrac = t.energy / st.maxEnergy;
-    ctx.fillStyle = '#38bdf8';
-    ctx.fillRect(-4, 6 - 12 * energyFrac, 8, 12 * energyFrac);
-    ctx.restore();
-  } else if (t.type === 'mmwave') {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(performance.now() / 1000);
-    ctx.strokeStyle = t.def.color;
-    ctx.lineWidth = 2;
-    for (let i = 1; i <= 3; i++) {
-      ctx.beginPath();
-      ctx.arc(0, 0, 4 + i * 4, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    ctx.restore();
-  } else if (t.type === 'nukeSilo') {
-    ctx.save();
-    ctx.translate(x, y);
-    
-    ctx.fillStyle = '#1e293b';
-    ctx.beginPath();
-    ctx.arc(0, 0, 14, 0, Math.PI * 2);
-    ctx.fill();
-    
-    if (t.nukeCount > 0) {
-      ctx.fillStyle = '#ea580c';
-      ctx.shadowBlur = 15;
-      ctx.shadowColor = '#ea580c';
-    } else {
-      ctx.fillStyle = '#64748b';
-    }
-    ctx.font = '16px system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('☢️', 0, 1);
-    
-    if (t.nukeStatus === 'building') {
-      const prog = 1 - (t.nukeTimer / 30);
-      ctx.beginPath();
-      ctx.arc(0, 0, 18, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * prog);
-      ctx.strokeStyle = '#ea580c';
-      ctx.lineWidth = 3;
-      ctx.stroke();
-    } else {
-      if (t.nukeCount > 0) {
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 10px system-ui, sans-serif';
-        ctx.fillText(String(t.nukeCount), 0, 12);
-      }
-    }
-    ctx.restore();
-  } else if (t.type === 'missileSilo') {
-    ctx.save();
-    ctx.translate(x, y);
-    
-    ctx.fillStyle = '#1e293b';
-    ctx.beginPath();
-    ctx.arc(0, 0, 14, 0, Math.PI * 2);
-    ctx.fill();
-    
-    ctx.font = '16px system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('🚀', 0, 1);
-    
-    if (t.isBuildingMissile) {
-      const prog = t.missileBuildProgress;
-      ctx.beginPath();
-      ctx.arc(0, 0, 18, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * prog);
-      ctx.strokeStyle = '#f97316';
-      ctx.lineWidth = 3;
-      ctx.stroke();
-    } else {
-      ctx.fillStyle = '#f97316';
-      const totalDots = Math.min(20, t.missileCount);
-      const stepAngle = (Math.PI * 2) / Math.max(1, totalDots);
-      for (let i = 0; i < totalDots; i++) {
-        const ang = i * stepAngle;
-        const px = Math.cos(ang) * 18;
-        const py = Math.sin(ang) * 18;
-        ctx.beginPath();
-        ctx.arc(px, py, 2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-    ctx.restore();
-  } else if (t.type === 'converter') {
-    ctx.save();
-    ctx.translate(x, y);
-
-    ctx.fillStyle = 'rgba(34,211,238,0.18)';
-    ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI * 2); ctx.fill();
-
-    ctx.save();
-    ctx.rotate(performance.now() / 450);
-    ctx.strokeStyle = '#22d3ee';
-    ctx.lineWidth = 2.4;
-    ctx.lineCap = 'round';
-    for (let i = 0; i < 3; i++) {
-      const a0 = i * (Math.PI * 2 / 3);
-      ctx.beginPath();
-      ctx.arc(0, 0, 9.5, a0, a0 + Math.PI / 2.6);
-      ctx.stroke();
-    }
-    ctx.restore();
-
-    const spin = performance.now() / 450;
-    ctx.fillStyle = '#22d3ee';
-    for (let i = 0; i < 3; i++) {
-      const a = spin + i * (Math.PI * 2 / 3) + Math.PI / 2.6;
-      const px = Math.cos(a) * 9.5, py = Math.sin(a) * 9.5;
-      ctx.save();
-      ctx.translate(px, py);
-      ctx.rotate(a + Math.PI / 2);
-      ctx.beginPath();
-      ctx.moveTo(0, -3.2);
-      ctx.lineTo(2.6, 1.6);
-      ctx.lineTo(-2.6, 1.6);
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-    }
-    ctx.restore();
-  } else {
-    ctx.save();
-    ctx.translate(x, y);
-    const angle = performance.now() / 200;
-    ctx.rotate(angle);
-    ctx.fillStyle = '#facc15';
-    for(let i=0; i<4; i++) {
-      ctx.rotate(Math.PI/2);
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(10, -4);
-      ctx.lineTo(10, 4);
-      ctx.fill();
-    }
-    ctx.restore();
-  }
+  for (const h of halves) drawHalf(h);
+  for (const p of particles) drawParticle(p);
+  for (const t of floaters) drawFloater(t);
 
   ctx.restore();
 
-  ctx.save();
-  ctx.fillStyle = '#e8eef7';
-  ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
+  drawTrail();
+  drawPointerRange();
 
-  if (lv >= 2) {
-    ctx.fillStyle = 'rgba(0,0,0,.55)';
-    ctx.beginPath(); ctx.arc(x + 12, y + 12, 7, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#ffd166';
-    ctx.font = 'bold 9px system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(String(lv), x + 12, y + 15);
-  }
-
-  if (hpFrac < 0.999) {
-    const bw2 = 26, bh2 = 4;
-    const bx2 = x - bw2 / 2, by2 = y - 22;
-    ctx.fillStyle = 'rgba(0,0,0,.65)';
-    ctx.fillRect(bx2, by2, bw2, bh2);
-    ctx.fillStyle = hpFrac > 0.5 ? '#4ade80' : hpFrac > 0.25 ? '#facc15' : '#ef4444';
-    ctx.fillRect(bx2, by2, bw2 * hpFrac, bh2);
-  }
-
-  if (t.buildingTimer > 0) {
-    const prog = 1 - (t.buildingTimer / 1.5);
-    ctx.beginPath();
-    ctx.arc(x, y, 22, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * prog);
-    ctx.strokeStyle = '#4ade80';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-  }
-  if (t.upgradingTimer > 0) {
-    const prog = 1 - (t.upgradingTimer / 2.0);
-    ctx.beginPath();
-    ctx.arc(x, y, 22, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * prog);
-    ctx.strokeStyle = '#ffd166';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-  }
-  ctx.restore();
-}
-
-function drawMissile(m) {
-  ctx.save();
-  ctx.translate(m.x, m.y);
-  const angle = Math.atan2(m.targetY - m.y, m.targetX - m.x);
-  ctx.rotate(angle);
-  ctx.fillStyle = '#f97316';
-  ctx.fillRect(-6, -2, 12, 4);
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(2, -1, 4, 2);
-  ctx.restore();
-}
-
-function drawEnemy(e) {
-  if (!e.alive) return;
-  let x = e.x, y = e.y;
-  const r = e.radius;
-
-  if (e.slowFactor < 1) {
-    ctx.fillStyle = 'rgba(95,216,224,.22)';
-    ctx.beginPath(); ctx.arc(x, y, r + 6, 0, Math.PI * 2); ctx.fill();
-  }
-
-  if (e.def.flying) {
-    ctx.fillStyle = 'rgba(0,0,0,.2)';
-    ctx.beginPath();
-    ctx.ellipse(x, y + r + 5, r * 0.8, r * 0.4, 0, 0, Math.PI * 2);
-    ctx.fill();
-    y -= 10 + Math.sin(performance.now() / 150) * 3;
-  } else {
-    ctx.fillStyle = 'rgba(0,0,0,.3)';
-    ctx.beginPath();
-    ctx.ellipse(x, y + r * 0.85, r * 0.9, r * 0.42, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  if (e.attacking) {
-    ctx.save();
-    ctx.globalAlpha = 0.35 + 0.25 * Math.sin(performance.now() / 90);
-    ctx.fillStyle = '#ff4040';
-    ctx.beginPath(); ctx.arc(x, y, r + 5, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-  }
-
-  ctx.fillStyle = e.def.color;
-  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = 'rgba(0,0,0,.45)';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  const ex = r * 0.33, ey = -r * 0.2, er = r * 0.26, pr = r * 0.12;
-  ctx.fillStyle = '#fff';
-  ctx.beginPath(); ctx.arc(x - ex, y + ey, er, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(x + ex, y + ey, er, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#111';
-  ctx.beginPath(); ctx.arc(x - ex, y + ey, pr, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(x + ex, y + ey, pr, 0, Math.PI * 2); ctx.fill();
-
-  if (e.maxShield > 0) {
-    if (e.shield > 0) {
-      ctx.save();
-      const opacity = 0.2 + (e.shield / e.maxShield) * 0.6;
-      ctx.strokeStyle = `rgba(95, 216, 224, ${opacity})`;
-      ctx.lineWidth = 2;
-      ctx.shadowBlur = 10;
-      ctx.shadowColor = '#5fd8e0';
-      ctx.beginPath();
-      ctx.arc(x, y, r + 5, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.fillStyle = `rgba(95, 216, 224, ${opacity * 0.3})`;
-      ctx.fill();
-      ctx.restore();
-    }
-    
-    const bw = r * 2.3, bh = 3;
-    const bx = x - bw / 2, by = y - r - 16;
-    ctx.fillStyle = 'rgba(0,0,0,.6)';
-    ctx.fillRect(bx, by, bw, bh);
-    const sFrac = e.shield / e.maxShield;
-    ctx.fillStyle = '#5fd8e0';
-    ctx.fillRect(bx, by, bw * sFrac, bh);
-  }
-
-  const bw = r * 2.3, bh = 4;
-  const bx = x - bw / 2, by = y - r - 11;
-  ctx.fillStyle = 'rgba(0,0,0,.6)';
-  ctx.fillRect(bx, by, bw, bh);
-  const frac = Math.max(0, e.hp / e.maxHp);
-  ctx.fillStyle = frac > 0.5 ? '#4ade80' : frac > 0.25 ? '#facc15' : '#ef4444';
-  ctx.fillRect(bx, by, bw * frac, bh);
-}
-
-function drawBullet(b) {
-  if (b.kind === 'bullet' || b.kind === 'missile') {
-    ctx.save();
-    ctx.translate(b.x, b.y);
-    ctx.rotate(b.angle || 0);
-    ctx.shadowBlur = 6;
-    ctx.shadowColor = b.kind === 'missile' ? '#60a5fa' : '#ffd166';
-    ctx.fillStyle = b.kind === 'missile' ? '#bfdbfe' : '#ffe08a';
-    ctx.fillRect(-6, -1.2, 12, 2.4);
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(2, -0.8, 4, 1.6);
-    ctx.restore();
-  } else {
-    for (let i = 0; i < b.trail.length; i++) {
-      const p = b.trail[i];
-      ctx.globalAlpha = (i / b.trail.length) * 0.45;
-      ctx.fillStyle = '#ff8a3d';
-      ctx.beginPath(); ctx.arc(p.x, p.y, 2 + i * 0.6, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = '#3a2a1a';
-    ctx.beginPath(); ctx.arc(b.x, b.y, 5.5, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#ffb066';
-    ctx.beginPath(); ctx.arc(b.x - 1, b.y - 1, 2.2, 0, Math.PI * 2); ctx.fill();
+  if (flash > 0) {
+    ctx.fillStyle = 'rgba(255,225,160,' + (flash * 0.6) + ')';
+    ctx.fillRect(0, 0, W, H);
   }
 }
 
-function drawEnemyBullet(b) {
-  ctx.save();
-  ctx.shadowBlur = 8;
-  ctx.shadowColor = '#ff4444';
-  ctx.fillStyle = '#ff8a8a';
-  ctx.beginPath();
-  ctx.arc(b.x, b.y, 6, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = '#fff';
-  ctx.beginPath();
-  ctx.arc(b.x, b.y, 2.5, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-}
-
-function draw() {
-  ctx.clearRect(0, 0, W, H);
-  ctx.drawImage(mapCanvas, 0, 0);
-
-  for (let rz of radiationZones) {
-    ctx.save();
-    ctx.fillStyle = `rgba(132, 204, 22, ${0.15 * (rz.life / rz.maxLife)})`;
-    ctx.beginPath();
-    ctx.arc(rz.x, rz.y, rz.radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = `rgba(163, 230, 53, ${0.6 * (rz.life / rz.maxLife)})`;
-    ctx.lineWidth = 2;
-    ctx.setLineDash([20, 20]);
-    ctx.lineDashOffset = -performance.now() / 50;
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  drawCastle();
-
-  if (aimingNukeTower && mouse.inside) {
-    const blastRadius = MAP_DIAG * 0.45;
-    const radRadius = MAP_DIAG * 0.2;
-    
-    ctx.save();
-    ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([10, 10]);
-    ctx.beginPath();
-    ctx.arc(mouse.x, mouse.y, blastRadius, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    ctx.strokeStyle = 'rgba(132, 204, 22, 0.8)';
-    ctx.beginPath();
-    ctx.arc(mouse.x, mouse.y, radRadius, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(mouse.x - 10, mouse.y); ctx.lineTo(mouse.x + 10, mouse.y);
-    ctx.moveTo(mouse.x, mouse.y - 10); ctx.lineTo(mouse.x, mouse.y + 10);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  if (aimingMissile && mouse.inside) {
-    ctx.save();
-    ctx.strokeStyle = 'rgba(249, 115, 22, 0.8)';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([10, 10]);
-    ctx.beginPath();
-    ctx.arc(mouse.x, mouse.y, 150, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(mouse.x - 10, mouse.y); ctx.lineTo(mouse.x + 10, mouse.y);
-    ctx.moveTo(mouse.x, mouse.y - 10); ctx.lineTo(mouse.x, mouse.y + 10);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  if (selectedType && mouse.inside && !aimingNukeTower && !aimingMissile) {
-    if (selectedType === 'hammer') {
-      const target = towers.find(t => t.gx === mouse.gx && t.gy === mouse.gy && !t.destroyed);
-      if (target) {
-        ctx.fillStyle = 'rgba(255,80,80,.25)';
-        ctx.fillRect(mouse.gx * TILE, mouse.gy * TILE, TILE, TILE);
-        ctx.strokeStyle = 'rgba(255,120,120,.85)';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(mouse.gx * TILE + 1.5, mouse.gy * TILE + 1.5, TILE - 3, TILE - 3);
-      } else {
-        ctx.fillStyle = 'rgba(255,80,80,.1)';
-        ctx.fillRect(mouse.gx * TILE, mouse.gy * TILE, TILE, TILE);
-      }
-    } else {
-      const def = TOWER_DEFS[selectedType];
-      const L = def.levels[0];
-      const ok = canBuild(mouse.gx, mouse.gy) && gold >= def.cost;
-      ctx.fillStyle = ok ? 'rgba(80,220,120,.25)' : 'rgba(240,80,80,.25)';
-      ctx.fillRect(mouse.gx * TILE, mouse.gy * TILE, TILE, TILE);
-      ctx.strokeStyle = ok ? 'rgba(120,255,160,.85)' : 'rgba(255,120,120,.85)';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(mouse.gx * TILE + 1.5, mouse.gy * TILE + 1.5, TILE - 3, TILE - 3);
-      
-      if (L.range > 0) {
-        drawRange((mouse.gx + 0.5) * TILE, (mouse.gy + 0.5) * TILE, L.range,
-                  selectedType === 'repair' ? 'rgba(74,222,128,.10)' : undefined);
-      }
-    }
-  }
-
-  if (selectedTower && !selectedTower.destroyed) {
-    const st = towerStats(selectedTower);
-    if (st.range > 0) {
-      drawRange(selectedTower.x, selectedTower.y, st.range,
-                selectedTower.type === 'repair' ? 'rgba(74,222,128,.10)' : undefined);
-    }
-    ctx.strokeStyle = 'rgba(255,255,255,.85)';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(
-      selectedTower.gx * TILE + 1.5,
-      selectedTower.gy * TILE + 1.5,
-      TILE - 3,
-      TILE - 3
-    );
-  }
-
-  for (let i = 0; i < towers.length; i++) {
-    const t = towers[i];
-    if (t.type === 'repair' && t.beamTarget && !t.destroyed) {
-      const bx = t.x + Math.cos(t.angle) * 10;
-      const by = t.y + Math.sin(t.angle) * 10;
-      const ex = t.beamTarget === 'castle' ? CASTLE_CX : t.beamTarget.x;
-      const ey = t.beamTarget === 'castle' ? CASTLE_CY : t.beamTarget.y;
-
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(bx, by);
-      ctx.lineTo(ex, ey);
-      ctx.strokeStyle = 'rgba(74, 222, 128, 0.8)';
-      ctx.lineWidth = 3 + Math.sin(performance.now() / 100) * 1;
-      ctx.shadowBlur = 8;
-      ctx.shadowColor = '#4ade80';
-      ctx.stroke();
-      
-      for (let j = 0; j < 3; j++) {
-        const pr = (performance.now() / 400 + j / 3) % 1;
-        const px = bx + (ex - bx) * pr;
-        const py = by + (ey - by) * pr;
-        ctx.beginPath();
-        ctx.arc(px, py, 2.5, 0, Math.PI * 2);
-        ctx.fillStyle = '#fff';
-        ctx.fill();
-      }
-      ctx.restore();
-    }
-  }
-
-  for (let i = 0; i < lightningEffects.length; i++) {
-    const eff = lightningEffects[i];
-    ctx.save();
-    ctx.strokeStyle = eff.color || '#c084fc';
-    ctx.lineWidth = 3;
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = eff.color || '#c084fc';
-    ctx.beginPath();
-    ctx.moveTo(eff.x1, eff.y1);
-    const segments = 4;
-    for (let j = 1; j < segments; j++) {
-      const t = j / segments;
-      const nx = eff.x1 + (eff.x2 - eff.x1) * t + (Math.random() - 0.5) * 20;
-      const ny = eff.y1 + (eff.y2 - eff.y1) * t + (Math.random() - 0.5) * 20;
-      ctx.lineTo(nx, ny);
-    }
-    ctx.lineTo(eff.x2, eff.y2);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  for (let i = 0; i < interceptorBeams.length; i++) {
-    const beam = interceptorBeams[i];
-    ctx.save();
-    ctx.strokeStyle = '#ff0000';
-    ctx.lineWidth = 3;
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = '#ff0000';
-    ctx.beginPath();
-    ctx.moveTo(beam.x1, beam.y1);
-    ctx.lineTo(beam.x2, beam.y2);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  for (let i = 0; i < mmwaveBeams.length; i++) {
-    const beam = mmwaveBeams[i];
-    ctx.save();
-    ctx.strokeStyle = '#c084fc';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.moveTo(beam.x1, beam.y1);
-    ctx.lineTo(beam.x2, beam.y2);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  for (let i = 0; i < orbitalStrikes.length; i++) {
-    const eff = orbitalStrikes[i];
-    const alpha = eff.life / eff.maxLife;
-    
-    ctx.save();
-    if (eff.isNuke) {
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = '#fff';
-      ctx.beginPath();
-      ctx.arc(eff.x, eff.y, eff.radius * (1.5 - alpha * 0.5), 0, Math.PI * 2);
-      ctx.fill();
-      
-      ctx.fillStyle = 'rgba(234, 88, 12, 0.6)';
-      ctx.beginPath();
-      ctx.arc(eff.x, eff.y, eff.radius * (1.2 - alpha * 0.2), 0, Math.PI * 2);
-      ctx.fill();
-      
-      ctx.strokeStyle = '#ea580c';
-      ctx.lineWidth = 10;
-      ctx.beginPath();
-      ctx.arc(eff.x, eff.y, eff.radius * (1.1 - alpha * 0.1), 0, Math.PI * 2);
-      ctx.stroke();
-    } else {
-      ctx.globalAlpha = alpha * 0.8;
-      const grad = ctx.createLinearGradient(eff.x, 0, eff.x, eff.y);
-      grad.addColorStop(0, 'rgba(255,255,255,0)');
-      grad.addColorStop(0.7, 'rgba(255,255,255,0.8)');
-      grad.addColorStop(1, 'rgba(255,255,255,1)');
-      
-      ctx.fillStyle = grad;
-      ctx.fillRect(eff.x - eff.radius * 0.4, 0, eff.radius * 0.8, eff.y);
-      
-      ctx.globalAlpha = alpha * 0.4;
-      ctx.fillStyle = '#93c5fd';
-      ctx.fillRect(eff.x - eff.radius * 0.6, 0, eff.radius * 0.15, eff.y);
-      ctx.fillRect(eff.x + eff.radius * 0.45, 0, eff.radius * 0.15, eff.y);
-      
-      ctx.globalAlpha = alpha;
-      ctx.beginPath();
-      ctx.arc(eff.x, eff.y, eff.radius * (1.2 - alpha * 0.2), 0, Math.PI * 2);
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 4;
-      ctx.shadowBlur = 15;
-      ctx.shadowColor = '#ffffff';
-      ctx.stroke();
-      
-      ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      ctx.fill();
-    }
-    ctx.restore();
-  }
-
-  for (let i = 0; i < towers.length; i++) drawTower(towers[i]);
-  for (let i = 0; i < enemies.length; i++) drawEnemy(enemies[i]);
-  for (let i = 0; i < bullets.length; i++) drawBullet(bullets[i]);
-  for (let i = 0; i < missiles.length; i++) drawMissile(missiles[i]);
-  
-  for (let i = 0; i < enemyBullets.length; i++) {
-    if (enemyBullets[i].alive) drawEnemyBullet(enemyBullets[i]);
-  }
-
-  for (let i = 0; i < particles.length; i++) {
-    const p = particles[i];
-    ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
-    ctx.fillStyle = p.color;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.globalAlpha = 1;
-
-  ctx.textAlign = 'center';
-  ctx.font = 'bold 14px system-ui, sans-serif';
-  for (let i = 0; i < floats.length; i++) {
-    const f = floats[i];
-    ctx.globalAlpha = Math.min(1, f.life * 1.6);
-    ctx.fillStyle = 'rgba(0,0,0,.55)';
-    ctx.fillText(f.text, f.x + 1, f.y + 1);
-    ctx.fillStyle = f.color;
-    ctx.fillText(f.text, f.x, f.y);
-  }
-  ctx.globalAlpha = 1;
-}
-
+/* ================= 流程 ================= */
 function updateHUD() {
-  $('hGold').textContent = Math.floor(gold);
-  $('hWave').textContent = waveNum;
-
-  const hpEl = $('hHp');
-  hpEl.textContent = Math.ceil(castleHp) + ' / ' + CASTLE_MAX_HP;
-  const hpFrac = castleHp / CASTLE_MAX_HP;
-  hpEl.className = hpFrac > 0.5 ? '' : hpFrac > 0.25 ? 'hp-mid' : 'hp-low';
-
-  const pill = $('statePill');
-  pill.className = 'state-pill';
-  if (gameOver) {
-    pill.classList.add('over');
-    pill.textContent = '已陷落';
-  } else if (wave.active) {
-    pill.classList.add('fight');
-    pill.textContent = '战斗中';
+  scoreEl.textContent = score;
+  const full = Math.max(0, Math.min(lives, maxLives()));
+  const total = maxLives();
+  if (total <= 5) {
+    livesEl.textContent = '❤️'.repeat(full) + '🖤'.repeat(Math.max(0, total - full));
   } else {
-    pill.classList.add('wait');
-    pill.textContent = '准备中';
-  }
-
-  const statusLine = $('statusLine');
-  const statusLabel = $('statusLabel');
-  const statusValue = $('statusValue');
-  const statusFill = $('statusFill');
-  statusLine.className = 'status-line';
-  statusFill.className = 'status-fill';
-
-  if (gameOver) {
-    statusLabel.textContent = '指挥塔陷落';
-    statusValue.textContent = '—';
-    statusFill.style.width = '0%';
-  } else if (wave.active) {
-    statusLine.classList.add('fight');
-    statusFill.classList.add('fight');
-    const total = Math.max(1, waveStartTotal);
-    const progress = Math.min(1, wave.time / total);
-    statusLabel.textContent = '第 ' + waveNum + ' 波';
-    
-    const timeLeft = Math.max(0, 30 - wave.time).toFixed(0);
-    const earlyBoost = (wave.idx < wave.list.length && enemies.length < 3);
-    statusValue.textContent = '剩余 ' + enemies.length + ' 敌 (' + timeLeft + 's超时)' + (earlyBoost ? ' ⚡增援' : '');
-    statusFill.style.width = (progress * 100).toFixed(1) + '%';
-  } else {
-    statusLine.classList.add('wait');
-    statusLabel.textContent = '下一波';
-    statusValue.textContent = waveTimer.toFixed(1) + 's';
-    statusFill.style.width = '0%';
-  }
-
-  const achEl = $('achTesla');
-  if (achTesla) {
-    achEl.style.color = '#ffd166';
-    achEl.innerHTML = '🏆 特斯拉线圈 I：<span style="color:#7ef0a0">已解锁</span>';
-  } else {
-    achEl.style.color = '#6f8499';
-    achEl.innerHTML = `🏆 特斯拉线圈 I：放置20个电击器 (${Math.min(20, totalLightningBuilt)}/20)`;
-  }
-  
-  const achEl2 = $('achTesla2');
-  if (achTesla2) {
-    achEl2.style.color = '#ffd166';
-    achEl2.innerHTML = '🏆 特斯拉线圈 II：<span style="color:#7ef0a0">已解锁</span>';
-  } else {
-    achEl2.style.color = '#6f8499';
-    achEl2.innerHTML = `🏆 特斯拉线圈 II：放置30个电击器 (${Math.min(30, totalLightningBuilt)}/30)`;
-  }
-
-  const achMag3 = $('achMag3');
-  if (achMag >= 3) {
-    achMag3.style.color = '#ffd166';
-    achMag3.innerHTML = '🏆 马奇诺防线：<span style="color:#7ef0a0">已解锁 (塔上限+10)</span>';
-  } else {
-    achMag3.style.color = '#6f8499';
-    achMag3.innerHTML = `🏆 马奇诺防线：三层闭环包围 (未达成)`;
-  }
-
-  const achMag5 = $('achMag5');
-  if (achMag >= 5) {
-    achMag5.style.color = '#ffd166';
-    achMag5.innerHTML = '🏆 终极防线：<span style="color:#7ef0a0">已解锁 (受伤减半)</span>';
-  } else {
-    achMag5.style.color = '#6f8499';
-    achMag5.innerHTML = `🏆 终极防线：五层闭环包围 (未达成)`;
-  }
-
-  const btns = document.querySelectorAll('.tower-btn');
-  for (let i = 0; i < btns.length; i++) {
-    const b = btns[i];
-    if (b.dataset.type === 'hammer') {
-      b.classList.toggle('active', selectedType === 'hammer');
-      b.classList.toggle('hammer', true);
-    } else {
-      const def = TOWER_DEFS[b.dataset.type];
-      b.classList.toggle('disabled', gold < def.cost);
-      b.classList.toggle('active', selectedType === b.dataset.type);
-    }
-  }
-
-  const wb = $('btnWave');
-  if (gameOver) {
-    wb.disabled = true;
-    wb.textContent = '游戏结束';
-  } else if (wave.active) {
-    wb.disabled = true;
-    wb.textContent = '⚔️ 第 ' + waveNum + ' 波';
-  } else {
-    wb.disabled = false;
-    wb.textContent = '⏭ 开始第 ' + (waveNum + 1) + ' 波';
-  }
-
-  if (selectedTower && !selectedTower.destroyed && towers.indexOf(selectedTower) !== -1) {
-    $('emptySel').classList.add('hidden');
-    $('selPanel').classList.remove('hidden');
-
-    $('selDmg').style.color = '';
-
-    const t = selectedTower;
-    const st = towerStats(t);
-    
-    let maxLv = 10;
-    if (achMag >= 3) maxLv += 10;
-    if (t.type === 'lightning') {
-      if (achTesla) maxLv += 5;
-      if (achTesla2) maxLv += 5;
-    }
-    if (t.type === 'prism') maxLv = 20;
-    if (t.type === 'nukeSilo') maxLv = 1;
-    if (t.type === 'missileSilo') maxLv = 20;
-    if (t.type === 'converter') maxLv = 20;
-    
-    $('selName').innerHTML = t.def.icon + ' ' + t.def.name +
-      '<span class="tier-tag">' + TIER_NAMES[t.level - 1] + '</span>';
-    $('selLvl').textContent = TIER_NAMES[t.level - 1] + ' / T' + maxLv;
-
-    const hpEl = $('selHp');
-    hpEl.textContent = Math.ceil(t.hp) + ' / ' + t.maxHp;
-    
-    let inRad = false;
-    for (let rz of radiationZones) {
-      if (Math.hypot(t.x - rz.x, t.y - rz.y) <= rz.radius) { inRad = true; break; }
-    }
-    if (inRad) {
-      hpEl.textContent += ' (辐射中)';
-      hpEl.className = 'radiation';
-    } else {
-      const frac = t.hp / t.maxHp;
-      hpEl.className = frac > 0.5 ? 'hp-ok' : frac > 0.25 ? 'hp-mid' : 'hp-low';
-    }
-
-    if (t.type === 'laser' || t.type === 'battery' || t.type === 'prism') {
-      $('rowEnergy').style.display = 'flex';
-      const enEl = $('selEnergy');
-      enEl.textContent = Math.floor(t.energy) + ' / ' + st.maxEnergy;
-      enEl.className = t.energy >= st.maxEnergy ? 'energy-full' : 'energy-mid';
-    } else {
-      $('rowEnergy').style.display = 'none';
-    }
-
-    if (t.type === 'resource') {
-      $('selStatLabel').textContent = '产出';
-      $('selDmg').textContent = '+' + st.income + ' / ' + st.interval.toFixed(2) + 's';
-      $('selRange').textContent = '—';
-      $('selRate').textContent = '—';
-    } else if (t.type === 'repair') {
-      $('selStatLabel').textContent = '修复/充能';
-      $('selDmg').textContent = '+' + Math.round(st.healRate);
-      $('selRange').textContent = Math.round(st.range);
-      $('selRate').textContent = '持续';
-    } else if (t.type === 'laser') {
-      $('selStatLabel').textContent = '拦截消耗';
-      $('selDmg').textContent = '100 能量';
-      $('selRange').textContent = Math.round(st.range);
-      $('selRate').textContent = (1 / st.cooldown).toFixed(2) + '/s';
-    } else if (t.type === 'battery') {
-      $('selStatLabel').textContent = '最大储能';
-      $('selDmg').textContent = st.maxEnergy;
-      $('selRange').textContent = '—';
-      $('selRate').textContent = '—';
-    } else if (t.type === 'mmwave') {
-      $('selStatLabel').textContent = '修复损耗';
-      $('selDmg').textContent = '10%';
-      $('selRange').textContent = Math.round(st.range);
-      $('selRate').textContent = (1 / st.cooldown).toFixed(2) + '/s';
-    } else if (t.type === 'converter') {
-      $('selStatLabel').textContent = '转化率';
-      $('selDmg').textContent = '1 能量 = ' + st.convertRate + ' 金币';
-      $('selRange').textContent = '—';
-      $('selRate').textContent = '持续';
-    } else if (t.type === 'prism') {
-      $('selStatLabel').textContent = '状态';
-      if (t.level < 20) {
-        $('selDmg').textContent = '未解锁 (需T20)';
-      } else if (t.energy >= 100000) {
-        $('selDmg').textContent = '轨道打击就绪';
-        $('selDmg').style.color = '#f8fafc';
-      } else {
-        $('selDmg').textContent = '充能中';
-        $('selDmg').style.color = '#9fb0c4';
-      }
-      $('selRange').textContent = '无限';
-      $('selRate').textContent = '—';
-    } else if (t.type === 'nukeSilo') {
-      $('selStatLabel').textContent = '库存';
-      $('selDmg').textContent = `${t.nukeCount} / 5`;
-      $('selRange').textContent = '全图';
-      $('selRate').textContent = '—';
-    } else if (t.type === 'missileSilo') {
-      $('selStatLabel').textContent = '备弹/上限 (伤害)';
-      $('selDmg').textContent = `${t.missileCount} / ${st.maxMissiles} (${st.damage})`;
-      $('selRange').textContent = '全图';
-      $('selRate').textContent = t.isBuildingMissile ? Math.floor(t.missileBuildProgress*100)+'%' : '待命';
-    } else {
-      $('selStatLabel').textContent = t.type === 'lightning' ? '伤害(地/空)' : '伤害';
-      if (t.type === 'lightning') {
-        $('selDmg').textContent = st.damage + ' / ' + Math.round(st.damage * 1.5);
-      } else {
-        $('selDmg').textContent = st.damage;
-      }
-      $('selRange').textContent = Math.round(st.range);
-      $('selRate').textContent = (1 / st.cooldown).toFixed(2) + '/s';
-    }
-
-    const ub = $('btnUpgrade');
-    if (t.type === 'nukeSilo') {
-      ub.textContent = '无法升级';
-      ub.disabled = true;
-    } else if (t.buildingTimer > 0) {
-      ub.textContent = '建造中 ' + Math.ceil(t.buildingTimer) + 's';
-      ub.disabled = true;
-    } else if (t.upgradingTimer > 0) {
-      ub.textContent = '升级中 ' + Math.ceil(t.upgradingTimer) + 's';
-      ub.disabled = true;
-    } else if (t.level >= maxLv) {
-      ub.textContent = '已满级 T' + maxLv;
-      ub.disabled = true;
-    } else {
-      const c = upgradeCost(t);
-      ub.textContent = '升级到 T' + (t.level + 1) + ' · 💰' + c;
-      ub.disabled = gold < c;
-    }
-    $('btnSell').textContent = '出售 +💰' + Math.round(t.invested * 0.6);
-
-    const bNukeBuild = $('btnNukeBuild');
-    const bNukeLaunch = $('btnNukeLaunch');
-    const bAutoBuildNuke = $('btnAutoBuildNuke');
-    const bBuildMsl = $('btnBuildMissile');
-    const bLaunchMsl = $('btnLaunchMissile');
-    const bAutoBuild = $('btnAutoBuildMissile');
-    const bAutoStrike = $('btnAutoStrikeMissile');
-    
-    if (t.type === 'nukeSilo') {
-      bNukeBuild.style.display = 'block';
-      bNukeLaunch.style.display = 'block';
-      bAutoBuildNuke.style.display = 'block';
-      bBuildMsl.style.display = 'none';
-      bLaunchMsl.style.display = 'none';
-      bAutoBuild.style.display = 'none';
-      bAutoStrike.style.display = 'none';
-
-      bNukeBuild.disabled = t.nukeStatus === 'building' || t.nukeCount >= 5 || gold < 3000000;
-      bNukeBuild.textContent = t.nukeStatus === 'building' ? `☢️ 建造中 ${Math.ceil(t.nukeTimer)}s` : `☢️ 建造核弹 (💰300万, 30s)`;
-
-      bNukeLaunch.disabled = t.nukeCount <= 0;
-      bNukeLaunch.textContent = `💥 发射核弹 (${t.nukeCount}枚)`;
-
-      bAutoBuildNuke.textContent = autoBuildNuke ? '☢️ 自动建造核弹：开' : '☢️ 自动建造核弹：关';
-      bAutoBuildNuke.className = autoBuildNuke ? 'btn auto-on' : 'btn auto-off';
-    } else if (t.type === 'missileSilo') {
-      bNukeBuild.style.display = 'none';
-      bNukeLaunch.style.display = 'none';
-      bAutoBuildNuke.style.display = 'none';
-      bBuildMsl.style.display = 'block';
-      bLaunchMsl.style.display = 'block';
-      bAutoBuild.style.display = 'block';
-      bAutoStrike.style.display = 'block';
-
-      bBuildMsl.textContent = t.isBuildingMissile ? `🔨 建造中 ${Math.floor(t.missileBuildProgress * 100)}%` : `🔨 建造导弹 (💰${st.missileCost})`;
-      bBuildMsl.disabled = t.isBuildingMissile || t.missileCount >= st.maxMissiles || gold < st.missileCost;
-      
-      let totalMissiles = 0;
-      for(let o of towers) if(o.type === 'missileSilo') totalMissiles += o.missileCount;
-
-      bLaunchMsl.textContent = `🚀 发射导弹 (全图共${totalMissiles}枚)`;
-      bLaunchMsl.disabled = totalMissiles <= 0;
-
-      bAutoBuild.textContent = autoBuildMissile ? '🔨 自动建造导弹：开' : '🔨 自动建造导弹：关';
-      bAutoBuild.className = autoBuildMissile ? 'btn auto-on' : 'btn auto-off';
-
-      bAutoStrike.textContent = autoStrikeMissile ? '🎯 自动发射导弹：开' : '🎯 自动发射导弹：关';
-      bAutoStrike.className = autoStrikeMissile ? 'btn auto-on' : 'btn auto-off';
-    } else {
-      bNukeBuild.style.display = 'none';
-      bNukeLaunch.style.display = 'none';
-      bAutoBuildNuke.style.display = 'none';
-      bBuildMsl.style.display = 'none';
-      bLaunchMsl.style.display = 'none';
-      bAutoBuild.style.display = 'none';
-      bAutoStrike.style.display = 'none';
-    }
-  } else {
-    $('emptySel').classList.remove('hidden');
-    $('selPanel').classList.add('hidden');
-    if (selectedTower) selectedTower = null;
-    $('btnNukeBuild').style.display = 'none';
-    $('btnNukeLaunch').style.display = 'none';
-    $('btnAutoBuildNuke').style.display = 'none';
-    $('btnBuildMissile').style.display = 'none';
-    $('btnLaunchMissile').style.display = 'none';
-    $('btnAutoBuildMissile').style.display = 'none';
-    $('btnAutoStrikeMissile').style.display = 'none';
+    livesEl.textContent = '❤️ ' + full + ' / ' + total;
   }
 }
 
-function getMousePos(evt) {
-  const r = cv.getBoundingClientRect();
-  return {
-    x: (evt.clientX - r.left) * (W / r.width),
-    y: (evt.clientY - r.top) * (H / r.height)
-  };
-}
-
-cv.addEventListener('mousemove', evt => {
-  const p = getMousePos(evt);
-  mouse.x = p.x; mouse.y = p.y;
-  mouse.gx = Math.floor(p.x / TILE);
-  mouse.gy = Math.floor(p.y / TILE);
-  mouse.inside = true;
-});
-cv.addEventListener('mouseleave', () => { mouse.inside = false; });
-
-cv.addEventListener('click', evt => {
-  if (gameOver) return;
-  const p = getMousePos(evt);
-  const gx = Math.floor(p.x / TILE);
-  const gy = Math.floor(p.y / TILE);
-
-  if (aimingNukeTower) {
-    if (aimingNukeTower.destroyed || aimingNukeTower.nukeCount <= 0) {
-      aimingNukeTower = null;
-      updateHUD();
-      return;
-    }
-    launchNuke(aimingNukeTower, p.x, p.y);
-    aimingNukeTower = null;
-    updateHUD();
-    return;
-  }
-
-  if (aimingMissile) {
-    launchMissileSwarm(p.x, p.y);
-    aimingMissile = false;
-    updateHUD();
-    return;
-  }
-
-  if (selectedType === 'hammer') {
-    const target = towers.find(t => t.gx === gx && t.gy === gy && !t.destroyed);
-    if (target) {
-      const refund = Math.round(target.invested * 0.6);
-      gold += refund;
-      addFloat(target.x, target.y - 14, '+' + refund, '#ffd166');
-      addParticles(target.x, target.y, '#9fb0c4', 10, 90);
-      addLog(`拆除了 ${target.def.name}，返还 ${refund} 金币`, 'info');
-      towers = towers.filter(x => x !== target);
-      if (selectedTower === target) selectedTower = null;
-      checkEnclosure();
-    } else {
-      toast('这里没有可拆除的设施');
-    }
-    return;
-  }
-
-  const existing = towers.find(t => t.gx === gx && t.gy === gy && !t.destroyed);
-  if (existing) {
-    selectedTower = existing;
-    selectedType = null;
-    return;
-  }
-  if (selectedType) {
-    tryBuild(gx, gy, selectedType);
-    return;
-  }
-  selectedTower = null;
-});
-
-cv.addEventListener('contextmenu', evt => {
-  evt.preventDefault();
-  selectedType = null;
-  selectedTower = null;
-  aimingNukeTower = null;
-  aimingMissile = false;
+function loseLife() {
+  if (state !== 'playing') return;
+  lives--;
   updateHUD();
-});
-
-function tryBuild(gx, gy, type) {
-  const def = TOWER_DEFS[type];
-  if (!canBuild(gx, gy)) { toast('这里不能建造'); return; }
-  if (gold < def.cost) { toast('金币不足'); return; }
-
-  gold -= def.cost;
-  const maxHp = towerMaxHp(type, 1);
-  const t = {
-    type, def, gx, gy,
-    x: (gx + 0.5) * TILE,
-    y: (gy + 0.5) * TILE,
-    angle: -Math.PI / 2,
-    cool: 0,
-    recoil: 0,
-    hitFlash: 0,
-    level: 1,
-    invested: def.cost,
-    hp: maxHp,
-    maxHp,
-    destroyed: false,
-    buildingTimer: 1.5,
-    upgradingTimer: 0,
-    beamTarget: null,
-    goldTimer: 0,
-    energy: 0,
-    nukeStatus: 'idle',
-    nukeTimer: 0,
-    nukeCount: 0,
-    missileCount: 0,
-    missileBuildProgress: 0,
-    isBuildingMissile: false,
-    lastStrikeTime: 0,
-    convertAccum: 0,
-    convertFloatTimer: 0
-  };
-  towers.push(t);
-  addParticles(t.x, t.y, def.color, 12, 120);
-  addLog(`正在建造 ${def.name}...`, 'info');
-  selectedTower = t; 
-  
-  if (type === 'lightning') {
-    totalLightningBuilt++;
-    if (totalLightningBuilt >= 20 && !achTesla) {
-      achTesla = true;
-      toast('🏆 成就解锁：特斯拉线圈 I！电击器上限+5', true);
-      addLog('🏆 成就解锁：特斯拉线圈 I！', 'success');
-      for(let i=0; i<30; i++){
-        addParticles(t.x, t.y, '#c084fc', 5, 300);
-      }
-    }
-    if (totalLightningBuilt >= 30 && !achTesla2) {
-      achTesla2 = true;
-      toast('🏆 成就解锁：特斯拉线圈 II！电击器上限再+5', true);
-      addLog('🏆 成就解锁：特斯拉线圈 II！', 'success');
-      for(let i=0; i<30; i++){
-        addParticles(t.x, t.y, '#c084fc', 5, 300);
-      }
-    }
-  }
-  
-  checkEnclosure();
+  if (lives <= 0) gameOver();
 }
 
-function selectType(type) {
-  if (gameOver) return;
-  selectedType = (selectedType === type) ? null : type;
-  if (selectedType === 'hammer') {
-    selectedTower = null;
-  }
-  aimingNukeTower = null;
-  aimingMissile = false;
+function resetMenuOverlay() {
+  state = 'menu';
+  ovTitle.textContent = '切水果';
+  ovText.innerHTML = '滑动鼠标或手指，切开飞起的水果<br>每个水果 +' + coinPerFruit() + ' 💰 &nbsp;|&nbsp; 小心炸弹 💣';
+  startBtn.textContent = '开始游戏';
+  refreshMenuStats();
+  refreshAutoUI();
 }
 
-(function buildTowerButtons() {
-  const list = $('towerList');
-  const keys = ['arrow', 'cannon', 'flame', 'lightning', 'antiair', 'repair', 'laser', 'battery', 'mmwave', 'converter', 'prism', 'resource', 'nukeSilo', 'missileSilo'];
-  keys.forEach(key => {
-    const def = TOWER_DEFS[key];
-    const btn = document.createElement('button');
-    btn.className = 'tower-btn';
-    btn.dataset.type = key;
-    btn.title = def.desc;
-    btn.innerHTML =
-      '<span class="ic">' + def.icon + '</span>' +
-      '<span class="nm">' + def.name + '</span>' +
-      '<span class="cost">💰' + (def.cost >= 10000 ? (def.cost/10000) + '万' : def.cost) + '</span>';
-    btn.addEventListener('click', () => selectType(key));
-    list.appendChild(btn);
-  });
-
-  const hammerBtn = document.createElement('button');
-  hammerBtn.className = 'tower-btn';
-  hammerBtn.dataset.type = 'hammer';
-  hammerBtn.title = '拆除设施，返还 60% 金币';
-  hammerBtn.innerHTML =
-    '<span class="ic">🔨</span>' +
-    '<span class="nm">拆除</span>' +
-    '<span class="cost" style="color:#ff6b6b">返还60%</span>';
-  hammerBtn.addEventListener('click', () => selectType('hammer'));
-  list.appendChild(hammerBtn);
-})();
-
-$('btnUpgrade').addEventListener('click', () => {
-  const t = selectedTower;
-  if (!t || t.destroyed) return;
-  
-  if (t.type === 'nukeSilo') { toast('核弹发射井无法升级'); return; }
-  
-  let maxLv = 10;
-  if (achMag >= 3) maxLv += 10;
-  if (t.type === 'lightning') {
-    if (achTesla) maxLv += 5;
-    if (achTesla2) maxLv += 5;
-  }
-  if (t.type === 'prism' || t.type === 'missileSilo' || t.type === 'converter') maxLv = 20;
-  
-  if (t.level >= maxLv) { toast('已达到最大等级'); return; }
-  if (t.buildingTimer > 0) { toast('建造中'); return; }
-  if (t.upgradingTimer > 0) { toast('正在升级中'); return; }
-  const c = upgradeCost(t);
-  if (gold < c) { toast('金币不足'); return; }
-  gold -= c;
-  t.invested += c;
-  t.upgradingTimer = 2.0;
-  addLog(`开始升级 ${t.def.name} 到 T${t.level + 1}...`, 'info');
-});
-
-$('btnSell').addEventListener('click', () => {
-  const t = selectedTower;
-  if (!t || t.destroyed) return;
-  const refund = Math.round(t.invested * 0.6);
-  gold += refund;
-  addFloat(t.x, t.y - 14, '+' + refund, '#ffd166');
-  addParticles(t.x, t.y, '#9fb0c4', 10, 90);
-  addLog(`出售了 ${t.def.name}，返还 ${refund} 金币`, 'info');
-  towers = towers.filter(x => x !== t);
-  selectedTower = null;
-  checkEnclosure();
-});
-
-$('btnNukeBuild').addEventListener('click', () => {
-  const t = selectedTower;
-  if (!t || t.type !== 'nukeSilo') return;
-  if (t.nukeStatus === 'building' || t.nukeCount >= 5) return;
-  if (gold >= 3000000) {
-    gold -= 3000000;
-    t.invested += 3000000;
-    t.nukeStatus = 'building';
-    t.nukeTimer = 30;
-    addLog('开始建造核弹...', 'info');
-    updateHUD();
-  } else {
-    toast('金币不足 (需要300万)');
-  }
-});
-
-$('btnNukeLaunch').addEventListener('click', () => {
-  const t = selectedTower;
-  if (!t || t.type !== 'nukeSilo' || t.nukeCount <= 0) return;
-  aimingNukeTower = t;
-  selectedType = null;
-  addLog('核弹已进入瞄准模式，点击地图空投', 'warning');
-});
-
-$('btnBuildMissile').addEventListener('click', () => {
-  const t = selectedTower;
-  if (!t || t.type !== 'missileSilo') return;
-  const st = towerStats(t);
-  if (t.isBuildingMissile) return;
-  if (t.missileCount >= st.maxMissiles) return;
-  if (gold < st.missileCost) { toast('金币不足'); return; }
-  
-  gold -= st.missileCost;
-  t.invested += st.missileCost;
-  t.isBuildingMissile = true;
-  t.missileBuildProgress = 0;
-  addLog(`开始建造导弹 (耗时 ${st.buildTime}s)...`, 'info');
-});
-
-$('btnLaunchMissile').addEventListener('click', () => {
-  const t = selectedTower;
-  if (!t || t.type !== 'missileSilo') return;
-  
-  let totalMissiles = 0;
-  for (let o of towers) {
-    if (o.type === 'missileSilo') totalMissiles += o.missileCount;
-  }
-  if (totalMissiles === 0) {
-    toast('场上没有可用的导弹');
-    return;
-  }
-  
-  aimingMissile = true;
-  selectedType = null;
-  addLog(`导弹集群进入瞄准模式 (共 ${totalMissiles} 枚)，点击地图齐射`, 'warning');
-});
-
-$('btnAutoBuildNuke').addEventListener('click', () => {
-  autoBuildNuke = !autoBuildNuke;
-  addLog(autoBuildNuke ? '已开启自动建造核弹' : '已关闭自动建造核弹', 'info');
+function startGame() {
+  if (!saveReady) return;
+  state = 'playing';
+  fruits = []; halves = []; particles = []; floaters = [];
+  trailPts = [];
+  pointerActive = false;
+  autoPointer.x = null;
+  autoPointer.y = null;
+  autoPointer.target = null;
+  score = 0;
+  lives = maxLives();
+  runCoins = 0;
+  combo = 0; comboTimer = 0;
+  elapsed = 0; spawnTimer = 0.6;
+  shake = 0; flash = 0;
   updateHUD();
-});
-
-$('btnAutoBuildMissile').addEventListener('click', () => {
-  autoBuildMissile = !autoBuildMissile;
-  addLog(autoBuildMissile ? '已开启自动建造导弹' : '已关闭自动建造导弹', 'info');
-  updateHUD();
-});
-
-$('btnAutoStrikeMissile').addEventListener('click', () => {
-  autoStrikeMissile = !autoStrikeMissile;
-  addLog(autoStrikeMissile ? '已开启自动发射导弹' : '已关闭自动发射导弹', 'info');
-  updateHUD();
-});
-
-$('btnWave').addEventListener('click', () => {
-  if (wave.active || gameOver) return;
-  waveTimer = 0;
-  startWave();
-});
-
-$('btnPause').addEventListener('click', () => {
-  paused = !paused;
-  $('btnPause').textContent = paused ? '▶' : '⏸';
-});
-
-const SPEEDS = [1, 2, 3, 5, 10, 20, 50, 100, 200, 500, 1000];
-$('btnSpeed').addEventListener('click', () => {
-  const i = SPEEDS.indexOf(speedMul);
-  speedMul = SPEEDS[(i + 1) % SPEEDS.length];
-  $('btnSpeed').textContent = speedMul + '×';
-});
-
-$('btnAutoUpgrade').addEventListener('click', () => {
-  autoUpgrade = !autoUpgrade;
-  if (autoUpgrade) {
-    $('btnAutoUpgrade').textContent = '⚙️ 自动升级：开';
-    $('btnAutoUpgrade').className = 'btn auto-on';
-    addLog('已开启自动升级', 'success');
-    autoUpgradeTimer = 0;
-  } else {
-    $('btnAutoUpgrade').textContent = '⚙️ 自动升级：关';
-    $('btnAutoUpgrade').className = 'btn auto-off';
-    addLog('已关闭自动升级', 'info');
-  }
-});
-
-$('btnRestart').addEventListener('click', () => { reset(); updateHUD(); });
-
-async function saveGame() {
-  if (gameOver) { toast('游戏已结束，无法保存'); return; }
-  try {
-    const data = {
-      v: 11,
-      savedAt: Date.now(),
-      gold: Math.floor(gold),
-      castleHp,
-      waveNum,
-      gameTime,
-      wave: wave.active ? {
-        list: wave.list, idx: wave.idx, time: wave.time, hpMul: wave.hpMul, speedMul: wave.speedMul
-      } : null,
-      enemies: enemies.filter(e => e.alive).map(e => ({
-        type: e.type, hp: e.hp, maxHp: e.maxHp, x: e.x, y: e.y,
-        shield: e.shield, maxShield: e.maxShield, speed: e.speed, slowFactor: e.slowFactor, slowTimer: e.slowTimer,
-        towerDamage: e.towerDamage, attackRange: e.attackRange, isRanged: e.isRanged
-      })),
-      totalLightningBuilt,
-      achTesla,
-      achTesla2,
-      achMag,
-      autoBuildMissile,
-      autoStrikeMissile,
-      autoBuildNuke,
-      radiationZones: radiationZones.map(rz => ({ x: rz.x, y: rz.y, radius: rz.radius, life: rz.life, maxLife: rz.maxLife })),
-      towers: towers.filter(t => !t.destroyed).map(t => {
-        let lvl = t.level;
-        let hp = Math.ceil(t.hp);
-        let maxHp = t.maxHp;
-        if (t.upgradingTimer > 0) {
-          lvl = Math.min(MAX_LEVEL, t.level + 1);
-          const newMaxHp = towerMaxHp(t.type, lvl);
-          hp = Math.min(newMaxHp, hp + (newMaxHp - maxHp));
-          maxHp = newMaxHp;
-        }
-        return {
-          type: t.type, gx: t.gx, gy: t.gy,
-          level: lvl, invested: t.invested,
-          hp: hp, maxHp: maxHp,
-          energy: t.energy,
-          nukeStatus: t.nukeStatus,
-          nukeTimer: t.nukeTimer,
-          nukeCount: t.nukeCount,
-          missileCount: t.missileCount,
-          missileBuildProgress: t.missileBuildProgress,
-          isBuildingMissile: !!t.isBuildingMissile,
-          lastStrikeTime: t.lastStrikeTime
-        };
-      })
-    };
-    const b64 = await encryptSave(data);
-    const blob = new Blob([b64], { type: 'text/plain' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    const ts = new Date().toISOString().slice(0, 19).replace(/[:]/g, '-');
-    a.download = `tower_defense_${ts}.aes`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-    toast('💾 存档已加密导出 (.aes)', true);
-    addLog('存档已保存', 'info');
-  } catch (err) {
-    toast('存档失败: ' + err.message);
-    addLog('存档保存失败: ' + err.message, 'danger');
-  }
+  refreshCoinHud();
+  refreshAutoUI();
+  overlay.classList.add('hide');
+  autoToggle.classList.add('show');
 }
 
-function applySave(data) {
-  if (!data || typeof data !== 'object') throw new Error('存档数据无效');
-  reset();
-  gold = Math.max(0, Math.floor(data.gold) || 0);
-  {
-    const raw = (data.castleHp !== undefined) ? Math.floor(data.castleHp) : CASTLE_MAX_HP;
-    castleHp = Number.isFinite(raw)
-      ? Math.max(1, Math.min(CASTLE_MAX_HP, raw))
-      : CASTLE_MAX_HP;
-  }
-  waveNum = Math.max(0, Math.floor(data.waveNum) || 0);
-  totalLightningBuilt = Math.max(0, Math.floor(data.totalLightningBuilt) || 0);
-  achTesla = !!data.achTesla;
-  achTesla2 = !!data.achTesla2;
-  achMag = Math.max(0, Math.floor(data.achMag) || 0);
-  autoBuildMissile = !!data.autoBuildMissile;
-  autoStrikeMissile = !!data.autoStrikeMissile;
-  autoBuildNuke = !!data.autoBuildNuke;
-  gameTime = Number.isFinite(data.gameTime) ? data.gameTime : 0;
-  
-  radiationZones = (data.radiationZones || []).map(rz => ({
-    x: rz.x, y: rz.y, radius: rz.radius, life: rz.life, maxLife: rz.maxLife
-  }));
+function gameOver() {
+  if (state === 'over') return;
+  state = 'over';
+  autoToggle.classList.remove('show');
 
-  if (data.wave) {
-    wave = { active: true, list: data.wave.list, idx: data.wave.idx, time: data.wave.time, hpMul: data.wave.hpMul, speedMul: data.wave.speedMul, earlySpawnTimer: 0 };
-    waveTimer = 0;
-    enemies = (data.enemies || []).map(ed => {
-      const d = ENEMY_DEFS[ed.type];
-      if (!d) return null;
-      return {
-        type: ed.type, def: d, hp: ed.hp, maxHp: ed.maxHp,
-        shield: ed.shield || 0, maxShield: ed.maxShield || 0,
-        speed: ed.speed, slowFactor: ed.slowFactor || 1, slowTimer: ed.slowTimer || 0,
-        radius: d.radius, towerDamage: ed.towerDamage || d.towerDamage,
-        attackCooldown: d.attackCooldown, attackTimer: Math.random() * 0.6,
-        attackRange: ed.attackRange || d.radius + 8, isRanged: ed.isRanged || false,
-        x: ed.x, y: ed.y, alive: true, attacking: false, attackTarget: null
-      };
-    }).filter(Boolean);
-    waveStartTotal = Math.max(1, wave.list[wave.list.length - 1].t);
-  } else {
-    wave = { active: false, list: [], idx: 0, time: 0, hpMul: 1, speedMul: 1, earlySpawnTimer: 0 };
-    waveTimer = 8;
-    enemies = [];
-  }
+  const earned = runCoins;
+  save.coins += earned;
+  if (score > save.bestScore) save.bestScore = score;
+  runCoins = 0;
 
-  towers = [];
-  const occupied = new Set();
-  (data.towers || []).forEach(td => {
-    const def = TOWER_DEFS[td.type];
-    if (!def) return;
-    const gx = Math.floor(td.gx), gy = Math.floor(td.gy);
-    const key = gx + ',' + gy;
-    if (occupied.has(key)) return;
-    if (!canBuild(gx, gy)) return;
-    occupied.add(key);
-    const level = Math.min(def.levels.length, Math.max(1, Math.floor(td.level) || 1));
-    const maxHp = towerMaxHp(td.type, level);
-    const hp = td.hp ? Math.min(maxHp, Math.max(1, Math.floor(td.hp))) : maxHp;
-    
-    const maxEnergy = def.levels[level - 1].maxEnergy || 0;
-    const energy = Math.min(maxEnergy, Math.max(0, Math.floor(td.energy) || 0));
+  refreshCoinHud();
+  refreshMenuStats();
+  persistCurrent();
 
-    let lst = Number.isFinite(td.lastStrikeTime) ? td.lastStrikeTime : 0;
-    if (lst > gameTime) lst = gameTime;
+  ovTitle.textContent = '游戏结束';
+  ovText.innerHTML =
+    '本局得分 <b style="color:#ffd166">' + score + '</b><br>' +
+    '获得金币 <b style="color:#ffd166">+' + earned + '</b><br>' +
+    '金币总数 <b style="color:#ffd166">' + save.coins + '</b><br>' +
+    '最高分 <b style="color:#ffd166">' + save.bestScore + '</b>';
+  startBtn.textContent = '再来一局';
 
-    towers.push({
-      type: td.type, def, gx, gy,
-      x: (gx + 0.5) * TILE,
-      y: (gy + 0.5) * TILE,
-      angle: -Math.PI / 2,
-      cool: 0,
-      recoil: 0,
-      hitFlash: 0,
-      level,
-      invested: Math.max(def.cost, Math.floor(td.invested) || def.cost),
-      hp, maxHp,
-      destroyed: false,
-      buildingTimer: 0,
-      upgradingTimer: 0,
-      beamTarget: null,
-      goldTimer: 0,
-      energy: energy,
-      nukeStatus: td.nukeStatus || 'idle',
-      nukeTimer: td.nukeTimer || 0,
-      nukeCount: td.nukeCount || 0,
-      missileCount: td.missileCount || 0,
-      missileBuildProgress: td.missileBuildProgress || 0,
-      isBuildingMissile: !!td.isBuildingMissile,
-      lastStrikeTime: lst,
-      convertAccum: 0,
-      convertFloatTimer: 0
-    });
-  });
-
-  gameOver = false;
-  paused = false;
-  selectedType = null;
-  selectedTower = null;
-  aimingNukeTower = null;
-  aimingMissile = false;
-  $('overlay').classList.add('hidden');
-  $('btnPause').textContent = '⏸';
-  updateHUD();
-  checkEnclosure();
-  addLog('存档已读取', 'success');
+  overlay.classList.remove('hide');
 }
 
-$('btnSave').addEventListener('click', saveGame);
-$('btnLoad').addEventListener('click', () => $('saveFileInput').click());
+/* ================= 事件绑定 ================= */
+startBtn.addEventListener('click', startGame);
+shopBtn.addEventListener('click', openShop);
+closeShopBtn.addEventListener('click', closeShop);
+saveBtn.addEventListener('click', openSave);
+closeSaveBtn.addEventListener('click', closeSave);
+resetBtn.addEventListener('click', requestResetCurrent);
+buyLifeBtn.addEventListener('click', () => buyUpgrade('life'));
+buyRangeBtn.addEventListener('click', () => buyUpgrade('range'));
+buyBladeBtn.addEventListener('click', () => buyUpgrade('blade'));
+buyDefuseBtn.addEventListener('click', () => buyUpgrade('defuse'));
+buyAutoSpeedBtn.addEventListener('click', () => buyUpgrade('autospeed'));
+buyCoinBtn.addEventListener('click', () => buyUpgrade('coin'));
+autoBtn.addEventListener('click', () => setAutoMode(!save.autoMode));
+autoToggle.addEventListener('click', () => setAutoMode(!save.autoMode));
 
-$('saveFileInput').addEventListener('change', async e => {
-  const file = e.target.files[0];
-  e.target.value = '';
-  if (!file) return;
-  try {
-    const text = await file.text();
-    const data = await decryptSave(text);
-    applySave(data);
-    toast('📂 存档读取成功', true);
-  } catch (err) {
-    toast('读取失败: ' + err.message);
-    addLog('存档读取失败: ' + err.message, 'danger');
-  }
+/* ================= 输入 ================= */
+function getPos(e) {
+  const r = canvas.getBoundingClientRect();
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+  if (save.autoMode && state === 'playing') return;
+  const p = getPos(e);
+  pointerActive = true;
+  pointerX = p.x; pointerY = p.y;
+  trailPts.push({ x: p.x, y: p.y, t: performance.now() });
+  if (trailPts.length > 70) trailPts.shift();
 });
 
-window.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { 
-    selectedType = null; 
-    selectedTower = null; 
-    aimingNukeTower = null; 
-    aimingMissile = false;
-  }
-  if (e.key === ' ' && !e.repeat) {
-    e.preventDefault();
-    $('btnPause').click();
-  }
-  if (e.key === '1') selectType('arrow');
-  if (e.key === '2') selectType('cannon');
-  if (e.key === '3') selectType('flame');
-  if (e.key === '4') selectType('lightning');
-  if (e.key === '5') selectType('antiair');
-  if (e.key === '6') selectType('repair');
-  if (e.key === '7') selectType('laser');
-  if (e.key === '8') selectType('battery');
-  if (e.key === '9') selectType('mmwave');
-  if (e.key === '-') selectType('prism');
-  if (e.key === '0') selectType('resource');
-  if (e.key === '=') selectType('nukeSilo');
-  if (e.key === ',') selectType('missileSilo');
-  if (e.key === ';') selectType('converter');
+canvas.addEventListener('pointermove', (e) => {
+  if (save.autoMode && state === 'playing') return;
+  const p = getPos(e);
+  pointerActive = true;
+  pointerX = p.x; pointerY = p.y;
+  trailPts.push({ x: p.x, y: p.y, t: performance.now() });
+  if (trailPts.length > 70) trailPts.shift();
 });
 
-const FIXED_DT = 1 / 60;
-let accumulator = 0;
-let lastTime = performance.now();
+canvas.addEventListener('pointerup', () => {
+  if (save.autoMode && state === 'playing') return;
+  pointerActive = false;
+});
+canvas.addEventListener('pointercancel', () => {
+  if (save.autoMode && state === 'playing') return;
+  pointerActive = false;
+});
+canvas.addEventListener('pointerleave', () => {
+  if (save.autoMode && state === 'playing') return;
+  pointerActive = false;
+});
 
+/* ================= 启动 ================= */
+let last = performance.now();
 function loop(now) {
-  try {
-    let dt = (now - lastTime) / 1000;
-    lastTime = now;
-    if (dt > 0.1) dt = 0.1;
-
-    if (!paused && !gameOver) {
-      accumulator += dt * speedMul;
-      
-      let currentStep = FIXED_DT;
-      let maxSteps = 400;
-      if (speedMul >= 100) {
-        currentStep = 1 / 20;
-        maxSteps = 400;
-      }
-      if (speedMul >= 500) {
-        currentStep = 1 / 20;
-        maxSteps = 400;
-      }
-
-      let steps = 0;
-      while (accumulator >= currentStep && steps < maxSteps) {
-        update(currentStep);
-        accumulator -= currentStep;
-        steps++;
-      }
-      
-      if (steps >= maxSteps) {
-        accumulator = 0;
-      }
-    } else {
-      accumulator = 0;
-    }
-
-    draw();
-    updateHUD();
-  } catch (err) {
-    console.error("Game Loop Error:", err);
-    paused = true;
-    $('btnPause').textContent = '▶';
-    toast('发生内部错误，游戏已自动暂停', false);
-  }
-
+  const dt = Math.min((now - last) / 1000, 0.05);
+  last = now;
+  update(dt);
+  render();
   requestAnimationFrame(loop);
 }
 
-reset();
+resize();
 updateHUD();
+refreshCoinHud();
+refreshAutoUiSafe();
 requestAnimationFrame(loop);
+
+function refreshAutoUiSafe() { refreshAutoUI(); }
+
+initSave().then(() => {
+  startBtn.disabled = false;
+  startBtn.textContent = '开始游戏';
+  refreshAll();
+  resetMenuOverlay();
+  renderSlots();
+});
 
 })();
 </script>
