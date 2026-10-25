@@ -527,7 +527,7 @@ const TOWER_DEFS = {
         damage: 0, range: 0, cooldown: 1,
         armor: Math.floor(lv / 2),
         isConverter: true,
-        maxEnergy: lv * 1000,
+        maxEnergy: Number.MAX_SAFE_INTEGER,
         convertRate: Math.round(lv * 10) / 100
       };
     })
@@ -1711,14 +1711,12 @@ function update(dt) {
     }
 
     if (t.type === 'laser') {
-      if (t.cool > 0) continue;
       if (t.energy >= 100) {
         for (let j = 0; j < enemyBullets.length; j++) {
           const b = enemyBullets[j];
           if (b.alive && Math.hypot(b.x - t.x, b.y - t.y) <= st.range) {
             b.alive = false;
             t.energy -= 100;
-            t.cool = st.cooldown;
             interceptorBeams.push({ x1: t.x, y1: t.y, x2: b.x, y2: b.y, life: 0.15 });
             addParticles(b.x, b.y, '#ff0000', 10, 150);
             break;
@@ -1781,7 +1779,7 @@ function update(dt) {
           }
         }
         for (let o of towers) {
-          if (!o.destroyed && o !== t && Math.hypot(o.x - targetX, o.y - targetY) <= strikeRadius) {
+          if (!o.destroyed && Math.hypot(o.x - targetX, o.y - targetY) <= strikeRadius) {
             o.hp = 1;
             addParticles(o.x, o.y, '#ff8a8a', 5, 80);
           }
@@ -1791,7 +1789,6 @@ function update(dt) {
     }
 
     if (t.type === 'mmwave') {
-      if (t.cool > 0) continue;
       const r2 = st.range * st.range;
       const tier1 = [];
       const tier2 = [];
@@ -1883,7 +1880,6 @@ function update(dt) {
       }
 
       if (anyRepaired) {
-        t.cool = st.cooldown;
         for (let tgt of targets) {
           if (!tgt.applied) continue;
           let tx = tgt.isCastle ? CASTLE_CX : tgt.obj.x;
