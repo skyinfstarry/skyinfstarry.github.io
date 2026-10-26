@@ -88,7 +88,7 @@
     display: flex; gap: 12px; flex: 1; min-height: 170px;
   }
   #build-panel {
-    width: 640px; flex: 0 0 auto; display: flex; flex-direction: column;
+    width: 720px; flex: 0 0 auto; display: flex; flex-direction: column;
     overflow: hidden;
   }
   .section-title {
@@ -96,7 +96,7 @@
     text-transform: uppercase; margin-bottom: 6px;
   }
   .tower-list {
-    display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin-top: auto;
+    display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px; margin-top: auto;
   }
   .tower-btn {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -240,7 +240,7 @@
     }
     #bottom-bar { flex-direction: column; }
     #build-panel { width: 100%; }
-    .tower-list { grid-template-columns: repeat(8, 1fr); }
+    .tower-list { grid-template-columns: repeat(9, 1fr); }
     #right-col { width: 100%; }
   }
 </style>
@@ -312,6 +312,10 @@
       <div class="row"><span id="selStatLabel">伤害</span><b id="selDmg">0</b></div>
       <div class="row"><span>射程</span><b id="selRange">0</b></div>
       <div class="row"><span>攻速</span><b id="selRate">0</b></div>
+      <button class="btn auto-on" id="btnToggle" style="margin-top:2px;">🔌 工作开关：开</button>
+      <button class="btn auto-off" id="btnChargeConverter" style="display:none;">🔄 充能转换器：关</button>
+      <button class="btn auto-on" id="btnChargePrism" style="display:none;">💠 光棱炮充能：开</button>
+      <button class="btn" id="btnOverclock" style="display:none;">⚡ 超频相邻炮台</button>
       <button class="btn up" id="btnUpgrade">升级</button>
       <button class="btn sell" id="btnSell">出售</button>
 
@@ -366,10 +370,13 @@
       <p>🔄 <b>能量转换器</b>：接收维修塔/毫米波供能并转化为金币。T1 汇率 1 能量=0.1 金币，每级 +0.1，有多少转多少。优先级最低。</p>
       <p>🛰️ <b>拦截器</b>：消耗 100 能量发射红色激光拦截炮弹。</p>
       <p>🔋 <b>能量电池</b>：储存能量，供毫米波使用。</p>
-      <p>📡 <b>毫米波</b>：瞬间从电池抽电修复范围内所有建筑，传输损耗 10%。</p>
+      <p>📡 <b>毫米波</b>：瞬间从电池抽电修复范围内所有建筑，传输损耗 10%。可在面板切换「充能转换器」（默认关）与「光棱炮充能」（默认开）。</p>
       <p>💠 <b>光棱炮</b>：T1-T19 为充能状态。T20 且满 10 万能量时，引发轨道激光打击。</p>
+      <p>🛡️ <b>防御塔</b>：蓝色护盾覆盖范围内建筑（含指挥塔），优先承受伤害。1 能量转化为 2 点护盾；初始护盾 100、储能 50，每级护盾 +100、储能 +50，射程为喷火器 T1 并每级 +4。</p>
+      <p>🔷 <b>激光塔</b>：发射蓝色持续激光（可对空），帧伤单体；造成多少伤害就消耗多少能量，由维修塔/毫米波充能。</p>
+      <p>🌀 <b>变压器</b>：选中后进入超频模式，点击周围8格（含斜角）的设施使其全参数 ×1.5，每座设施仅一次。费用 = 倍率 × 目标最大耐久（T1 为 3 倍，每级 -0.1 倍，T20 为 1 倍）。</p>
       <p>☢️ <b>核弹发射井</b>：建核弹300万/30s，最多存5枚。发射后直径90%范围秒杀。</p>
-      <p>🚀 <b>导弹发射井</b>：可升级，升级加速建弹、增加伤害与弹夹。全图集群齐射。</p>
+      <p>🚀 <b>导弹发射井</b>：升级加速建弹、增加弹夹。导弹只攻击单个怪物（伤害 100×1.35^等级），自动发射时每座井每帧可发射一枚。</p>
     </div>
   </div>
 </div>
@@ -427,12 +434,13 @@ function rebuildGrid() {
 const TOWER_BASE_HP = {
   arrow: 150, cannon: 240, repair: 110, flame: 180, lightning: 160,
   antiair: 160, resource: 120, laser: 130, battery: 200, mmwave: 150,
-  prism: 500, nukeSilo: 1000, missileSilo: 600, converter: 160
+  prism: 500, nukeSilo: 1000, missileSilo: 600, converter: 160,
+  shield: 350, laserTower: 200, transformer: 250
 };
 
-function towerMaxHp(type, level) {
+function towerMaxHp(type, level, mul = 1) {
   const base = TOWER_BASE_HP[type] || 150;
-  return Math.round(base * (1 + (level - 1) * 0.4));
+  return Math.round(base * (1 + (level - 1) * 0.4) * mul);
 }
 
 function genLevels(baseName, tiers, lvlCount, baseDmg, baseRange, baseCd, extra = {}) {
@@ -454,6 +462,7 @@ function genLevels(baseName, tiers, lvlCount, baseDmg, baseRange, baseCd, extra 
     if (extra.interval) obj.interval = Math.max(0.2, extra.interval * Math.pow(0.95, i - 1));
 
     if (extra.isLaser) obj.maxEnergy = i * 100;
+    if (extra.isLaserTower) obj.maxEnergy = i * 250;
     if (extra.isBattery) obj.maxEnergy = i * 2500;
     if (extra.isPrism) obj.maxEnergy = 100000;
 
@@ -503,7 +512,7 @@ const TOWER_DEFS = {
     levels: genLevels('维修塔', 20, 20, 0, 130, 1, { barrels: 1, barrelLen: 12, barrelW: 4, healRate: 15 })
   },
   laser: {
-    key: 'laser', name: '拦截器', icon: '🛰️', cost: 150, color: '#ff00ff',
+    key: 'laser', name: '拦截器', icon: '🛰️', cost: 150, color: '#ff0000',
     kind: 'laser', desc: '消耗 100 能量发射红色激光拦截敌方炮弹',
     levels: genLevels('拦截器', 20, 20, 0, 150, 1, { isLaser: true })
   },
@@ -552,12 +561,12 @@ const TOWER_DEFS = {
   },
   missileSilo: {
     key: 'missileSilo', name: '导弹发射井', icon: '🚀', cost: 500, color: '#f97316',
-    kind: 'missileSilo', desc: '建造并发射战术导弹，清空弹夹进行范围打击',
+    kind: 'missileSilo', desc: '建造并发射战术导弹，每座井每帧可发射一枚，只攻击单个怪物',
     levels: Array.from({length: 20}, (_, i) => {
       const lv = i + 1;
       return {
         name: '导弹井 T' + lv,
-        damage: Math.round(1000 * Math.pow(1.35, lv - 1)),
+        damage: Math.round(100 * Math.pow(1.35, lv - 1)),
         range: 0,
         cooldown: 1,
         armor: Math.floor(lv/2),
@@ -566,6 +575,30 @@ const TOWER_DEFS = {
         maxMissiles: lv * 10
       };
     })
+  },
+  shield: {
+    key: 'shield', name: '防御塔', icon: '🛡️', cost: 300, color: '#3b82f6',
+    kind: 'shield', desc: '蓝色护盾覆盖范围内建筑优先承伤，1能量转化为2点护盾',
+    levels: Array.from({ length: 20 }, (_, i) => {
+      const lv = i + 1;
+      return {
+        name: '防御塔 T' + lv,
+        damage: 0, range: 75 + (lv - 1) * 4, cooldown: 1,
+        armor: Math.floor((lv - 1) / 2),
+        maxShield: 100 + (lv - 1) * 100,
+        maxEnergy: 50 + (lv - 1) * 50
+      };
+    })
+  },
+  laserTower: {
+    key: 'laserTower', name: '激光塔', icon: '🔷', cost: 350, color: '#4ea3ff',
+    kind: 'laserTower', desc: '蓝色持续激光帧伤单体（可对空），造成多少伤害消耗多少能量',
+    levels: genLevels('激光塔', 20, 20, 15, 120, 0.1, { isLaserTower: true })
+  },
+  transformer: {
+    key: 'transformer', name: '变压器', icon: '🌀', cost: 500, color: '#f59e0b',
+    kind: 'transformer', desc: '选中后可超频周围8格的炮台：全参数×1.5，每座炮台仅一次',
+    levels: genLevels('变压器', 20, 20, 0, 0, 1)
   }
 };
 
@@ -574,6 +607,10 @@ const ENEMY_DEFS = {
   runner: { hp: 28,   speed: 110, radius: 9,  color: '#f2c53d', towerDamage: 3,  attackCooldown: 0.8, name: '疾行' },
   tank:   { hp: 240,  speed: 34,  radius: 15, color: '#9b6bf2', towerDamage: 14, attackCooldown: 1.2, name: '重甲' },
   flyer:  { hp: 35,   speed: 85,  radius: 10, color: '#38bdf8', towerDamage: 8,  attackCooldown: 1.0, name: '飞行器', flying: true },
+  laserE: { hp: 110,  speed: 50,  radius: 12, color: '#ff5252', towerDamage: 7,  attackCooldown: 1.0, name: '激光怪', laser: true },
+  laserEFly: { hp: 60, speed: 88, radius: 10, color: '#ff7b7b', towerDamage: 5,  attackCooldown: 1.0, name: '飞行激光怪', laser: true, flying: true },
+  healerE:   { hp: 150, speed: 46, radius: 12, color: '#4ade80', towerDamage: 3, attackCooldown: 1.2, name: '治疗怪', healer: true },
+  healerEFly:{ hp: 90,  speed: 78, radius: 10, color: '#86efac', towerDamage: 3, attackCooldown: 1.2, name: '飞行治疗怪', healer: true, flying: true },
   boss:   { hp: 1600, speed: 28,  radius: 21, color: '#ff2d6f', towerDamage: 45, attackCooldown: 1.4, name: 'BOSS' }
 };
 
@@ -663,8 +700,8 @@ async function decryptSave(combined) {
   return JSON.parse(new TextDecoder().decode(pt));
 }
 
-let gold, waveNum, enemies, towers, bullets, missiles, particles, floats, lightningEffects, enemyBullets, interceptorBeams, mmwaveBeams, orbitalStrikes, radiationZones;
-let selectedType, selectedTower, aimingNukeTower, aimingMissile;
+let gold, waveNum, enemies, towers, bullets, missiles, particles, floats, lightningEffects, enemyBullets, interceptorBeams, mmwaveBeams, orbitalStrikes, radiationZones, enemyLaserFlashes;
+let selectedType, selectedTower, aimingNukeTower, aimingMissile, aimingOverclock;
 let paused, speedMul, gameOver;
 let wave;
 let waveTimer;
@@ -687,8 +724,8 @@ function reset() {
   gold = 300;
   castleHp = CASTLE_MAX_HP;
   waveNum = 0;
-  enemies = []; towers = []; bullets = []; missiles = []; particles = []; floats = []; lightningEffects = []; enemyBullets = []; interceptorBeams = []; mmwaveBeams = []; orbitalStrikes = []; radiationZones = [];
-  selectedType = null; selectedTower = null; aimingNukeTower = null; aimingMissile = false;
+  enemies = []; towers = []; bullets = []; missiles = []; particles = []; floats = []; lightningEffects = []; enemyBullets = []; interceptorBeams = []; mmwaveBeams = []; orbitalStrikes = []; radiationZones = []; enemyLaserFlashes = [];
+  selectedType = null; selectedTower = null; aimingNukeTower = null; aimingMissile = false; aimingOverclock = null;
   paused = false; speedMul = 1; gameOver = false;
   wave = { active: false, list: [], idx: 0, time: 0, hpMul: 1, speedMul: 1, earlySpawnTimer: 0 };
   waveTimer = 8;
@@ -729,6 +766,7 @@ function reset() {
     hp: maxHp,
     maxHp,
     destroyed: false,
+    enabled: true,
     buildingTimer: 0,
     upgradingTimer: 0,
     beamTarget: null,
@@ -796,30 +834,88 @@ function addLog(msg, type = 'info') {
 
 function towerStats(t) {
   const L = t.def.levels[t.level - 1];
+  const mul = t.overclockMul || 1;
+  if (mul === 1) {
+    return {
+      name: L.name,
+      damage: L.damage || 0,
+      range: L.range || 0,
+      cooldown: L.cooldown || 1,
+      splash: L.splash || 0,
+      bulletSpeed: L.bulletSpeed || 500,
+      barrels: L.barrels || 1,
+      barrelLen: L.barrelLen || 18,
+      barrelW: L.barrelW || 4,
+      armor: L.armor || 0,
+      healRate: L.healRate || 0,
+      income: L.income || 0,
+      interval: L.interval || 2.0,
+      maxEnergy: L.maxEnergy || 0,
+      maxShield: L.maxShield || 0,
+      convertRate: L.convertRate || 0,
+      missileCost: L.missileCost || 100,
+      buildTime: L.buildTime || 5,
+      maxMissiles: L.maxMissiles || 10
+    };
+  }
+  // 超频（变压器）：输出类参数 ×1.5，冷却/建造时间 ÷1.5，造价与弹夹容量不变之外全部强化
   return {
     name: L.name,
-    damage: L.damage || 0,
-    range: L.range || 0,
-    cooldown: L.cooldown || 1,
-    splash: L.splash || 0,
-    bulletSpeed: L.bulletSpeed || 500,
+    damage: (L.damage || 0) * mul,
+    range: (L.range || 0) * mul,
+    cooldown: Math.max(0.05, (L.cooldown || 1) / mul),
+    splash: (L.splash || 0) * mul,
+    bulletSpeed: (L.bulletSpeed || 500) * mul,
     barrels: L.barrels || 1,
-    barrelLen: L.barrelLen || 18,
-    barrelW: L.barrelW || 4,
-    armor: L.armor || 0,
-    healRate: L.healRate || 0,
-    income: L.income || 0,
-    interval: L.interval || 2.0,
-    maxEnergy: L.maxEnergy || 0,
-    convertRate: L.convertRate || 0,
+    barrelLen: (L.barrelLen || 18) * mul,
+    barrelW: (L.barrelW || 4) * mul,
+    armor: Math.floor((L.armor || 0) * mul),
+    healRate: Math.round((L.healRate || 0) * mul),
+    income: Math.round((L.income || 0) * mul),
+    interval: Math.max(0.2, (L.interval || 2.0) / mul),
+    maxEnergy: Math.round((L.maxEnergy || 0) * mul),
+    maxShield: Math.round((L.maxShield || 0) * mul),
+    convertRate: (L.convertRate || 0) * mul,
     missileCost: L.missileCost || 100,
-    buildTime: L.buildTime || 5,
-    maxMissiles: L.maxMissiles || 10
+    buildTime: Math.max(0.2, (L.buildTime || 5) / mul),
+    maxMissiles: Math.round((L.maxMissiles || 10) * mul)
   };
 }
 
 function upgradeCost(t) {
   return Math.round(t.def.cost * Math.pow(1.6, t.level - 1) * (1 + t.level * 0.1));
+}
+
+// 变压器超频费用：目标等级越高越便宜（T1=3倍最大耐久，每级-0.1倍，T19→T20再-0.2倍即1倍）
+function overclockCostMul(level) {
+  return 3 - 0.1 * (level - 1) - (level >= 20 ? 0.1 : 0);
+}
+function overclockCost(tgt) {
+  return Math.ceil(overclockCostMul(tgt.level) * tgt.maxHp);
+}
+// 判断目标是否在变压器周围8格内
+function isAdjacentTo(tx, ty, gx, gy) {
+  return Math.abs(tx - gx) <= 1 && Math.abs(ty - gy) <= 1 && !(tx === gx && ty === gy);
+}
+function canOverclock(tgt, src) {
+  return !!tgt && !tgt.destroyed && !tgt.overclocked && tgt.buildingTimer <= 0 &&
+         isAdjacentTo(tgt.gx, tgt.gy, src.gx, src.gy);
+}
+function applyOverclock(src, tgt) {
+  if (!canOverclock(tgt, src)) { toast('无法超频该设施'); return false; }
+  const cost = overclockCost(tgt);
+  if (gold < cost) { toast('金币不足 (需要 💰' + cost + ')'); return false; }
+  gold -= cost;
+  tgt.invested += cost;
+  tgt.overclocked = true;
+  tgt.overclockMul = 1.5;
+  const oldMax = tgt.maxHp;
+  tgt.maxHp = towerMaxHp(tgt.type, tgt.level, 1.5);
+  tgt.hp = Math.min(tgt.maxHp, tgt.hp + (tgt.maxHp - oldMax));
+  addParticles(tgt.x, tgt.y, '#f59e0b', 18, 150);
+  addFloat(tgt.x, tgt.y - 24, '⚡ 超频 ×1.5', '#f59e0b');
+  addLog(`变压器已超频 ${tgt.def.name}（消耗 💰${cost}，全参数 ×1.5）`, 'success');
+  return true;
 }
 
 function canBuild(gx, gy) {
@@ -958,6 +1054,10 @@ function buildSpawnList(w) {
     if (w >= 5) add('tank', Math.min(16, 1 + Math.floor(w / 4)), 1.1, 2.5);
     if (w >= 4) add('flyer', Math.min(20, 2 + Math.floor(w / 3)), 0.8, 1.5);
   }
+  if (w >= 8)  add('laserE', Math.min(12, 1 + Math.floor((w - 8) / 3)), 1.6, 3);
+  if (w >= 12) add('laserEFly', Math.min(10, 1 + Math.floor((w - 12) / 3)), 1.4, 3.5);
+  if (w >= 10) add('healerE', Math.min(8, 1 + Math.floor((w - 10) / 4)), 2.2, 2);
+  if (w >= 14) add('healerEFly', Math.min(6, 1 + Math.floor((w - 14) / 4)), 2.0, 2.5);
   list.sort((a, b) => a.t - b.t);
   return list;
 }
@@ -1012,6 +1112,10 @@ function spawnEnemy(type) {
 
   const isRanged = waveNum >= 10 && Math.random() < 0.2 + Math.min(0.6, (waveNum - 10) * 0.02);
   const attackRange = isRanged ? 160 + d.radius : d.radius + 8;
+  // 激光怪：远程光束攻击，自带拦截能力；治疗怪：中程微弱攻击
+  let effAttackRange = attackRange;
+  if (d.laser) effAttackRange = 170;
+  else if (d.healer) effAttackRange = isRanged ? attackRange : d.radius + 8;
 
   const side = Math.floor(Math.random() * 4);
   let x, y;
@@ -1030,12 +1134,16 @@ function spawnEnemy(type) {
     towerDamage: currentDmg,
     attackCooldown: d.attackCooldown,
     attackTimer: Math.random() * 0.6,
-    attackRange: attackRange,
+    attackRange: effAttackRange,
     isRanged: isRanged,
     x, y,
     alive: true,
     attacking: false,
-    attackTarget: null
+    attackTarget: null,
+    interceptTimer: Math.random() * 1.0,
+    beamPt: null,
+    healBeam: null,
+    healPulse: 0
   });
 }
 
@@ -1063,9 +1171,30 @@ function damageEnemy(e, dmg, type) {
   }
 }
 
+// 防御塔护盾：目标受到的伤害优先由范围内护盾值>0的防御塔吸收（取最近一座），返回剩余伤害
+function absorbByShield(x, y, dmg) {
+  if (dmg <= 0) return 0;
+  let best = null, bestD = Infinity;
+  for (let i = 0; i < towers.length; i++) {
+    const s = towers[i];
+    if (s.type !== 'shield' || s.destroyed || s.enabled === false || s.buildingTimer > 0) continue;
+    if (!(s.shield > 0)) continue;
+    const d = Math.hypot(x - s.x, y - s.y);
+    if (d > towerStats(s).range) continue;
+    if (d < bestD) { bestD = d; best = s; }
+  }
+  if (!best) return dmg;
+  const absorb = Math.min(best.shield, dmg);
+  best.shield -= absorb;
+  best.shieldFlash = 1;
+  return dmg - absorb;
+}
+
 function damageTower(t, dmg) {
   if (t.destroyed) return;
   if (achMag >= 5) dmg *= 0.5;
+  dmg = absorbByShield(t.x, t.y, dmg);
+  if (dmg <= 0) return;
 
   t.hp -= dmg;
   t.hitFlash = 1;
@@ -1105,7 +1234,7 @@ function findTarget(t, range) {
         const isAir = e.def.flying || false;
         if (t.type === 'antiair') {
           if (!isAir) continue;
-        } else if (t.type !== 'lightning') {
+        } else if (t.type !== 'lightning' && t.type !== 'laserTower') {
           if (isAir) continue;
         }
         const dx = e.x - t.x, dy = e.y - t.y;
@@ -1210,24 +1339,40 @@ function impact(b, x, y) {
   }
 }
 
-function spawnMissile(x, y, tx, ty, damage, splash, delay = 0) {
+function spawnMissile(x, y, tx, ty, damage, splash, delay = 0, target = null) {
   missiles.push({
     x, y, targetX: tx, targetY: ty,
+    target: target || null,
     speed: 1000, damage, splash,
     dead: false, color: '#f97316', delay
   });
 }
 
+// 为落点就近锁定一个怪物（齐射散布用）
+function lockNearestEnemy(x, y, radius) {
+  let tgt = null, bestD = radius;
+  for (let j = 0; j < enemies.length; j++) {
+    const e = enemies[j];
+    if (!e.alive) continue;
+    const d = Math.hypot(e.x - x, e.y - y);
+    if (d < bestD) { bestD = d; tgt = e; }
+  }
+  return tgt;
+}
+
 function launchMissileSwarm(tx, ty) {
   let count = 0;
   for (let t of towers) {
-    if (t.type === 'missileSilo' && t.missileCount > 0) {
+    if (t.type === 'missileSilo' && t.missileCount > 0 && t.enabled !== false) {
       const n = t.missileCount;
       const st = towerStats(t);
       for (let i = 0; i < n; i++) {
         const offsetX = (Math.random() - 0.5) * 300;
         const offsetY = (Math.random() - 0.5) * 300;
-        spawnMissile(t.x, t.y, tx + offsetX, ty + offsetY, st.damage, 150, i * 0.1);
+        const lx = tx + offsetX, ly = ty + offsetY;
+        // 每枚导弹只攻击一个怪物：按散布落点就近锁定
+        const tgt = lockNearestEnemy(lx, ly, 150);
+        spawnMissile(t.x, t.y, lx, ly, st.damage, 150, i * 0.1, tgt);
         count++;
       }
       t.missileCount = 0;
@@ -1242,7 +1387,7 @@ function launchMissileSwarm(tx, ty) {
 }
 
 function launchNuke(t, tx, ty) {
-  if (!t || t.destroyed || t.nukeCount <= 0) return;
+  if (!t || t.destroyed || t.nukeCount <= 0 || t.enabled === false) return;
   t.nukeCount--;
   if (t.nukeCount < 5 && t.nukeStatus === 'ready') t.nukeStatus = 'idle';
   addLog('💥 核弹发射！世界核平！', 'danger');
@@ -1288,6 +1433,62 @@ function updateEnemy(e, dt) {
     if (e.slowTimer <= 0) e.slowFactor = 1;
   }
 
+  e.beamPt = null;
+  e.healBeam = null;
+
+  // 激光怪：拦截玩家导弹（类似拦截器）
+  if (e.def.laser) {
+    e.interceptTimer -= dt;
+    if (e.interceptTimer <= 0) {
+      // 拦截冷却随波次推进越来越快（w8 起每波 ×0.9），最快每帧一次
+      const k = Math.max(0, waveNum - 8);
+      const interceptRange = 190;
+      let bestM = null, bestD = interceptRange;
+      for (let i = 0; i < missiles.length; i++) {
+        const m = missiles[i];
+        if (m.dead || m.delay > 0) continue;
+        const d = Math.hypot(m.x - e.x, m.y - e.y);
+        if (d < bestD) { bestD = d; bestM = m; }
+      }
+      if (bestM) {
+        e.interceptTimer = Math.max(1 / 60, 1.1 * Math.pow(0.9, k));
+        bestM.dead = true;
+        addParticles(bestM.x, bestM.y, '#f97316', 6, 100);
+        enemyLaserFlashes.push({ x1: e.x, y1: e.y, x2: bestM.x, y2: bestM.y, life: 0.15 });
+        if (Math.random() < 0.3) addLog('⚠️ 激光怪拦截了一枚导弹！', 'warning');
+      } else {
+        e.interceptTimer = Math.max(1 / 60, 0.25 * Math.pow(0.9, k));
+      }
+    }
+  }
+
+  // 治疗怪：持续治疗附近受伤最重的同伴
+  if (e.def.healer) {
+    const healRange = 150;
+    let patient = null, worstFrac = 1;
+    for (let i = 0; i < enemies.length; i++) {
+      const o = enemies[i];
+      if (!o.alive || o === e) continue;
+      const frac = o.hp / o.maxHp;
+      if (frac < 0.999 && frac < worstFrac && Math.hypot(o.x - e.x, o.y - e.y) <= healRange) {
+        worstFrac = frac;
+        patient = o;
+      }
+    }
+    if (patient) {
+      const rate = patient.maxHp * 0.035 + e.maxHp * 0.02;
+      patient.hp = Math.min(patient.maxHp, patient.hp + rate * dt);
+      if (patient.maxShield > 0 && patient.shield < patient.maxShield) {
+        patient.shield = Math.min(patient.maxShield, patient.shield + rate * 0.5 * dt);
+      }
+      e.healBeam = { x: patient.x, y: patient.y };
+      e.healPulse = (e.healPulse || 0) + dt;
+      if (Math.random() < 0.04) {
+        addParticles(patient.x, patient.y, '#4ade80', 2, 50);
+      }
+    }
+  }
+
   e.attacking = false;
   e.attackTarget = null;
 
@@ -1297,7 +1498,16 @@ function updateEnemy(e, dt) {
     e.attacking = true;
     e.attackTarget = 'castle';
 
-    if (e.isRanged) {
+    if (e.def.laser) {
+      // 激光怪：光束持续灼烧指挥塔
+      let dps = e.towerDamage * 2 / e.attackCooldown;
+      if (achMag >= 5) dps *= 0.5;
+      castleHp -= absorbByShield(CASTLE_CX, CASTLE_CY, dps * dt);
+      e.beamPt = { x: CASTLE_CX, y: CASTLE_CY };
+      if (Math.random() < 0.10) {
+        addParticles(CASTLE_CX + (Math.random() - 0.5) * 30, CASTLE_CY - 20, '#ff5252', 1, 90);
+      }
+    } else if (e.isRanged) {
       e.attackTimer -= dt;
       if (e.attackTimer <= 0) {
         e.attackTimer = e.attackCooldown / 1.25;
@@ -1314,7 +1524,7 @@ function updateEnemy(e, dt) {
       let dps = e.towerDamage * 2 / e.attackCooldown;
       let dmg = dps * dt;
       if (achMag >= 5) dmg *= 0.5;
-      castleHp -= dmg;
+      castleHp -= absorbByShield(CASTLE_CX, CASTLE_CY, dmg);
 
       if (Math.random() < 0.15) {
         addFloat(CASTLE_CX + (Math.random() - 0.5) * 40, CASTLE_CY - 30, '-' + Math.round(dmg), '#ff6b6b');
@@ -1335,7 +1545,15 @@ function updateEnemy(e, dt) {
     e.attacking = true;
     e.attackTarget = nearTower;
 
-    if (e.isRanged) {
+    if (e.def.laser) {
+      // 激光怪：光束持续灼烧设施
+      let dps = e.towerDamage / e.attackCooldown;
+      damageTower(nearTower, dps * dt);
+      e.beamPt = { x: nearTower.x, y: nearTower.y };
+      if (Math.random() < 0.10) {
+        addParticles((e.x + nearTower.x) / 2, (e.y + nearTower.y) / 2, '#ff5252', 1, 80);
+      }
+    } else if (e.isRanged) {
       e.attackTimer -= dt;
       if (e.attackTimer <= 0) {
         e.attackTimer = e.attackCooldown / 1.25;
@@ -1500,8 +1718,9 @@ function update(dt) {
       if (b.target === 'castle') {
         let dmg = b.damage;
         if (achMag >= 5) dmg *= 0.5;
-        castleHp -= dmg;
-        addFloat(CASTLE_CX + (Math.random() - 0.5) * 40, CASTLE_CY - 30, '-' + Math.round(dmg), '#ff6b6b');
+        const realDmg = absorbByShield(CASTLE_CX, CASTLE_CY, dmg);
+        castleHp -= realDmg;
+        if (realDmg > 0) addFloat(CASTLE_CX + (Math.random() - 0.5) * 40, CASTLE_CY - 30, '-' + Math.round(realDmg), '#ff6b6b');
       } else if (b.target && !b.target.destroyed) {
         damageTower(b.target, b.damage);
         addFloat(b.target.x, b.target.y - 20, '-' + Math.round(b.damage), '#ff8a8a');
@@ -1521,6 +1740,11 @@ function update(dt) {
       m.delay -= dt;
       continue;
     }
+    // 追踪锁定目标：目标存活则不断修正落点
+    if (m.target && m.target.alive) {
+      m.targetX = m.target.x;
+      m.targetY = m.target.y;
+    }
     const dx = m.targetX - m.x, dy = m.targetY - m.y;
     const d = Math.hypot(dx, dy);
     const step = m.speed * dt;
@@ -1528,12 +1752,9 @@ function update(dt) {
     if (d <= step || d < 10) {
       m.dead = true;
       addParticles(m.x, m.y, '#f97316', 6, 120);
-      for (let j = 0; j < enemies.length; j++) {
-        const e = enemies[j];
-        if (e.alive && Math.hypot(e.x - m.x, e.y - m.y) <= m.splash) {
-          damageEnemy(e, m.damage, 'shell');
-        }
-      }
+      // 单体伤害：只攻击锁定的那一个怪物；目标已死则就近改寻一次
+      let tgt = (m.target && m.target.alive) ? m.target : lockNearestEnemy(m.x, m.y, 100);
+      if (tgt) damageEnemy(tgt, m.damage, 'shell');
     } else {
       m.x += (dx / d) * step;
       m.y += (dy / d) * step;
@@ -1546,6 +1767,13 @@ function update(dt) {
   for (let i = 0; i < towers.length; i++) {
     const t = towers[i];
     if (t.destroyed) continue;
+
+    if (t.recoil > 0) t.recoil = Math.max(0, t.recoil - dt * 6);
+    if (t.hitFlash > 0) t.hitFlash = Math.max(0, t.hitFlash - dt * 4);
+    if (t.shieldFlash > 0) t.shieldFlash = Math.max(0, t.shieldFlash - dt * 3);
+
+    // 工作开关：关掉的设施不执行任何功能（攻击/修复/产金/拦截/转化/建造等全部暂停）
+    if (t.enabled === false) continue;
 
     if (t.buildingTimer > 0) {
       t.buildingTimer -= dt;
@@ -1563,16 +1791,13 @@ function update(dt) {
         t.upgradingTimer = 0;
         const oldMax = t.maxHp;
         t.level++;
-        t.maxHp = towerMaxHp(t.type, t.level);
+        t.maxHp = towerMaxHp(t.type, t.level, t.overclockMul || 1);
         t.hp = Math.min(t.maxHp, t.hp + (t.maxHp - oldMax));
         addParticles(t.x, t.y, '#ffd166', 16, 140);
         addFloat(t.x, t.y - 24, 'T' + t.level + ' 完成', '#ffd166');
         addLog(`升级完成：${t.def.name} 已达到 T${t.level}`, 'success');
       }
     }
-
-    if (t.recoil > 0) t.recoil = Math.max(0, t.recoil - dt * 6);
-    if (t.hitFlash > 0) t.hitFlash = Math.max(0, t.hitFlash - dt * 4);
 
     const st = towerStats(t);
 
@@ -1624,13 +1849,11 @@ function update(dt) {
       }
 
       if (autoStrikeMissile && t.missileCount > 0 && enemies.length > 0) {
-        if (gameTime - t.lastStrikeTime > 0.2) {
-          t.lastStrikeTime = gameTime;
-          const target = enemies[Math.floor(Math.random() * enemies.length)];
-          if (target) {
-            t.missileCount--;
-            spawnMissile(t.x, t.y, target.x, target.y, st.damage, 150);
-          }
+        // 每座井每帧可发射一枚导弹
+        const target = enemies[Math.floor(Math.random() * enemies.length)];
+        if (target) {
+          t.missileCount--;
+          spawnMissile(t.x, t.y, target.x, target.y, st.damage, 150, 0, target);
         }
       }
       continue;
@@ -1658,7 +1881,7 @@ function update(dt) {
           const o = towers[j];
           if (o === t || o.destroyed || o.buildingTimer > 0) continue;
           const oSt = towerStats(o);
-          if ((o.type === 'laser' || o.type === 'battery' || o.type === 'prism') && o.energy < oSt.maxEnergy) {
+          if ((o.type === 'laser' || o.type === 'battery' || o.type === 'prism' || o.type === 'shield' || o.type === 'laserTower') && o.energy < oSt.maxEnergy) {
             const d = Math.hypot(o.x - t.x, o.y - t.y);
             if (d <= st.range && d < minD) { minD = d; targetTower = o; }
           }
@@ -1684,7 +1907,7 @@ function update(dt) {
           castleHp = Math.min(CASTLE_MAX_HP, castleHp + st.healRate * dt);
         } else {
           t.angle = Math.atan2(targetTower.y - t.y, targetTower.x - t.x);
-          if (targetTower.type === 'laser' || targetTower.type === 'battery' || targetTower.type === 'prism') {
+          if (targetTower.type === 'laser' || targetTower.type === 'battery' || targetTower.type === 'prism' || targetTower.type === 'shield' || targetTower.type === 'laserTower') {
             const targetSt = towerStats(targetTower);
             if (targetTower.hp < targetTower.maxHp) {
               targetTower.hp = Math.min(targetTower.maxHp, targetTower.hp + st.healRate * dt);
@@ -1748,6 +1971,19 @@ function update(dt) {
       continue;
     }
 
+    if (t.type === 'shield') {
+      // 护盾回充：1 能量 = 2 点护盾，不限速，有能量即转
+      const maxShield = st.maxShield || 0;
+      const curShield = t.shield || 0;
+      if (curShield < maxShield && t.energy > 0) {
+        const need = (maxShield - curShield) / 2;
+        const use = Math.min(t.energy, need);
+        t.energy -= use;
+        t.shield = curShield + use * 2;
+      }
+      continue;
+    }
+
     if (t.type === 'battery') {
       continue;
     }
@@ -1802,7 +2038,8 @@ function update(dt) {
         const oSt = towerStats(o);
 
         if (o.type === 'converter') {
-          if (o.energy < oSt.maxEnergy) {
+          // 开关：是否为能量转换器充能（默认关）
+          if (t.chargeConverter === true && o.energy < oSt.maxEnergy) {
             tier3.push({ obj: o, need: oSt.maxEnergy - o.energy, isCastle: false, kind: 'energy' });
           }
           continue;
@@ -1810,7 +2047,12 @@ function update(dt) {
         if (o.hp < o.maxHp) {
           tier1.push({ obj: o, need: o.maxHp - o.hp, isCastle: false, kind: 'hp' });
         }
-        if ((o.type === 'laser' || o.type === 'battery' || o.type === 'prism') && o.energy < oSt.maxEnergy) {
+        if (o.type === 'prism') {
+          // 开关：是否为光棱炮充能（默认开）
+          if (t.chargePrism !== false && o.energy < oSt.maxEnergy) {
+            tier2.push({ obj: o, need: oSt.maxEnergy - o.energy, isCastle: false, kind: 'energy' });
+          }
+        } else if ((o.type === 'laser' || o.type === 'battery' || o.type === 'shield' || o.type === 'laserTower') && o.energy < oSt.maxEnergy) {
           tier2.push({ obj: o, need: oSt.maxEnergy - o.energy, isCastle: false, kind: 'energy' });
         }
       }
@@ -1931,6 +2173,33 @@ function update(dt) {
       continue;
     }
 
+    if (t.type === 'laserTower') {
+      // 持续激光：帧伤单体，造成多少伤害消耗多少能量
+      let target = null;
+      if (t.laserTarget && t.laserTarget.alive &&
+          Math.hypot(t.laserTarget.x - t.x, t.laserTarget.y - t.y) <= st.range) {
+        target = t.laserTarget;
+      } else {
+        t.laserTarget = null;
+        target = findTarget(t, st.range);
+        t.laserTarget = target || null;
+      }
+      if (target && t.energy > 0 && st.damage > 0) {
+        const dealt = Math.min(st.damage * dt, t.energy);
+        if (dealt > 0) {
+          t.energy -= dealt;
+          t.angle = Math.atan2(target.y - t.y, target.x - t.x);
+          damageEnemy(target, dealt, 'beam');
+          t.laserPt = { x: target.x, y: target.y, oy: target.def.flying ? 10 : 0 };
+        } else {
+          t.laserPt = null;
+        }
+      } else {
+        t.laserPt = null;
+      }
+      continue;
+    }
+
     if (t.cool > 0) continue;
     const target = findTarget(t, st.range);
     if (!target) continue;
@@ -1996,6 +2265,13 @@ function update(dt) {
   }
   for (let i = interceptorBeams.length - 1; i >= 0; i--) {
     if (interceptorBeams[i].life <= 0) interceptorBeams.splice(i, 1);
+  }
+
+  for (let i = 0; i < enemyLaserFlashes.length; i++) {
+    enemyLaserFlashes[i].life -= dt;
+  }
+  for (let i = enemyLaserFlashes.length - 1; i >= 0; i--) {
+    if (enemyLaserFlashes[i].life <= 0) enemyLaserFlashes.splice(i, 1);
   }
 
   for (let i = 0; i < mmwaveBeams.length; i++) {
@@ -2124,6 +2400,7 @@ function drawTower(t) {
   } else if (t.upgradingTimer > 0) {
     ctx.globalAlpha = 0.6 + 0.2 * Math.sin(performance.now() / 150);
   }
+  if (t.enabled === false) ctx.globalAlpha *= 0.45;
 
   if (lv >= 7) {
     ctx.save();
@@ -2160,9 +2437,12 @@ function drawTower(t) {
     ctx.stroke();
   }
 
-  if (t.type === 'laser' || t.type === 'battery' || t.type === 'prism') {
-    const energyFrac = t.energy / st.maxEnergy;
-    ctx.strokeStyle = t.type === 'laser' ? '#ff00ff' : t.type === 'battery' ? '#38bdf8' : '#f8fafc';
+  if (t.type === 'laser' || t.type === 'battery' || t.type === 'prism' || t.type === 'shield' || t.type === 'laserTower') {
+    const energyFrac = st.maxEnergy > 0 ? t.energy / st.maxEnergy : 0;
+    ctx.strokeStyle = t.type === 'laser' ? '#ff0000'
+      : t.type === 'battery' ? '#38bdf8'
+      : t.type === 'prism' ? '#f8fafc'
+      : t.type === 'shield' ? '#3b82f6' : '#4ea3ff';
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.arc(x, y, 14, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * energyFrac);
@@ -2176,7 +2456,7 @@ function drawTower(t) {
   const recoil = t.recoil || 0;
   const back = recoil * 5;
 
-  if (t.type !== 'resource' && t.type !== 'battery' && t.type !== 'mmwave' && t.type !== 'nukeSilo' && t.type !== 'missileSilo' && t.type !== 'converter') {
+  if (t.type !== 'resource' && t.type !== 'battery' && t.type !== 'mmwave' && t.type !== 'nukeSilo' && t.type !== 'missileSilo' && t.type !== 'converter' && t.type !== 'shield' && t.type !== 'transformer') {
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(t.angle);
@@ -2261,16 +2541,31 @@ function drawTower(t) {
         ctx.stroke();
       }
     } else if (t.type === 'laser') {
-      ctx.fillStyle = '#3a2b4a';
+      ctx.fillStyle = '#3a2b2b';
       ctx.beginPath();
       ctx.arc(0, 0, 12, -0.8, 0.8);
       ctx.fill();
-      ctx.strokeStyle = '#ff00ff';
+      ctx.strokeStyle = '#ff0000';
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      ctx.fillStyle = '#ff00ff';
+      ctx.fillStyle = '#ff0000';
       ctx.beginPath(); ctx.arc(12, 0, 3, 0, Math.PI*2); ctx.fill();
+    } else if (t.type === 'laserTower') {
+      // 激光塔：蓝色棱镜发射器
+      ctx.save();
+      ctx.shadowBlur = 6;
+      ctx.shadowColor = '#4ea3ff';
+      ctx.fillStyle = '#3a4450';
+      ctx.fillRect(-4, -4, 16, 8);
+      ctx.fillStyle = '#4ea3ff';
+      ctx.beginPath();
+      ctx.moveTo(12, -6);
+      ctx.lineTo(18, 0);
+      ctx.lineTo(12, 6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
     } else if (t.type === 'prism') {
       const pulse = Math.sin(performance.now() / 200) * 2;
       ctx.save();
@@ -2429,6 +2724,35 @@ function drawTower(t) {
       ctx.restore();
     }
     ctx.restore();
+  } else if (t.type === 'shield') {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.fillStyle = '#274a6d';
+    ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI * 2); ctx.fill();
+    const shieldFrac = st.maxShield > 0 ? Math.max(0, (t.shield || 0) / st.maxShield) : 0;
+    ctx.strokeStyle = shieldFrac > 0 ? '#60a5fa' : '#475569';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, 11.5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * shieldFrac);
+    ctx.stroke();
+    ctx.font = '12px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🛡️', 0, 1);
+    ctx.restore();
+  } else if (t.type === 'transformer') {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.fillStyle = '#4a3b22';
+    ctx.fillRect(-9, -7, 18, 14);
+    ctx.fillStyle = '#f59e0b';
+    ctx.fillRect(-9, -7, 5, 14);
+    ctx.fillRect(4, -7, 5, 14);
+    const pulse = (Math.sin(performance.now() / 200) + 1) / 2;
+    ctx.strokeStyle = `rgba(245, 158, 11, ${0.35 + 0.4 * pulse})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(0, 0, 13, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
   } else {
     ctx.save();
     ctx.translate(x, y);
@@ -2461,6 +2785,16 @@ function drawTower(t) {
     ctx.fillText(String(lv), x + 12, y + 15);
   }
 
+  if (t.overclocked) {
+    ctx.fillStyle = 'rgba(0,0,0,.55)';
+    ctx.beginPath(); ctx.arc(x - 12, y + 12, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.font = 'bold 9px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#f59e0b';
+    ctx.fillText('⚡', x - 12, y + 13);
+  }
+
   if (hpFrac < 0.999) {
     const bw2 = 26, bh2 = 4;
     const bx2 = x - bw2 / 2, by2 = y - 22;
@@ -2484,6 +2818,17 @@ function drawTower(t) {
     ctx.arc(x, y, 22, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * prog);
     ctx.strokeStyle = '#ffd166';
     ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+  if (t.enabled === false) {
+    ctx.strokeStyle = 'rgba(159,176,196,.85)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(x, y, 17, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x - 12, y + 12);
+    ctx.lineTo(x + 12, y - 12);
     ctx.stroke();
   }
   ctx.restore();
@@ -2545,6 +2890,38 @@ function drawEnemy(e) {
   ctx.fillStyle = '#111';
   ctx.beginPath(); ctx.arc(x - ex, y + ey, pr, 0, Math.PI * 2); ctx.fill();
   ctx.beginPath(); ctx.arc(x + ex, y + ey, pr, 0, Math.PI * 2); ctx.fill();
+
+  // 激光怪：红色单眼 + 头顶发射器
+  if (e.def.laser) {
+    ctx.save();
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = '#ff1744';
+    ctx.fillStyle = '#ff1744';
+    ctx.beginPath(); ctx.arc(x, y - r * 0.15, r * 0.22, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#b71c1c';
+    ctx.fillRect(x - r * 0.5, y - r - 6, r, 4);
+    ctx.fillStyle = '#ff1744';
+    ctx.fillRect(x - r * 0.35, y - r - 5, r * 0.7, 2);
+    ctx.restore();
+  }
+
+  // 治疗怪：绿色十字 + 治疗光环
+  if (e.def.healer) {
+    ctx.save();
+    const pulse = 0.5 + 0.5 * Math.sin((e.healPulse || 0) * 3);
+    if (e.healBeam) {
+      ctx.globalAlpha = 0.25 + pulse * 0.25;
+      ctx.strokeStyle = '#4ade80';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(x, y, r + 7, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = '#22c55e';
+    ctx.fillStyle = '#eafff3';
+    ctx.fillRect(x - r * 0.14, y - r * 0.5, r * 0.28, r);
+    ctx.fillRect(x - r * 0.5, y - r * 0.14, r, r * 0.28);
+    ctx.restore();
+  }
 
   if (e.maxShield > 0) {
     if (e.shield > 0) {
@@ -2734,6 +3111,34 @@ function draw() {
     );
   }
 
+  // 变压器超频瞄准模式：高亮周围8格
+  if (aimingOverclock) {
+    if (aimingOverclock.destroyed) {
+      aimingOverclock = null;
+    } else {
+      const src = aimingOverclock;
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+          if (dx === 0 && dy === 0) continue;
+          const gx = src.gx + dx, gy = src.gy + dy;
+          const tgt = towers.find(o => o.gx === gx && o.gy === gy && !o.destroyed);
+          const ok = tgt && !tgt.overclocked && tgt.buildingTimer <= 0;
+          ctx.fillStyle = ok ? 'rgba(245, 158, 11, .22)' : 'rgba(120, 130, 145, .10)';
+          ctx.fillRect(gx * TILE, gy * TILE, TILE, TILE);
+          ctx.strokeStyle = ok ? 'rgba(245, 158, 11, .85)' : 'rgba(120, 130, 145, .35)';
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(gx * TILE + 1.5, gy * TILE + 1.5, TILE - 3, TILE - 3);
+          if (ok && mouse.inside && tgt.gx === mouse.gx && tgt.gy === mouse.gy) {
+            ctx.font = 'bold 11px system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#fde68a';
+            ctx.fillText('⚡💰' + overclockCost(tgt), tgt.x, tgt.y - 26);
+          }
+        }
+      }
+    }
+  }
+
   for (let i = 0; i < towers.length; i++) {
     const t = towers[i];
     if (t.type === 'repair' && t.beamTarget && !t.destroyed) {
@@ -2813,6 +3218,50 @@ function draw() {
     ctx.restore();
   }
 
+  // 防御塔：蓝色护盾圆顶
+  for (let i = 0; i < towers.length; i++) {
+    const t = towers[i];
+    if (t.type !== 'shield' || t.destroyed || t.buildingTimer > 0 || t.enabled === false) continue;
+    const st = towerStats(t);
+    const frac = Math.max(0, Math.min(1, (t.shield || 0) / (st.maxShield || 1)));
+    const flash = t.shieldFlash || 0;
+    ctx.save();
+    ctx.fillStyle = `rgba(59, 130, 246, ${0.05 + 0.10 * frac})`;
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, st.range, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = `rgba(96, 165, 250, ${0.22 + 0.45 * frac + 0.3 * flash})`;
+    ctx.lineWidth = 1.5 + 2 * flash;
+    ctx.setLineDash([12, 8]);
+    ctx.lineDashOffset = -performance.now() / 40;
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, st.range, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // 激光塔：蓝色持续激光
+  for (let i = 0; i < towers.length; i++) {
+    const t = towers[i];
+    if (t.type !== 'laserTower' || t.destroyed || t.enabled === false || t.buildingTimer > 0) continue;
+    if (!t.laserPt) continue;
+    const py = t.laserPt.y - (t.laserPt.oy || 0);
+    ctx.save();
+    ctx.strokeStyle = 'rgba(78, 163, 255, .85)';
+    ctx.lineWidth = 2.5 + Math.sin(performance.now() / 60) * 1;
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = '#4ea3ff';
+    ctx.beginPath();
+    ctx.moveTo(t.x, t.y);
+    ctx.lineTo(t.laserPt.x, py);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(147, 197, 253, .9)';
+    ctx.beginPath();
+    ctx.arc(t.laserPt.x, py, 3 + Math.sin(performance.now() / 80) * 1.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
   for (let i = 0; i < orbitalStrikes.length; i++) {
     const eff = orbitalStrikes[i];
     const alpha = eff.life / eff.maxLife;
@@ -2869,6 +3318,53 @@ function draw() {
   for (let i = 0; i < enemies.length; i++) drawEnemy(enemies[i]);
   for (let i = 0; i < bullets.length; i++) drawBullet(bullets[i]);
   for (let i = 0; i < missiles.length; i++) drawMissile(missiles[i]);
+
+  // 激光怪：持续攻击光束 + 拦截闪光
+  for (let i = 0; i < enemies.length; i++) {
+    const e = enemies[i];
+    if (!e.alive) continue;
+    if (e.beamPt) {
+      const oy = e.def.flying ? 10 + Math.sin(performance.now() / 150) * 3 : 0;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255, 0, 255, .85)';
+      ctx.lineWidth = 2.5 + Math.sin(performance.now() / 60) * 1;
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = '#ff00ff';
+      ctx.beginPath();
+      ctx.moveTo(e.x, e.y - oy);
+      ctx.lineTo(e.beamPt.x, e.beamPt.y);
+      ctx.stroke();
+      ctx.restore();
+    }
+    if (e.healBeam) {
+      const oy = e.def.flying ? 10 + Math.sin(performance.now() / 150) * 3 : 0;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(74, 222, 128, .8)';
+      ctx.lineWidth = 2 + Math.sin(performance.now() / 120) * 1;
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = '#4ade80';
+      ctx.setLineDash([5, 4]);
+      ctx.beginPath();
+      ctx.moveTo(e.x, e.y - oy);
+      ctx.lineTo(e.healBeam.x, e.healBeam.y);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+  for (let i = 0; i < enemyLaserFlashes.length; i++) {
+    const beam = enemyLaserFlashes[i];
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, beam.life / 0.15);
+    ctx.strokeStyle = '#ff00ff';
+    ctx.lineWidth = 3;
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = '#ff00ff';
+    ctx.beginPath();
+    ctx.moveTo(beam.x1, beam.y1);
+    ctx.lineTo(beam.x2, beam.y2);
+    ctx.stroke();
+    ctx.restore();
+  }
 
   for (let i = 0; i < enemyBullets.length; i++) {
     if (enemyBullets[i].alive) drawEnemyBullet(enemyBullets[i]);
@@ -3048,7 +3544,7 @@ function updateHUD() {
       hpEl.className = frac > 0.5 ? 'hp-ok' : frac > 0.25 ? 'hp-mid' : 'hp-low';
     }
 
-    if (t.type === 'laser' || t.type === 'battery' || t.type === 'prism') {
+    if (t.type === 'laser' || t.type === 'battery' || t.type === 'prism' || t.type === 'shield' || t.type === 'laserTower') {
       $('rowEnergy').style.display = 'flex';
       const enEl = $('selEnergy');
       enEl.textContent = Math.floor(t.energy) + ' / ' + st.maxEnergy;
@@ -3082,6 +3578,21 @@ function updateHUD() {
       $('selDmg').textContent = '10%';
       $('selRange').textContent = Math.round(st.range);
       $('selRate').textContent = (1 / st.cooldown).toFixed(2) + '/s';
+    } else if (t.type === 'shield') {
+      $('selStatLabel').textContent = '护盾';
+      $('selDmg').textContent = Math.floor(t.shield || 0) + ' / ' + st.maxShield;
+      $('selRange').textContent = Math.round(st.range);
+      $('selRate').textContent = '1能量=2护盾';
+    } else if (t.type === 'laserTower') {
+      $('selStatLabel').textContent = '每秒伤害';
+      $('selDmg').textContent = Math.round(st.damage) + ' /s';
+      $('selRange').textContent = Math.round(st.range);
+      $('selRate').textContent = '持续';
+    } else if (t.type === 'transformer') {
+      $('selStatLabel').textContent = '超频';
+      $('selDmg').textContent = '周围8格 全参数×1.5';
+      $('selRange').textContent = '—';
+      $('selRate').textContent = '—';
     } else if (t.type === 'converter') {
       $('selStatLabel').textContent = '转化率';
       $('selDmg').textContent = '1 能量 = ' + st.convertRate + ' 金币';
@@ -3148,6 +3659,40 @@ function updateHUD() {
     const bLaunchMsl = $('btnLaunchMissile');
     const bAutoBuild = $('btnAutoBuildMissile');
     const bAutoStrike = $('btnAutoStrikeMissile');
+    const bToggle = $('btnToggle');
+    const isOff = t.enabled === false;
+
+    bToggle.textContent = isOff ? '🔌 工作开关：关（停机中）' : '🔌 工作开关：开';
+    bToggle.className = isOff ? 'btn auto-off' : 'btn auto-on';
+    bToggle.disabled = t.buildingTimer > 0;
+
+    const bChargeConv = $('btnChargeConverter');
+    const bChargePrism = $('btnChargePrism');
+    const bOverclock = $('btnOverclock');
+    if (t.type === 'mmwave') {
+      bChargeConv.style.display = 'block';
+      const cc = t.chargeConverter === true;
+      bChargeConv.textContent = cc ? '🔄 充能转换器：开' : '🔄 充能转换器：关';
+      bChargeConv.className = cc ? 'btn auto-on' : 'btn auto-off';
+      bChargeConv.disabled = t.buildingTimer > 0;
+
+      bChargePrism.style.display = 'block';
+      const cp = t.chargePrism !== false;
+      bChargePrism.textContent = cp ? '💠 光棱炮充能：开' : '💠 光棱炮充能：关';
+      bChargePrism.className = cp ? 'btn auto-on' : 'btn auto-off';
+      bChargePrism.disabled = t.buildingTimer > 0;
+    } else {
+      bChargeConv.style.display = 'none';
+      bChargePrism.style.display = 'none';
+    }
+    if (t.type === 'transformer') {
+      bOverclock.style.display = 'block';
+      bOverclock.disabled = t.buildingTimer > 0 || isOff;
+      bOverclock.textContent = (aimingOverclock === t) ? '⚡ 超频中…（右键取消）' : '⚡ 超频相邻炮台';
+      bOverclock.className = (aimingOverclock === t) ? 'btn auto-on' : 'btn';
+    } else {
+      bOverclock.style.display = 'none';
+    }
 
     if (t.type === 'nukeSilo') {
       bNukeBuild.style.display = 'block';
@@ -3158,11 +3703,11 @@ function updateHUD() {
       bAutoBuild.style.display = 'none';
       bAutoStrike.style.display = 'none';
 
-      bNukeBuild.disabled = t.nukeStatus === 'building' || t.nukeCount >= 5 || gold < 3000000;
-      bNukeBuild.textContent = t.nukeStatus === 'building' ? `☢️ 建造中 ${Math.ceil(t.nukeTimer)}s` : `☢️ 建造核弹 (💰300万, 30s)`;
+      bNukeBuild.disabled = isOff || t.nukeStatus === 'building' || t.nukeCount >= 5 || gold < 3000000;
+      bNukeBuild.textContent = isOff ? '☢️ 已停机' : (t.nukeStatus === 'building' ? `☢️ 建造中 ${Math.ceil(t.nukeTimer)}s` : `☢️ 建造核弹 (💰300万, 30s)`);
 
-      bNukeLaunch.disabled = t.nukeCount <= 0;
-      bNukeLaunch.textContent = `💥 发射核弹 (${t.nukeCount}枚)`;
+      bNukeLaunch.disabled = isOff || t.nukeCount <= 0;
+      bNukeLaunch.textContent = isOff ? '💥 已停机' : `💥 发射核弹 (${t.nukeCount}枚)`;
 
       bAutoBuildNuke.textContent = autoBuildNuke ? '☢️ 自动建造核弹：开' : '☢️ 自动建造核弹：关';
       bAutoBuildNuke.className = autoBuildNuke ? 'btn auto-on' : 'btn auto-off';
@@ -3175,14 +3720,14 @@ function updateHUD() {
       bAutoBuild.style.display = 'block';
       bAutoStrike.style.display = 'block';
 
-      bBuildMsl.textContent = t.isBuildingMissile ? `🔨 建造中 ${Math.floor(t.missileBuildProgress * 100)}%` : `🔨 建造导弹 (💰${st.missileCost})`;
-      bBuildMsl.disabled = t.isBuildingMissile || t.missileCount >= st.maxMissiles || gold < st.missileCost;
+      bBuildMsl.textContent = isOff ? '🔨 已停机' : (t.isBuildingMissile ? `🔨 建造中 ${Math.floor(t.missileBuildProgress * 100)}%` : `🔨 建造导弹 (💰${st.missileCost})`);
+      bBuildMsl.disabled = isOff || t.isBuildingMissile || t.missileCount >= st.maxMissiles || gold < st.missileCost;
 
       let totalMissiles = 0;
-      for(let o of towers) if(o.type === 'missileSilo') totalMissiles += o.missileCount;
+      for(let o of towers) if(o.type === 'missileSilo' && o.enabled !== false) totalMissiles += o.missileCount;
 
-      bLaunchMsl.textContent = `🚀 发射导弹 (全图共${totalMissiles}枚)`;
-      bLaunchMsl.disabled = totalMissiles <= 0;
+      bLaunchMsl.textContent = isOff ? '🚀 已停机' : `🚀 发射导弹 (全图共${totalMissiles}枚)`;
+      bLaunchMsl.disabled = isOff || totalMissiles <= 0;
 
       bAutoBuild.textContent = autoBuildMissile ? '🔨 自动建造导弹：开' : '🔨 自动建造导弹：关';
       bAutoBuild.className = autoBuildMissile ? 'btn auto-on' : 'btn auto-off';
@@ -3209,6 +3754,9 @@ function updateHUD() {
     $('btnLaunchMissile').style.display = 'none';
     $('btnAutoBuildMissile').style.display = 'none';
     $('btnAutoStrikeMissile').style.display = 'none';
+    $('btnChargeConverter').style.display = 'none';
+    $('btnChargePrism').style.display = 'none';
+    $('btnOverclock').style.display = 'none';
   }
 }
 
@@ -3234,6 +3782,20 @@ cv.addEventListener('click', evt => {
   const p = getMousePos(evt);
   const gx = Math.floor(p.x / TILE);
   const gy = Math.floor(p.y / TILE);
+
+  if (aimingOverclock) {
+    const src = aimingOverclock;
+    const tgt = towers.find(t => t.gx === gx && t.gy === gy && !t.destroyed);
+    if (tgt && canOverclock(tgt, src)) {
+      applyOverclock(src, tgt);
+    } else if (tgt && tgt.overclocked) {
+      toast('该设施已被超频过（每座仅一次）');
+    } else if (!tgt) {
+      toast('请点击变压器周围8格内的设施');
+    }
+    updateHUD();
+    return;
+  }
 
   if (aimingNukeTower) {
     if (aimingNukeTower.destroyed || aimingNukeTower.nukeCount <= 0) {
@@ -3290,6 +3852,7 @@ cv.addEventListener('contextmenu', evt => {
   selectedTower = null;
   aimingNukeTower = null;
   aimingMissile = false;
+  aimingOverclock = null;
   updateHUD();
 });
 
@@ -3313,6 +3876,7 @@ function tryBuild(gx, gy, type) {
     hp: maxHp,
     maxHp,
     destroyed: false,
+    enabled: true,
     buildingTimer: 1.5,
     upgradingTimer: 0,
     beamTarget: null,
@@ -3326,9 +3890,18 @@ function tryBuild(gx, gy, type) {
     isBuildingMissile: false,
     lastStrikeTime: 0,
     convertAccum: 0,
-    convertFloatTimer: 0
+    convertFloatTimer: 0,
+    shield: 0,
+    shieldFlash: 0,
+    laserPt: null,
+    laserTarget: null,
+    overclocked: false,
+    overclockMul: 1,
+    chargeConverter: false,
+    chargePrism: true
   };
   towers.push(t);
+  if (type === 'shield') t.shield = towerStats(t).maxShield;
   addParticles(t.x, t.y, def.color, 12, 120);
   addLog(`正在建造 ${def.name}...`, 'info');
   selectedTower = t;
@@ -3364,11 +3937,12 @@ function selectType(type) {
   }
   aimingNukeTower = null;
   aimingMissile = false;
+  aimingOverclock = null;
 }
 
 (function buildTowerButtons() {
   const list = $('towerList');
-  const keys = ['arrow', 'cannon', 'flame', 'lightning', 'antiair', 'repair', 'laser', 'battery', 'mmwave', 'converter', 'prism', 'resource', 'nukeSilo', 'missileSilo'];
+  const keys = ['arrow', 'cannon', 'flame', 'lightning', 'antiair', 'repair', 'laser', 'battery', 'mmwave', 'converter', 'prism', 'resource', 'nukeSilo', 'missileSilo', 'shield', 'laserTower', 'transformer'];
   keys.forEach(key => {
     const def = TOWER_DEFS[key];
     const btn = document.createElement('button');
@@ -3433,9 +4007,59 @@ $('btnSell').addEventListener('click', () => {
   checkEnclosure();
 });
 
+$('btnToggle').addEventListener('click', () => {
+  const t = selectedTower;
+  if (!t || t.destroyed) return;
+  if (t.buildingTimer > 0) { toast('建造中的设施无法操作开关'); return; }
+  t.enabled = t.enabled === false;
+  if (t.enabled) {
+    addParticles(t.x, t.y, '#7ef0a0', 8, 90);
+    addLog(`${t.def.name} 已开启，恢复工作`, 'success');
+  } else {
+    t.beamTarget = null;
+    t.laserPt = null;
+    t.laserTarget = null;
+    addParticles(t.x, t.y, '#9fb0c4', 8, 60);
+    addLog(`${t.def.name} 已关闭，停止一切工作`, 'warning');
+  }
+  updateHUD();
+});
+
+$('btnChargeConverter').addEventListener('click', () => {
+  const t = selectedTower;
+  if (!t || t.type !== 'mmwave' || t.destroyed) return;
+  if (t.buildingTimer > 0) { toast('建造中的设施无法操作开关'); return; }
+  t.chargeConverter = !t.chargeConverter;
+  addLog(t.chargeConverter ? '毫米波：开始为能量转换器充能' : '毫米波：停止为能量转换器充能', 'info');
+  updateHUD();
+});
+
+$('btnChargePrism').addEventListener('click', () => {
+  const t = selectedTower;
+  if (!t || t.type !== 'mmwave' || t.destroyed) return;
+  if (t.buildingTimer > 0) { toast('建造中的设施无法操作开关'); return; }
+  t.chargePrism = (t.chargePrism === false) ? true : false;
+  addLog(t.chargePrism ? '毫米波：开始为光棱炮充能' : '毫米波：停止为光棱炮充能', 'info');
+  updateHUD();
+});
+
+$('btnOverclock').addEventListener('click', () => {
+  const t = selectedTower;
+  if (!t || t.type !== 'transformer' || t.destroyed) return;
+  if (t.buildingTimer > 0) { toast('建造中的设施无法操作'); return; }
+  if (t.enabled === false) { toast('该设施已关闭，先打开工作开关'); return; }
+  aimingOverclock = (aimingOverclock === t) ? null : t;
+  selectedType = null;
+  if (aimingOverclock) {
+    addLog('⚡ 超频模式：点击变压器周围8格内的设施进行超频（右键取消）', 'warning');
+  }
+  updateHUD();
+});
+
 $('btnNukeBuild').addEventListener('click', () => {
   const t = selectedTower;
   if (!t || t.type !== 'nukeSilo') return;
+  if (t.enabled === false) { toast('该设施已关闭，先打开工作开关'); return; }
   if (t.nukeStatus === 'building' || t.nukeCount >= 5) return;
   if (gold >= 3000000) {
     gold -= 3000000;
@@ -3452,6 +4076,7 @@ $('btnNukeBuild').addEventListener('click', () => {
 $('btnNukeLaunch').addEventListener('click', () => {
   const t = selectedTower;
   if (!t || t.type !== 'nukeSilo' || t.nukeCount <= 0) return;
+  if (t.enabled === false) { toast('该设施已关闭，先打开工作开关'); return; }
   aimingNukeTower = t;
   selectedType = null;
   addLog('核弹已进入瞄准模式，点击地图空投', 'warning');
@@ -3460,6 +4085,7 @@ $('btnNukeLaunch').addEventListener('click', () => {
 $('btnBuildMissile').addEventListener('click', () => {
   const t = selectedTower;
   if (!t || t.type !== 'missileSilo') return;
+  if (t.enabled === false) { toast('该设施已关闭，先打开工作开关'); return; }
   const st = towerStats(t);
   if (t.isBuildingMissile) return;
   if (t.missileCount >= st.maxMissiles) return;
@@ -3475,10 +4101,11 @@ $('btnBuildMissile').addEventListener('click', () => {
 $('btnLaunchMissile').addEventListener('click', () => {
   const t = selectedTower;
   if (!t || t.type !== 'missileSilo') return;
+  if (t.enabled === false) { toast('该设施已关闭，先打开工作开关'); return; }
 
   let totalMissiles = 0;
   for (let o of towers) {
-    if (o.type === 'missileSilo') totalMissiles += o.missileCount;
+    if (o.type === 'missileSilo' && o.enabled !== false) totalMissiles += o.missileCount;
   }
   if (totalMissiles === 0) {
     toast('场上没有可用的导弹');
@@ -3546,7 +4173,7 @@ async function saveGame() {
   if (gameOver) { toast('游戏已结束，无法保存'); return; }
   try {
     const data = {
-      v: 11,
+      v: 12,
       savedAt: Date.now(),
       gold: Math.floor(gold),
       castleHp,
@@ -3574,7 +4201,7 @@ async function saveGame() {
         let maxHp = t.maxHp;
         if (t.upgradingTimer > 0) {
           lvl = Math.min(MAX_LEVEL, t.level + 1);
-          const newMaxHp = towerMaxHp(t.type, lvl);
+          const newMaxHp = towerMaxHp(t.type, lvl, t.overclockMul || 1);
           hp = Math.min(newMaxHp, hp + (newMaxHp - maxHp));
           maxHp = newMaxHp;
         }
@@ -3583,6 +4210,11 @@ async function saveGame() {
           level: lvl, invested: t.invested,
           hp: hp, maxHp: maxHp,
           energy: t.energy,
+          enabled: t.enabled !== false,
+          shield: t.shield || 0,
+          overclocked: !!t.overclocked,
+          chargeConverter: t.chargeConverter === true,
+          chargePrism: t.chargePrism !== false,
           nukeStatus: t.nukeStatus,
           nukeTimer: t.nukeTimer,
           nukeCount: t.nukeCount,
@@ -3669,11 +4301,18 @@ function applySave(data) {
     if (!canBuild(gx, gy)) return;
     occupied.add(key);
     const level = Math.min(def.levels.length, Math.max(1, Math.floor(td.level) || 1));
-    const maxHp = towerMaxHp(td.type, level);
+    const ocMul = td.overclocked ? 1.5 : 1;
+    const maxHp = towerMaxHp(td.type, level, ocMul);
     const hp = td.hp ? Math.min(maxHp, Math.max(1, Math.floor(td.hp))) : maxHp;
 
-    const maxEnergy = def.levels[level - 1].maxEnergy || 0;
+    const lvStats = def.levels[level - 1];
+    const maxEnergy = Math.round((lvStats.maxEnergy || 0) * ocMul);
     const energy = Math.min(maxEnergy, Math.max(0, Math.floor(td.energy) || 0));
+    // 防御塔：旧档缺盾量时按满盾处理
+    const maxShield = Math.round((lvStats.maxShield || 0) * ocMul);
+    const shield = td.shield !== undefined
+      ? Math.min(maxShield, Math.max(0, td.shield || 0))
+      : maxShield;
 
     let lst = Number.isFinite(td.lastStrikeTime) ? td.lastStrikeTime : 0;
     if (lst > gameTime) lst = gameTime;
@@ -3686,15 +4325,24 @@ function applySave(data) {
       cool: 0,
       recoil: 0,
       hitFlash: 0,
+      shieldFlash: 0,
       level,
       invested: Math.max(def.cost, Math.floor(td.invested) || def.cost),
       hp, maxHp,
       destroyed: false,
+      enabled: td.enabled !== false,
       buildingTimer: 0,
       upgradingTimer: 0,
       beamTarget: null,
       goldTimer: 0,
       energy: energy,
+      shield,
+      laserPt: null,
+      laserTarget: null,
+      overclocked: !!td.overclocked,
+      overclockMul: ocMul,
+      chargeConverter: td.chargeConverter === true,
+      chargePrism: td.chargePrism !== false,
       nukeStatus: td.nukeStatus || 'idle',
       nukeTimer: td.nukeTimer || 0,
       nukeCount: td.nukeCount || 0,
@@ -3713,6 +4361,7 @@ function applySave(data) {
   selectedTower = null;
   aimingNukeTower = null;
   aimingMissile = false;
+  aimingOverclock = null;
   $('overlay').classList.add('hidden');
   $('btnPause').textContent = '⏸';
   updateHUD();
@@ -3744,6 +4393,7 @@ window.addEventListener('keydown', e => {
     selectedTower = null;
     aimingNukeTower = null;
     aimingMissile = false;
+    aimingOverclock = null;
   }
   if (e.key === ' ' && !e.repeat) {
     e.preventDefault();
