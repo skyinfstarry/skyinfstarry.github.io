@@ -205,6 +205,31 @@
   #autoToggle.on{opacity:1;}
   #autoToggle:active{transform:translateY(3px);box-shadow:0 1px 0 #b96b00;}
 
+  /* ===== 游戏内工具：速度 / 密度 ===== */
+  #gameTools{
+    position:fixed;right:16px;bottom:70px;z-index:15;
+    display:none;flex-direction:column;gap:8px;align-items:flex-end;
+  }
+  #gameTools.show{display:flex;}
+  #gameTools button{
+    min-width:126px;padding:10px 16px;
+    font-size:13px;font-weight:800;letter-spacing:1px;
+    border-radius:999px;
+    background:linear-gradient(180deg,#9fd0ff,#4a9eff);
+    color:#08182b;
+    box-shadow:0 4px 0 #1c5aa8,0 8px 22px rgba(0,0,0,.45);
+    opacity:.7;transition:opacity .2s,transform .08s;
+    touch-action:manipulation;
+  }
+  #gameTools button:hover{opacity:.95;}
+  #gameTools button:active{transform:translateY(3px);box-shadow:0 1px 0 #1c5aa8;}
+  #gameTools button.boost{
+    background:linear-gradient(180deg,#ffe08a,#ff9f1c);
+    color:#2a1600;box-shadow:0 4px 0 #b96b00,0 8px 22px rgba(0,0,0,.45);
+    opacity:1;
+  }
+  #gameTools button.boost:active{box-shadow:0 1px 0 #b96b00;}
+
   #confirmOverlay{
     position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
     background:rgba(4,6,12,.82);
@@ -331,7 +356,7 @@
         <div class="shop-item-name">🤖 自动指针速度 +5</div>
         <div class="shop-item-desc">
           当前速度：<em id="shopAutoSpeed">15</em> → <em id="shopAutoSpeedNext">20</em><br>
-          开启自动模式后，虚拟指针自动追踪水果移动，速度越快切割越迅速。
+          开启自动模式后，虚拟指针自动追踪水果移动，速度越快切割越迅速（最高 100）。
         </div>
       </div>
       <button id="buyAutoSpeedBtn" class="buy-btn">250 金币</button>
@@ -339,13 +364,13 @@
 
     <div class="shop-item">
       <div>
-        <div class="shop-item-name">💰 金币加成 +1</div>
+        <div class="shop-item-name">💰 金币加成 +3</div>
         <div class="shop-item-desc">
-          当前每果：<em id="shopCoin">1</em> 💰 → <em id="shopCoinNext">2</em> 💰<br>
-          每切开一个水果获得的金币数提升，赚钱更快。
+          当前每果：<em id="shopCoin">1</em> 💰 → <em id="shopCoinNext">4</em> 💰<br>
+          每切开一个水果获得的金币数提升，最高可达 <em>31</em> 💰 / 果。
         </div>
       </div>
-      <button id="buyCoinBtn" class="buy-btn">500 金币</button>
+      <button id="buyCoinBtn" class="buy-btn">300 金币</button>
     </div>
 
     <div class="shop-footer">
@@ -379,6 +404,11 @@
 
 <button id="autoToggle">🤖 自动: 关</button>
 
+<div id="gameTools">
+  <button id="speedToggle">⚡ 速度: 1x</button>
+  <button id="densityToggle">🍉 密度: 1x</button>
+</div>
+
 <input type="file" id="importFileInput" accept=".aes,.txt,.json" style="display:none">
 
 <script>
@@ -400,6 +430,9 @@ const saveBtn = document.getElementById('saveBtn');
 const autoBtn = document.getElementById('autoBtn');
 const resetBtn = document.getElementById('resetBtn');
 const autoToggle = document.getElementById('autoToggle');
+const gameTools = document.getElementById('gameTools');
+const speedToggle = document.getElementById('speedToggle');
+const densityToggle = document.getElementById('densityToggle');
 const shopOverlay = document.getElementById('shopOverlay');
 const shopCoinsEl = document.getElementById('shopCoins');
 const shopLivesEl = document.getElementById('shopLives');
@@ -451,14 +484,44 @@ const BASE_BOMB_DEFUSE = 0.1;
 const BOMB_DEFUSE_PER_LEVEL = 0.1;
 const MAX_BOMB_DEFUSE_LEVEL = 9;
 
+/* 自动指针速度：基础15，每级+5，17级达到100 */
 const BASE_AUTO_SPEED = 15;
 const AUTO_SPEED_PER_LEVEL = 5;
-const MAX_AUTO_SPEED_LEVEL = 10;
+const MAX_AUTO_SPEED_LEVEL = 17;
+const AUTO_SPEED_MAX = BASE_AUTO_SPEED + AUTO_SPEED_PER_LEVEL * MAX_AUTO_SPEED_LEVEL; // 100
 const AUTO_SPEED_PX_FACTOR = 20;
 
+/* 金币加成：基础1，每级+3，10级达到31金币/果 */
 const BASE_COIN_PER_FRUIT = 1;
-const COIN_PER_FRUIT_PER_LEVEL = 1;
-const MAX_COIN_LEVEL = 5;
+const COIN_PER_FRUIT_PER_LEVEL = 3;
+const MAX_COIN_LEVEL = 10;
+const COIN_PER_FRUIT_MAX = BASE_COIN_PER_FRUIT + COIN_PER_FRUIT_PER_LEVEL * MAX_COIN_LEVEL; // 31
+
+/* ----- 游戏内倍率（速度 / 密度） ----- */
+const SPEED_OPTIONS   = [1, 2, 3, 5, 10];
+const DENSITY_OPTIONS = [1, 2, 3, 5, 10];
+let speedIdx = 0;
+let densityIdx = 0;
+function curSpeed()   { return SPEED_OPTIONS[speedIdx]; }
+function curDensity() { return DENSITY_OPTIONS[densityIdx]; }
+
+function refreshToolUI() {
+  speedToggle.textContent = '⚡ 速度: ' + curSpeed() + 'x';
+  densityToggle.textContent = '🍉 密度: ' + curDensity() + 'x';
+  speedToggle.classList.toggle('boost', curSpeed() > 1);
+  densityToggle.classList.toggle('boost', curDensity() > 1);
+}
+
+speedToggle.addEventListener('click', () => {
+  speedIdx = (speedIdx + 1) % SPEED_OPTIONS.length;
+  refreshToolUI();
+  toast('游戏速度 ' + curSpeed() + 'x');
+});
+densityToggle.addEventListener('click', () => {
+  densityIdx = (densityIdx + 1) % DENSITY_OPTIONS.length;
+  refreshToolUI();
+  toast('水果密度 ' + curDensity() + 'x');
+});
 
 let W = 0, H = 0, bgGrad = null;
 
@@ -855,7 +918,7 @@ function rangePrice(level)      { return Math.floor(150 * Math.pow(1.5, level));
 function bladePrice(level)      { return Math.floor(200 * Math.pow(1.5, level)); }
 function defusePrice(level)     { return Math.floor(300 * Math.pow(1.5, level)); }
 function autoSpeedPrice(level)  { return Math.floor(250 * Math.pow(1.5, level)); }
-function coinPrice(level)       { return Math.floor(500 * Math.pow(1.8, level)); }
+function coinPrice(level)       { return Math.floor(300 * Math.pow(1.4, level)); }
 
 function maxLives()             { return BASE_LIFE + save.lifeLevel; }
 function cutRadius()            { return BASE_CUT_RANGE + save.rangeLevel * CUT_RANGE_PER_LEVEL; }
@@ -911,8 +974,8 @@ function refreshShopUI() {
   shopDefuseNextEl.textContent = Math.round(Math.min(1, BASE_BOMB_DEFUSE + (save.bombDefuseLevel + 1) * BOMB_DEFUSE_PER_LEVEL) * 100);
   setBuyButton(buyDefuseBtn, save.bombDefuseLevel, MAX_BOMB_DEFUSE_LEVEL, defusePrice(save.bombDefuseLevel));
 
-  shopAutoSpeedEl.textContent = BASE_AUTO_SPEED + save.autoSpeedLevel * AUTO_SPEED_PER_LEVEL;
-  shopAutoSpeedNextEl.textContent = BASE_AUTO_SPEED + (save.autoSpeedLevel + 1) * AUTO_SPEED_PER_LEVEL;
+  shopAutoSpeedEl.textContent = Math.min(AUTO_SPEED_MAX, BASE_AUTO_SPEED + save.autoSpeedLevel * AUTO_SPEED_PER_LEVEL);
+  shopAutoSpeedNextEl.textContent = Math.min(AUTO_SPEED_MAX, BASE_AUTO_SPEED + (save.autoSpeedLevel + 1) * AUTO_SPEED_PER_LEVEL);
   setBuyButton(buyAutoSpeedBtn, save.autoSpeedLevel, MAX_AUTO_SPEED_LEVEL, autoSpeedPrice(save.autoSpeedLevel));
 
   shopCoinEl.textContent = BASE_COIN_PER_FRUIT + save.coinLevel * COIN_PER_FRUIT_PER_LEVEL;
@@ -1150,6 +1213,7 @@ function forceBackToMenu() {
   shake = 0;
   flash = 0;
   autoToggle.classList.remove('show');
+  gameTools.classList.remove('show');
 }
 
 async function resetSlot(slot) {
@@ -1262,11 +1326,18 @@ function spawnOne(isBomb) {
 
 function spawnWave() {
   const diff = Math.min(elapsed / 50, 1);
+
+  /* ---- 密度：影响每波数量与波次间隔 ---- */
+  const densMul = Math.sqrt(curDensity());
+
   let count = 1 + Math.floor(Math.random() * (1 + diff * 2.2));
   if (count > 4) count = 4;
+  count = Math.max(1, Math.min(9, Math.round(count * densMul)));
+
+  const gap = 110 / Math.max(1, densMul);
 
   for (let i = 0; i < count; i++) {
-    setTimeout(() => { if (state === 'playing') spawnOne(false); }, i * 110);
+    setTimeout(() => { if (state === 'playing') spawnOne(false); }, i * gap);
   }
 
   const bombCount = fruits.filter(f => f.isBomb).length;
@@ -1483,7 +1554,8 @@ function update(dt) {
     if (spawnTimer <= 0) {
       spawnWave();
       const diff = Math.min(elapsed / 50, 1);
-      spawnTimer = 1.15 - 0.6 * diff + Math.random() * 0.5;
+      const densMul = Math.sqrt(curDensity());
+      spawnTimer = (1.15 - 0.6 * diff + Math.random() * 0.5) / densMul;
     }
   }
 
@@ -1802,14 +1874,17 @@ function startGame() {
   updateHUD();
   refreshCoinHud();
   refreshAutoUI();
+  refreshToolUI();
   overlay.classList.add('hide');
   autoToggle.classList.add('show');
+  gameTools.classList.add('show');
 }
 
 function gameOver() {
   if (state === 'over') return;
   state = 'over';
   autoToggle.classList.remove('show');
+  gameTools.classList.remove('show');
 
   const earned = runCoins;
   save.coins += earned;
@@ -1887,14 +1962,25 @@ canvas.addEventListener('pointerleave', () => {
 /* ================= 启动 ================= */
 let last = performance.now();
 function loop(now) {
-  const dt = Math.min((now - last) / 1000, 0.05);
+  const rawDt = Math.min((now - last) / 1000, 0.05);
   last = now;
-  update(dt);
+
+  /* ---- 游戏运行速度：拆分子步长，避免高速时物理跳步 ---- */
+  const mult = (state === 'playing') ? curSpeed() : 1;
+  let remaining = rawDt * mult;
+  let guard = 0;
+  while (remaining > 0.0001 && guard++ < 24) {
+    const step = Math.min(remaining, 1 / 40);
+    update(step);
+    remaining -= step;
+  }
+
   render();
   requestAnimationFrame(loop);
 }
 
 resize();
+refreshToolUI();
 updateHUD();
 refreshCoinHud();
 refreshAutoUiSafe();
