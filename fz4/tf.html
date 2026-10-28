@@ -1,0 +1,4644 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏰 塔防 - 指挥塔保卫战</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; min-height: 100vh;
+    background: radial-gradient(circle at 50% -10%, #1e3348, #0a0e14 65%);
+    color: #e6edf5;
+    font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px;
+  }
+
+  #game {
+    display: flex; gap: 12px; align-items: stretch;
+    width: 100%; max-width: 1440px; height: calc(100vh - 32px); min-height: 720px;
+    margin: 0 auto;
+  }
+
+  .panel {
+    background: rgba(18,26,36,.94);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 12px; padding: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.5);
+  }
+
+  #left-col {
+    flex: 1; display: flex; flex-direction: column; gap: 12px;
+    min-width: 0;
+  }
+
+  #top-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 16px; height: 60px; flex: 0 0 auto;
+  }
+  .top-stats { display: flex; gap: 24px; }
+  .stat { display: flex; flex-direction: column; line-height: 1.2; }
+  .stat span { font-size: 11px; color: #6f8499; letter-spacing: 1px; }
+  .stat b { font-size: 18px; color: #ffd166; font-weight: 700; }
+  .stat b.hp-mid { color: #ffd166; }
+  .stat b.hp-low { color: #ff8a8a; }
+
+  #status-area {
+    flex: 1; max-width: 320px; margin: 0 24px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .status-line { display: flex; justify-content: space-between; font-size: 13px; color: #9fb0c4; }
+  .status-line b { color: #dbe6f2; }
+  .status-line.fight b { color: #ff9a9a; }
+  .status-line.wait b { color: #ffd166; }
+  .status-track { height: 6px; background: rgba(0,0,0,.4); border-radius: 3px; overflow: hidden; }
+  .status-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #37c47a, #5fd8e0); border-radius: 3px; transition: width .1s linear; }
+  .status-fill.fight { background: linear-gradient(90deg, #ff6b6b, #ffb066); }
+
+  .top-ctrls { display: flex; gap: 8px; align-items: center; }
+  .top-ctrls .btn { min-width: 70px; }
+
+  #stage {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 20 / 13;
+    max-height: calc(100vh - 300px);
+    max-width: calc((100vh - 300px) * 20 / 13);
+    margin: 0 auto; border-radius: 12px; overflow: hidden;
+    box-shadow: 0 12px 48px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.06);
+    background: #2c4a34;
+    flex-shrink: 1;
+  }
+  canvas {
+    display: block; width: 100%; height: 100%; cursor: crosshair;
+  }
+  #overlay {
+    position: absolute; inset: 0;
+    background: rgba(6,10,16,.86); backdrop-filter: blur(4px);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; z-index: 10;
+  }
+  #overlay.hidden { display: none; }
+  #overlay h2 { margin: 0; font-size: 34px; letter-spacing: 3px; color: #ff6b6b; }
+  #overlay p { margin: 0; color: #9fb0c4; font-size: 16px; }
+  #overlay b { color: #ffd166; }
+
+  #bottom-bar {
+    display: flex; gap: 12px; flex: 1; min-height: 170px;
+  }
+  #build-panel {
+    width: 700px; flex: 0 0 auto; display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .section-title {
+    font-size: 11px; letter-spacing: 2px; color: #6f8499;
+    text-transform: uppercase; margin-bottom: 6px;
+  }
+  .tower-list {
+    display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px; margin-top: auto;
+  }
+  .tower-btn {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 6px 2px; gap: 2px; border-radius: 10px;
+    background: rgba(255,255,255,.05); border: 1.5px solid rgba(255,255,255,.12);
+    cursor: pointer; transition: 0.15s; color: #dbe6f2; font-family: inherit;
+    min-width: 0; overflow: hidden;
+  }
+  .tower-btn:hover { background: rgba(255,255,255,.1); transform: translateY(-2px); }
+  .tower-btn.active { border-color: #5fd8e0; background: rgba(95,216,224,.16); }
+  .tower-btn.active.hammer { border-color: #ff6b6b; background: rgba(255,80,80,.16); }
+  .tower-btn.disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .tower-btn .ic { font-size: 18px; }
+  .tower-btn .nm {
+    font-size: 12px; font-weight: 600;
+    max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .tower-btn .cost { font-size: 11px; color: #ffd166; }
+
+  #log-panel {
+    flex: 1; display: flex; flex-direction: column; min-width: 0;
+  }
+  #log-content {
+    flex: 1; overflow-y: auto; font-family: monospace;
+    font-size: 12px; line-height: 1.6; margin-top: 4px;
+    padding-right: 4px;
+  }
+  #log-content::-webkit-scrollbar { width: 4px; }
+  #log-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+  .log-entry { display: flex; gap: 8px; color: #b0c0d0; }
+  .log-time { color: #5a6c7e; }
+  .log-entry.success { color: #7ef0a0; }
+  .log-entry.danger { color: #ff8a8a; }
+  .log-entry.info { color: #8fd6ff; }
+  .log-entry.warning { color: #ffd166; }
+
+  #right-col {
+    width: 280px; flex: 0 0 auto;
+    display: flex; flex-direction: column; gap: 10px;
+    overflow-y: auto;
+  }
+  #right-col::-webkit-scrollbar { width: 6px; }
+  #right-col::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 3px; }
+
+  .panel-head {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;
+  }
+  .panel-head h1 { margin: 0; font-size: 16px; letter-spacing: 2px; color: #8fd6ff; font-weight: 700; }
+  .state-pill {
+    font-size: 10px; font-weight: 700; padding: 2px 8px;
+    border-radius: 10px; letter-spacing: 1px;
+    background: #2b3a4a; color: #8fd6ff;
+  }
+  .state-pill.fight { background: rgba(255,80,80,.18); color: #ff8a8a; }
+  .state-pill.wait { background: rgba(255,209,102,.16); color: #ffd166; }
+  .state-pill.over { background: rgba(255,60,60,.28); color: #ff6b6b; }
+
+  .divider { height: 1px; background: rgba(255,255,255,.07); margin: 4px 0; }
+
+  #emptySel {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; color: #6f8499; font-size: 13px; line-height: 1.6;
+    min-height: 180px;
+  }
+  #emptySel .tip { color: #5fd8e0; font-weight: 600; margin-bottom: 2px; }
+
+  #selPanel {
+    background: rgba(255,255,255,.045);
+    border: 1px solid rgba(255,255,255,.09);
+    border-radius: 9px; padding: 12px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  #selPanel.hidden { display: none; }
+  #selPanel h3 { margin: 0 0 4px; font-size: 14px; color: #8fd6ff; }
+  .row { display: flex; justify-content: space-between; font-size: 13px; color: #9fb0c4; }
+  .row b { color: #dbe6f2; }
+  .row b.hp-ok { color: #7ef0a0; }
+  .row b.hp-mid { color: #ffd166; }
+  .row b.hp-low { color: #ff8a8a; }
+  .row b.energy-full { color: #ff00ff; }
+  .row b.energy-mid { color: #d8b4fe; }
+  .row b.radiation { color: #84cc16; }
+  .tier-tag {
+    display: inline-block; font-size: 10px; font-weight: 700;
+    padding: 1px 6px; border-radius: 6px; margin-left: 4px;
+    background: #2b3a4a; color: #8fd6ff; vertical-align: middle;
+  }
+
+  .btn {
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    padding: 8px 10px; border-radius: 9px; cursor: pointer;
+    border: 1.5px solid rgba(255,255,255,.15);
+    background: rgba(255,255,255,.07); color: #dbe6f2;
+    transition: .15s;
+  }
+  .btn:hover:not(:disabled) { background: rgba(255,255,255,.14); }
+  .btn:disabled { opacity: .38; cursor: not-allowed; }
+  .btn.primary {
+    background: linear-gradient(180deg, #2f9e5e, #1f7a45);
+    border-color: #37c47a; color: #fff;
+  }
+  .btn.primary:hover:not(:disabled) { background: linear-gradient(180deg, #37b56d, #259153); }
+  .btn.up { background: linear-gradient(180deg, #b8862f, #8a621f); border-color: #e0a83e; color: #fff; }
+  .btn.up:disabled { background: rgba(184,134,47,.3); border-color: rgba(224,168,62,.3); }
+  .btn.sell { background: rgba(200,70,70,.2); border-color: rgba(255,120,120,.4); color: #ffb3b3; }
+  .btn.save { background: linear-gradient(180deg, #3a6ea5, #274a70); border-color: #5b8fc7; color: #fff; }
+  .btn.load { background: linear-gradient(180deg, #6b4fa8, #4a357a); border-color: #8b6fd0; color: #fff; }
+
+  .btn.nuke-btn { background: linear-gradient(180deg, #ea580c, #9a3412); border-color: #f97316; color: #fff; }
+  .btn.nuke-btn:disabled { background: rgba(234,88,12,.3); border-color: rgba(249,115,22,.3); }
+
+  .btn.auto-on { background: linear-gradient(180deg, #2f9e5e, #1f7a45); border-color: #37c47a; color: #fff; }
+  .btn.auto-off { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.15); color: #dbe6f2; }
+
+  .ctrl { display: flex; gap: 6px; }
+  .ctrl .btn { flex: 1; }
+
+  .help-text { font-size: 12px; color: #8fa0b5; line-height: 1.6; flex: 1; }
+  .help-text p { margin: 0 0 6px; }
+  .help-text b { color: #cbd8e6; }
+
+  #toast {
+    position: fixed; left: 50%; top: 24px; transform: translateX(-50%) translateY(-70px);
+    background: rgba(220,70,70,.95); color: #fff; padding: 9px 20px;
+    border-radius: 20px; font-size: 13px; font-weight: 600;
+    transition: transform .28s cubic-bezier(.2,1.4,.5,1); z-index: 100;
+    pointer-events: none; box-shadow: 0 6px 20px rgba(0,0,0,.4);
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+  #toast.ok { background: rgba(40,160,90,.95); }
+
+  @media (max-width: 1200px) {
+    #game { flex-direction: column; height: auto; min-height: 100vh; }
+    #left-col { width: 100%; }
+    #stage {
+      width: 100%;
+      max-height: 60vh;
+      max-width: calc(60vh * 20 / 13);
+      margin: 0 auto;
+    }
+    #bottom-bar { flex-direction: column; }
+    #build-panel { width: 100%; }
+    .tower-list { grid-template-columns: repeat(8, 1fr); }
+    #right-col { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div id="game">
+  <div id="left-col">
+    <div id="top-bar" class="panel">
+      <div class="top-stats">
+        <div class="stat"><span>💰 金币</span><b id="hGold">300</b></div>
+        <div class="stat"><span>🏰 指挥塔</span><b id="hHp">1000 / 1000</b></div>
+        <div class="stat"><span>🌊 波次</span><b id="hWave">0</b></div>
+      </div>
+      <div id="status-area">
+        <div class="status-line" id="statusLine">
+          <span id="statusLabel">下一波</span>
+          <b id="statusValue">8.0s</b>
+        </div>
+        <div class="status-track">
+          <div class="status-fill" id="statusFill"></div>
+        </div>
+      </div>
+      <div class="top-ctrls">
+        <button class="btn primary" id="btnWave">开始波次</button>
+        <button class="btn" id="btnPause">⏸</button>
+        <button class="btn" id="btnSpeed">1×</button>
+      </div>
+    </div>
+
+    <div id="stage">
+      <canvas id="cv"></canvas>
+      <div id="overlay" class="hidden">
+        <h2>指 挥 塔 陷 落</h2>
+        <p>你坚守到了第 <b id="finalWave">0</b> 波</p>
+        <button class="btn primary" id="btnRestart" style="padding:10px 28px">重新开始</button>
+      </div>
+    </div>
+
+    <div id="bottom-bar">
+      <div id="build-panel" class="panel">
+        <div class="section-title">建造防御设施 <span style="color:#6f8499;font-size:10px;margin-left:8px;">(点击后连续放置，右键取消)</span></div>
+        <div class="tower-list" id="towerList"></div>
+      </div>
+      <div id="log-panel" class="panel">
+        <div class="section-title">战斗日志</div>
+        <div id="log-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="right-col" class="panel">
+    <div class="panel-head">
+      <h1>🏰 指挥中心</h1>
+      <span class="state-pill wait" id="statePill">准备中</span>
+    </div>
+
+    <div id="emptySel">
+      <div class="tip">💡 提示</div>
+      <div>点击地图上的设施查看详情</div>
+      <div style="margin-top:4px; opacity:0.7">右键或空白处取消选中</div>
+    </div>
+
+    <div id="selPanel" class="hidden">
+      <h3 id="selName">—</h3>
+      <div class="row"><span>等级</span><b id="selLvl">T1</b></div>
+      <div class="row"><span>耐久</span><b id="selHp">0</b></div>
+      <div class="row" id="rowEnergy" style="display:none;"><span>能量</span><b id="selEnergy">0 / 0</b></div>
+      <div class="row"><span id="selStatLabel">伤害</span><b id="selDmg">0</b></div>
+      <div class="row"><span>射程</span><b id="selRange">0</b></div>
+      <div class="row"><span>攻速</span><b id="selRate">0</b></div>
+      <button class="btn auto-on" id="btnToggleWork" style="margin-top:4px;">🟢 工作中</button>
+      <button class="btn auto-off" id="btnMmConv" style="display:none; margin-top:4px;">🔄 供能转换器：关</button>
+      <button class="btn auto-off" id="btnMmPrism" style="display:none; margin-top:4px;">💠 供能光棱炮：关</button>
+      <button class="btn up" id="btnUpgrade">升级</button>
+      <button class="btn sell" id="btnSell">出售</button>
+
+      <button class="btn nuke-btn" id="btnNukeBuild" style="display:none; margin-top:4px;">☢️ 建造核弹 (💰300万, 30s)</button>
+      <button class="btn nuke-btn" id="btnNukeLaunch" style="display:none; margin-top:4px;">💥 发射核弹</button>
+      <button class="btn auto-off" id="btnAutoBuildNuke" style="display:none; margin-top:4px;">☢️ 自动建造核弹：关</button>
+
+      <button class="btn up" id="btnBuildMissile" style="display:none; margin-top:4px;">🔨 建造导弹</button>
+      <button class="btn nuke-btn" id="btnLaunchMissile" style="display:none; margin-top:4px;">🚀 发射导弹</button>
+      <button class="btn auto-off" id="btnAutoBuildMissile" style="display:none; margin-top:4px;">🔨 自动建造导弹：关</button>
+      <button class="btn auto-off" id="btnAutoStrikeMissile" style="display:none; margin-top:4px;">🎯 自动发射导弹：关</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section-title">成就</div>
+    <div class="help-text" style="margin-bottom: 8px; display: flex; flex-direction: column; gap: 6px;">
+      <p id="achTesla" style="color: #6f8499;">🏆 特斯拉线圈 I：放置20个电击器 (0/20)</p>
+      <p id="achTesla2" style="color: #6f8499;">🏆 特斯拉线圈 II：放置30个电击器 (0/30)</p>
+      <p id="achMag3" style="color: #6f8499;">🏆 马奇诺防线：三层闭环包围 (未达成)</p>
+      <p id="achMag5" style="color: #6f8499;">🏆 终极防线：五层闭环包围 (未达成)</p>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section-title">自动化</div>
+    <button class="btn auto-off" id="btnAutoUpgrade" style="margin-bottom:8px;">⚙️ 自动升级：关</button>
+
+    <div class="divider"></div>
+
+    <div class="section-title">AES 存档 (.aes)</div>
+    <div style="font-size:11px;color:#8fa0b5;line-height:1.5;margin-bottom:6px;">
+      🔑 密码：<b style="color:#ffd166">123456</b>（AES256.html 解密时输入）
+    </div>
+    <div class="ctrl">
+      <button class="btn save" id="btnSave">💾 保存</button>
+      <button class="btn load" id="btnLoad">📂 读取</button>
+    </div>
+    <input type="file" id="saveFileInput" accept=".aes" style="display:none">
+
+    <div class="divider"></div>
+
+    <div class="section-title">战术指南</div>
+    <div class="help-text">
+      <p>⛏️ <b>采集器</b>：唯一经济来源（开局赠送 1 个）。</p>
+      <p>🔫 <b>机枪塔</b>：对地物理单体伤害。</p>
+      <p>🔥 <b>喷火器</b>：短射程持续范围穿透。</p>
+      <p>⚡ <b>电击器</b>：无视护盾真伤，对空加成。</p>
+      <p>💣 <b>火炮</b>：超远射程重炮。</p>
+      <p>🚀 <b>防空炮</b>：仅对空，拦截飞行器。</p>
+      <p>🔧 <b>维修塔</b>：修复建筑，或为拦截器/电池/光棱炮/能量转换器/电磁护盾充能。</p>
+      <p>🔄 <b>能量转换器</b>：接收维修塔/毫米波供能并转化为金币。T1 汇率 1 能量=0.1 金币，每级 +0.1，有多少转多少。优先级最低。</p>
+      <p>🛰️ <b>拦截器</b>：消耗 100 能量发射红色激光拦截炮弹（无冷却）。</p>
+      <p>🔋 <b>能量电池</b>：储存能量，供毫米波使用。</p>
+      <p>📡 <b>毫米波</b>：瞬间从电池抽电修复范围内所有建筑，并给拦截器/电池/光棱炮/电磁护盾充能，传输损耗 10%（无冷却）。选中后可设置是否为转换器/光棱炮充能（默认关）。</p>
+      <p>🧊 <b>电池组</b>：价格 10 倍的小型电池组（容量为能量电池 5 倍）。T20 满级后可升阶：中型容量×2、大型容量×4；升阶费为 T21 原价×2，升级费×3/×9。电池组完全免疫 EMP。</p>
+      <p>💠 <b>光棱炮</b>：T1-T19 为充能状态。T20 且满 10 万能量时，引发轨道激光打击。</p>
+      <p>🛡️ <b style="color:#38bdf8">电磁护盾</b>：不可攻击、可升 T20。为 3×3 格内的维修塔/拦截器/转换器抵挡 EMP：每次庇护扣耗能，受护塔按护盾等级扣血比例受损+短暂瘫痪+电量清零；受护塔将死时保留 1 点耐久，溢出致死伤害由护盾替死承受（护盾可能过载摧毁）。维修塔/毫米波可为其充能。</p>
+      <p>☢️ <b>核弹发射井</b>：建核弹300万/30s，最多存5枚。发射后直径90%范围秒杀。</p>
+      <p>🚀 <b>导弹发射井</b>：可升级，升级加速建弹、增加伤害与弹夹。全图集群齐射（单体伤害，激光怪可拦截）。</p>
+      <p>💡 <b>工作开关</b>：选中任意设施，升级按钮上方可切换工作状态。停用后该设施停止一切运作（建造/升级进度照常完成）。</p>
+      <p>⚡ <b style="color:#ff00ff">激光怪</b>：陆空双形态。发射品红色光束持续灼烧防御设施（帧伤），并会拦截我方战术导弹（150px内，最快0.1s/枚）。</p>
+      <p>➕ <b style="color:#7ef0a0">治疗怪</b>：陆空双形态。跟随敌军并持续治疗伤员，优先击杀它！</p>
+      <p>⚡ <b style="color:#4fd8ff">EMP电磁怪</b>：不攻击，渗透直捣指挥塔。死亡自爆（半径全图60%）：仅维修塔/拦截器/转换器受罚——清空电量+损失80%耐久+瘫痪5秒；电池/电池组/光棱炮/物理塔完全免疫。光棱炮为九宫格相邻的电子塔提供🛡️庇护（完全免疫）；电磁护盾（耗能）则为九宫格电子塔分担伤害。还会瘫痪范围内护盾怪的护盾5秒。第15波起出现，第25波起出现飞行形态。</p>
+      <p>☢️ <b style="color:#ff8a3d">BOSS 自爆</b>：第50波起 BOSS 死亡原地核爆（大范围秒杀敌人+己方塔剩10%耐久+辐射区）；第100波起额外引发 EMP 电磁脉冲！留意击杀位置。</p>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function () {
+'use strict';
+
+const TILE = 40, COLS = 20, ROWS = 13;
+const W = COLS * TILE, H = ROWS * TILE;
+const MAP_DIAG = Math.max(W, H);
+
+const cv  = document.getElementById('cv');
+cv.width = W; cv.height = H;
+const ctx = cv.getContext('2d');
+
+const $ = id => document.getElementById(id);
+
+const CASTLE = { gx: 9, gy: 5, w: 2, h: 2 };
+const CASTLE_CX = (CASTLE.gx + 1) * TILE;
+const CASTLE_CY = (CASTLE.gy + 1) * TILE;
+let castleHp = 1000;
+const CASTLE_MAX_HP = 1000;
+
+const blocked = new Set();
+(function markCastle() {
+  for (let x = CASTLE.gx; x < CASTLE.gx + CASTLE.w; x++)
+    for (let y = CASTLE.gy; y < CASTLE.gy + CASTLE.h; y++)
+      blocked.add(x + ',' + y);
+})();
+
+const GRID_COLS = COLS;
+const GRID_ROWS = ROWS;
+let grid = Array.from({ length: GRID_ROWS }, () => Array.from({ length: GRID_COLS }, () => []));
+
+function rebuildGrid() {
+  for (let r = 0; r < GRID_ROWS; r++) {
+    for (let c = 0; c < GRID_COLS; c++) {
+      grid[r][c].length = 0;
+    }
+  }
+  for (let i = 0; i < enemies.length; i++) {
+    const e = enemies[i];
+    if (!e.alive) continue;
+    let cx = Math.floor(e.x / TILE);
+    let cy = Math.floor(e.y / TILE);
+    if (cx < 0) cx = 0; if (cx >= GRID_COLS) cx = GRID_COLS - 1;
+    if (cy < 0) cy = 0; if (cy >= GRID_ROWS) cy = GRID_ROWS - 1;
+    grid[cy][cx].push(e);
+  }
+}
+
+const TOWER_BASE_HP = {
+  arrow: 150, cannon: 240, repair: 110, flame: 180, lightning: 160,
+  antiair: 160, resource: 120, laser: 130, battery: 200, mmwave: 150,
+  prism: 500, nukeSilo: 1000, missileSilo: 600, converter: 160
+};
+
+function towerMaxHp(type, level) {
+  // 电磁护盾：使用专属血量曲线（非通用倍率）
+  if (type === 'empShield') {
+    const L = TOWER_DEFS.empShield.levels[Math.min(20, Math.max(1, level)) - 1];
+    return L.shieldHp;
+  }
+  const base = TOWER_BASE_HP[type] || 150;
+  return Math.round(base * (1 + (level - 1) * 0.4));
+}
+
+function genLevels(baseName, tiers, lvlCount, baseDmg, baseRange, baseCd, extra = {}) {
+  let res = [];
+  for (let i = 1; i <= lvlCount; i++) {
+    let name = baseName + ' T' + i;
+    let dmg = Math.round(baseDmg * Math.pow(1.35, i - 1));
+    let range = baseRange > 0 ? baseRange + (i - 1) * 8 : 0;
+    let cd = baseCd > 0 ? Math.max(0.05, baseCd * Math.pow(0.9, i - 1)) : 0;
+    let obj = { name, damage: dmg, range, cooldown: cd, armor: Math.floor((i-1)/2) };
+    if (extra.splash) obj.splash = extra.splash + (i - 1) * 5;
+    if (extra.bulletSpeed) obj.bulletSpeed = extra.bulletSpeed + (i - 1) * 10;
+    if (extra.barrels) obj.barrels = Math.min(6, extra.barrels + Math.floor((i - 1) / 3));
+    if (extra.barrelLen) obj.barrelLen = extra.barrelLen + (i - 1) * 0.5;
+    if (extra.barrelW) obj.barrelW = extra.barrelW + (i - 1) * 0.2;
+
+    if (extra.healRate) obj.healRate = Math.round(extra.healRate * Math.pow(1.3, i - 1));
+    if (extra.income) obj.income = Math.round(extra.income * Math.pow(1.4, i - 1));
+    if (extra.interval) obj.interval = Math.max(0.2, extra.interval * Math.pow(0.95, i - 1));
+
+    if (extra.isLaser) obj.maxEnergy = i * 100;
+    if (extra.isBattery) obj.maxEnergy = i * 2500 * (extra.batteryMul || 1);
+    if (extra.isPrism) obj.maxEnergy = 100000;
+
+    res.push(obj);
+  }
+  return res;
+}
+
+const TOWER_DEFS = {
+  arrow: {
+    key: 'arrow', name: '机枪塔', icon: '🔫', cost: 50, color: '#4ea3ff',
+    kind: 'bullet', desc: '对地高射速单体，物理伤害',
+    levels: genLevels('机枪塔', 20, 20, 11, 100, 0.45, { bulletSpeed: 540, barrels: 1, barrelLen: 18, barrelW: 4.2 })
+  },
+  cannon: {
+    key: 'cannon', name: '火炮', icon: '💣', cost: 120, color: '#ff8a3d',
+    kind: 'shell', desc: '对地超远射程，重火力溅射',
+    levels: genLevels('火炮', 20, 20, 34, 180, 1.25, { bulletSpeed: 320, barrels: 1, barrelLen: 21, barrelW: 7.5, splash: 46 })
+  },
+  flame: {
+    key: 'flame', name: '喷火器', icon: '🔥', cost: 80, color: '#ff5a36',
+    kind: 'flame', desc: '短射程，穿透范围持续伤害',
+    levels: genLevels('喷火器', 20, 20, 4, 75, 0.12)
+  },
+  lightning: {
+    key: 'lightning', name: '电击器', icon: '⚡', cost: 90, color: '#c084fc',
+    kind: 'lightning', desc: '无视护盾真伤，T25/T30 解锁闪电链',
+    levels: (function() {
+      let res = [];
+      for (let i = 1; i <= 30; i++) {
+        let dmg = Math.round(18 * Math.pow(1.35, i - 1));
+        let range = 85 + (Math.min(i, 20) - 1) * 8;
+        let cd = 0.8 * Math.pow(0.9, i - 1);
+        res.push({ name: '电击器 T' + i, damage: dmg, range, cooldown: cd, armor: Math.floor((i-1)/2) });
+      }
+      return res;
+    })()
+  },
+  antiair: {
+    key: 'antiair', name: '防空炮', icon: '🚀', cost: 100, color: '#60a5fa',
+    kind: 'missile', desc: '仅对空，射程略大于机枪',
+    levels: genLevels('防空炮', 20, 20, 22, 110, 0.65, { bulletSpeed: 600, barrels: 1, barrelLen: 18, barrelW: 5.0 })
+  },
+  repair: {
+    key: 'repair', name: '维修塔', icon: '🔧', cost: 75, color: '#4ade80',
+    kind: 'heal', desc: '修复建筑，或为拦截器/电池/光棱炮/转换器/电磁护盾充能',
+    levels: genLevels('维修塔', 20, 20, 0, 130, 1, { barrels: 1, barrelLen: 12, barrelW: 4, healRate: 15 })
+  },
+  laser: {
+    key: 'laser', name: '拦截器', icon: '🛰️', cost: 150, color: '#ff00ff',
+    kind: 'laser', desc: '消耗 100 能量发射红色激光拦截敌方炮弹（无冷却）',
+    levels: genLevels('拦截器', 20, 20, 0, 150, 0, { isLaser: true })
+  },
+  battery: {
+    key: 'battery', name: '能量电池', icon: '🔋', cost: 100, color: '#38bdf8',
+    kind: 'battery', desc: '储存能量，供毫米波使用',
+    levels: genLevels('能量电池', 20, 20, 0, 0, 1, { isBattery: true })
+  },
+  batteryPack: {
+    key: 'batteryPack', name: '小型电池组', icon: '🧊', cost: 1000, color: '#0284c7',
+    kind: 'battery', desc: '大型储能设施，容量为能量电池的5倍。T20满级后可升阶：中型(容量×2)/大型(容量×4)，升级费×3/×9',
+    levels: genLevels('小型电池组', 20, 20, 0, 0, 1, { isBattery: true, batteryMul: 5 })
+  },
+  mmwave: {
+    key: 'mmwave', name: '毫米波', icon: '📡', cost: 180, color: '#c084fc',
+    kind: 'mmwave', desc: '瞬间从电池抽电修复范围内所有建筑，损耗 10%（无冷却）',
+    levels: genLevels('毫米波', 20, 20, 0, 75, 0)
+  },
+  converter: {
+    key: 'converter', name: '能量转换器', icon: '🔄', cost: 200, color: '#22d3ee',
+    kind: 'converter', desc: '把接收到的能量转化为金币，等级越高汇率越高',
+    levels: Array.from({ length: 20 }, (_, i) => {
+      const lv = i + 1;
+      return {
+        name: '能量转换器 T' + lv,
+        damage: 0, range: 0, cooldown: 1,
+        armor: Math.floor(lv / 2),
+        isConverter: true,
+        maxEnergy: Number.MAX_SAFE_INTEGER,
+        convertRate: Math.round(lv * 10) / 100
+      };
+    })
+  },
+  prism: {
+    key: 'prism', name: '光棱炮', icon: '💠', cost: 1000, color: '#f8fafc',
+    kind: 'prism', desc: 'T1-T19无攻击。T20满10万能量时触发轨道打击。',
+    levels: Array.from({length: 20}, (_, i) => ({
+      name: '光棱炮 T' + (i+1), damage: 0, range: 0, cooldown: 1,
+      armor: Math.floor(i/2), isPrism: true, maxEnergy: 100000
+    }))
+  },
+  empShield: {
+    key: 'empShield', name: '电磁护盾', icon: '🛡️', cost: 500, color: '#3b82f6',
+    kind: 'empShield', desc: '不可攻击。为3×3格内的维修塔/拦截器/转换器抵挡EMP冲击：每次庇护扣除耗能，受护塔按护盾等级扣血比例受损+短暂瘫痪+电量清零；受护塔将死时强制保留1点耐久，溢出致死伤害由护盾替死承受',
+    levels: Array.from({ length: 20 }, (_, i) => {
+      const lv = i + 1;
+      let shieldHp, maxEnergy, costPerHit, hpLossRatio, paralysisTime;
+      if (lv <= 10) {
+        shieldHp = 500 + (lv - 1) * 200;
+        maxEnergy = 5000 + (lv - 1) * 1250;
+        costPerHit = 2500 + (lv - 1) * 400;
+        hpLossRatio = 0.75 - (lv - 1) * 0.02;
+        paralysisTime = 4.0 - (lv - 1) * 0.15;
+      } else if (lv < 20) {
+        shieldHp = 2300 + (lv - 10) * 250;
+        maxEnergy = 16250 + (lv - 10) * 1250;
+        costPerHit = 6100 + (lv - 10) * 400;
+        hpLossRatio = Math.max(0.40, 0.57 - (lv - 10) * 0.02);
+        paralysisTime = Math.max(1.30, 2.65 - (lv - 10) * 0.15);
+      } else {
+        shieldHp = 5000; maxEnergy = 30000; costPerHit = 10000; hpLossRatio = 0.40; paralysisTime = 1.00;
+      }
+      return {
+        name: '电磁护盾 T' + lv, damage: 0, range: 0, cooldown: 1,
+        armor: Math.floor((lv - 1) / 2), isEmpShield: true,
+        maxEnergy, costPerHit, hpLossRatio, paralysisTime, shieldHp
+      };
+    })
+  },
+  resource: {
+    key: 'resource', name: '采集器', icon: '⛏️', cost: 80, color: '#facc15',
+    kind: 'resource', desc: '持续产出金币，唯一经济来源',
+    levels: genLevels('采集器', 20, 20, 0, 0, 2, { income: 10, interval: 2 })
+  },
+  nukeSilo: {
+    key: 'nukeSilo', name: '核弹发射井', icon: '☢️', cost: 10000000, color: '#84cc16',
+    kind: 'nuke', desc: '消耗300万建造核弹(30s)，发射后造成巨大范围秒杀并留下辐射区（不可升级）',
+    levels: [{ name: '核弹发射井', damage: 0, range: 0, cooldown: 1, armor: 0, maxEnergy: 0 }]
+  },
+  missileSilo: {
+    key: 'missileSilo', name: '导弹发射井', icon: '🚀', cost: 500, color: '#f97316',
+    kind: 'missileSilo', desc: '建造并发射战术导弹，清空弹夹进行范围打击',
+    levels: Array.from({length: 20}, (_, i) => {
+      const lv = i + 1;
+      return {
+        name: '导弹井 T' + lv,
+        damage: Math.round(100 * Math.pow(1.35, lv - 1)),
+        range: 0,
+        cooldown: 1,
+        armor: Math.floor(lv/2),
+        missileCost: Math.round(100 * Math.pow(1.35, lv - 1)),
+        buildTime: Math.max(0.2, 5 * Math.pow(0.85, lv - 1)),
+        maxMissiles: lv * 10
+      };
+    })
+  }
+};
+
+const ENEMY_DEFS = {
+  grunt:  { hp: 42,   speed: 55,  radius: 11, color: '#e05a5a', towerDamage: 5,  attackCooldown: 1.0, name: '小兵' },
+  runner: { hp: 28,   speed: 110, radius: 9,  color: '#f2c53d', towerDamage: 3,  attackCooldown: 0.8, name: '疾行' },
+  tank:   { hp: 240,  speed: 34,  radius: 15, color: '#9b6bf2', towerDamage: 14, attackCooldown: 1.2, name: '重甲' },
+  flyer:  { hp: 35,   speed: 85,  radius: 10, color: '#38bdf8', towerDamage: 8,  attackCooldown: 1.0, name: '飞行器', flying: true },
+  laserE: { hp: 90,   speed: 42,  radius: 13, color: '#ff00ff', towerDamage: 9,  attackCooldown: 1.0, name: '激光怪', beamRange: 170, interceptRange: 150, interceptCd: 0.1 },
+  emp:    { hp: 120,  speed: 40,  radius: 13, color: '#4fd8ff', towerDamage: 0,  attackCooldown: 1.0, name: 'EMP怪' },
+  healer: { hp: 60,   speed: 46,  radius: 12, color: '#7ef0a0', towerDamage: 0,  attackCooldown: 1.0, name: '治疗怪', healRange: 90 },
+  boss:   { hp: 1600, speed: 28,  radius: 21, color: '#ff2d6f', towerDamage: 45, attackCooldown: 1.4, name: 'BOSS' }
+};
+
+const MAX_LEVEL = 30;
+const TIER_NAMES = [];
+for (let i = 1; i <= MAX_LEVEL; i++) TIER_NAMES.push('T' + i);
+
+// 与 AES256.html 工具完全兼容的加密参数
+const SAVE_PASSWORD = '123456';
+const SAVE_ITER = 100000;
+
+function bytesToBase64(buf) {
+  const bytes = new Uint8Array(buf);
+  let binary = '';
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
+}
+
+async function encryptSave(obj) {
+  if (!window.crypto || !crypto.subtle) throw new Error('当前环境不支持 Web Crypto（请用 http(s) 打开）');
+  const plain = new TextEncoder().encode(JSON.stringify(obj));
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const iterBytes = new Uint8Array(4);
+  new DataView(iterBytes.buffer).setUint32(0, SAVE_ITER, false);
+  // 与 AES256.html 完全一致的 AAD 布局：
+  // [0]=0x01 版本 | [1..4]=迭代次数(大端) | [5..20]=salt | [21..32]=iv
+  const aad = new Uint8Array(33);
+  aad[0] = 0x01;
+  aad.set(iterBytes, 1);
+  aad.set(salt, 5);
+  aad.set(iv, 21);
+
+  const baseKey = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(SAVE_PASSWORD),
+    { name: 'PBKDF2' }, false, ['deriveKey']
+  );
+  const key = await crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: SAVE_ITER, hash: 'SHA-256' },
+    baseKey, { name: 'AES-GCM', length: 256 }, false, ['encrypt']
+  );
+  const ct = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv, tagLength: 128, additionalData: aad },
+    key, plain
+  );
+  const combined = new Uint8Array(33 + ct.byteLength);
+  combined.set(aad, 0);
+  combined.set(new Uint8Array(ct), 33);
+  // 直接返回二进制 Uint8Array，与 AES256.html 输出格式一致
+  return combined;
+}
+
+async function decryptSave(combined) {
+  if (!window.crypto || !crypto.subtle) throw new Error('当前环境不支持 Web Crypto（请用 http(s) 打开）');
+  if (!(combined instanceof Uint8Array)) throw new Error('存档格式错误');
+  if (combined.length < 49) throw new Error('存档格式错误：数据长度不足');
+  if (combined[0] !== 0x01) throw new Error('不支持的存档版本');
+
+  const rawIter = new DataView(combined.buffer, combined.byteOffset, combined.byteLength).getUint32(1, false);
+  const iterations = Math.min(5000000, Math.max(10000, rawIter));
+
+  const salt = combined.slice(5, 21);
+  const iv = combined.slice(21, 33);
+  const aad = combined.slice(0, 33);
+  const ct = combined.slice(33);
+
+  const baseKey = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(SAVE_PASSWORD),
+    { name: 'PBKDF2' }, false, ['deriveKey']
+  );
+  const key = await crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+    baseKey, { name: 'AES-GCM', length: 256 }, false, ['decrypt']
+  );
+  let pt;
+  try {
+    pt = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv, tagLength: 128, additionalData: aad },
+      key, ct
+    );
+  } catch (e) {
+    throw new Error('解密失败：密码错误或存档损坏');
+  }
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+
+let gold, waveNum, enemies, towers, bullets, missiles, particles, floats, lightningEffects, enemyBullets, interceptorBeams, mmwaveBeams, orbitalStrikes, radiationZones, enemyLaserBeams, empBlasts;
+let selectedType, selectedTower, aimingNukeTower, aimingMissile;
+let paused, speedMul, gameOver;
+let wave;
+let waveTimer;
+let waveStartTotal = 0;
+let autoUpgrade = false;
+let autoBuildMissile = false;
+let autoStrikeMissile = false;
+let autoBuildNuke = false;
+let autoUpgradeTimer = 0;
+let gameTime = 0;
+
+let totalLightningBuilt = 0;
+let achTesla = false;
+let achTesla2 = false;
+let achMag = 0;
+
+const mouse = { x: 0, y: 0, gx: -1, gy: -1, inside: false };
+
+function reset() {
+  gold = 300;
+  castleHp = CASTLE_MAX_HP;
+  waveNum = 0;
+  enemies = []; towers = []; bullets = []; missiles = []; particles = []; floats = []; lightningEffects = []; enemyBullets = []; interceptorBeams = []; mmwaveBeams = []; orbitalStrikes = []; radiationZones = []; enemyLaserBeams = []; empBlasts = [];
+  selectedType = null; selectedTower = null; aimingNukeTower = null; aimingMissile = false;
+  paused = false; speedMul = 1; gameOver = false;
+  wave = { active: false, list: [], idx: 0, time: 0, hpMul: 1, speedMul: 1, earlySpawnTimer: 0 };
+  waveTimer = 8;
+  waveStartTotal = 1;
+  autoUpgrade = false;
+  autoBuildMissile = false;
+  autoStrikeMissile = false;
+  autoBuildNuke = false;
+  autoUpgradeTimer = 0;
+  gameTime = 0;
+
+  totalLightningBuilt = 0;
+  achTesla = false;
+  achTesla2 = false;
+  achMag = 0;
+
+  $('btnAutoUpgrade').textContent = '⚙️ 自动升级：关';
+  $('btnAutoUpgrade').className = 'btn auto-off';
+
+  $('overlay').classList.add('hidden');
+  $('selPanel').classList.add('hidden');
+  $('emptySel').classList.remove('hidden');
+  $('btnPause').textContent = '⏸';
+  $('btnSpeed').textContent = '1×';
+
+  const def = TOWER_DEFS['resource'];
+  const maxHp = towerMaxHp('resource', 1);
+  towers.push({
+    type: 'resource', def, gx: 8, gy: 5,
+    x: (8 + 0.5) * TILE,
+    y: (5 + 0.5) * TILE,
+    angle: -Math.PI / 2,
+    cool: 0,
+    recoil: 0,
+    hitFlash: 0,
+    level: 1,
+    invested: def.cost,
+    hp: maxHp,
+    maxHp,
+    destroyed: false,
+    buildingTimer: 0,
+    upgradingTimer: 0,
+    beamTarget: null,
+    goldTimer: 0,
+    energy: 0,
+    nukeStatus: 'idle',
+    nukeTimer: 0,
+    nukeCount: 0,
+    missileCount: 0,
+    missileBuildProgress: 0,
+    isBuildingMissile: false,
+    lastStrikeTime: 0,
+    convertAccum: 0,
+    convertFloatTimer: 0
+  });
+
+  addLog('指挥塔已部署，准备迎战。', 'info');
+  addLog('获得初始设施：采集器', 'success');
+}
+
+const mapCanvas = document.createElement('canvas');
+mapCanvas.width = W; mapCanvas.height = H;
+
+(function buildMap() {
+  const c = mapCanvas.getContext('2d');
+
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      c.fillStyle = ((x + y) % 2 === 0) ? '#31533a' : '#2c4a34';
+      c.fillRect(x * TILE, y * TILE, TILE, TILE);
+    }
+  }
+  for (let i = 0; i < 420; i++) {
+    const x = Math.random() * W, y = Math.random() * H;
+    c.fillStyle = `rgba(160,220,160,${0.03 + Math.random() * 0.05})`;
+    c.fillRect(x, y, 2, 2);
+  }
+
+  for (let i = 0; i < 45; i++) {
+    const x = 30 + Math.random() * (W - 60);
+    const y = 20 + Math.random() * (H - 40);
+    if (x > CASTLE.gx * TILE - 30 && x < (CASTLE.gx + CASTLE.w) * TILE + 30 &&
+        y > CASTLE.gy * TILE - 30 && y < (CASTLE.gy + CASTLE.h) * TILE + 30) continue;
+    const r = 2 + Math.random() * 3;
+    c.fillStyle = 'rgba(70,62,52,.45)';
+    c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
+    c.fillStyle = 'rgba(140,130,115,.25)';
+    c.beginPath(); c.arc(x - r * 0.3, y - r * 0.3, r * 0.5, 0, Math.PI * 2); c.fill();
+  }
+})();
+
+function addLog(msg, type = 'info') {
+  const logContent = $('log-content');
+  if (!logContent) return;
+  const div = document.createElement('div');
+  div.className = 'log-entry ' + type;
+  const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' });
+  div.innerHTML = `<span class="log-time">[${time}]</span> <span>${msg}</span>`;
+  logContent.appendChild(div);
+  logContent.scrollTop = logContent.scrollHeight;
+  if (logContent.children.length > 20) {
+    logContent.removeChild(logContent.firstChild);
+  }
+}
+
+function towerStats(t) {
+  const L = t.def.levels[t.level - 1];
+  const bpTier = (t.type === 'batteryPack') ? Math.min(3, Math.max(1, t.batteryTier || 1)) : 1;
+  return {
+    name: t.type === 'batteryPack'
+      ? ['小型', '中型', '大型'][bpTier - 1] + '电池组 T' + t.level
+      : L.name,
+    damage: L.damage || 0,
+    range: L.range || 0,
+    cooldown: L.cooldown || 1,
+    splash: L.splash || 0,
+    bulletSpeed: L.bulletSpeed || 500,
+    barrels: L.barrels || 1,
+    barrelLen: L.barrelLen || 18,
+    barrelW: L.barrelW || 4,
+    armor: L.armor || 0,
+    healRate: L.healRate || 0,
+    income: L.income || 0,
+    interval: L.interval || 2.0,
+    maxEnergy: t.type === 'batteryPack'
+      ? (L.maxEnergy || 0) * Math.pow(2, bpTier - 1)
+      : (L.maxEnergy || 0),
+    convertRate: L.convertRate || 0,
+    missileCost: L.missileCost || 100,
+    buildTime: L.buildTime || 5,
+    maxMissiles: L.maxMissiles || 10,
+    costPerHit: L.costPerHit || 0,
+    hpLossRatio: L.hpLossRatio || 0,
+    paralysisTime: L.paralysisTime || 0
+  };
+}
+
+function upgradeCost(t) {
+  let c = t.def.cost * Math.pow(1.6, t.level - 1) * (1 + t.level * 0.1);
+  if (t.type === 'batteryPack') c *= [1, 3, 9][Math.min(3, Math.max(1, t.batteryTier || 1)) - 1];
+  return Math.round(c);
+}
+
+// 电池组升阶费：当前 T20 升 T21 的原价 × 2
+function ascendCost(t) {
+  return Math.round(t.def.cost * Math.pow(1.6, t.level - 1) * (1 + t.level * 0.1) * 2);
+}
+
+function canBuild(gx, gy) {
+  if (gx < 0 || gy < 0 || gx >= COLS || gy >= ROWS) return false;
+  if (blocked.has(gx + ',' + gy)) return false;
+  if (towers.some(t => t.gx === gx && t.gy === gy && !t.destroyed)) return false;
+  return true;
+}
+
+let toastTimer = null;
+function toast(msg, ok) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.toggle('ok', !!ok);
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+function addParticles(x, y, color, count, spd) {
+  spd = spd || 100;
+  for (let i = 0; i < count; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const v = spd * (0.35 + Math.random() * 0.85);
+    particles.push({
+      x, y,
+      vx: Math.cos(a) * v,
+      vy: Math.sin(a) * v,
+      life: 0.35 + Math.random() * 0.35,
+      maxLife: 0.7,
+      size: 1.5 + Math.random() * 2.5,
+      color
+    });
+  }
+}
+function addFloat(x, y, text, color) {
+  floats.push({ x, y, text, color, life: 1.0 });
+}
+
+function checkEnclosure() {
+  if (gameOver) return;
+
+  let gridMap = Array.from({length: ROWS}, () => Array(COLS).fill(0));
+
+  const activeTowers = towers.filter(t => !t.destroyed && t.buildingTimer <= 0);
+  activeTowers.forEach(t => {
+    gridMap[t.gy][t.gx] = 1;
+  });
+
+  for (let y = CASTLE.gy; y < CASTLE.gy + CASTLE.h; y++) {
+    for (let x = CASTLE.gx; x < CASTLE.gx + CASTLE.w; x++) {
+      gridMap[y][x] = 2;
+    }
+  }
+
+  let visited = Array.from({length: ROWS}, () => Array(COLS).fill(false));
+  let q = [];
+
+  for (let x = 0; x < COLS; x++) {
+    if (gridMap[0][x] === 0) { q.push([x, 0]); visited[0][x] = true; }
+    if (gridMap[ROWS-1][x] === 0) { q.push([x, ROWS-1]); visited[ROWS-1][x] = true; }
+  }
+  for (let y = 0; y < ROWS; y++) {
+    if (gridMap[y][0] === 0) { q.push([0, y]); visited[y][0] = true; }
+    if (gridMap[y][COLS-1] === 0) { q.push([COLS-1, y]); visited[y][COLS-1] = true; }
+  }
+
+  let head = 0;
+  const dirs = [[0,1], [1,0], [0,-1], [-1,0]];
+  while (head < q.length) {
+    let [cx, cy] = q[head++];
+    for (let d of dirs) {
+      let nx = cx + d[0], ny = cy + d[1];
+      if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS) {
+        if (gridMap[ny][nx] === 0 && !visited[ny][nx]) {
+          visited[ny][nx] = true;
+          q.push([nx, ny]);
+        }
+      }
+    }
+  }
+
+  let enclosed = true;
+  for (let y = CASTLE.gy - 1; y <= CASTLE.gy + CASTLE.h; y++) {
+    for (let x = CASTLE.gx - 1; x <= CASTLE.gx + CASTLE.w; x++) {
+      if (x >= 0 && x < COLS && y >= 0 && y < ROWS) {
+        if (gridMap[y][x] === 0 && visited[y][x]) {
+          enclosed = false;
+        }
+      }
+    }
+  }
+
+  if (enclosed) {
+    let maxDist = 0;
+    activeTowers.forEach(t => {
+      let dist = Math.max(Math.abs(t.gx - 9.5), Math.abs(t.gy - 5.5));
+      if (dist > maxDist) maxDist = dist;
+    });
+
+    let newMag = 0;
+    if (maxDist >= 4 && activeTowers.length >= 12) newMag = 3;
+    if (maxDist >= 6.5 && activeTowers.length >= 24) newMag = 5;
+
+    if (newMag > achMag) {
+      achMag = newMag;
+      if (achMag === 3) {
+        toast('🏆 成就解锁：马奇诺防线！防御塔最大等级+10', true);
+        addLog('🏆 成就解锁：马奇诺防线！', 'success');
+      }
+      if (achMag === 5) {
+        toast('🏆 成就解锁：终极防线！我方受到所有伤害*0.5', true);
+        addLog('🏆 成就解锁：终极防线！', 'success');
+      }
+      updateHUD();
+    }
+  }
+}
+
+function buildSpawnList(w) {
+  const list = [];
+  const add = (type, count, gap, delay, flying) => {
+    for (let i = 0; i < count; i++) list.push({ type, t: delay + i * gap, flying: !!flying });
+  };
+
+  if (w % 10 === 0) {
+    add('boss', 1 + Math.floor(w / 20), 1.6, 0);
+    add('grunt', Math.min(60, 10 + w), 0.3, 1.2);
+    add('runner', Math.min(40, Math.floor(w * 0.8)), 0.2, 3);
+    if (w >= 10) add('flyer', Math.min(25, 5 + Math.floor(w / 2)), 0.5, 2);
+    if (w >= 20) add('tank', Math.min(20, 2 + Math.floor(w / 10)), 0.8, 4);
+    if (w >= 20) {
+      const nL = Math.min(8, 1 + Math.floor(w / 20));
+      add('laserE', Math.ceil(nL / 2), 3, 5);
+      add('laserE', Math.floor(nL / 2), 3, 5.5, true);
+    }
+    if (w >= 20) {
+      const nH = Math.min(6, 1 + Math.floor(w / 30));
+      add('healer', Math.ceil(nH / 2), 4, 6);
+      add('healer', Math.floor(nH / 2), 4, 6.5, true);
+    }
+  } else {
+    const n = Math.min(60, 6 + Math.floor(w * 1.2));
+    add('grunt', n, Math.max(0.18, 0.55 - w * 0.004), 0);
+    if (w >= 3) add('runner', Math.min(30, Math.floor(n * 0.6)), 0.3, 1.2);
+    if (w >= 5) add('tank', Math.min(16, 1 + Math.floor(w / 4)), 1.1, 2.5);
+    if (w >= 4) add('flyer', Math.min(20, 2 + Math.floor(w / 3)), 0.8, 1.5);
+    if (w >= 6) {
+      const nL = Math.min(10, 1 + Math.floor((w - 6) / 4));
+      add('laserE', Math.ceil(nL / 2), 2.5, 3.5);
+      add('laserE', Math.floor(nL / 2), 2.5, 4, true);
+    }
+    if (w >= 8) {
+      const nH = Math.min(8, 1 + Math.floor((w - 8) / 6));
+      add('healer', Math.ceil(nH / 2), 3.5, 5);
+      add('healer', Math.floor(nH / 2), 3.5, 5.5, true);
+    }
+  }
+  // EMP 电磁怪：15-49 波隔波出现，50 波起每波必出；数量初始 1 封顶 15；间隔 6s→2s
+  if (w >= 50 || (w >= 15 && w % 2 === 1)) {
+    const nE = Math.min(15, 1 + Math.floor((w - 15) / 2));
+    const gapE = Math.max(2, 6 - (w - 15) * 0.1);
+    add('emp', nE, gapE, 2);
+    if (w >= 25) add('emp', Math.floor(nE / 2), gapE, 3, true);
+  }
+
+  list.sort((a, b) => a.t - b.t);
+  return list;
+}
+
+function startWave() {
+  if (gameOver) return;
+  waveNum++;
+  const w = waveNum;
+  wave = {
+    active: true,
+    list: buildSpawnList(w),
+    idx: 0,
+    time: 0,
+    hpMul: 1 + (w - 1) * 0.16 + Math.pow(w, 1.5) * 0.05,
+    speedMul: 1 + Math.min(3.0, w * 0.015),
+    earlySpawnTimer: 0
+  };
+  waveStartTotal = Math.max(1, wave.list[wave.list.length - 1].t);
+  waveTimer = 0;
+  addLog(`第 ${waveNum} 波来袭！`, 'danger');
+  updateHUD();
+}
+
+function finishWave(isTimeout = false) {
+  wave.active = false;
+  if (!isTimeout) {
+    const bonus = 50 + waveNum * 20;
+    gold += bonus;
+    castleHp = Math.min(CASTLE_MAX_HP, castleHp + 50);
+    addFloat(W / 2, H / 2 - 40, '波次奖励 +' + bonus, '#7ef0a0');
+    addLog(`第 ${waveNum} 波清空，获得 ${bonus} 金币`, 'success');
+    waveTimer = 8;
+  } else {
+    addLog(`第 ${waveNum} 波超时，强制推进！`, 'warning');
+    waveTimer = 0;
+  }
+  updateHUD();
+}
+
+function spawnEnemy(type, forceFlying) {
+  const d = forceFlying ? Object.assign({}, ENEMY_DEFS[type], { flying: true }) : ENEMY_DEFS[type];
+  const hp = Math.max(1, Math.round(d.hp * wave.hpMul));
+
+  const dmgMul = 1 + (waveNum - 1) * 0.05;
+  const currentDmg = Math.round(d.towerDamage * dmgMul);
+
+  let maxShield = 0, shield = 0;
+  if (waveNum >= 3 && Math.random() < 0.10 + Math.min(0.10, waveNum * 0.002)) {
+    maxShield = Math.round(hp * 1.5);
+    shield = maxShield;
+  }
+
+  const isRanged = waveNum >= 10 && Math.random() < 0.2 + Math.min(0.6, (waveNum - 10) * 0.02);
+  const attackRange = isRanged ? 160 + d.radius : d.radius + 8;
+
+  const healRate = type === 'healer'
+    ? 15 * (1 + (waveNum - 1) * 0.12)
+    : 0;
+
+  const side = Math.floor(Math.random() * 4);
+  let x, y;
+  if (side === 0) { x = Math.random() * W; y = -30; }
+  else if (side === 1) { x = W + 30; y = Math.random() * H; }
+  else if (side === 2) { x = Math.random() * W; y = H + 30; }
+  else { x = -30; y = Math.random() * H; }
+
+  enemies.push({
+    type, def: d,
+    hp, maxHp: hp,
+    shield, maxShield,
+    speed: d.speed * wave.speedMul,
+    slowFactor: 1, slowTimer: 0,
+    radius: d.radius,
+    towerDamage: currentDmg,
+    attackCooldown: d.attackCooldown,
+    attackTimer: Math.random() * 0.6,
+    attackRange: attackRange,
+    isRanged: isRanged,
+    healRate: healRate,
+    interceptTimer: 0,
+    shieldParalysisTimer: 0,
+    detonated: false,
+    beamTarget: null,
+    x, y,
+    alive: true,
+    attacking: false,
+    attackTarget: null
+  });
+}
+
+function damageEnemy(e, dmg, type) {
+  if (!e.alive) return;
+
+  if (type === 'lightning') {
+    e.hp -= dmg;
+  } else {
+    if (e.shield > 0) {
+      e.shield -= dmg;
+      if (e.shield < 0) {
+        e.hp += e.shield;
+        e.shield = 0;
+      }
+    } else {
+      e.hp -= dmg;
+    }
+  }
+
+  if (e.hp <= 0) {
+    e.hp = 0;
+    e.alive = false;
+    addParticles(e.x, e.y, e.def.color, 12, 130);
+    if (e.type === 'boss') detonateBoss(e);
+  }
+}
+
+function damageTower(t, dmg) {
+  if (t.destroyed) return;
+  if (achMag >= 5) dmg *= 0.5;
+
+  t.hp -= dmg;
+  t.hitFlash = 1;
+  if (t.hp <= 0) {
+    t.hp = 0;
+    t.destroyed = true;
+    addParticles(t.x, t.y, t.def.color, 22, 190);
+    addParticles(t.x, t.y, '#ff6b6b', 10, 120);
+    addFloat(t.x, t.y - 20, '摧毁', '#ff6b6b');
+    addLog(`警告：${t.def.name} 被摧毁！`, 'danger');
+    if (selectedTower === t) selectedTower = null;
+    if (aimingNukeTower === t) aimingNukeTower = null;
+    checkEnclosure();
+  }
+}
+
+function findTarget(t, range) {
+  let best = null, bestD = Infinity;
+  const r2 = range * range;
+
+  let minC = Math.floor((t.x - range) / TILE);
+  let maxC = Math.floor((t.x + range) / TILE);
+  let minR = Math.floor((t.y - range) / TILE);
+  let maxR = Math.floor((t.y + range) / TILE);
+
+  minC = Math.max(0, minC);
+  maxC = Math.min(GRID_COLS - 1, maxC);
+  minR = Math.max(0, minR);
+  maxR = Math.min(GRID_ROWS - 1, maxR);
+
+  for (let r = minR; r <= maxR; r++) {
+    for (let c = minC; c <= maxC; c++) {
+      const cellEnemies = grid[r][c];
+      for (let i = 0; i < cellEnemies.length; i++) {
+        const e = cellEnemies[i];
+        if (!e.alive) continue;
+        const isAir = e.def.flying || false;
+        if (t.type === 'antiair') {
+          if (!isAir) continue;
+        } else if (t.type !== 'lightning') {
+          if (isAir) continue;
+        }
+        const dx = e.x - t.x, dy = e.y - t.y;
+        if (dx * dx + dy * dy <= r2) {
+          const dc = Math.hypot(e.x - CASTLE_CX, e.y - CASTLE_CY);
+          if (dc < bestD) { bestD = dc; best = e; }
+        }
+      }
+    }
+  }
+  return best;
+}
+
+function fire(t, st, target) {
+  t.recoil = 1;
+  if (t.type === 'lightning') {
+    let chainCount = 0;
+    if (t.level >= 25) chainCount = 1;
+    if (t.level >= 30) chainCount = 2;
+
+    let currentTarget = target;
+    let hitEnemies = new Set();
+    let currentDmg = st.damage;
+
+    for (let c = 0; c <= chainCount; c++) {
+      if (!currentTarget || !currentTarget.alive) break;
+
+      hitEnemies.add(currentTarget);
+
+      let dmg = currentDmg;
+      let isAir = currentTarget.def.flying;
+      if (isAir) dmg = Math.round(dmg * 1.5);
+
+      damageEnemy(currentTarget, dmg, 'lightning');
+
+      const color = isAir ? '#a78bfa' : '#c084fc';
+      lightningEffects.push({ x1: t.x, y1: t.y, x2: currentTarget.x, y2: currentTarget.y, life: 0.1, color });
+
+      if (c < chainCount) {
+        let nextTarget = null;
+        let minDist = 100;
+        for (let e of enemies) {
+          if (!e.alive || hitEnemies.has(e)) continue;
+          let d = Math.hypot(e.x - currentTarget.x, e.y - currentTarget.y);
+          if (d < minDist) {
+            minDist = d;
+            nextTarget = e;
+          }
+        }
+        currentTarget = nextTarget;
+        currentDmg *= 0.8;
+      }
+    }
+    return;
+  }
+
+  if (t.type === 'flame') return;
+
+  const layout = barrelLayout(st.barrels, st.barrelW);
+  const cosA = Math.cos(t.angle), sinA = Math.sin(t.angle);
+  for (let i = 0; i < layout.length; i++) {
+    const { ox, oy } = layout[i];
+    const localMuzzle = ox + st.barrelLen - 2;
+    const wx = t.x + cosA * localMuzzle - sinA * oy;
+    const wy = t.y + sinA * localMuzzle + cosA * oy;
+    bullets.push({
+      x: wx, y: wy,
+      target,
+      lx: target.x, ly: target.y,
+      speed: st.bulletSpeed,
+      kind: t.def.kind,
+      damage: st.damage,
+      splash: st.splash,
+      color: t.def.color,
+      angle: t.angle,
+      trail: [],
+      dead: false
+    });
+    const mx = wx + cosA * 6;
+    const my = wy + sinA * 6;
+    const flameColor = t.type === 'cannon' ? '#ffb066' : (t.type === 'antiair' ? '#93c5fd' : '#ffe08a');
+    addParticles(mx, my, flameColor, t.type === 'cannon' ? 8 : 4, 160);
+  }
+}
+
+function impact(b, x, y) {
+  if (b.kind === 'shell') {
+    for (let i = 0; i < enemies.length; i++) {
+      const e = enemies[i];
+      if (!e.alive) continue;
+      if (e.def.flying) continue;
+      const d = Math.hypot(e.x - x, e.y - y);
+      if (d <= b.splash) {
+        damageEnemy(e, b.damage * (1 - 0.4 * (d / b.splash)), 'shell');
+      }
+    }
+    addParticles(x, y, '#ffb066', 16, 170);
+    addParticles(x, y, '#ff6b3d', 8, 90);
+  } else {
+    if (b.target && b.target.alive) damageEnemy(b.target, b.damage, 'bullet');
+    addParticles(x, y, '#ffe08a', 3, 90);
+  }
+}
+
+function spawnMissile(x, y, tx, ty, damage, splash, delay = 0) {
+  missiles.push({
+    x, y, targetX: tx, targetY: ty,
+    speed: 1000, damage, splash,
+    dead: false, color: '#f97316', delay
+  });
+}
+
+function launchMissileSwarm(tx, ty) {
+  let count = 0;
+  for (let t of towers) {
+    if (t.type === 'missileSilo' && t.missileCount > 0) {
+      const n = t.missileCount;
+      const st = towerStats(t);
+      for (let i = 0; i < n; i++) {
+        const offsetX = (Math.random() - 0.5) * 300;
+        const offsetY = (Math.random() - 0.5) * 300;
+        spawnMissile(t.x, t.y, tx + offsetX, ty + offsetY, st.damage, 150, i * 0.1);
+        count++;
+      }
+      t.missileCount = 0;
+    }
+  }
+  if (count > 0) {
+    addLog(`🚀 导弹集群发射！共发射 ${count} 枚导弹`, 'danger');
+    toast(`🚀 导弹集群发射！(${count}枚)`, true);
+  } else {
+    toast('没有可用的导弹');
+  }
+}
+
+function launchNuke(t, tx, ty) {
+  if (!t || t.destroyed || t.nukeCount <= 0) return;
+  t.nukeCount--;
+  if (t.nukeCount < 5 && t.nukeStatus === 'ready') t.nukeStatus = 'idle';
+  addLog('💥 核弹发射！世界核平！', 'danger');
+  toast('💥 核弹发射！', true);
+
+  const blastRadius = MAP_DIAG * 0.45;
+  const radRadius = MAP_DIAG * 0.2;
+
+  orbitalStrikes.push({
+    x: tx, y: ty, radius: blastRadius,
+    life: 3.0, maxLife: 3.0, isNuke: true
+  });
+
+  for (let e of enemies) {
+    if (e.alive && Math.hypot(e.x - tx, e.y - ty) <= blastRadius) {
+      e.hp = 0;
+      e.alive = false;
+      addParticles(e.x, e.y, '#fff', 10, 200);
+    }
+  }
+  for (let o of towers) {
+    if (!o.destroyed && Math.hypot(o.x - tx, o.y - ty) <= blastRadius) {
+      o.hp = Math.max(1, Math.floor(o.maxHp * 0.1));
+      addParticles(o.x, o.y, '#ff8a8a', 5, 80);
+    }
+  }
+  radiationZones.push({
+    x: tx, y: ty,
+    radius: radRadius,
+    life: 100, maxLife: 100
+  });
+}
+
+// 高危 BOSS 死亡自爆（detonated 幂等防重复；复用数组推入，1000x 加速安全）
+function detonateBoss(e) {
+  if (e.detonated) return;
+  e.detonated = true;
+
+  if (waveNum >= 50) {
+    const blastRadius = MAP_DIAG * 0.45;
+    orbitalStrikes.push({ x: e.x, y: e.y, radius: blastRadius, life: 3.0, maxLife: 3.0, isNuke: true });
+    for (const o of enemies) {
+      if (o.alive && o !== e && Math.hypot(o.x - e.x, o.y - e.y) <= blastRadius) {
+        o.hp = 0;
+        o.alive = false;
+        addParticles(o.x, o.y, '#fff', 8, 160);
+      }
+    }
+    for (const o of towers) {
+      if (!o.destroyed && Math.hypot(o.x - e.x, o.y - e.y) <= blastRadius) {
+        o.hp = Math.max(1, Math.floor(o.maxHp * 0.1));
+        o.hitFlash = 1;
+        addParticles(o.x, o.y, '#ff8a8a', 5, 80);
+      }
+    }
+    radiationZones.push({ x: e.x, y: e.y, radius: MAP_DIAG * 0.2, life: 100, maxLife: 100 });
+    addLog('☢️ BOSS 死亡引发核爆！', 'danger');
+  }
+
+  if (waveNum >= 100) {
+    addLog('⚡ BOSS 死亡引发电磁脉冲爆发！', 'danger');
+    explodeEMP(e.x, e.y);
+  }
+}
+
+// EMP 电磁怪：不直接攻击，走向指挥塔渗透；死亡自爆造成电磁冲击
+function updateEmpEnemy(e, dt) {
+  const dCastle = Math.hypot(CASTLE_CX - e.x, CASTLE_CY - e.y);
+  if (dCastle > 34) {
+    const dx = CASTLE_CX - e.x, dy = CASTLE_CY - e.y;
+    const dist = dCastle || 1;
+    const step = e.speed * e.slowFactor * dt;
+    e.x += (dx / dist) * step;
+    e.y += (dy / dist) * step;
+  }
+}
+
+// EMP 自爆：半径 = 全图宽度 60%
+const EMP_BLAST_RADIUS = W * 0.6;
+
+function explodeEMP(x, y) {
+  empBlasts.push({ x, y, life: 0.9, maxLife: 0.9, maxRadius: EMP_BLAST_RADIUS });
+  addParticles(x, y, '#4fd8ff', 30, 280);
+  addFloat(x, y - 20, 'EMP!', '#4fd8ff');
+  addLog('⚡ EMP电磁怪自爆！范围内设施遭电磁冲击！', 'danger');
+
+  // 光棱炮庇护力场：收集爆炸范围内未摧毁的光棱炮
+  const activePrisms = [];
+  for (const p of towers) {
+    if (p.destroyed || p.type !== 'prism') continue;
+    if (Math.hypot(p.x - x, p.y - y) <= EMP_BLAST_RADIUS) activePrisms.push(p);
+  }
+  const isShielded = (t) => activePrisms.some(p =>
+    Math.abs(t.gx - p.gx) <= 1 && Math.abs(t.gy - p.gy) <= 1
+  );
+  // 光棱炮自身激活力场视觉
+  for (const p of activePrisms) p.empShieldTimer = 1.5;
+
+  // 电磁护盾庇护：3x3 范围内电量充足（>= 耗能）的护盾塔，取电量最高的一座
+  const findEmpShield = (t) => {
+    let best = null;
+    for (const p of towers) {
+      if (p.destroyed || p.type !== 'empShield') continue;
+      if (p.buildingTimer > 0 || p.enabled === false) continue;
+      if (Math.abs(t.gx - p.gx) <= 1 && Math.abs(t.gy - p.gy) <= 1) {
+        if (p.energy >= towerStats(p).costPerHit) {
+          if (!best || p.energy > best.energy) best = p;
+        }
+      }
+    }
+    return best;
+  };
+
+  for (let i = 0; i < towers.length; i++) {
+    const t = towers[i];
+    if (t.destroyed) continue;
+    if (Math.hypot(t.x - x, t.y - y) > EMP_BLAST_RADIUS) continue;
+
+    // 绝对免疫层：纯物理设施 / 光棱炮 / 能量电池 / 电池组 / 电磁护盾 —— 一滴能量都不掉
+    if (t.type !== 'repair' && t.type !== 'laser' && t.type !== 'converter') continue;
+
+    // 普通电子层（维修塔/拦截器/转换器）：先检查光棱炮庇护（九宫格相邻 = 完全免疫）
+    if (isShielded(t)) {
+      addFloat(t.x, t.y - 20, '🛡️ 庇护', '#ffffff');
+      continue;
+    }
+
+    // 电磁护盾庇护：扣耗能 + 受护塔按护盾等级扣血比例受损 + 瘫痪 + 电量清零 + 替死
+    const p = findEmpShield(t);
+    if (p) {
+      const pSt = towerStats(p);
+      p.energy -= pSt.costPerHit;
+      p.empBlockFlash = 0.5;
+      addFloat(p.x, p.y - 20, '🔋 -' + pSt.costPerHit, '#38bdf8');
+
+      t.energy = 0;
+      t.hp -= t.maxHp * pSt.hpLossRatio;
+      t.paralysisTimer = pSt.paralysisTime;
+      t.hitFlash = 1;
+      addFloat(t.x, t.y - 20, '🛡️ 庇护', '#4fd8ff');
+
+      // 替死机制：受护塔扣血后致死 → 强制保留 1 HP，溢出伤害转移给护盾塔
+      if (t.hp <= 0) {
+        const overflowDamage = -t.hp;
+        t.hp = 1;
+        p.hp -= overflowDamage;
+        if (p.hp <= 0) {
+          p.hp = 0;
+          p.destroyed = true;
+          addParticles(p.x, p.y, p.def.color, 22, 190);
+          addParticles(p.x, p.y, '#ff6b6b', 10, 120);
+          addFloat(p.x, p.y - 20, '过载摧毁', '#ff6b6b');
+          addLog(`🛡️ 电磁护盾 替死过载，被摧毁！（转移伤害 ${Math.round(overflowDamage)}）`, 'danger');
+          if (selectedTower === p) selectedTower = null;
+          if (aimingNukeTower === p) aimingNukeTower = null;
+          checkEnclosure();
+        } else if (overflowDamage >= 1) {
+          addFloat(p.x, p.y - 34, '💥 替死 -' + Math.round(overflowDamage), '#ff8a8a');
+          addLog(`🛡️ 电磁护盾 替死承受 ${Math.round(overflowDamage)} 溢出伤害`, 'warning');
+        }
+      }
+      continue;
+    }
+
+    t.energy = 0;
+    t.hp -= t.maxHp * 0.8;
+    t.paralysisTimer = 5;
+    t.hitFlash = 1;
+    if (t.hp <= 0) {
+      t.hp = 0;
+      t.destroyed = true;
+      addParticles(t.x, t.y, t.def.color, 22, 190);
+      addParticles(t.x, t.y, '#ff6b6b', 10, 120);
+      addFloat(t.x, t.y - 20, '摧毁', '#ff6b6b');
+      addLog(`${t.def.name} 被 EMP 冲击摧毁！`, 'danger');
+    }
+  }
+
+  // 破盾打击：范围内护盾怪的护盾系统瘫痪 5 秒（移动/攻击不受影响）
+  for (let i = 0; i < enemies.length; i++) {
+    const e = enemies[i];
+    if (!e.alive || e.maxShield <= 0) continue;
+    if (Math.hypot(e.x - x, e.y - y) > EMP_BLAST_RADIUS) continue;
+    e.shield = 0;
+    e.shieldParalysisTimer = 5;
+    addFloat(e.x, e.y - 18, '⚡破盾!', '#4fd8ff');
+    addParticles(e.x, e.y, '#4fd8ff', 8, 120);
+  }
+}
+
+// 激光怪：持续光束帧伤攻击塔，并可拦截我方战术导弹（品红光束）
+function updateLaserEnemy(e, dt) {
+  const d = e.def;
+  e.beamTarget = null;
+
+  // 1. 拦截我方导弹（优先）
+  e.interceptTimer -= dt;
+  if (e.interceptTimer <= 0) {
+    let bestM = null, bestD = Infinity;
+    for (let i = 0; i < missiles.length; i++) {
+      const m = missiles[i];
+      if (m.dead || m.delay > 0) continue;
+      const md = Math.hypot(m.x - e.x, m.y - e.y);
+      if (md <= d.interceptRange && md < bestD) { bestD = md; bestM = m; }
+    }
+    if (bestM) {
+      bestM.dead = true;
+      e.interceptTimer = d.interceptCd;
+      enemyLaserBeams.push({ x1: e.x, y1: e.y, x2: bestM.x, y2: bestM.y, color: '#ff00ff', life: 0.25 });
+      addParticles(bestM.x, bestM.y, '#ff00ff', 10, 160);
+      addFloat(e.x, e.y - 18, '拦截!', '#ff8aff');
+    }
+  }
+
+  // 2. 持续攻击：光束射程内最近的目标（塔 或 指挥塔）
+  let target = null, minD = Infinity;
+  for (let i = 0; i < towers.length; i++) {
+    const t = towers[i];
+    if (t.destroyed || t.buildingTimer > 0) continue;
+    const td = Math.hypot(t.x - e.x, t.y - e.y);
+    if (td <= d.beamRange && td < minD) { minD = td; target = t; }
+  }
+  const dCastle = Math.hypot(CASTLE_CX - e.x, CASTLE_CY - e.y);
+  if (dCastle <= d.beamRange && dCastle < minD) { minD = dCastle; target = 'castle'; }
+
+  if (target) {
+    e.attacking = true;
+    e.attackTarget = target;
+    e.beamTarget = target;
+
+    // 帧伤：dps = towerDamage / attackCooldown
+    const dps = e.towerDamage / e.attackCooldown;
+    const dmg = dps * dt;
+    if (target === 'castle') {
+      let cdmg = dmg;
+      if (achMag >= 5) cdmg *= 0.5;
+      castleHp -= cdmg;
+      if (Math.random() < 0.1) {
+        addFloat(CASTLE_CX + (Math.random() - 0.5) * 40, CASTLE_CY - 30, '-' + Math.round(dmg * 10) / 10, '#ff6b6b');
+      }
+    } else {
+      damageTower(target, dmg);
+    }
+    enemyLaserBeams.push({
+      x1: e.x, y1: e.y,
+      x2: target === 'castle' ? CASTLE_CX : target.x,
+      y2: target === 'castle' ? CASTLE_CY : target.y,
+      color: '#ff00ff', life: 0.08
+    });
+    return;
+  }
+
+  // 3. 无目标：向指挥塔移动
+  const dx = CASTLE_CX - e.x, dy = CASTLE_CY - e.y;
+  const dist = Math.hypot(dx, dy) || 1;
+  const step = e.speed * e.slowFactor * dt;
+  e.x += (dx / dist) * step;
+  e.y += (dy / dist) * step;
+}
+
+// 治疗怪：跟随友军并持续治疗射程内伤员（绿色光束）
+function updateHealerEnemy(e, dt) {
+  const d = e.def;
+
+  // 治疗目标：射程内血量比例最低的友军
+  let healTgt = null, worstFrac = 2;
+  for (let i = 0; i < enemies.length; i++) {
+    const o = enemies[i];
+    if (o === e || !o.alive) continue;
+    const od = Math.hypot(o.x - e.x, o.y - e.y);
+    if (od > d.healRange) continue;
+    const frac = o.hp / o.maxHp;
+    if (frac < 1 && frac < worstFrac) { worstFrac = frac; healTgt = o; }
+  }
+  if (healTgt) {
+    healTgt.hp = Math.min(healTgt.maxHp, healTgt.hp + e.healRate * dt);
+    enemyLaserBeams.push({
+      x1: e.x, y1: e.y, x2: healTgt.x, y2: healTgt.y,
+      color: '#7ef0a0', life: 0.08
+    });
+  }
+
+  // 移动：跟随最近友军（保持距离），无友军则走向指挥塔
+  let follow = null, minD = Infinity;
+  for (let i = 0; i < enemies.length; i++) {
+    const o = enemies[i];
+    if (o === e || !o.alive || o.type === 'healer') continue;
+    const od = Math.hypot(o.x - e.x, o.y - e.y);
+    if (od < minD) { minD = od; follow = o; }
+  }
+  let tx, ty;
+  if (follow) { tx = follow.x; ty = follow.y; }
+  else { tx = CASTLE_CX; ty = CASTLE_CY; }
+
+  const dx = tx - e.x, dy = ty - e.y;
+  const dist = Math.hypot(dx, dy) || 1;
+  if (dist > 55) {
+    const step = e.speed * e.slowFactor * dt;
+    e.x += (dx / dist) * step;
+    e.y += (dy / dist) * step;
+  }
+}
+
+function updateEnemy(e, dt) {
+  if (!e.alive) return;
+
+  if (e.shieldParalysisTimer > 0) {
+    // EMP 破盾：护盾发生器过载冷却，倒计时（兼容加速系统）
+    e.shieldParalysisTimer -= dt;
+    if (e.shieldParalysisTimer < 0) e.shieldParalysisTimer = 0;
+  } else if (e.maxShield > 0 && e.shield < e.maxShield) {
+    e.shield = Math.min(e.maxShield, e.shield + e.maxShield * 0.05 * dt);
+  }
+
+  if (e.slowTimer > 0) {
+    e.slowTimer -= dt;
+    if (e.slowTimer <= 0) e.slowFactor = 1;
+  }
+
+  e.attacking = false;
+  e.attackTarget = null;
+
+  if (e.type === 'laserE') { updateLaserEnemy(e, dt); return; }
+  if (e.type === 'healer') { updateHealerEnemy(e, dt); return; }
+  if (e.type === 'emp') { updateEmpEnemy(e, dt); return; }
+
+  const dCastle = Math.hypot(e.x - CASTLE_CX, e.y - CASTLE_CY);
+
+  if (dCastle <= e.attackRange + 40) {
+    e.attacking = true;
+    e.attackTarget = 'castle';
+
+    if (e.isRanged) {
+      e.attackTimer -= dt;
+      if (e.attackTimer <= 0) {
+        e.attackTimer = e.attackCooldown / 1.25;
+        enemyBullets.push({
+          x: e.x, y: e.y,
+          target: 'castle',
+          lx: CASTLE_CX, ly: CASTLE_CY,
+          speed: 180,
+          damage: e.towerDamage * 3.5,
+          alive: true
+        });
+      }
+    } else {
+      let dps = e.towerDamage * 2 / e.attackCooldown;
+      let dmg = dps * dt;
+      if (achMag >= 5) dmg *= 0.5;
+      castleHp -= dmg;
+
+      if (Math.random() < 0.15) {
+        addFloat(CASTLE_CX + (Math.random() - 0.5) * 40, CASTLE_CY - 30, '-' + Math.round(dmg), '#ff6b6b');
+        addParticles(e.x, e.y, '#ff6b6b', 1, 100);
+      }
+    }
+    return;
+  }
+
+  let nearTower = null, nearDist = Infinity;
+  for (let i = 0; i < towers.length; i++) {
+    const t = towers[i];
+    if (t.destroyed) continue;
+    const d = Math.hypot(e.x - t.x, e.y - t.y);
+    if (d < nearDist) { nearDist = d; nearTower = t; }
+  }
+  if (nearTower && nearDist <= e.attackRange + 16) {
+    e.attacking = true;
+    e.attackTarget = nearTower;
+
+    if (e.isRanged) {
+      e.attackTimer -= dt;
+      if (e.attackTimer <= 0) {
+        e.attackTimer = e.attackCooldown / 1.25;
+        enemyBullets.push({
+          x: e.x, y: e.y,
+          target: nearTower,
+          lx: nearTower.x, ly: nearTower.y,
+          speed: 180,
+          damage: e.towerDamage * 3.5,
+          alive: true
+        });
+      }
+    } else {
+      let dps = e.towerDamage / e.attackCooldown;
+      let dmg = dps * dt;
+      damageTower(nearTower, dmg);
+
+      if (Math.random() < 0.15) {
+        addParticles((e.x + nearTower.x) / 2, (e.y + nearTower.y) / 2, '#ffb066', 1, 70);
+      }
+    }
+    return;
+  }
+
+  const dx = CASTLE_CX - e.x;
+  const dy = CASTLE_CY - e.y;
+  const dist = Math.hypot(dx, dy) || 1;
+  const step = e.speed * e.slowFactor * dt;
+  e.x += (dx / dist) * step;
+  e.y += (dy / dist) * step;
+}
+
+function update(dt) {
+  gameTime += dt;
+
+  if (castleHp <= 0 && !gameOver) {
+    castleHp = 0;
+    gameOver = true;
+    addLog('指挥塔陷落！', 'danger');
+    $('finalWave').textContent = waveNum;
+    $('overlay').classList.remove('hidden');
+    return;
+  }
+
+  rebuildGrid();
+
+  for (let i = radiationZones.length - 1; i >= 0; i--) {
+    let rz = radiationZones[i];
+    rz.life -= dt;
+    if (rz.life <= 0) {
+      radiationZones.splice(i, 1);
+      addLog('☢️ 辐射区已消散', 'info');
+      continue;
+    }
+    for (let j = 0; j < enemies.length; j++) {
+      const e = enemies[j];
+      if (e.alive && Math.hypot(e.x - rz.x, e.y - rz.y) <= rz.radius) {
+        e.hp -= 30 * dt;
+        if (e.hp <= 0) { e.hp = 0; e.alive = false; addParticles(e.x, e.y, e.def.color, 5, 50); }
+      }
+    }
+    for (let j = 0; j < towers.length; j++) {
+      const t = towers[j];
+      if (t.destroyed) continue;
+      if (Math.hypot(t.x - rz.x, t.y - rz.y) <= rz.radius) {
+        damageTower(t, 15 * dt);
+        t.hitFlash = Math.max(t.hitFlash, 0.1);
+      }
+    }
+  }
+
+  if (autoUpgrade && !gameOver && !paused) {
+    const candidates = towers.filter(t => {
+      if (t.destroyed || t.buildingTimer > 0 || t.upgradingTimer > 0) return false;
+      if (t.type === 'nukeSilo') return false;
+      let maxLv = 10;
+      if (achMag >= 3) maxLv += 10;
+      if (t.type === 'lightning') {
+          if (achTesla) maxLv += 5;
+          if (achTesla2) maxLv += 5;
+      }
+      if (t.type === 'prism' || t.type === 'missileSilo' || t.type === 'converter' || t.type === 'batteryPack' || t.type === 'empShield') maxLv = 20;
+      return t.level < maxLv;
+    });
+    if (candidates.length > 0) {
+      candidates.sort((a, b) => a.level - b.level);
+      for (const t of candidates) {
+        const cost = upgradeCost(t);
+        if (gold >= cost) {
+          gold -= cost;
+          t.invested += cost;
+          t.upgradingTimer = 2.0;
+          addLog(`自动升级 ${t.def.name} 至 T${t.level + 1}...`, 'info');
+        }
+      }
+    }
+  }
+
+  if (!wave.active && !gameOver) {
+    if (speedMul >= 20) waveTimer = 0;
+    waveTimer -= dt;
+    if (waveTimer <= 0) {
+      waveTimer = 0;
+      startWave();
+    }
+  }
+
+  if (wave.active) {
+    wave.time += dt;
+
+    if (wave.time >= 30) {
+      finishWave(true);
+      startWave();
+    } else {
+      while (wave.idx < wave.list.length && wave.list[wave.idx].t <= wave.time) {
+        const _wi = wave.list[wave.idx++];
+        spawnEnemy(_wi.type, _wi.flying);
+      }
+
+      if (wave.idx < wave.list.length) {
+        if (enemies.length < 3) {
+          wave.earlySpawnTimer = (wave.earlySpawnTimer || 0) + dt;
+          const EARLY_SPAWN_INTERVAL = 0.4;
+          while (wave.earlySpawnTimer >= EARLY_SPAWN_INTERVAL &&
+                 wave.idx < wave.list.length &&
+                 enemies.length < 3) {
+            wave.earlySpawnTimer -= EARLY_SPAWN_INTERVAL;
+            const _wj = wave.list[wave.idx++];
+            spawnEnemy(_wj.type, _wj.flying);
+          }
+        } else {
+          wave.earlySpawnTimer = 0;
+        }
+      }
+    }
+  }
+
+  for (let i = 0; i < enemies.length; i++) {
+    updateEnemy(enemies[i], dt);
+  }
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    const _e = enemies[i];
+    if (!_e.alive || _e.hp <= 0) {
+      if (_e.type === 'emp' && !_e.detonated) { _e.detonated = true; explodeEMP(_e.x, _e.y); }
+      if (_e.type === 'boss' && !_e.detonated) detonateBoss(_e);
+      enemies.splice(i, 1);
+    }
+  }
+
+  for (let i = 0; i < enemyBullets.length; i++) {
+    const b = enemyBullets[i];
+    if (!b.alive) continue;
+    let tx = b.lx, ty = b.ly;
+
+    if (b.target === 'castle') {
+      tx = CASTLE_CX; ty = CASTLE_CY;
+    } else if (b.target && !b.target.destroyed) {
+      tx = b.target.x; ty = b.target.y;
+    }
+
+    const dx = tx - b.x, dy = ty - b.y;
+    const d = Math.hypot(dx, dy);
+    const step = b.speed * dt;
+
+    if (d <= step || d < 5) {
+      b.alive = false;
+      addParticles(tx, ty, '#ff4444', 8, 100);
+
+      if (b.target === 'castle') {
+        let dmg = b.damage;
+        if (achMag >= 5) dmg *= 0.5;
+        castleHp -= dmg;
+        addFloat(CASTLE_CX + (Math.random() - 0.5) * 40, CASTLE_CY - 30, '-' + Math.round(dmg), '#ff6b6b');
+      } else if (b.target && !b.target.destroyed) {
+        damageTower(b.target, b.damage);
+        addFloat(b.target.x, b.target.y - 20, '-' + Math.round(b.damage), '#ff8a8a');
+      }
+    } else {
+      b.x += (dx / d) * step;
+      b.y += (dy / d) * step;
+    }
+  }
+  for (let i = enemyBullets.length - 1; i >= 0; i--) {
+    if (!enemyBullets[i].alive) enemyBullets.splice(i, 1);
+  }
+
+  for (let i = 0; i < missiles.length; i++) {
+    const m = missiles[i];
+    if (m.delay > 0) {
+      m.delay -= dt;
+      continue;
+    }
+    const dx = m.targetX - m.x, dy = m.targetY - m.y;
+    const d = Math.hypot(dx, dy);
+    const step = m.speed * dt;
+
+    if (d <= step || d < 10) {
+      m.dead = true;
+      addParticles(m.x, m.y, '#f97316', 6, 120);
+      // 单体伤害：只命中落点最近的一个敌人
+      let hitTarget = null, hitDist = Infinity;
+      for (let j = 0; j < enemies.length; j++) {
+        const e = enemies[j];
+        if (!e.alive) continue;
+        const ed = Math.hypot(e.x - m.x, e.y - m.y);
+        if (ed <= m.splash && ed < hitDist) { hitDist = ed; hitTarget = e; }
+      }
+      if (hitTarget) {
+        damageEnemy(hitTarget, m.damage, 'shell');
+        addFloat(hitTarget.x, hitTarget.y - 14, '-' + Math.round(m.damage), '#ffb066');
+      }
+    } else {
+      m.x += (dx / d) * step;
+      m.y += (dy / d) * step;
+    }
+  }
+  for (let i = missiles.length - 1; i >= 0; i--) {
+    if (missiles[i].dead) missiles.splice(i, 1);
+  }
+
+  for (let i = 0; i < towers.length; i++) {
+    const t = towers[i];
+    if (t.destroyed) continue;
+
+    if (t.buildingTimer > 0) {
+      t.buildingTimer -= dt;
+      if (t.buildingTimer <= 0) {
+        t.buildingTimer = 0;
+        addLog(`${t.def.name} 建造完成`, 'success');
+        checkEnclosure();
+      }
+      continue;
+    }
+
+    if (t.upgradingTimer > 0) {
+      t.upgradingTimer -= dt;
+      if (t.upgradingTimer <= 0) {
+        t.upgradingTimer = 0;
+        const oldMax = t.maxHp;
+        t.level++;
+        t.maxHp = towerMaxHp(t.type, t.level);
+        t.hp = Math.min(t.maxHp, t.hp + (t.maxHp - oldMax));
+        addParticles(t.x, t.y, '#ffd166', 16, 140);
+        addFloat(t.x, t.y - 24, 'T' + t.level + ' 完成', '#ffd166');
+        addLog(`升级完成：${t.def.name} 已达到 T${t.level}`, 'success');
+      }
+    }
+
+    if (t.recoil > 0) t.recoil = Math.max(0, t.recoil - dt * 6);
+    if (t.hitFlash > 0) t.hitFlash = Math.max(0, t.hitFlash - dt * 4);
+    // 电磁护盾触发闪烁计时（游戏内时间，兼容加速系统）
+    if (t.empBlockFlash > 0) t.empBlockFlash = Math.max(0, t.empBlockFlash - dt);
+
+    // 光棱炮 EMP 庇护力场计时（游戏内时间，兼容加速系统）
+    if (t.empShieldTimer > 0) {
+      t.empShieldTimer -= dt;
+      if (t.empShieldTimer < 0) t.empShieldTimer = 0;
+    }
+
+    // 工作开关：停用的塔不执行任何运作（建造/升级进度仍照常完成）
+    if (t.enabled === false) continue;
+
+    // EMP 瘫痪：期间停止一切工作（建造/升级进度仍照常完成）
+    if (t.paralysisTimer > 0) {
+      t.paralysisTimer -= dt;
+      if (t.paralysisTimer <= 0) {
+        t.paralysisTimer = 0;
+        addLog(`${t.def.name} 从 EMP 瘫痪中恢复`, 'success');
+      }
+      continue;
+    }
+
+    const st = towerStats(t);
+
+    let inRadiation = false;
+    for (let rz of radiationZones) {
+      if (Math.hypot(t.x - rz.x, t.y - rz.y) <= rz.radius) {
+        inRadiation = true; break;
+      }
+    }
+
+    t.cool -= dt * (inRadiation ? 0.7 : 1.0);
+
+    if (t.type === 'nukeSilo') {
+      if (t.nukeStatus === 'building') {
+        t.nukeTimer -= dt;
+        if (t.nukeTimer <= 0) {
+          t.nukeCount++;
+          if (t.nukeCount < 5) {
+            t.nukeStatus = 'idle';
+          } else {
+            t.nukeStatus = 'ready';
+          }
+          addLog(`☢️ 核弹建造完成 (${t.nukeCount}/5)`, 'success');
+          addParticles(t.x, t.y, '#ea580c', 20, 100);
+        }
+      } else if (autoBuildNuke && t.nukeCount < 5 && gold >= 3000000) {
+        gold -= 3000000;
+        t.invested += 3000000;
+        t.nukeStatus = 'building';
+        t.nukeTimer = 30;
+        addLog('自动开始建造核弹...', 'info');
+      }
+      continue;
+    }
+
+    if (t.type === 'missileSilo') {
+      if (t.isBuildingMissile) {
+        t.missileBuildProgress += dt / st.buildTime;
+        if (t.missileBuildProgress >= 1) {
+          t.missileBuildProgress = 0;
+          t.isBuildingMissile = false;
+          t.missileCount++;
+          addLog(`导弹井建造完成一枚导弹`, 'info');
+        }
+      } else if (autoBuildMissile && t.missileCount < st.maxMissiles && gold >= st.missileCost) {
+        gold -= st.missileCost;
+        t.isBuildingMissile = true;
+        t.missileBuildProgress = 0;
+      }
+
+      if (autoStrikeMissile && t.missileCount > 0 && enemies.length > 0) {
+        if (gameTime - t.lastStrikeTime > 0.2) {
+          t.lastStrikeTime = gameTime;
+          const target = enemies[Math.floor(Math.random() * enemies.length)];
+          if (target) {
+            t.missileCount--;
+            spawnMissile(t.x, t.y, target.x, target.y, st.damage, 150);
+          }
+        }
+      }
+      continue;
+    }
+
+    if (t.type === 'repair') {
+      let targetTower = null, minD = Infinity;
+
+      for (let j = 0; j < towers.length; j++) {
+        const o = towers[j];
+        if (o === t || o.destroyed || o.hp >= o.maxHp || o.buildingTimer > 0) continue;
+        const d = Math.hypot(o.x - t.x, o.y - t.y);
+        if (d <= st.range && d < minD) { minD = d; targetTower = o; }
+      }
+      if (castleHp < CASTLE_MAX_HP) {
+        const dCastle = Math.hypot(CASTLE_CX - t.x, CASTLE_CY - t.y);
+        if (dCastle <= st.range && dCastle < minD) {
+          minD = dCastle;
+          targetTower = 'castle';
+        }
+      }
+
+      if (!targetTower) {
+        for (let j = 0; j < towers.length; j++) {
+          const o = towers[j];
+          if (o === t || o.destroyed || o.buildingTimer > 0) continue;
+          const oSt = towerStats(o);
+          if ((o.type === 'laser' || o.type === 'battery' || o.type === 'batteryPack' || o.type === 'prism' || o.type === 'empShield') && o.energy < oSt.maxEnergy) {
+            const d = Math.hypot(o.x - t.x, o.y - t.y);
+            if (d <= st.range && d < minD) { minD = d; targetTower = o; }
+          }
+        }
+      }
+
+      if (!targetTower) {
+        for (let j = 0; j < towers.length; j++) {
+          const o = towers[j];
+          if (o === t || o.destroyed || o.type !== 'converter' || o.buildingTimer > 0) continue;
+          const oSt = towerStats(o);
+          if (o.energy < oSt.maxEnergy) {
+            const d = Math.hypot(o.x - t.x, o.y - t.y);
+            if (d <= st.range && d < minD) { minD = d; targetTower = o; }
+          }
+        }
+      }
+
+      t.beamTarget = targetTower;
+      if (targetTower) {
+        if (targetTower === 'castle') {
+          t.angle = Math.atan2(CASTLE_CY - t.y, CASTLE_CX - t.x);
+          castleHp = Math.min(CASTLE_MAX_HP, castleHp + st.healRate * dt);
+        } else {
+          t.angle = Math.atan2(targetTower.y - t.y, targetTower.x - t.x);
+          if (targetTower.type === 'laser' || targetTower.type === 'battery' || targetTower.type === 'batteryPack' || targetTower.type === 'prism' || targetTower.type === 'empShield') {
+            const targetSt = towerStats(targetTower);
+            if (targetTower.hp < targetTower.maxHp) {
+              targetTower.hp = Math.min(targetTower.maxHp, targetTower.hp + st.healRate * dt);
+            } else if (targetTower.energy < targetSt.maxEnergy) {
+              targetTower.energy = Math.min(targetSt.maxEnergy, targetTower.energy + st.healRate * dt);
+            } else {
+              t.beamTarget = null;
+            }
+          } else if (targetTower.type === 'converter') {
+            const targetSt = towerStats(targetTower);
+            if (targetTower.hp < targetTower.maxHp) {
+              targetTower.hp = Math.min(targetTower.maxHp, targetTower.hp + st.healRate * dt);
+            } else if (targetTower.energy < targetSt.maxEnergy) {
+              targetTower.energy = Math.min(targetSt.maxEnergy, targetTower.energy + st.healRate * dt);
+            } else {
+              t.beamTarget = null;
+            }
+          } else {
+            targetTower.hp = Math.min(targetTower.maxHp, targetTower.hp + st.healRate * dt);
+          }
+        }
+      }
+      continue;
+    }
+
+    if (t.type === 'laser') {
+      if (t.energy >= 100) {
+        for (let j = 0; j < enemyBullets.length; j++) {
+          const b = enemyBullets[j];
+          if (b.alive && Math.hypot(b.x - t.x, b.y - t.y) <= st.range) {
+            b.alive = false;
+            t.energy -= 100;
+            interceptorBeams.push({ x1: t.x, y1: t.y, x2: b.x, y2: b.y, life: 0.15 });
+            addParticles(b.x, b.y, '#ff0000', 10, 150);
+            break;
+          }
+        }
+      }
+      continue;
+    }
+
+    if (t.type === 'converter') {
+      if (t.energy > 0) {
+        const money = t.energy * st.convertRate;
+        gold += money;
+        t.energy = 0;
+        t.convertAccum = (t.convertAccum || 0) + money;
+      }
+      t.convertFloatTimer = (t.convertFloatTimer || 0) - dt;
+      if (t.convertFloatTimer <= 0) {
+        t.convertFloatTimer = 1.0;
+        if (t.convertAccum >= 1) {
+          const txt = t.convertAccum >= 1000
+            ? '+' + (t.convertAccum / 1000).toFixed(1) + 'k'
+            : '+' + Math.round(t.convertAccum);
+          addFloat(t.x, t.y - 16, txt, '#ffd166');
+          addParticles(t.x, t.y, '#22d3ee', 3, 40);
+        }
+        t.convertAccum = 0;
+      }
+      continue;
+    }
+
+    if (t.type === 'battery') {
+      continue;
+    }
+
+    // 电磁护盾：纯被动庇护设施，无主动运作
+    if (t.type === 'empShield') {
+      continue;
+    }
+
+    if (t.type === 'prism') {
+      if (t.level === 20 && t.energy >= 100000 && enemies.length > 0) {
+        t.energy -= 100000;
+
+        const targetEnemy = enemies[Math.floor(Math.random() * enemies.length)];
+        const targetX = targetEnemy.x;
+        const targetY = targetEnemy.y;
+
+        const strikeRadius = TOWER_DEFS['arrow'].levels[0].range;
+
+        addLog(`💠 光棱炮发射！轨道激光打击降临！`, 'danger');
+
+        orbitalStrikes.push({
+          x: targetX, y: targetY,
+          radius: strikeRadius,
+          life: 0.8, maxLife: 0.8,
+          isNuke: false
+        });
+
+        for (let e of enemies) {
+          if (e.alive && Math.hypot(e.x - targetX, e.y - targetY) <= strikeRadius) {
+            e.hp = 0;
+            e.alive = false;
+            addParticles(e.x, e.y, '#fff', 10, 200);
+          }
+        }
+        for (let o of towers) {
+          if (!o.destroyed && Math.hypot(o.x - targetX, o.y - targetY) <= strikeRadius) {
+            o.hp = 1;
+            addParticles(o.x, o.y, '#ff8a8a', 5, 80);
+          }
+        }
+      }
+      continue;
+    }
+
+    if (t.type === 'mmwave') {
+      const r2 = st.range * st.range;
+      const tier1 = [];
+      const tier2 = [];
+      const tier3 = [];
+
+      for (let j = 0; j < towers.length; j++) {
+        const o = towers[j];
+        if (o === t || o.destroyed || o.buildingTimer > 0) continue;
+        const d2 = (o.x - t.x) ** 2 + (o.y - t.y) ** 2;
+        if (d2 > r2) continue;
+        const oSt = towerStats(o);
+
+        if (o.type === 'converter') {
+          if (t.mmToConverter === true && o.energy < oSt.maxEnergy) {
+            tier3.push({ obj: o, need: oSt.maxEnergy - o.energy, isCastle: false, kind: 'energy' });
+          }
+          continue;
+        }
+        if (o.hp < o.maxHp) {
+          tier1.push({ obj: o, need: o.maxHp - o.hp, isCastle: false, kind: 'hp' });
+        }
+        if ((o.type === 'laser' || o.type === 'battery' || o.type === 'batteryPack' || o.type === 'empShield' || (o.type === 'prism' && t.mmToPrism === true)) && o.energy < oSt.maxEnergy) {
+          tier2.push({ obj: o, need: oSt.maxEnergy - o.energy, isCastle: false, kind: 'energy' });
+        }
+      }
+      const dCastle = Math.hypot(CASTLE_CX - t.x, CASTLE_CY - t.y);
+      if (dCastle <= st.range && castleHp < CASTLE_MAX_HP) {
+        tier1.push({ obj: 'castle', need: CASTLE_MAX_HP - castleHp, isCastle: true, kind: 'hp' });
+      }
+
+      const targets = tier1.concat(tier2, tier3);
+      if (targets.length === 0) continue;
+
+      let sources = [];
+      let queue = [{ tower: t, loss: 1.0 }];
+      let visited = new Set([t]);
+
+      while (queue.length > 0) {
+        let { tower, loss } = queue.shift();
+        let tRange = towerStats(tower).range;
+        for (let k = 0; k < towers.length; k++) {
+          const other = towers[k];
+          if (other.destroyed || other.buildingTimer > 0) continue;
+          if (Math.hypot(other.x - tower.x, other.y - tower.y) <= tRange) {
+            if ((other.type === 'battery' || other.type === 'batteryPack') && other.energy > 0) {
+              sources.push({ battery: other, loss: loss });
+            } else if (other.type === 'mmwave' && !visited.has(other)) {
+              visited.add(other);
+              queue.push({ tower: other, loss: loss * 0.9 });
+            }
+          }
+        }
+      }
+
+      sources.sort((a, b) => b.loss - a.loss);
+
+      let anyRepaired = false;
+      for (let tgt of targets) {
+        let remainNeed = tgt.need;
+        for (let src of sources) {
+          if (remainNeed <= 0) break;
+          const bat = src.battery;
+          if (bat.energy <= 0) continue;
+
+          const neededFromBat = remainNeed / src.loss;
+          const take = Math.min(bat.energy, neededFromBat);
+
+          bat.energy -= take;
+          const actualRepair = take * src.loss;
+          remainNeed -= actualRepair;
+          anyRepaired = true;
+        }
+
+        const amount = tgt.need - remainNeed;
+        if (amount <= 0) continue;
+        tgt.applied = true;
+
+        if (tgt.isCastle) {
+          castleHp = Math.min(CASTLE_MAX_HP, castleHp + amount);
+        } else {
+          const o = tgt.obj;
+          const oSt = towerStats(o);
+          if (tgt.kind === 'hp') {
+            o.hp = Math.min(o.maxHp, o.hp + amount);
+          } else {
+            o.energy = Math.min(oSt.maxEnergy, o.energy + amount);
+          }
+        }
+      }
+
+      if (anyRepaired) {
+        for (let tgt of targets) {
+          if (!tgt.applied) continue;
+          let tx = tgt.isCastle ? CASTLE_CX : tgt.obj.x;
+          let ty = tgt.isCastle ? CASTLE_CY : tgt.obj.y;
+          mmwaveBeams.push({ x1: t.x, y1: t.y, x2: tx, y2: ty, life: 0.15 });
+        }
+        addParticles(t.x, t.y, '#c084fc', 6, 80);
+      }
+      continue;
+    }
+
+    if (t.type === 'resource') {
+      t.goldTimer = (t.goldTimer || 0) - dt;
+      if (t.goldTimer <= 0) {
+        t.goldTimer = st.interval;
+        gold += st.income;
+        addFloat(t.x, t.y - 15, '+' + st.income, '#ffd166');
+        addParticles(t.x, t.y, '#facc15', 4, 40);
+      }
+      continue;
+    }
+
+    if (t.type === 'flame') {
+      if (t.cool > 0) continue;
+      const target = findTarget(t, st.range);
+      if (!target) continue;
+      t.angle = Math.atan2(target.y - t.y, target.x - t.x);
+      t.cool = st.cooldown;
+
+      let hitAny = false;
+      for (let j = 0; j < enemies.length; j++) {
+        const e = enemies[j];
+        if (!e.alive || e.def.flying) continue;
+        const dx = e.x - t.x, dy = e.y - t.y;
+        if (dx * dx + dy * dy <= st.range * st.range) {
+          damageEnemy(e, st.damage, 'flame');
+          hitAny = true;
+        }
+      }
+      if (hitAny) {
+        const flameAng = t.angle;
+        for(let k=0; k<3; k++){
+          const spread = (Math.random() - 0.5) * 0.6;
+          const a = flameAng + spread;
+          const dist = Math.random() * st.range;
+          addParticles(t.x + Math.cos(a)*dist, t.y + Math.sin(a)*dist, '#ff5a36', 2, 50);
+        }
+      }
+      continue;
+    }
+
+    if (t.cool > 0) continue;
+    const target = findTarget(t, st.range);
+    if (!target) continue;
+    t.angle = Math.atan2(target.y - t.y, target.x - t.x);
+    t.cool = st.cooldown;
+    fire(t, st, target);
+  }
+
+  for (let i = towers.length - 1; i >= 0; i--) {
+    if (towers[i].destroyed) {
+      if (selectedTower === towers[i]) selectedTower = null;
+      towers.splice(i, 1);
+    }
+  }
+
+  for (let i = 0; i < bullets.length; i++) {
+    const b = bullets[i];
+    const tgt = b.target;
+    if (tgt && tgt.alive) { b.lx = tgt.x; b.ly = tgt.y; }
+
+    const dx = b.lx - b.x, dy = b.ly - b.y;
+    const d = Math.hypot(dx, dy);
+    const step = b.speed * dt;
+
+    if (d <= step || d < 2) {
+      impact(b, b.lx, b.ly);
+      b.dead = true;
+    } else {
+      b.x += (dx / d) * step;
+      b.y += (dy / d) * step;
+      b.angle = Math.atan2(dy, dx);
+      if (b.kind === 'shell') {
+        b.trail.push({ x: b.x, y: b.y });
+        if (b.trail.length > 5) b.trail.shift();
+      }
+    }
+  }
+  for (let i = bullets.length - 1; i >= 0; i--) {
+    if (bullets[i].dead) bullets.splice(i, 1);
+  }
+
+  for (let i = 0; i < particles.length; i++) {
+    const p = particles[i];
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vx *= 0.94;
+    p.vy *= 0.94;
+    p.life -= dt;
+  }
+  for (let i = particles.length - 1; i >= 0; i--) {
+    if (particles[i].life <= 0) particles.splice(i, 1);
+  }
+
+  for (let i = 0; i < lightningEffects.length; i++) {
+    lightningEffects[i].life -= dt;
+  }
+  for (let i = lightningEffects.length - 1; i >= 0; i--) {
+    if (lightningEffects[i].life <= 0) lightningEffects.splice(i, 1);
+  }
+
+  for (let i = 0; i < interceptorBeams.length; i++) {
+    interceptorBeams[i].life -= dt;
+  }
+  for (let i = interceptorBeams.length - 1; i >= 0; i--) {
+    if (interceptorBeams[i].life <= 0) interceptorBeams.splice(i, 1);
+  }
+
+  for (let i = 0; i < enemyLaserBeams.length; i++) {
+    enemyLaserBeams[i].life -= dt;
+  }
+  for (let i = enemyLaserBeams.length - 1; i >= 0; i--) {
+    if (enemyLaserBeams[i].life <= 0) enemyLaserBeams.splice(i, 1);
+  }
+
+  for (let i = 0; i < empBlasts.length; i++) {
+    empBlasts[i].life -= dt;
+  }
+  for (let i = empBlasts.length - 1; i >= 0; i--) {
+    if (empBlasts[i].life <= 0) empBlasts.splice(i, 1);
+  }
+
+  for (let i = 0; i < mmwaveBeams.length; i++) {
+    mmwaveBeams[i].life -= dt;
+  }
+  for (let i = mmwaveBeams.length - 1; i >= 0; i--) {
+    if (mmwaveBeams[i].life <= 0) mmwaveBeams.splice(i, 1);
+  }
+
+  for (let i = 0; i < orbitalStrikes.length; i++) {
+    orbitalStrikes[i].life -= dt;
+  }
+  for (let i = orbitalStrikes.length - 1; i >= 0; i--) {
+    if (orbitalStrikes[i].life <= 0) orbitalStrikes.splice(i, 1);
+  }
+
+  for (let i = 0; i < floats.length; i++) {
+    const f = floats[i];
+    f.y -= 26 * dt;
+    f.life -= dt;
+  }
+  for (let i = floats.length - 1; i >= 0; i--) {
+    if (floats[i].life <= 0) floats.splice(i, 1);
+  }
+
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    const _e = enemies[i];
+    if (!_e.alive || _e.hp <= 0) {
+      if (_e.type === 'emp' && !_e.detonated) { _e.detonated = true; explodeEMP(_e.x, _e.y); }
+      if (_e.type === 'boss' && !_e.detonated) detonateBoss(_e);
+      enemies.splice(i, 1);
+    }
+  }
+
+  if (wave.active && wave.idx >= wave.list.length && enemies.length === 0) {
+    finishWave(false);
+  }
+}
+
+function drawRange(x, y, r, color) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = color || 'rgba(120,200,255,.10)';
+  ctx.fill();
+  ctx.setLineDash([6, 6]);
+  ctx.strokeStyle = 'rgba(140,210,255,.5)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawCastle() {
+  const bx = CASTLE.gx * TILE;
+  const by = CASTLE.gy * TILE;
+  const bw = CASTLE.w * TILE;
+  const bh = CASTLE.h * TILE;
+  const hpFrac = castleHp / CASTLE_MAX_HP;
+
+  ctx.fillStyle = 'rgba(0,0,0,.4)';
+  ctx.beginPath();
+  ctx.ellipse(bx + bw/2, by + bh - 5, bw * 0.6, 15, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const grad = ctx.createLinearGradient(bx, by, bx, by + bh);
+  grad.addColorStop(0, '#8a97a8');
+  grad.addColorStop(1, '#5b6777');
+  ctx.fillStyle = grad;
+  ctx.fillRect(bx + 10, by + 20, bw - 20, bh - 30);
+
+  ctx.fillStyle = '#a3b0c2';
+  for(let i=0; i<4; i++) {
+    ctx.fillRect(bx + 10 + i * 15, by + 10, 10, 15);
+  }
+
+  ctx.save();
+  ctx.shadowBlur = 15;
+  ctx.shadowColor = hpFrac > 0.5 ? '#4ea3ff' : (hpFrac > 0.25 ? '#facc15' : '#ef4444');
+  ctx.fillStyle = hpFrac > 0.5 ? '#4ea3ff' : (hpFrac > 0.25 ? '#facc15' : '#ef4444');
+  ctx.beginPath();
+  ctx.arc(bx + bw/2, by + bh/2 + 5, 12, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+
+  const barW = bw - 20;
+  const barH = 6;
+  const barX = bx + 10;
+  const barY = by - 10;
+  ctx.fillStyle = 'rgba(0,0,0,.7)';
+  ctx.fillRect(barX, barY, barW, barH);
+  ctx.fillStyle = hpFrac > 0.5 ? '#4ade80' : hpFrac > 0.25 ? '#facc15' : '#ef4444';
+  ctx.fillRect(barX, barY, barW * hpFrac, barH);
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(barX, barY, barW, barH);
+}
+
+function barrelLayout(n, w) {
+  const s = Math.max(3.2, w * 0.85);
+  if (n <= 1) return [{ ox: 0, oy: 0 }];
+  if (n === 2) return [{ ox: 0, oy: -s }, { ox: 0, oy: s }];
+  if (n === 3) return [{ ox: 0, oy: -s * 1.25 }, { ox: 0, oy: 0 }, { ox: 0, oy: s * 1.25 }];
+  if (n === 4) return [
+    { ox: -4, oy: -s }, { ox: -4, oy: s },
+    { ox: 2, oy: -s }, { ox: 2, oy: s }
+  ];
+  if (n === 5) return [
+    { ox: -4, oy: -s * 1.3 }, { ox: -4, oy: 0 }, { ox: -4, oy: s * 1.3 },
+    { ox: 2, oy: -s * 0.9 }, { ox: 2, oy: s * 0.9 }
+  ];
+  return [
+    { ox: -5, oy: -s * 1.3 }, { ox: -5, oy: 0 }, { ox: -5, oy: s * 1.3 },
+    { ox: 1, oy: -s * 1.3 }, { ox: 1, oy: 0 }, { ox: 1, oy: s * 1.3 }
+  ];
+}
+
+// 顶点朝上/下的正六边形路径（电磁护盾雷达罩用）
+function hexPath(ctx, r) {
+  ctx.beginPath();
+  for (let k = 0; k < 6; k++) {
+    const a = Math.PI / 6 + k * Math.PI / 3;
+    const px = Math.cos(a) * r, py = Math.sin(a) * r;
+    if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+}
+
+function drawTower(t) {
+  const x = t.x, y = t.y;
+  const st = towerStats(t);
+  const lv = t.level;
+  const hpFrac = t.hp / t.maxHp;
+
+  let inRadiation = false;
+  for (let rz of radiationZones) {
+    if (Math.hypot(t.x - rz.x, t.y - rz.y) <= rz.radius) { inRadiation = true; break; }
+  }
+
+  ctx.save();
+  if (t.buildingTimer > 0) {
+    ctx.globalAlpha = 0.4 + 0.4 * (1 - t.buildingTimer / 1.5);
+  } else if (t.upgradingTimer > 0) {
+    ctx.globalAlpha = 0.6 + 0.2 * Math.sin(performance.now() / 150);
+  }
+
+  if (lv >= 7) {
+    ctx.save();
+    ctx.globalAlpha = ctx.globalAlpha * (0.15 + 0.07 * Math.sin(performance.now() / 350));
+    ctx.fillStyle = t.def.color;
+    ctx.beginPath(); ctx.arc(x, y, 19, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  ctx.fillStyle = 'rgba(0,0,0,.35)';
+  ctx.beginPath();
+  ctx.ellipse(x, y + 3, 15 + lv * 0.4, 12, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#2b3340';
+  ctx.beginPath(); ctx.arc(x, y, 14, 0, Math.PI * 2); ctx.fill();
+
+  if (t.hitFlash > 0) {
+    ctx.fillStyle = `rgba(255,80,80,${t.hitFlash * 0.4})`;
+    ctx.beginPath(); ctx.arc(x, y, 15, 0, Math.PI * 2); ctx.fill();
+  }
+
+  if (inRadiation) {
+    ctx.fillStyle = 'rgba(132, 204, 22, 0.4)';
+    ctx.beginPath(); ctx.arc(x, y, 15, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // EMP 瘫痪：闪烁蓝色电弧 + 剩余秒数
+  if (t.paralysisTimer > 0) {
+    if (Math.sin(performance.now() / 70) > -0.6) {
+      ctx.save();
+      ctx.strokeStyle = '#4fd8ff';
+      ctx.lineWidth = 2.4;
+      ctx.shadowBlur = 14;
+      ctx.shadowColor = '#4fd8ff';
+      for (let k = 0; k < 4; k++) {
+        const a0 = Math.random() * Math.PI * 2;
+        let ax = x + Math.cos(a0) * 12, ay = y + Math.sin(a0) * 12;
+        ctx.beginPath(); ctx.moveTo(ax, ay);
+        for (let s = 0; s < 4; s++) {
+          ax += (Math.random() - 0.5) * 18;
+          ay += (Math.random() - 0.5) * 18;
+          ctx.lineTo(ax, ay);
+        }
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+    ctx.fillStyle = 'rgba(79,216,255,.25)';
+    ctx.beginPath(); ctx.arc(x, y, 15, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#4fd8ff';
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(t.paralysisTimer.toFixed(1) + 's', x, y - 24);
+  }
+
+  // 光棱炮 EMP 庇护力场：白色发光护盾圈（透明度随计时渐隐）
+  if (t.type === 'prism' && t.empShieldTimer > 0) {
+    const frac = Math.min(1, t.empShieldTimer / 1.5);
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255, 255, 255, ' + (0.8 * frac).toFixed(3) + ')';
+    ctx.lineWidth = 3;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(x, y, TILE * 1.5, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  if (t.enabled === false) {
+    ctx.fillStyle = 'rgba(30, 35, 45, 0.55)';
+    ctx.beginPath(); ctx.arc(x, y, 15, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(200, 210, 225, 0.85)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(x - 8, y - 8);
+    ctx.lineTo(x + 8, y + 8);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(230, 235, 245, 0.9)';
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('OFF', x, y + 24);
+  }
+
+  for (let i = 0; i < st.armor; i++) {
+    let r = Math.max(1, 14 - i * 1.5);
+    ctx.strokeStyle = i % 2 === 0 ? '#6d7a8c' : '#8a97a8';
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  if (t.type === 'laser' || t.type === 'battery' || t.type === 'batteryPack' || t.type === 'prism' || t.type === 'empShield') {
+    const energyFrac = st.maxEnergy > 0 ? Math.max(0, Math.min(1, t.energy / st.maxEnergy)) : 0;
+    ctx.strokeStyle = t.type === 'laser' ? '#ff00ff'
+      : (t.type === 'battery' || t.type === 'batteryPack')
+        ? (t.type === 'battery' ? '#38bdf8'
+          : ['#0284c7', '#a855f7', '#ffd166'][Math.min(3, Math.max(1, t.batteryTier || 1)) - 1])
+        : t.type === 'empShield' ? '#38bdf8' : '#f8fafc';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(x, y, 14, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * energyFrac);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = (t.type === 'batteryPack')
+    ? ['#0284c7', '#a855f7', '#ffd166'][Math.min(3, Math.max(1, t.batteryTier || 1)) - 1]
+    : t.def.color;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.arc(x, y, 14, 0, Math.PI * 2); ctx.stroke();
+
+  const recoil = t.recoil || 0;
+  const back = recoil * 5;
+
+  if (t.type !== 'resource' && t.type !== 'battery' && t.type !== 'batteryPack' && t.type !== 'mmwave' && t.type !== 'nukeSilo' && t.type !== 'missileSilo' && t.type !== 'converter' && t.type !== 'empShield') {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(t.angle);
+
+    const layout = barrelLayout(st.barrels, st.barrelW);
+
+    if (t.type === 'arrow') {
+      for (let i = 0; i < layout.length; i++) {
+        const { ox, oy } = layout[i];
+        const bw = st.barrelW, bl = st.barrelLen;
+        ctx.fillStyle = '#3a4450';
+        ctx.fillRect(ox - back, oy - bw / 2, bl, bw);
+        ctx.fillStyle = 'rgba(255,255,255,.18)';
+        ctx.fillRect(ox - back, oy - bw / 2, bl, 1);
+        ctx.fillStyle = t.def.color;
+        ctx.fillRect(ox + bl - back - 5, oy - bw / 2 - 0.5, 5, bw + 1);
+      }
+    } else if (t.type === 'cannon') {
+      for (let i = 0; i < layout.length; i++) {
+        const { ox, oy } = layout[i];
+        const bw = st.barrelW, bl = st.barrelLen;
+        ctx.fillStyle = '#3a4450';
+        ctx.fillRect(ox - back, oy - bw / 2, bl, bw);
+        ctx.fillStyle = t.def.color;
+        ctx.fillRect(ox + bl - back - 6, oy - bw / 2 - 1, 6, bw + 2);
+        if (lv >= 3) {
+          ctx.fillStyle = '#5b6777';
+          ctx.fillRect(ox + bl - back - 9, oy - bw / 2 - 2, 3, bw + 4);
+        }
+      }
+      ctx.fillStyle = '#4a5563';
+      ctx.fillRect(-back - 7, -7, 8, 14);
+    } else if (t.type === 'flame') {
+      ctx.fillStyle = '#3a4450';
+      ctx.fillRect(0, -5, 16, 10);
+      ctx.fillStyle = t.def.color;
+      ctx.fillRect(14, -6, 4, 12);
+      ctx.fillStyle = '#992222';
+      ctx.beginPath(); ctx.arc(-2, -8, 4, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(-2, 8, 4, 0, Math.PI*2); ctx.fill();
+    } else if (t.type === 'lightning') {
+      ctx.fillStyle = '#3a4450';
+      ctx.fillRect(0, -4, 14, 8);
+      ctx.strokeStyle = t.def.color;
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(14, -8); ctx.lineTo(14, 8); ctx.stroke();
+      ctx.fillStyle = t.def.color;
+      ctx.beginPath(); ctx.arc(14, 0, 3, 0, Math.PI*2); ctx.fill();
+      if (Math.random() > 0.5) {
+        ctx.strokeStyle = '#fff';
+        ctx.beginPath(); ctx.moveTo(14, -4); ctx.lineTo(18, 0); ctx.lineTo(14, 4); ctx.stroke();
+      }
+    } else if (t.type === 'antiair') {
+      for (let i = 0; i < layout.length; i++) {
+        const { ox, oy } = layout[i];
+        const bw = st.barrelW, bl = st.barrelLen;
+        ctx.fillStyle = '#3a4450';
+        ctx.fillRect(ox - back, oy - bw / 2, bl, bw);
+        ctx.fillStyle = t.def.color;
+        ctx.beginPath();
+        ctx.moveTo(ox + bl - back, oy);
+        ctx.lineTo(ox + bl - back - 6, oy - bw/2);
+        ctx.lineTo(ox + bl - back - 6, oy + bw/2);
+        ctx.closePath();
+        ctx.fill();
+      }
+    } else if (t.type === 'repair') {
+      const bw = st.barrelW, bl = st.barrelLen;
+      for (let i = 0; i < layout.length; i++) {
+        const { ox, oy } = layout[i];
+        ctx.fillStyle = '#2b3a34';
+        ctx.fillRect(ox - back, oy - bw / 2, bl, bw);
+        ctx.fillStyle = '#4ade80';
+        ctx.fillRect(ox + bl - back - 3, oy - bw / 2, 3, bw);
+      }
+      const ringR = 5 + lv * 0.8;
+      for (let i = 0; i < 3; i++) {
+        ctx.strokeStyle = `rgba(74,222,128,${0.7 - i * 0.18})`;
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.arc(bl - back + 2 + i * 2.2, 0, ringR + i * 1.4, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    } else if (t.type === 'laser') {
+      ctx.fillStyle = '#3a2b4a';
+      ctx.beginPath();
+      ctx.arc(0, 0, 12, -0.8, 0.8);
+      ctx.fill();
+      ctx.strokeStyle = '#ff00ff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.fillStyle = '#ff00ff';
+      ctx.beginPath(); ctx.arc(12, 0, 3, 0, Math.PI*2); ctx.fill();
+    } else if (t.type === 'prism') {
+      const pulse = Math.sin(performance.now() / 200) * 2;
+      ctx.save();
+      ctx.shadowBlur = 10 + (t.energy >= st.maxEnergy ? 20 : 0);
+      ctx.shadowColor = '#f8fafc';
+
+      if (t.energy >= st.maxEnergy && t.level === 20) {
+        ctx.fillStyle = 'rgba(248, 250, 252, 0.4)';
+        ctx.beginPath(); ctx.arc(0, 0, 22 + pulse, 0, Math.PI * 2); ctx.fill();
+      }
+
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.moveTo(0, -10);
+      ctx.lineTo(8, 0);
+      ctx.lineTo(0, 10);
+      ctx.lineTo(-8, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = '#93c5fd';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.restore();
+  } else if (t.type === 'battery' || t.type === 'batteryPack') {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.fillStyle = t.def.color;
+    ctx.fillRect(-6, -8, 12, 16);
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(-4, -6, 8, 12);
+
+    const energyFrac = t.energy / st.maxEnergy;
+    ctx.fillStyle = '#38bdf8';
+    ctx.fillRect(-4, 6 - 12 * energyFrac, 8, 12 * energyFrac);
+    ctx.restore();
+  } else if (t.type === 'mmwave') {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(performance.now() / 1000);
+    ctx.strokeStyle = t.def.color;
+    ctx.lineWidth = 2;
+    for (let i = 1; i <= 3; i++) {
+      ctx.beginPath();
+      ctx.arc(0, 0, 4 + i * 4, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  } else if (t.type === 'nukeSilo') {
+    ctx.save();
+    ctx.translate(x, y);
+
+    ctx.fillStyle = '#1e293b';
+    ctx.beginPath();
+    ctx.arc(0, 0, 14, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (t.nukeCount > 0) {
+      ctx.fillStyle = '#ea580c';
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = '#ea580c';
+    } else {
+      ctx.fillStyle = '#64748b';
+    }
+    ctx.font = '16px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('☢️', 0, 1);
+
+    if (t.nukeStatus === 'building') {
+      const prog = 1 - (t.nukeTimer / 30);
+      ctx.beginPath();
+      ctx.arc(0, 0, 18, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * prog);
+      ctx.strokeStyle = '#ea580c';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    } else {
+      if (t.nukeCount > 0) {
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 10px system-ui, sans-serif';
+        ctx.fillText(String(t.nukeCount), 0, 12);
+      }
+    }
+    ctx.restore();
+  } else if (t.type === 'missileSilo') {
+    ctx.save();
+    ctx.translate(x, y);
+
+    ctx.fillStyle = '#1e293b';
+    ctx.beginPath();
+    ctx.arc(0, 0, 14, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.font = '16px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🚀', 0, 1);
+
+    if (t.isBuildingMissile) {
+      const prog = t.missileBuildProgress;
+      ctx.beginPath();
+      ctx.arc(0, 0, 18, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * prog);
+      ctx.strokeStyle = '#f97316';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = '#f97316';
+      const totalDots = Math.min(20, t.missileCount);
+      const stepAngle = (Math.PI * 2) / Math.max(1, totalDots);
+      for (let i = 0; i < totalDots; i++) {
+        const ang = i * stepAngle;
+        const px = Math.cos(ang) * 18;
+        const py = Math.sin(ang) * 18;
+        ctx.beginPath();
+        ctx.arc(px, py, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  } else if (t.type === 'converter') {
+    ctx.save();
+    ctx.translate(x, y);
+
+    ctx.fillStyle = 'rgba(34,211,238,0.18)';
+    ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI * 2); ctx.fill();
+
+    ctx.save();
+    ctx.rotate(performance.now() / 450);
+    ctx.strokeStyle = '#22d3ee';
+    ctx.lineWidth = 2.4;
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 3; i++) {
+      const a0 = i * (Math.PI * 2 / 3);
+      ctx.beginPath();
+      ctx.arc(0, 0, 9.5, a0, a0 + Math.PI / 2.6);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    const spin = performance.now() / 450;
+    ctx.fillStyle = '#22d3ee';
+    for (let i = 0; i < 3; i++) {
+      const a = spin + i * (Math.PI * 2 / 3) + Math.PI / 2.6;
+      const px = Math.cos(a) * 9.5, py = Math.sin(a) * 9.5;
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.rotate(a + Math.PI / 2);
+      ctx.beginPath();
+      ctx.moveTo(0, -3.2);
+      ctx.lineTo(2.6, 1.6);
+      ctx.lineTo(-2.6, 1.6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.restore();
+  } else if (t.type === 'empShield') {
+    ctx.save();
+    ctx.translate(x, y);
+
+    // 电量比例 → 亮度：0 = 暗灰 (68,80,92)，满 = 亮蓝 (56,189,248)
+    const frac = st.maxEnergy > 0 ? Math.max(0, Math.min(1, t.energy / st.maxEnergy)) : 0;
+    const cr = Math.round(68 + (56 - 68) * frac);
+    const cg = Math.round(80 + (189 - 80) * frac);
+    const cb = Math.round(92 + (248 - 92) * frac);
+    const col = (a) => 'rgba(' + cr + ',' + cg + ',' + cb + ',' + a.toFixed(3) + ')';
+
+    // 外层六边形雷达罩
+    ctx.lineWidth = 2.2;
+    ctx.strokeStyle = col(0.4 + 0.55 * frac);
+    ctx.fillStyle = col(0.10 + 0.20 * frac);
+    hexPath(ctx, 12);
+    ctx.fill();
+    ctx.stroke();
+
+    // 内层六边形
+    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = col(0.3 + 0.5 * frac);
+    hexPath(ctx, 7.5);
+    ctx.stroke();
+
+    // 雷达扫描线 + 余辉（有电才旋转）
+    if (frac > 0) {
+      const sweep = (performance.now() / 500) % (Math.PI * 2);
+      ctx.fillStyle = col(0.08 + 0.16 * frac);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, 10.2, sweep - 0.75, sweep);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = col(0.55 + 0.4 * frac);
+      ctx.lineWidth = 1.8;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(sweep) * 10.2, Math.sin(sweep) * 10.2);
+      ctx.stroke();
+    }
+
+    // 中心核心
+    ctx.fillStyle = col(0.5 + 0.5 * frac);
+    ctx.beginPath();
+    ctx.arc(0, 0, 2.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 庇护触发：闪烁 0.5 秒（六边形冲击环）
+    if (t.empBlockFlash > 0) {
+      const f = t.empBlockFlash / 0.5;
+      if (Math.sin(performance.now() / 35) > -0.5) {
+        ctx.strokeStyle = 'rgba(140, 224, 255, ' + (0.95 * f).toFixed(3) + ')';
+        ctx.lineWidth = 2.6;
+        hexPath(ctx, 12 + (1 - f) * 10);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  } else {
+    ctx.save();
+    ctx.translate(x, y);
+    const angle = performance.now() / 200;
+    ctx.rotate(angle);
+    ctx.fillStyle = '#facc15';
+    for(let i=0; i<4; i++) {
+      ctx.rotate(Math.PI/2);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(10, -4);
+      ctx.lineTo(10, 4);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  ctx.restore();
+
+  ctx.save();
+  ctx.fillStyle = '#e8eef7';
+  ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
+
+  if (lv >= 2) {
+    ctx.fillStyle = 'rgba(0,0,0,.55)';
+    ctx.beginPath(); ctx.arc(x + 12, y + 12, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffd166';
+    ctx.font = 'bold 9px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(String(lv), x + 12, y + 15);
+  }
+
+  if (hpFrac < 0.999) {
+    const bw2 = 26, bh2 = 4;
+    const bx2 = x - bw2 / 2, by2 = y - 22;
+    ctx.fillStyle = 'rgba(0,0,0,.65)';
+    ctx.fillRect(bx2, by2, bw2, bh2);
+    ctx.fillStyle = hpFrac > 0.5 ? '#4ade80' : hpFrac > 0.25 ? '#facc15' : '#ef4444';
+    ctx.fillRect(bx2, by2, bw2 * hpFrac, bh2);
+  }
+
+  if (t.buildingTimer > 0) {
+    const prog = 1 - (t.buildingTimer / 1.5);
+    ctx.beginPath();
+    ctx.arc(x, y, 22, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * prog);
+    ctx.strokeStyle = '#4ade80';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+  if (t.upgradingTimer > 0) {
+    const prog = 1 - (t.upgradingTimer / 2.0);
+    ctx.beginPath();
+    ctx.arc(x, y, 22, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * prog);
+    ctx.strokeStyle = '#ffd166';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawMissile(m) {
+  ctx.save();
+  ctx.translate(m.x, m.y);
+  const angle = Math.atan2(m.targetY - m.y, m.targetX - m.x);
+  ctx.rotate(angle);
+  ctx.fillStyle = '#f97316';
+  ctx.fillRect(-6, -2, 12, 4);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(2, -1, 4, 2);
+  ctx.restore();
+}
+
+function drawEnemy(e) {
+  if (!e.alive) return;
+  let x = e.x, y = e.y;
+  const r = e.radius;
+
+  if (e.slowFactor < 1) {
+    ctx.fillStyle = 'rgba(95,216,224,.22)';
+    ctx.beginPath(); ctx.arc(x, y, r + 6, 0, Math.PI * 2); ctx.fill();
+  }
+
+  if (e.def.flying) {
+    ctx.fillStyle = 'rgba(0,0,0,.2)';
+    ctx.beginPath();
+    ctx.ellipse(x, y + r + 5, r * 0.8, r * 0.4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    y -= 10 + Math.sin(performance.now() / 150) * 3;
+  } else {
+    ctx.fillStyle = 'rgba(0,0,0,.3)';
+    ctx.beginPath();
+    ctx.ellipse(x, y + r * 0.85, r * 0.9, r * 0.42, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  if (e.attacking) {
+    ctx.save();
+    ctx.globalAlpha = 0.35 + 0.25 * Math.sin(performance.now() / 90);
+    ctx.fillStyle = '#ff4040';
+    ctx.beginPath(); ctx.arc(x, y, r + 5, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  ctx.fillStyle = e.def.color;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,.45)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  const ex = r * 0.33, ey = -r * 0.2, er = r * 0.26, pr = r * 0.12;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(x - ex, y + ey, er, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x + ex, y + ey, er, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#111';
+  ctx.beginPath(); ctx.arc(x - ex, y + ey, pr, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x + ex, y + ey, pr, 0, Math.PI * 2); ctx.fill();
+
+  if (e.type === 'laserE') {
+    // 激光怪：品红光环 + 发射口
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,0,255,.7)';
+    ctx.lineWidth = 2;
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = '#ff00ff';
+    ctx.beginPath(); ctx.arc(x, y, r + 4, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = '#ff00ff';
+    ctx.beginPath();
+    ctx.moveTo(x, y - r - 5);
+    ctx.lineTo(x + 3.5, y - r);
+    ctx.lineTo(x - 3.5, y - r);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
+  if (e.shieldParalysisTimer > 0) {
+    // 护盾发生器过载冷却：蓝色虚线轮廓 + 重启倒计时
+    ctx.save();
+    ctx.setLineDash([4, 3]);
+    ctx.strokeStyle = 'rgba(79,216,255,.6)';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.arc(x, y, r + 5, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#4fd8ff';
+    ctx.font = 'bold 9px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('⚡ 重启中 ' + e.shieldParalysisTimer.toFixed(1) + 's', x, y - r - 9);
+    ctx.restore();
+  }
+
+  if (e.type === 'emp') {
+    // EMP 怪：电光外环 + 中心闪电符号
+    ctx.save();
+    ctx.strokeStyle = 'rgba(79,216,255,' + (0.5 + 0.3 * Math.sin(performance.now() / 90)).toFixed(3) + ')';
+    ctx.lineWidth = 2;
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = '#4fd8ff';
+    ctx.beginPath(); ctx.arc(x, y, r + 5, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+    ctx.save();
+    ctx.fillStyle = '#eaffff';
+    ctx.shadowBlur = 6;
+    ctx.shadowColor = '#4fd8ff';
+    ctx.beginPath();
+    ctx.moveTo(x + 2.5, y - 6.5);
+    ctx.lineTo(x - 3.5, y + 0.5);
+    ctx.lineTo(x - 0.5, y + 0.5);
+    ctx.lineTo(x - 2.5, y + 7);
+    ctx.lineTo(x + 3.5, y - 0.5);
+    ctx.lineTo(x + 0.5, y - 0.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  if (e.type === 'healer') {
+    // 治疗怪：绿色十字标志
+    ctx.save();
+    ctx.fillStyle = '#0f3d24';
+    const cw = r * 0.55, ch = r * 0.18;
+    ctx.fillRect(x - cw / 2, y - ch / 2, cw, ch);
+    ctx.fillRect(x - ch / 2, y - cw / 2, ch, cw);
+    ctx.strokeStyle = 'rgba(126,240,160,.8)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(x, y, r + 4, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+
+  if (e.maxShield > 0) {
+    if (e.shield > 0) {
+      ctx.save();
+      const opacity = 0.2 + (e.shield / e.maxShield) * 0.6;
+      ctx.strokeStyle = `rgba(95, 216, 224, ${opacity})`;
+      ctx.lineWidth = 2;
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = '#5fd8e0';
+      ctx.beginPath();
+      ctx.arc(x, y, r + 5, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = `rgba(95, 216, 224, ${opacity * 0.3})`;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    const bw = r * 2.3, bh = 3;
+    const bx = x - bw / 2, by = y - r - 16;
+    ctx.fillStyle = 'rgba(0,0,0,.6)';
+    ctx.fillRect(bx, by, bw, bh);
+    const sFrac = e.shield / e.maxShield;
+    ctx.fillStyle = '#5fd8e0';
+    ctx.fillRect(bx, by, bw * sFrac, bh);
+  }
+
+  const bw = r * 2.3, bh = 4;
+  const bx = x - bw / 2, by = y - r - 11;
+  ctx.fillStyle = 'rgba(0,0,0,.6)';
+  ctx.fillRect(bx, by, bw, bh);
+  const frac = Math.max(0, e.hp / e.maxHp);
+  ctx.fillStyle = frac > 0.5 ? '#4ade80' : frac > 0.25 ? '#facc15' : '#ef4444';
+  ctx.fillRect(bx, by, bw * frac, bh);
+}
+
+function drawBullet(b) {
+  if (b.kind === 'bullet' || b.kind === 'missile') {
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    ctx.rotate(b.angle || 0);
+    ctx.shadowBlur = 6;
+    ctx.shadowColor = b.kind === 'missile' ? '#60a5fa' : '#ffd166';
+    ctx.fillStyle = b.kind === 'missile' ? '#bfdbfe' : '#ffe08a';
+    ctx.fillRect(-6, -1.2, 12, 2.4);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(2, -0.8, 4, 1.6);
+    ctx.restore();
+  } else {
+    for (let i = 0; i < b.trail.length; i++) {
+      const p = b.trail[i];
+      ctx.globalAlpha = (i / b.trail.length) * 0.45;
+      ctx.fillStyle = '#ff8a3d';
+      ctx.beginPath(); ctx.arc(p.x, p.y, 2 + i * 0.6, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#3a2a1a';
+    ctx.beginPath(); ctx.arc(b.x, b.y, 5.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffb066';
+    ctx.beginPath(); ctx.arc(b.x - 1, b.y - 1, 2.2, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+function drawEnemyBullet(b) {
+  ctx.save();
+  ctx.shadowBlur = 8;
+  ctx.shadowColor = '#ff4444';
+  ctx.fillStyle = '#ff8a8a';
+  ctx.beginPath();
+  ctx.arc(b.x, b.y, 6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(b.x, b.y, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.drawImage(mapCanvas, 0, 0);
+
+  for (let rz of radiationZones) {
+    ctx.save();
+    ctx.fillStyle = `rgba(132, 204, 22, ${0.15 * (rz.life / rz.maxLife)})`;
+    ctx.beginPath();
+    ctx.arc(rz.x, rz.y, rz.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = `rgba(163, 230, 53, ${0.6 * (rz.life / rz.maxLife)})`;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([20, 20]);
+    ctx.lineDashOffset = -performance.now() / 50;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  drawCastle();
+
+  if (aimingNukeTower && mouse.inside) {
+    const blastRadius = MAP_DIAG * 0.45;
+    const radRadius = MAP_DIAG * 0.2;
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([10, 10]);
+    ctx.beginPath();
+    ctx.arc(mouse.x, mouse.y, blastRadius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(132, 204, 22, 0.8)';
+    ctx.beginPath();
+    ctx.arc(mouse.x, mouse.y, radRadius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(mouse.x - 10, mouse.y); ctx.lineTo(mouse.x + 10, mouse.y);
+    ctx.moveTo(mouse.x, mouse.y - 10); ctx.lineTo(mouse.x, mouse.y + 10);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  if (aimingMissile && mouse.inside) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(249, 115, 22, 0.8)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([10, 10]);
+    ctx.beginPath();
+    ctx.arc(mouse.x, mouse.y, 150, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(mouse.x - 10, mouse.y); ctx.lineTo(mouse.x + 10, mouse.y);
+    ctx.moveTo(mouse.x, mouse.y - 10); ctx.lineTo(mouse.x, mouse.y + 10);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  if (selectedType && mouse.inside && !aimingNukeTower && !aimingMissile) {
+    if (selectedType === 'hammer') {
+      const target = towers.find(t => t.gx === mouse.gx && t.gy === mouse.gy && !t.destroyed);
+      if (target) {
+        ctx.fillStyle = 'rgba(255,80,80,.25)';
+        ctx.fillRect(mouse.gx * TILE, mouse.gy * TILE, TILE, TILE);
+        ctx.strokeStyle = 'rgba(255,120,120,.85)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(mouse.gx * TILE + 1.5, mouse.gy * TILE + 1.5, TILE - 3, TILE - 3);
+      } else {
+        ctx.fillStyle = 'rgba(255,80,80,.1)';
+        ctx.fillRect(mouse.gx * TILE, mouse.gy * TILE, TILE, TILE);
+      }
+    } else {
+      const def = TOWER_DEFS[selectedType];
+      const L = def.levels[0];
+      const ok = canBuild(mouse.gx, mouse.gy) && gold >= def.cost;
+      ctx.fillStyle = ok ? 'rgba(80,220,120,.25)' : 'rgba(240,80,80,.25)';
+      ctx.fillRect(mouse.gx * TILE, mouse.gy * TILE, TILE, TILE);
+      ctx.strokeStyle = ok ? 'rgba(120,255,160,.85)' : 'rgba(255,120,120,.85)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(mouse.gx * TILE + 1.5, mouse.gy * TILE + 1.5, TILE - 3, TILE - 3);
+
+      if (L.range > 0) {
+        drawRange((mouse.gx + 0.5) * TILE, (mouse.gy + 0.5) * TILE, L.range,
+                  selectedType === 'repair' ? 'rgba(74,222,128,.10)' : undefined);
+      }
+      // 电磁护盾：预览 3×3 庇护范围
+      if (selectedType === 'empShield') {
+        ctx.save();
+        ctx.fillStyle = 'rgba(79, 216, 255, 0.10)';
+        ctx.strokeStyle = 'rgba(79, 216, 255, 0.55)';
+        ctx.lineWidth = 1.5;
+        const bx = (mouse.gx - 1) * TILE, by = (mouse.gy - 1) * TILE;
+        ctx.fillRect(bx, by, TILE * 3, TILE * 3);
+        ctx.strokeRect(bx + 1, by + 1, TILE * 3 - 2, TILE * 3 - 2);
+        ctx.restore();
+      }
+    }
+  }
+
+  if (selectedTower && !selectedTower.destroyed) {
+    const st = towerStats(selectedTower);
+    if (st.range > 0) {
+      drawRange(selectedTower.x, selectedTower.y, st.range,
+                selectedTower.type === 'repair' ? 'rgba(74,222,128,.10)' : undefined);
+    }
+    // 电磁护盾：选中时显示 3×3 庇护范围
+    if (selectedTower.type === 'empShield') {
+      ctx.save();
+      ctx.fillStyle = 'rgba(79, 216, 255, 0.08)';
+      ctx.strokeStyle = 'rgba(79, 216, 255, 0.5)';
+      ctx.lineWidth = 1.5;
+      const bx = (selectedTower.gx - 1) * TILE, by = (selectedTower.gy - 1) * TILE;
+      ctx.fillRect(bx, by, TILE * 3, TILE * 3);
+      ctx.strokeRect(bx + 1, by + 1, TILE * 3 - 2, TILE * 3 - 2);
+      ctx.restore();
+    }
+    ctx.strokeStyle = 'rgba(255,255,255,.85)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(
+      selectedTower.gx * TILE + 1.5,
+      selectedTower.gy * TILE + 1.5,
+      TILE - 3,
+      TILE - 3
+    );
+  }
+
+  for (let i = 0; i < towers.length; i++) {
+    const t = towers[i];
+    if (t.type === 'repair' && t.beamTarget && !t.destroyed) {
+      const bx = t.x + Math.cos(t.angle) * 10;
+      const by = t.y + Math.sin(t.angle) * 10;
+      const ex = t.beamTarget === 'castle' ? CASTLE_CX : t.beamTarget.x;
+      const ey = t.beamTarget === 'castle' ? CASTLE_CY : t.beamTarget.y;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(bx, by);
+      ctx.lineTo(ex, ey);
+      ctx.strokeStyle = 'rgba(74, 222, 128, 0.8)';
+      ctx.lineWidth = 3 + Math.sin(performance.now() / 100) * 1;
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = '#4ade80';
+      ctx.stroke();
+
+      for (let j = 0; j < 3; j++) {
+        const pr = (performance.now() / 400 + j / 3) % 1;
+        const px = bx + (ex - bx) * pr;
+        const py = by + (ey - by) * pr;
+        ctx.beginPath();
+        ctx.arc(px, py, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
+  for (let i = 0; i < lightningEffects.length; i++) {
+    const eff = lightningEffects[i];
+    ctx.save();
+    ctx.strokeStyle = eff.color || '#c084fc';
+    ctx.lineWidth = 3;
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = eff.color || '#c084fc';
+    ctx.beginPath();
+    ctx.moveTo(eff.x1, eff.y1);
+    const segments = 4;
+    for (let j = 1; j < segments; j++) {
+      const t = j / segments;
+      const nx = eff.x1 + (eff.x2 - eff.x1) * t + (Math.random() - 0.5) * 20;
+      const ny = eff.y1 + (eff.y2 - eff.y1) * t + (Math.random() - 0.5) * 20;
+      ctx.lineTo(nx, ny);
+    }
+    ctx.lineTo(eff.x2, eff.y2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  for (let i = 0; i < interceptorBeams.length; i++) {
+    const beam = interceptorBeams[i];
+    ctx.save();
+    ctx.strokeStyle = '#ff0000';
+    ctx.lineWidth = 3;
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = '#ff0000';
+    ctx.beginPath();
+    ctx.moveTo(beam.x1, beam.y1);
+    ctx.lineTo(beam.x2, beam.y2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // EMP 冲击波：向外扩散的亮蓝色发光光圈
+  for (let i = 0; i < empBlasts.length; i++) {
+    const bl = empBlasts[i];
+    const prog = 1 - bl.life / bl.maxLife;
+    const rad = Math.max(2, bl.maxRadius * prog);
+    const alpha = Math.max(0, 1 - prog) * 0.9;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(79, 216, 255, ' + alpha.toFixed(3) + ')';
+    ctx.lineWidth = 6;
+    ctx.shadowBlur = 28;
+    ctx.shadowColor = '#4fd8ff';
+    ctx.beginPath(); ctx.arc(bl.x, bl.y, rad, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(190, 240, 255, ' + (alpha * 0.55).toFixed(3) + ')';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(bl.x, bl.y, rad * 0.82, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+
+  // 激光怪/治疗怪光束（品红/绿）
+  for (let i = 0; i < enemyLaserBeams.length; i++) {
+    const beam = enemyLaserBeams[i];
+    ctx.save();
+    ctx.strokeStyle = beam.color;
+    ctx.lineWidth = 3;
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = beam.color;
+    ctx.beginPath();
+    ctx.moveTo(beam.x1, beam.y1);
+    ctx.lineTo(beam.x2, beam.y2);
+    ctx.stroke();
+    if (beam.color === '#ff00ff') {
+      ctx.fillStyle = beam.color;
+      ctx.beginPath();
+      ctx.arc(beam.x2, beam.y2, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  for (let i = 0; i < mmwaveBeams.length; i++) {
+    const beam = mmwaveBeams[i];
+    ctx.save();
+    ctx.strokeStyle = '#c084fc';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(beam.x1, beam.y1);
+    ctx.lineTo(beam.x2, beam.y2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  for (let i = 0; i < orbitalStrikes.length; i++) {
+    const eff = orbitalStrikes[i];
+    const alpha = eff.life / eff.maxLife;
+
+    ctx.save();
+    if (eff.isNuke) {
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(eff.x, eff.y, eff.radius * (1.5 - alpha * 0.5), 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = 'rgba(234, 88, 12, 0.6)';
+      ctx.beginPath();
+      ctx.arc(eff.x, eff.y, eff.radius * (1.2 - alpha * 0.2), 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = '#ea580c';
+      ctx.lineWidth = 10;
+      ctx.beginPath();
+      ctx.arc(eff.x, eff.y, eff.radius * (1.1 - alpha * 0.1), 0, Math.PI * 2);
+      ctx.stroke();
+    } else {
+      ctx.globalAlpha = alpha * 0.8;
+      const grad = ctx.createLinearGradient(eff.x, 0, eff.x, eff.y);
+      grad.addColorStop(0, 'rgba(255,255,255,0)');
+      grad.addColorStop(0.7, 'rgba(255,255,255,0.8)');
+      grad.addColorStop(1, 'rgba(255,255,255,1)');
+
+      ctx.fillStyle = grad;
+      ctx.fillRect(eff.x - eff.radius * 0.4, 0, eff.radius * 0.8, eff.y);
+
+      ctx.globalAlpha = alpha * 0.4;
+      ctx.fillStyle = '#93c5fd';
+      ctx.fillRect(eff.x - eff.radius * 0.6, 0, eff.radius * 0.15, eff.y);
+      ctx.fillRect(eff.x + eff.radius * 0.45, 0, eff.radius * 0.15, eff.y);
+
+      ctx.globalAlpha = alpha;
+      ctx.beginPath();
+      ctx.arc(eff.x, eff.y, eff.radius * (1.2 - alpha * 0.2), 0, Math.PI * 2);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 4;
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = '#ffffff';
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  for (let i = 0; i < towers.length; i++) drawTower(towers[i]);
+  for (let i = 0; i < enemies.length; i++) drawEnemy(enemies[i]);
+  for (let i = 0; i < bullets.length; i++) drawBullet(bullets[i]);
+  for (let i = 0; i < missiles.length; i++) drawMissile(missiles[i]);
+
+  for (let i = 0; i < enemyBullets.length; i++) {
+    if (enemyBullets[i].alive) drawEnemyBullet(enemyBullets[i]);
+  }
+
+  for (let i = 0; i < particles.length; i++) {
+    const p = particles[i];
+    ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 14px system-ui, sans-serif';
+  for (let i = 0; i < floats.length; i++) {
+    const f = floats[i];
+    ctx.globalAlpha = Math.min(1, f.life * 1.6);
+    ctx.fillStyle = 'rgba(0,0,0,.55)';
+    ctx.fillText(f.text, f.x + 1, f.y + 1);
+    ctx.fillStyle = f.color;
+    ctx.fillText(f.text, f.x, f.y);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function updateHUD() {
+  $('hGold').textContent = Math.floor(gold);
+  $('hWave').textContent = waveNum;
+
+  const hpEl = $('hHp');
+  hpEl.textContent = Math.ceil(castleHp) + ' / ' + CASTLE_MAX_HP;
+  const hpFrac = castleHp / CASTLE_MAX_HP;
+  hpEl.className = hpFrac > 0.5 ? '' : hpFrac > 0.25 ? 'hp-mid' : 'hp-low';
+
+  const pill = $('statePill');
+  pill.className = 'state-pill';
+  if (gameOver) {
+    pill.classList.add('over');
+    pill.textContent = '已陷落';
+  } else if (wave.active) {
+    pill.classList.add('fight');
+    pill.textContent = '战斗中';
+  } else {
+    pill.classList.add('wait');
+    pill.textContent = '准备中';
+  }
+
+  const statusLine = $('statusLine');
+  const statusLabel = $('statusLabel');
+  const statusValue = $('statusValue');
+  const statusFill = $('statusFill');
+  statusLine.className = 'status-line';
+  statusFill.className = 'status-fill';
+
+  if (gameOver) {
+    statusLabel.textContent = '指挥塔陷落';
+    statusValue.textContent = '—';
+    statusFill.style.width = '0%';
+  } else if (wave.active) {
+    statusLine.classList.add('fight');
+    statusFill.classList.add('fight');
+    const total = Math.max(1, waveStartTotal);
+    const progress = Math.min(1, wave.time / total);
+    statusLabel.textContent = '第 ' + waveNum + ' 波';
+
+    const timeLeft = Math.max(0, 30 - wave.time).toFixed(0);
+    const earlyBoost = (wave.idx < wave.list.length && enemies.length < 3);
+    statusValue.textContent = '剩余 ' + enemies.length + ' 敌 (' + timeLeft + 's超时)' + (earlyBoost ? ' ⚡增援' : '');
+    statusFill.style.width = (progress * 100).toFixed(1) + '%';
+  } else {
+    statusLine.classList.add('wait');
+    statusLabel.textContent = '下一波';
+    statusValue.textContent = waveTimer.toFixed(1) + 's';
+    statusFill.style.width = '0%';
+  }
+
+  const achEl = $('achTesla');
+  if (achTesla) {
+    achEl.style.color = '#ffd166';
+    achEl.innerHTML = '🏆 特斯拉线圈 I：<span style="color:#7ef0a0">已解锁</span>';
+  } else {
+    achEl.style.color = '#6f8499';
+    achEl.innerHTML = `🏆 特斯拉线圈 I：放置20个电击器 (${Math.min(20, totalLightningBuilt)}/20)`;
+  }
+
+  const achEl2 = $('achTesla2');
+  if (achTesla2) {
+    achEl2.style.color = '#ffd166';
+    achEl2.innerHTML = '🏆 特斯拉线圈 II：<span style="color:#7ef0a0">已解锁</span>';
+  } else {
+    achEl2.style.color = '#6f8499';
+    achEl2.innerHTML = `🏆 特斯拉线圈 II：放置30个电击器 (${Math.min(30, totalLightningBuilt)}/30)`;
+  }
+
+  const achMag3 = $('achMag3');
+  if (achMag >= 3) {
+    achMag3.style.color = '#ffd166';
+    achMag3.innerHTML = '🏆 马奇诺防线：<span style="color:#7ef0a0">已解锁 (塔上限+10)</span>';
+  } else {
+    achMag3.style.color = '#6f8499';
+    achMag3.innerHTML = `🏆 马奇诺防线：三层闭环包围 (未达成)`;
+  }
+
+  const achMag5 = $('achMag5');
+  if (achMag >= 5) {
+    achMag5.style.color = '#ffd166';
+    achMag5.innerHTML = '🏆 终极防线：<span style="color:#7ef0a0">已解锁 (受伤减半)</span>';
+  } else {
+    achMag5.style.color = '#6f8499';
+    achMag5.innerHTML = `🏆 终极防线：五层闭环包围 (未达成)`;
+  }
+
+  const btns = document.querySelectorAll('.tower-btn');
+  for (let i = 0; i < btns.length; i++) {
+    const b = btns[i];
+    if (b.dataset.type === 'hammer') {
+      b.classList.toggle('active', selectedType === 'hammer');
+      b.classList.toggle('hammer', true);
+    } else {
+      const def = TOWER_DEFS[b.dataset.type];
+      b.classList.toggle('disabled', gold < def.cost);
+      b.classList.toggle('active', selectedType === b.dataset.type);
+    }
+  }
+
+  const wb = $('btnWave');
+  if (gameOver) {
+    wb.disabled = true;
+    wb.textContent = '游戏结束';
+  } else if (wave.active) {
+    wb.disabled = true;
+    wb.textContent = '⚔️ 第 ' + waveNum + ' 波';
+  } else {
+    wb.disabled = false;
+    wb.textContent = '⏭ 开始第 ' + (waveNum + 1) + ' 波';
+  }
+
+  if (selectedTower && !selectedTower.destroyed && towers.indexOf(selectedTower) !== -1) {
+    $('emptySel').classList.add('hidden');
+    $('selPanel').classList.remove('hidden');
+
+    $('selDmg').style.color = '';
+
+    const t = selectedTower;
+    const st = towerStats(t);
+
+    let maxLv = 10;
+    if (achMag >= 3) maxLv += 10;
+    if (t.type === 'lightning') {
+      if (achTesla) maxLv += 5;
+      if (achTesla2) maxLv += 5;
+    }
+    if (t.type === 'prism' || t.type === 'batteryPack' || t.type === 'empShield') maxLv = 20;
+    if (t.type === 'nukeSilo') maxLv = 1;
+    if (t.type === 'missileSilo') maxLv = 20;
+    if (t.type === 'converter') maxLv = 20;
+
+    const dispName = t.type === 'batteryPack'
+      ? ['小型', '中型', '大型'][Math.min(3, Math.max(1, t.batteryTier || 1)) - 1] + '电池组'
+      : t.def.name;
+    $('selName').innerHTML = t.def.icon + ' ' + dispName +
+      '<span class="tier-tag">' + TIER_NAMES[t.level - 1] + '</span>';
+    $('selLvl').textContent = TIER_NAMES[t.level - 1] + ' / T' + maxLv;
+
+    const hpEl = $('selHp');
+    hpEl.textContent = Math.ceil(t.hp) + ' / ' + t.maxHp;
+
+    let inRad = false;
+    for (let rz of radiationZones) {
+      if (Math.hypot(t.x - rz.x, t.y - rz.y) <= rz.radius) { inRad = true; break; }
+    }
+    if (inRad) {
+      hpEl.textContent += ' (辐射中)';
+      hpEl.className = 'radiation';
+    } else {
+      const frac = t.hp / t.maxHp;
+      hpEl.className = frac > 0.5 ? 'hp-ok' : frac > 0.25 ? 'hp-mid' : 'hp-low';
+    }
+
+    if (t.type === 'laser' || t.type === 'battery' || t.type === 'batteryPack' || t.type === 'prism' || t.type === 'empShield') {
+      $('rowEnergy').style.display = 'flex';
+      const enEl = $('selEnergy');
+      enEl.textContent = Math.floor(t.energy) + ' / ' + st.maxEnergy +
+        (t.type === 'empShield' ? ' (一次耗 ' + st.costPerHit + ')' : '');
+      enEl.className = t.energy >= st.maxEnergy ? 'energy-full' : 'energy-mid';
+    } else {
+      $('rowEnergy').style.display = 'none';
+    }
+
+    // 重置可能的样式残留（如光棱炮「充能中」灰色）
+    $('selDmg').style.color = '';
+    if (t.type === 'resource') {
+      $('selStatLabel').textContent = '产出';
+      $('selDmg').textContent = '+' + st.income + ' / ' + st.interval.toFixed(2) + 's';
+      $('selRange').textContent = '—';
+      $('selRate').textContent = '—';
+    } else if (t.type === 'repair') {
+      $('selStatLabel').textContent = '修复/充能';
+      $('selDmg').textContent = '+' + Math.round(st.healRate);
+      $('selRange').textContent = Math.round(st.range);
+      $('selRate').textContent = '持续';
+    } else if (t.type === 'laser') {
+      $('selStatLabel').textContent = '拦截消耗';
+      $('selDmg').textContent = '100 能量';
+      $('selRange').textContent = Math.round(st.range);
+      $('selRate').textContent = '无冷却';
+    } else if (t.type === 'battery' || t.type === 'batteryPack') {
+      $('selStatLabel').textContent = '最大储能';
+      $('selDmg').textContent = st.maxEnergy;
+      $('selRange').textContent = '—';
+      $('selRate').textContent = '—';
+    } else if (t.type === 'mmwave') {
+      $('selStatLabel').textContent = '修复损耗';
+      $('selDmg').textContent = '10%';
+      $('selRange').textContent = Math.round(st.range);
+      $('selRate').textContent = '无冷却';
+    } else if (t.type === 'converter') {
+      $('selStatLabel').textContent = '转化率';
+      $('selDmg').textContent = '1 能量 = ' + st.convertRate + ' 金币';
+      $('selRange').textContent = '—';
+      $('selRate').textContent = '持续';
+    } else if (t.type === 'empShield') {
+      $('selStatLabel').textContent = '受护塔扣血';
+      $('selDmg').textContent = Math.round(st.hpLossRatio * 100) + '%';
+      $('selRange').textContent = '3×3 格';
+      $('selRate').textContent = '瘫 ' + st.paralysisTime.toFixed(2) + 's';
+    } else if (t.type === 'prism') {
+      $('selStatLabel').textContent = '状态';
+      if (t.level < 20) {
+        $('selDmg').textContent = '未解锁 (需T20)';
+      } else if (t.energy >= 100000) {
+        $('selDmg').textContent = '轨道打击就绪';
+        $('selDmg').style.color = '#f8fafc';
+      } else {
+        $('selDmg').textContent = '充能中';
+        $('selDmg').style.color = '#9fb0c4';
+      }
+      $('selRange').textContent = '无限';
+      $('selRate').textContent = '—';
+    } else if (t.type === 'nukeSilo') {
+      $('selStatLabel').textContent = '库存';
+      $('selDmg').textContent = `${t.nukeCount} / 5`;
+      $('selRange').textContent = '全图';
+      $('selRate').textContent = '—';
+    } else if (t.type === 'missileSilo') {
+      $('selStatLabel').textContent = '备弹/上限 (伤害)';
+      $('selDmg').textContent = `${t.missileCount} / ${st.maxMissiles} (${st.damage})`;
+      $('selRange').textContent = '全图';
+      $('selRate').textContent = t.isBuildingMissile ? Math.floor(t.missileBuildProgress*100)+'%' : '待命';
+    } else {
+      $('selStatLabel').textContent = t.type === 'lightning' ? '伤害(地/空)' : '伤害';
+      if (t.type === 'lightning') {
+        $('selDmg').textContent = st.damage + ' / ' + Math.round(st.damage * 1.5);
+      } else {
+        $('selDmg').textContent = st.damage;
+      }
+      $('selRange').textContent = Math.round(st.range);
+      $('selRate').textContent = (1 / st.cooldown).toFixed(2) + '/s';
+    }
+
+    const ub = $('btnUpgrade');
+    const bw = $('btnToggleWork');
+    bw.textContent = t.enabled === false ? '⏸ 已停用' : '🟢 工作中';
+    bw.className = t.enabled === false ? 'btn auto-off' : 'btn auto-on';
+
+    const bmc = $('btnMmConv'), bmp = $('btnMmPrism');
+    const isMm = t.type === 'mmwave';
+    bmc.style.display = isMm ? 'block' : 'none';
+    bmp.style.display = isMm ? 'block' : 'none';
+    if (isMm) {
+      bmc.textContent = '🔄 供能转换器：' + (t.mmToConverter ? '开' : '关');
+      bmc.className = t.mmToConverter ? 'btn auto-on' : 'btn auto-off';
+      bmp.textContent = '💠 供能光棱炮：' + (t.mmToPrism ? '开' : '关');
+      bmp.className = t.mmToPrism ? 'btn auto-on' : 'btn auto-off';
+    }
+    if (t.type === 'nukeSilo') {
+      ub.textContent = '无法升级';
+      ub.disabled = true;
+    } else if (t.buildingTimer > 0) {
+      ub.textContent = '建造中 ' + Math.ceil(t.buildingTimer) + 's';
+      ub.disabled = true;
+    } else if (t.upgradingTimer > 0) {
+      ub.textContent = '升级中 ' + Math.ceil(t.upgradingTimer) + 's';
+      ub.disabled = true;
+    } else if (t.level >= maxLv) {
+      const bpTier = Math.min(3, Math.max(1, t.batteryTier || 1));
+      if (t.type === 'batteryPack' && bpTier < 3) {
+        const ac = ascendCost(t);
+        const acTxt = ac >= 10000 ? Math.round(ac / 10000) + '万' : ac;
+        ub.textContent = '升阶为' + ['中型', '大型'][bpTier - 1] + '电池组 · 💰' + acTxt;
+        ub.disabled = gold < ac;
+      } else {
+        ub.textContent = '已满级 T' + maxLv;
+        ub.disabled = true;
+      }
+    } else {
+      const c = upgradeCost(t);
+      ub.textContent = '升级到 T' + (t.level + 1) + ' · 💰' + c;
+      ub.disabled = gold < c;
+    }
+    $('btnSell').textContent = '出售 +💰' + Math.round(t.invested * 0.6);
+
+    const bNukeBuild = $('btnNukeBuild');
+    const bNukeLaunch = $('btnNukeLaunch');
+    const bAutoBuildNuke = $('btnAutoBuildNuke');
+    const bBuildMsl = $('btnBuildMissile');
+    const bLaunchMsl = $('btnLaunchMissile');
+    const bAutoBuild = $('btnAutoBuildMissile');
+    const bAutoStrike = $('btnAutoStrikeMissile');
+
+    if (t.type === 'nukeSilo') {
+      bNukeBuild.style.display = 'block';
+      bNukeLaunch.style.display = 'block';
+      bAutoBuildNuke.style.display = 'block';
+      bBuildMsl.style.display = 'none';
+      bLaunchMsl.style.display = 'none';
+      bAutoBuild.style.display = 'none';
+      bAutoStrike.style.display = 'none';
+
+      bNukeBuild.disabled = t.nukeStatus === 'building' || t.nukeCount >= 5 || gold < 3000000;
+      bNukeBuild.textContent = t.nukeStatus === 'building' ? `☢️ 建造中 ${Math.ceil(t.nukeTimer)}s` : `☢️ 建造核弹 (💰300万, 30s)`;
+
+      bNukeLaunch.disabled = t.nukeCount <= 0;
+      bNukeLaunch.textContent = `💥 发射核弹 (${t.nukeCount}枚)`;
+
+      bAutoBuildNuke.textContent = autoBuildNuke ? '☢️ 自动建造核弹：开' : '☢️ 自动建造核弹：关';
+      bAutoBuildNuke.className = autoBuildNuke ? 'btn auto-on' : 'btn auto-off';
+    } else if (t.type === 'missileSilo') {
+      bNukeBuild.style.display = 'none';
+      bNukeLaunch.style.display = 'none';
+      bAutoBuildNuke.style.display = 'none';
+      bBuildMsl.style.display = 'block';
+      bLaunchMsl.style.display = 'block';
+      bAutoBuild.style.display = 'block';
+      bAutoStrike.style.display = 'block';
+
+      bBuildMsl.textContent = t.isBuildingMissile ? `🔨 建造中 ${Math.floor(t.missileBuildProgress * 100)}%` : `🔨 建造导弹 (💰${st.missileCost})`;
+      bBuildMsl.disabled = t.isBuildingMissile || t.missileCount >= st.maxMissiles || gold < st.missileCost;
+
+      let totalMissiles = 0;
+      for(let o of towers) if(o.type === 'missileSilo') totalMissiles += o.missileCount;
+
+      bLaunchMsl.textContent = `🚀 发射导弹 (全图共${totalMissiles}枚)`;
+      bLaunchMsl.disabled = totalMissiles <= 0;
+
+      bAutoBuild.textContent = autoBuildMissile ? '🔨 自动建造导弹：开' : '🔨 自动建造导弹：关';
+      bAutoBuild.className = autoBuildMissile ? 'btn auto-on' : 'btn auto-off';
+
+      bAutoStrike.textContent = autoStrikeMissile ? '🎯 自动发射导弹：开' : '🎯 自动发射导弹：关';
+      bAutoStrike.className = autoStrikeMissile ? 'btn auto-on' : 'btn auto-off';
+    } else {
+      bNukeBuild.style.display = 'none';
+      bNukeLaunch.style.display = 'none';
+      bAutoBuildNuke.style.display = 'none';
+      bBuildMsl.style.display = 'none';
+      bLaunchMsl.style.display = 'none';
+      bAutoBuild.style.display = 'none';
+      bAutoStrike.style.display = 'none';
+    }
+  } else {
+    $('emptySel').classList.remove('hidden');
+    $('selPanel').classList.add('hidden');
+    if (selectedTower) selectedTower = null;
+    $('btnNukeBuild').style.display = 'none';
+    $('btnNukeLaunch').style.display = 'none';
+    $('btnAutoBuildNuke').style.display = 'none';
+    $('btnBuildMissile').style.display = 'none';
+    $('btnLaunchMissile').style.display = 'none';
+    $('btnAutoBuildMissile').style.display = 'none';
+    $('btnAutoStrikeMissile').style.display = 'none';
+  }
+}
+
+function getMousePos(evt) {
+  const r = cv.getBoundingClientRect();
+  return {
+    x: (evt.clientX - r.left) * (W / r.width),
+    y: (evt.clientY - r.top) * (H / r.height)
+  };
+}
+
+cv.addEventListener('mousemove', evt => {
+  const p = getMousePos(evt);
+  mouse.x = p.x; mouse.y = p.y;
+  mouse.gx = Math.floor(p.x / TILE);
+  mouse.gy = Math.floor(p.y / TILE);
+  mouse.inside = true;
+});
+cv.addEventListener('mouseleave', () => { mouse.inside = false; });
+
+cv.addEventListener('click', evt => {
+  if (gameOver) return;
+  const p = getMousePos(evt);
+  const gx = Math.floor(p.x / TILE);
+  const gy = Math.floor(p.y / TILE);
+
+  if (aimingNukeTower) {
+    if (aimingNukeTower.destroyed || aimingNukeTower.nukeCount <= 0) {
+      aimingNukeTower = null;
+      updateHUD();
+      return;
+    }
+    launchNuke(aimingNukeTower, p.x, p.y);
+    aimingNukeTower = null;
+    updateHUD();
+    return;
+  }
+
+  if (aimingMissile) {
+    launchMissileSwarm(p.x, p.y);
+    aimingMissile = false;
+    updateHUD();
+    return;
+  }
+
+  if (selectedType === 'hammer') {
+    const target = towers.find(t => t.gx === gx && t.gy === gy && !t.destroyed);
+    if (target) {
+      const refund = Math.round(target.invested * 0.6);
+      gold += refund;
+      addFloat(target.x, target.y - 14, '+' + refund, '#ffd166');
+      addParticles(target.x, target.y, '#9fb0c4', 10, 90);
+      addLog(`拆除了 ${target.def.name}，返还 ${refund} 金币`, 'info');
+      towers = towers.filter(x => x !== target);
+      if (selectedTower === target) selectedTower = null;
+      checkEnclosure();
+    } else {
+      toast('这里没有可拆除的设施');
+    }
+    return;
+  }
+
+  const existing = towers.find(t => t.gx === gx && t.gy === gy && !t.destroyed);
+  if (existing) {
+    selectedTower = existing;
+    selectedType = null;
+    return;
+  }
+  if (selectedType) {
+    tryBuild(gx, gy, selectedType);
+    return;
+  }
+  selectedTower = null;
+});
+
+cv.addEventListener('contextmenu', evt => {
+  evt.preventDefault();
+  selectedType = null;
+  selectedTower = null;
+  aimingNukeTower = null;
+  aimingMissile = false;
+  updateHUD();
+});
+
+function tryBuild(gx, gy, type) {
+  const def = TOWER_DEFS[type];
+  if (!canBuild(gx, gy)) { toast('这里不能建造'); return; }
+  if (gold < def.cost) { toast('金币不足'); return; }
+
+  gold -= def.cost;
+  const maxHp = towerMaxHp(type, 1);
+  const t = {
+    type, def, gx, gy,
+    x: (gx + 0.5) * TILE,
+    y: (gy + 0.5) * TILE,
+    angle: -Math.PI / 2,
+    cool: 0,
+    recoil: 0,
+    hitFlash: 0,
+    level: 1,
+    enabled: true,
+    mmToConverter: false,
+    mmToPrism: false,
+    paralysisTimer: 0,
+    empShieldTimer: 0,
+    batteryTier: 1,
+    invested: def.cost,
+    hp: maxHp,
+    maxHp,
+    destroyed: false,
+    buildingTimer: 1.5,
+    upgradingTimer: 0,
+    beamTarget: null,
+    goldTimer: 0,
+    energy: 0,
+    nukeStatus: 'idle',
+    nukeTimer: 0,
+    nukeCount: 0,
+    missileCount: 0,
+    missileBuildProgress: 0,
+    isBuildingMissile: false,
+    lastStrikeTime: 0,
+    convertAccum: 0,
+    convertFloatTimer: 0
+  };
+  towers.push(t);
+  addParticles(t.x, t.y, def.color, 12, 120);
+  addLog(`正在建造 ${def.name}...`, 'info');
+  selectedTower = t;
+
+  if (type === 'lightning') {
+    totalLightningBuilt++;
+    if (totalLightningBuilt >= 20 && !achTesla) {
+      achTesla = true;
+      toast('🏆 成就解锁：特斯拉线圈 I！电击器上限+5', true);
+      addLog('🏆 成就解锁：特斯拉线圈 I！', 'success');
+      for(let i=0; i<30; i++){
+        addParticles(t.x, t.y, '#c084fc', 5, 300);
+      }
+    }
+    if (totalLightningBuilt >= 30 && !achTesla2) {
+      achTesla2 = true;
+      toast('🏆 成就解锁：特斯拉线圈 II！电击器上限再+5', true);
+      addLog('🏆 成就解锁：特斯拉线圈 II！', 'success');
+      for(let i=0; i<30; i++){
+        addParticles(t.x, t.y, '#c084fc', 5, 300);
+      }
+    }
+  }
+
+  checkEnclosure();
+}
+
+function selectType(type) {
+  if (gameOver) return;
+  selectedType = (selectedType === type) ? null : type;
+  if (selectedType === 'hammer') {
+    selectedTower = null;
+  }
+  aimingNukeTower = null;
+  aimingMissile = false;
+}
+
+(function buildTowerButtons() {
+  const list = $('towerList');
+  const keys = ['arrow', 'cannon', 'flame', 'lightning', 'antiair', 'repair', 'laser', 'battery', 'batteryPack', 'mmwave', 'converter', 'prism', 'empShield', 'resource', 'nukeSilo', 'missileSilo'];
+  keys.forEach(key => {
+    const def = TOWER_DEFS[key];
+    const btn = document.createElement('button');
+    btn.className = 'tower-btn';
+    btn.dataset.type = key;
+    btn.title = def.desc;
+    btn.innerHTML =
+      '<span class="ic">' + def.icon + '</span>' +
+      '<span class="nm">' + def.name + '</span>' +
+      '<span class="cost">💰' + (def.cost >= 10000 ? (def.cost/10000) + '万' : def.cost) + '</span>';
+    btn.addEventListener('click', () => selectType(key));
+    list.appendChild(btn);
+  });
+
+  const hammerBtn = document.createElement('button');
+  hammerBtn.className = 'tower-btn';
+  hammerBtn.dataset.type = 'hammer';
+  hammerBtn.title = '拆除设施，返还 60% 金币';
+  hammerBtn.innerHTML =
+    '<span class="ic">🔨</span>' +
+    '<span class="nm">拆除</span>' +
+    '<span class="cost" style="color:#ff6b6b">返还60%</span>';
+  hammerBtn.addEventListener('click', () => selectType('hammer'));
+  list.appendChild(hammerBtn);
+})();
+
+$('btnMmConv').addEventListener('click', () => {
+  const t = selectedTower;
+  if (!t || t.destroyed || t.type !== 'mmwave') return;
+  t.mmToConverter = !t.mmToConverter;
+  addLog(`毫米波 供能转换器：${t.mmToConverter ? '开' : '关'}`, 'info');
+  updateHUD();
+});
+
+$('btnMmPrism').addEventListener('click', () => {
+  const t = selectedTower;
+  if (!t || t.destroyed || t.type !== 'mmwave') return;
+  t.mmToPrism = !t.mmToPrism;
+  addLog(`毫米波 供能光棱炮：${t.mmToPrism ? '开' : '关'}`, 'info');
+  updateHUD();
+});
+
+$('btnToggleWork').addEventListener('click', () => {
+  const t = selectedTower;
+  if (!t || t.destroyed) return;
+  t.enabled = t.enabled === false;
+  if (t.enabled) {
+    addLog(`${t.def.name} 恢复工作`, 'success');
+  } else {
+    addLog(`${t.def.name} 已停用`, 'warning');
+  }
+  updateHUD();
+});
+
+$('btnUpgrade').addEventListener('click', () => {
+  const t = selectedTower;
+  if (!t || t.destroyed) return;
+
+  if (t.type === 'nukeSilo') { toast('核弹发射井无法升级'); return; }
+
+  // 电池组三阶飞升：T20 且未到大型
+  if (t.type === 'batteryPack' && t.level >= 20) {
+    const bpTier = Math.min(3, Math.max(1, t.batteryTier || 1));
+    if (bpTier >= 3) { toast('已是大型电池组，无法继续升阶'); return; }
+    const ac = ascendCost(t);
+    if (gold < ac) { toast('金币不足'); return; }
+    gold -= ac;
+    t.invested += ac;
+    t.batteryTier = bpTier + 1;
+    t.level = 1;
+    t.maxHp = towerMaxHp('batteryPack', 1);
+    t.hp = t.maxHp;
+    t.energy = 0;
+    t.paralysisTimer = 0;
+    const tierColor = ['#0284c7', '#a855f7', '#ffd166'][t.batteryTier - 1];
+    addParticles(t.x, t.y, tierColor, 34, 240);
+    addFloat(t.x, t.y - 28, '✨ 升阶 ' + ['小型', '中型', '大型'][t.batteryTier - 1] + '电池组!', '#ffd166');
+    addLog(`电池组升阶为${['小型', '中型', '大型'][t.batteryTier - 1]}电池组！容量翻倍，能量已清零`, 'success');
+    updateHUD();
+    return;
+  }
+
+  let maxLv = 10;
+  if (achMag >= 3) maxLv += 10;
+  if (t.type === 'lightning') {
+    if (achTesla) maxLv += 5;
+    if (achTesla2) maxLv += 5;
+  }
+  if (t.type === 'prism' || t.type === 'missileSilo' || t.type === 'converter' || t.type === 'batteryPack' || t.type === 'empShield') maxLv = 20;
+
+  if (t.level >= maxLv) { toast('已达到最大等级'); return; }
+  if (t.buildingTimer > 0) { toast('建造中'); return; }
+  if (t.upgradingTimer > 0) { toast('正在升级中'); return; }
+  const c = upgradeCost(t);
+  if (gold < c) { toast('金币不足'); return; }
+  gold -= c;
+  t.invested += c;
+  t.upgradingTimer = 2.0;
+  addLog(`开始升级 ${t.def.name} 到 T${t.level + 1}...`, 'info');
+});
+
+$('btnSell').addEventListener('click', () => {
+  const t = selectedTower;
+  if (!t || t.destroyed) return;
+  const refund = Math.round(t.invested * 0.6);
+  gold += refund;
+  addFloat(t.x, t.y - 14, '+' + refund, '#ffd166');
+  addParticles(t.x, t.y, '#9fb0c4', 10, 90);
+  addLog(`出售了 ${t.def.name}，返还 ${refund} 金币`, 'info');
+  towers = towers.filter(x => x !== t);
+  selectedTower = null;
+  checkEnclosure();
+});
+
+$('btnNukeBuild').addEventListener('click', () => {
+  const t = selectedTower;
+  if (!t || t.type !== 'nukeSilo') return;
+  if (t.nukeStatus === 'building' || t.nukeCount >= 5) return;
+  if (gold >= 3000000) {
+    gold -= 3000000;
+    t.invested += 3000000;
+    t.nukeStatus = 'building';
+    t.nukeTimer = 30;
+    addLog('开始建造核弹...', 'info');
+    updateHUD();
+  } else {
+    toast('金币不足 (需要300万)');
+  }
+});
+
+$('btnNukeLaunch').addEventListener('click', () => {
+  const t = selectedTower;
+  if (!t || t.type !== 'nukeSilo' || t.nukeCount <= 0) return;
+  aimingNukeTower = t;
+  selectedType = null;
+  addLog('核弹已进入瞄准模式，点击地图空投', 'warning');
+});
+
+$('btnBuildMissile').addEventListener('click', () => {
+  const t = selectedTower;
+  if (!t || t.type !== 'missileSilo') return;
+  const st = towerStats(t);
+  if (t.isBuildingMissile) return;
+  if (t.missileCount >= st.maxMissiles) return;
+  if (gold < st.missileCost) { toast('金币不足'); return; }
+
+  gold -= st.missileCost;
+  t.invested += st.missileCost;
+  t.isBuildingMissile = true;
+  t.missileBuildProgress = 0;
+  addLog(`开始建造导弹 (耗时 ${st.buildTime}s)...`, 'info');
+});
+
+$('btnLaunchMissile').addEventListener('click', () => {
+  const t = selectedTower;
+  if (!t || t.type !== 'missileSilo') return;
+
+  let totalMissiles = 0;
+  for (let o of towers) {
+    if (o.type === 'missileSilo') totalMissiles += o.missileCount;
+  }
+  if (totalMissiles === 0) {
+    toast('场上没有可用的导弹');
+    return;
+  }
+
+  aimingMissile = true;
+  selectedType = null;
+  addLog(`导弹集群进入瞄准模式 (共 ${totalMissiles} 枚)，点击地图齐射`, 'warning');
+});
+
+$('btnAutoBuildNuke').addEventListener('click', () => {
+  autoBuildNuke = !autoBuildNuke;
+  addLog(autoBuildNuke ? '已开启自动建造核弹' : '已关闭自动建造核弹', 'info');
+  updateHUD();
+});
+
+$('btnAutoBuildMissile').addEventListener('click', () => {
+  autoBuildMissile = !autoBuildMissile;
+  addLog(autoBuildMissile ? '已开启自动建造导弹' : '已关闭自动建造导弹', 'info');
+  updateHUD();
+});
+
+$('btnAutoStrikeMissile').addEventListener('click', () => {
+  autoStrikeMissile = !autoStrikeMissile;
+  addLog(autoStrikeMissile ? '已开启自动发射导弹' : '已关闭自动发射导弹', 'info');
+  updateHUD();
+});
+
+$('btnWave').addEventListener('click', () => {
+  if (wave.active || gameOver) return;
+  waveTimer = 0;
+  startWave();
+});
+
+$('btnPause').addEventListener('click', () => {
+  paused = !paused;
+  $('btnPause').textContent = paused ? '▶' : '⏸';
+});
+
+const SPEEDS = [1, 2, 3, 5, 10, 20, 50, 100, 200, 500, 1000];
+$('btnSpeed').addEventListener('click', () => {
+  const i = SPEEDS.indexOf(speedMul);
+  speedMul = SPEEDS[(i + 1) % SPEEDS.length];
+  $('btnSpeed').textContent = speedMul + '×';
+});
+
+$('btnAutoUpgrade').addEventListener('click', () => {
+  autoUpgrade = !autoUpgrade;
+  if (autoUpgrade) {
+    $('btnAutoUpgrade').textContent = '⚙️ 自动升级：开';
+    $('btnAutoUpgrade').className = 'btn auto-on';
+    addLog('已开启自动升级', 'success');
+    autoUpgradeTimer = 0;
+  } else {
+    $('btnAutoUpgrade').textContent = '⚙️ 自动升级：关';
+    $('btnAutoUpgrade').className = 'btn auto-off';
+    addLog('已关闭自动升级', 'info');
+  }
+});
+
+$('btnRestart').addEventListener('click', () => { reset(); updateHUD(); });
+
+async function saveGame() {
+  if (gameOver) { toast('游戏已结束，无法保存'); return; }
+  try {
+    const data = {
+      v: 11,
+      savedAt: Date.now(),
+      gold: Math.floor(gold),
+      castleHp,
+      waveNum,
+      gameTime,
+      wave: wave.active ? {
+        list: wave.list, idx: wave.idx, time: wave.time, hpMul: wave.hpMul, speedMul: wave.speedMul
+      } : null,
+      enemies: enemies.filter(e => e.alive).map(e => ({
+        type: e.type, hp: e.hp, maxHp: e.maxHp, x: e.x, y: e.y,
+        shield: e.shield, maxShield: e.maxShield, speed: e.speed, slowFactor: e.slowFactor, slowTimer: e.slowTimer,
+        towerDamage: e.towerDamage, attackRange: e.attackRange, isRanged: e.isRanged,
+        flying: !!e.def.flying
+      })),
+      totalLightningBuilt,
+      achTesla,
+      achTesla2,
+      achMag,
+      autoBuildMissile,
+      autoStrikeMissile,
+      autoBuildNuke,
+      radiationZones: radiationZones.map(rz => ({ x: rz.x, y: rz.y, radius: rz.radius, life: rz.life, maxLife: rz.maxLife })),
+      towers: towers.filter(t => !t.destroyed).map(t => {
+        let lvl = t.level;
+        let hp = Math.ceil(t.hp);
+        let maxHp = t.maxHp;
+        if (t.upgradingTimer > 0) {
+          lvl = Math.min(MAX_LEVEL, t.level + 1);
+          const newMaxHp = towerMaxHp(t.type, lvl);
+          hp = Math.min(newMaxHp, hp + (newMaxHp - maxHp));
+          maxHp = newMaxHp;
+        }
+        return {
+          type: t.type, gx: t.gx, gy: t.gy,
+          level: lvl, invested: t.invested,
+          enabled: t.enabled !== false,
+          mmToConverter: t.mmToConverter === true,
+          mmToPrism: t.mmToPrism === true,
+          batteryTier: Math.min(3, Math.max(1, Math.floor(t.batteryTier) || 1)),
+          hp: hp, maxHp: maxHp,
+          energy: t.energy,
+          nukeStatus: t.nukeStatus,
+          nukeTimer: t.nukeTimer,
+          nukeCount: t.nukeCount,
+          missileCount: t.missileCount,
+          missileBuildProgress: t.missileBuildProgress,
+          isBuildingMissile: !!t.isBuildingMissile,
+          lastStrikeTime: t.lastStrikeTime
+        };
+      })
+    };
+    const binary = await encryptSave(data);
+    const blob = new Blob([binary], { type: 'application/octet-stream' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const ts = new Date().toISOString().slice(0, 19).replace(/[:]/g, '-');
+    a.download = `tower_defense_${ts}.aes`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    toast('💾 存档已导出 (.aes)，可用 AES256.html 解密', true);
+    addLog('存档已保存 (密码: 123456)', 'info');
+  } catch (err) {
+    toast('存档失败: ' + err.message);
+    addLog('存档保存失败: ' + err.message, 'danger');
+  }
+}
+
+function applySave(data) {
+  if (!data || typeof data !== 'object') throw new Error('存档数据无效');
+  reset();
+  gold = Math.max(0, Math.floor(data.gold) || 0);
+  {
+    const raw = (data.castleHp !== undefined) ? Math.floor(data.castleHp) : CASTLE_MAX_HP;
+    castleHp = Number.isFinite(raw)
+      ? Math.max(1, Math.min(CASTLE_MAX_HP, raw))
+      : CASTLE_MAX_HP;
+  }
+  waveNum = Math.max(0, Math.floor(data.waveNum) || 0);
+  totalLightningBuilt = Math.max(0, Math.floor(data.totalLightningBuilt) || 0);
+  achTesla = !!data.achTesla;
+  achTesla2 = !!data.achTesla2;
+  achMag = Math.max(0, Math.floor(data.achMag) || 0);
+  autoBuildMissile = !!data.autoBuildMissile;
+  autoStrikeMissile = !!data.autoStrikeMissile;
+  autoBuildNuke = !!data.autoBuildNuke;
+  gameTime = Number.isFinite(data.gameTime) ? data.gameTime : 0;
+
+  radiationZones = (data.radiationZones || []).map(rz => ({
+    x: rz.x, y: rz.y, radius: rz.radius, life: rz.life, maxLife: rz.maxLife
+  }));
+
+  if (data.wave) {
+    wave = { active: true, list: data.wave.list, idx: data.wave.idx, time: data.wave.time, hpMul: data.wave.hpMul, speedMul: data.wave.speedMul, earlySpawnTimer: 0 };
+    waveTimer = 0;
+    enemies = (data.enemies || []).map(ed => {
+      const dbase = ENEMY_DEFS[ed.type];
+      if (!dbase) return null;
+      const d = ed.flying ? Object.assign({}, dbase, { flying: true }) : dbase;
+      return {
+        type: ed.type, def: d, hp: ed.hp, maxHp: ed.maxHp,
+        shield: ed.shield || 0, maxShield: ed.maxShield || 0,
+        speed: ed.speed, slowFactor: ed.slowFactor || 1, slowTimer: ed.slowTimer || 0,
+        radius: d.radius, towerDamage: ed.towerDamage || d.towerDamage,
+        attackCooldown: d.attackCooldown, attackTimer: Math.random() * 0.6,
+        attackRange: ed.attackRange || d.radius + 8, isRanged: ed.isRanged || false,
+        healRate: ed.type === 'healer' ? 15 * (1 + (waveNum - 1) * 0.12) : 0,
+        interceptTimer: 0,
+        shieldParalysisTimer: 0,
+        detonated: false,
+        beamTarget: null,
+        x: ed.x, y: ed.y, alive: true, attacking: false, attackTarget: null
+      };
+    }).filter(Boolean);
+    waveStartTotal = Math.max(1, wave.list[wave.list.length - 1].t);
+  } else {
+    wave = { active: false, list: [], idx: 0, time: 0, hpMul: 1, speedMul: 1, earlySpawnTimer: 0 };
+    waveTimer = 8;
+    enemies = [];
+  }
+
+  towers = [];
+  const occupied = new Set();
+  (data.towers || []).forEach(td => {
+    const def = TOWER_DEFS[td.type];
+    if (!def) return;
+    const gx = Math.floor(td.gx), gy = Math.floor(td.gy);
+    const key = gx + ',' + gy;
+    if (occupied.has(key)) return;
+    if (!canBuild(gx, gy)) return;
+    occupied.add(key);
+    const level = Math.min(def.levels.length, Math.max(1, Math.floor(td.level) || 1));
+    const maxHp = towerMaxHp(td.type, level);
+    const hp = td.hp ? Math.min(maxHp, Math.max(1, Math.floor(td.hp))) : maxHp;
+
+    let maxEnergy = def.levels[level - 1].maxEnergy || 0;
+    if (td.type === 'batteryPack') {
+      const bpTier = Math.min(3, Math.max(1, Math.floor(td.batteryTier) || 1));
+      maxEnergy = maxEnergy * Math.pow(2, bpTier - 1);
+    }
+    const energy = Math.min(maxEnergy, Math.max(0, Math.floor(td.energy) || 0));
+
+    let lst = Number.isFinite(td.lastStrikeTime) ? td.lastStrikeTime : 0;
+    if (lst > gameTime) lst = gameTime;
+
+    towers.push({
+      type: td.type, def, gx, gy,
+      x: (gx + 0.5) * TILE,
+      y: (gy + 0.5) * TILE,
+      angle: -Math.PI / 2,
+      cool: 0,
+      recoil: 0,
+      hitFlash: 0,
+      level,
+      enabled: td.enabled !== false,
+      mmToConverter: !!td.mmToConverter,
+      mmToPrism: !!td.mmToPrism,
+      paralysisTimer: 0,
+      empShieldTimer: 0,
+      batteryTier: Math.min(3, Math.max(1, Math.floor(td.batteryTier) || 1)),
+      invested: Math.max(def.cost, Math.floor(td.invested) || def.cost),
+      hp, maxHp,
+      destroyed: false,
+      buildingTimer: 0,
+      upgradingTimer: 0,
+      beamTarget: null,
+      goldTimer: 0,
+      energy: energy,
+      nukeStatus: td.nukeStatus || 'idle',
+      nukeTimer: td.nukeTimer || 0,
+      nukeCount: td.nukeCount || 0,
+      missileCount: td.missileCount || 0,
+      missileBuildProgress: td.missileBuildProgress || 0,
+      isBuildingMissile: !!td.isBuildingMissile,
+      lastStrikeTime: lst,
+      convertAccum: 0,
+      convertFloatTimer: 0
+    });
+  });
+
+  gameOver = false;
+  paused = false;
+  selectedType = null;
+  selectedTower = null;
+  aimingNukeTower = null;
+  aimingMissile = false;
+  $('overlay').classList.add('hidden');
+  $('btnPause').textContent = '⏸';
+  updateHUD();
+  checkEnclosure();
+  addLog('存档已读取', 'success');
+}
+
+$('btnSave').addEventListener('click', saveGame);
+$('btnLoad').addEventListener('click', () => $('saveFileInput').click());
+
+$('saveFileInput').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  try {
+    const buffer = await file.arrayBuffer();
+    const data = await decryptSave(new Uint8Array(buffer));
+    applySave(data);
+    toast('📂 存档读取成功', true);
+  } catch (err) {
+    toast('读取失败: ' + err.message);
+    addLog('存档读取失败: ' + err.message, 'danger');
+  }
+});
+
+window.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    selectedType = null;
+    selectedTower = null;
+    aimingNukeTower = null;
+    aimingMissile = false;
+  }
+  if (e.key === ' ' && !e.repeat) {
+    e.preventDefault();
+    $('btnPause').click();
+  }
+  if (e.key === '1') selectType('arrow');
+  if (e.key === '2') selectType('cannon');
+  if (e.key === '3') selectType('flame');
+  if (e.key === '4') selectType('lightning');
+  if (e.key === '5') selectType('antiair');
+  if (e.key === '6') selectType('repair');
+  if (e.key === '7') selectType('laser');
+  if (e.key === '8') selectType('battery');
+  if (e.key === '9') selectType('mmwave');
+  if (e.key === '-') selectType('prism');
+  if (e.key === '0') selectType('resource');
+  if (e.key === '=') selectType('nukeSilo');
+  if (e.key === ',') selectType('missileSilo');
+  if (e.key === ';') selectType('converter');
+});
+
+const FIXED_DT = 1 / 60;
+let accumulator = 0;
+let lastTime = performance.now();
+
+function loop(now) {
+  try {
+    let dt = (now - lastTime) / 1000;
+    lastTime = now;
+    if (dt > 0.1) dt = 0.1;
+
+    if (!paused && !gameOver) {
+      accumulator += dt * speedMul;
+
+      let currentStep = FIXED_DT;
+      let maxSteps = 400;
+      if (speedMul >= 100) {
+        currentStep = 1 / 20;
+        maxSteps = 400;
+      }
+      if (speedMul >= 500) {
+        currentStep = 1 / 20;
+        maxSteps = 400;
+      }
+
+      let steps = 0;
+      while (accumulator >= currentStep && steps < maxSteps) {
+        update(currentStep);
+        accumulator -= currentStep;
+        steps++;
+      }
+
+      if (steps >= maxSteps) {
+        accumulator = 0;
+      }
+    } else {
+      accumulator = 0;
+    }
+
+    draw();
+    updateHUD();
+  } catch (err) {
+    console.error("Game Loop Error:", err);
+    paused = true;
+    $('btnPause').textContent = '▶';
+    toast('发生内部错误，游戏已自动暂停', false);
+  }
+
+  requestAnimationFrame(loop);
+}
+
+reset();
+updateHUD();
+requestAnimationFrame(loop);
+
+})();
+</script>
+</body>
+</html>
