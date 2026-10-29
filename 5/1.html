@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>全息 3D</title>
+<style>
+    /* ========== 全局重置 ========== */
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        user-select: none;
+    }
+
+    html, body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        font-family: 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', 'Helvetica Neue', sans-serif;
+        background: #03050b;
+        color: #fff;
+    }
+
+    /* ========== 背景画布 ========== */
+    #starCanvas, #particleCanvas {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        display: block;
+        pointer-events: none;
+    }
+    #starCanvas { z-index: 0; }
+    #particleCanvas { z-index: 1; }
+
+    /* ========== 3D 舞台 ========== */
+    .content {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        perspective: 1200px; /* 透视景深 */
+    }
+
+    /* 核心旋转容器 */
+    .text-container {
+        display: flex;
+        transform-style: preserve-3d;
+        will-change: transform;
+        animation: spin3d 15s linear infinite;
+    }
+
+    @keyframes spin3d {
+        0%   { transform: rotateX(-10deg) rotateY(0deg); }
+        100% { transform: rotateX(-10deg) rotateY(360deg); }
+    }
+
+    /* 单个字的容器 */
+    .char-box {
+        position: relative;
+        width: 1.1em;
+        height: 1.2em;
+        margin: 0 0.02em;
+        font-size: clamp(50px, 13vw, 110px);
+        font-weight: 900;
+        transform-style: preserve-3d;
+    }
+
+    /* 文字层（全息切片） */
+    .char-slice {
+        position: absolute;
+        left: 0; top: 0;
+        width: 100%; height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
+        /* 绝对不要隐藏背面，让它们自然透过去 */
+        -webkit-font-smoothing: antialiased;
+    }
+</style>
+</head>
+<body>
+
+    <canvas id="starCanvas"></canvas>
+    <canvas id="particleCanvas"></canvas>
+
+    <div class="content">
+        <div class="text-container" id="textContainer"></div>
+    </div>
+
+<script>
+(function () {
+    "use strict";
+
+    /* ============================================================
+       第一部分：星空 + 流星雨
+       ============================================================ */
+    const canvas = document.getElementById('starCanvas');
+    const ctx = canvas.getContext('2d');
+    let stars = [], width = 0, height = 0;
+    const STAR_COUNT = 220, meteors = [], MAX_METEORS = 3;
+    let nextMeteorTime = 0, burstRemaining = 0, nextBurstShotTime = 0, nextBurstCheckTime = 0;
+
+    function scheduleNextMeteor(now) { nextMeteorTime = now + 2500 + Math.random() * 5500; }
+    function scheduleNextBurstShot(now) { nextBurstShotTime = now + 200 + Math.random() * 600; }
+
+    function initStars() {
+        stars = [];
+        for (let i = 0; i < STAR_COUNT; i++) {
+            stars.push({
+                x: Math.random() * width, y: Math.random() * height,
+                radius: Math.random() * 2.2 + 0.8, alpha: Math.random() * 0.5 + 0.3,
+                speed: 0.002 + Math.random() * 0.008, offset: Math.random() * Math.PI * 2
+            });
+        }
+    }
+
+    function resizeCanvas() {
+        width = window.innerWidth; height = window.innerHeight;
+        canvas.width = width; canvas.height = height;
+        initStars();
+    }
+
+    function spawnMeteor(speedBoost, now) {
+        if (meteors.length >= MAX_METEORS) return;
+        const baseSpeed = 320 + Math.random() * 420;
+        const speed = speedBoost ? baseSpeed * 1.4 : baseSpeed;
+        const pad = 120;
+        const edge = Math.floor(Math.random() * 4);
+        let startX, startY;
+        if (edge === 0) { startX = Math.random() * width; startY = -pad; }
+        else if (edge === 1) { startX = width + pad; startY = Math.random() * height; }
+        else if (edge === 2) { startX = Math.random() * width; startY = height + pad; }
+        else { startX = -pad; startY = Math.random() * height; }
+
+        const targetX = width * (0.1 + Math.random() * 0.8);
+        const targetY = height * (0.1 + Math.random() * 0.8);
+        const dx = targetX - startX, dy = targetY - startY;
+        const d = Math.sqrt(dx * dx + dy * dy) || 1;
+        const warm = Math.random() < 0.22;
+
+        meteors.push({
+            x: startX, y: startY, vx: (dx / d) * speed, vy: (dy / d) * speed,
+            len: 80 + Math.random() * 200, width: 0.8 + Math.random() * 1.6,
+            bornAt: now, fadeIn: 60 + Math.random() * 80,
+            hue: warm ? '255, 240, 220' : '198, 224, 255'
+        });
+    }
+
+    function updateMeteors(now, dtSec) {
+        if (now >= nextMeteorTime) { spawnMeteor(false, now); scheduleNextMeteor(now); }
+        if (burstRemaining === 0 && now >= nextBurstCheckTime) {
+            if (Math.random() < 0.5) { burstRemaining = 2 + Math.floor(Math.random() * 2); nextBurstShotTime = now; }
+            nextBurstCheckTime = now + 30000 + Math.random() * 60000;
+        }
+        if (burstRemaining > 0 && now >= nextBurstShotTime) {
+            spawnMeteor(true, now); burstRemaining--;
+            if (burstRemaining > 0) scheduleNextBurstShot(now);
+        }
+        const pad = 100;
+        for (let i = meteors.length - 1; i >= 0; i--) {
+            const m = meteors[i];
+            m.x += m.vx * dtSec; m.y += m.vy * dtSec;
+            const offDist = Math.max(-m.x - pad, m.x - width - pad, -m.y - pad, m.y - height - pad, 0);
+            if (offDist > 320) meteors.splice(i, 1);
+        }
+    }
+
+    function drawMeteors(now) {
+        const pad = 100;
+        for (let i = 0; i < meteors.length; i++) {
+            const m = meteors[i];
+            const d = Math.sqrt(m.vx * m.vx + m.vy * m.vy) || 1;
+            const ux = m.vx / d, uy = m.vy / d;
+            const tailX = m.x - ux * m.len, tailY = m.y - uy * m.len;
+            let a = 1;
+            const age = now - m.bornAt;
+            if (age < m.fadeIn) a = age / m.fadeIn;
+            const offDist = Math.max(-m.x - pad, m.x - width - pad, -m.y - pad, m.y - height - pad, 0);
+            a *= 1 - Math.min(1, offDist / 250);
+            if (a <= 0.02) continue;
+
+            const grad = ctx.createLinearGradient(m.x, m.y, tailX, tailY);
+            grad.addColorStop(0, 'rgba(255, 255, 255, ' + (a * 0.95) + ')');
+            grad.addColorStop(0.12, 'rgba(' + m.hue + ', ' + (a * 0.72) + ')');
+            grad.addColorStop(0.55, 'rgba(' + m.hue + ', ' + (a * 0.20) + ')');
+            grad.addColorStop(1, 'rgba(' + m.hue + ', 0)');
+
+            ctx.save();
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = grad; ctx.globalAlpha = 0.35; ctx.lineWidth = m.width * 3.2;
+            ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(tailX, tailY); ctx.stroke();
+            ctx.globalAlpha = 1; ctx.strokeStyle = grad; ctx.lineWidth = m.width;
+            ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(tailX, tailY); ctx.stroke();
+            ctx.beginPath(); ctx.arc(m.x, m.y, m.width * 3.4, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(' + m.hue + ', ' + (a * 0.13) + ')'; ctx.fill();
+            ctx.beginPath(); ctx.arc(m.x, m.y, m.width * 0.9, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, ' + (a * 0.92) + ')'; ctx.fill();
+            ctx.restore();
+        }
+    }
+
+    let lastFrameTime = 0;
+    function renderLoop(now) {
+        if (lastFrameTime === 0) lastFrameTime = now;
+        const dt = Math.min(now - lastFrameTime, 100);
+        lastFrameTime = now; const dtSec = dt / 1000;
+
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = '#03050b'; ctx.fillRect(0, 0, width, height);
+
+        const nowSec = now / 1000;
+        for (let i = 0; i < stars.length; i++) {
+            const star = stars[i];
+            const twinkle = 0.5 + 0.5 * Math.sin(nowSec * star.speed * 2.5 + star.offset);
+            const alpha = Math.min(star.alpha * (0.6 + twinkle * 0.5), 0.95);
+            ctx.beginPath(); ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(225, 235, 255, ' + alpha + ')'; ctx.fill();
+            if (star.radius > 1.5 && twinkle > 0.7) {
+                ctx.beginPath(); ctx.arc(star.x, star.y, star.radius * 1.5, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(180, 210, 255, ' + (alpha * 0.2) + ')'; ctx.fill();
+            }
+        }
+        updateMeteors(now, dtSec);
+        drawMeteors(now);
+        requestAnimationFrame(renderLoop);
+    }
+
+    /* ============================================================
+       第二部分：微粒子
+       ============================================================ */
+    const particleCanvas = document.getElementById('particleCanvas');
+    const particleCtx = particleCanvas.getContext('2d');
+    let particles = [];
+    const PARTICLE_COUNT = 30;
+
+    function initParticles() {
+        particles = [];
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
+            particles.push({
+                x: Math.random() * window.innerWidth, y: Math.random() * window.innerHeight,
+                size: Math.random() * 2 + 1, alpha: 0.2,
+                vx: (Math.random() - 0.5) * 0.2, vy: (Math.random() - 0.5) * 0.1
+            });
+        }
+    }
+
+    function resizeParticleCanvas() {
+        particleCanvas.width = window.innerWidth;
+        particleCanvas.height = window.innerHeight;
+        initParticles();
+    }
+
+    function animateParticles() {
+        const W = particleCanvas.width, H = particleCanvas.height;
+        particleCtx.clearRect(0, 0, W, H);
+        for (let i = 0; i < particles.length; i++) {
+            const p = particles[i];
+            p.x += p.vx; p.y += p.vy;
+            if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+            if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+            particleCtx.beginPath();
+            particleCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            particleCtx.fillStyle = 'rgba(180, 200, 255, ' + (p.alpha * 0.5) + ')';
+            particleCtx.fill();
+        }
+        requestAnimationFrame(animateParticles);
+    }
+
+    /* ============================================================
+       第三部分：全息实体 3D 文字构建
+       ============================================================ */
+    const TEXT = "王之言是gay";
+    const LAYERS = 60;         // 60层，让侧面和背面都有极强的体积感
+    const textContainer = document.getElementById('textContainer');
+
+    function buildText() {
+        textContainer.innerHTML = '';
+        
+        const vw = window.innerWidth;
+        const fs = Math.min(Math.max(vw * 0.12, 40), 110);
+        
+        // 总厚度 = 字号的 50%
+        const totalDepth = fs * 0.5;
+        const step = totalDepth / LAYERS; 
+
+        for (let i = 0; i < TEXT.length; i++) {
+            const char = TEXT[i];
+            const box = document.createElement('div');
+            box.className = 'char-box';
+            box.style.fontSize = fs + 'px';
+
+            for (let j = 0; j < LAYERS; j++) {
+                const slice = document.createElement('div');
+                slice.className = 'char-slice';
+                slice.textContent = char;
+                
+                // 从前往后排列，Z 轴递减
+                const z = -j * step;
+                const t = j / (LAYERS - 1); // 0 到 1
+                
+                // 赛博朋克渐变：前层冰蓝(亮度95%)，后层暗紫(亮度20%)
+                const hue = 190 + t * 80; // 190 -> 270
+                const lightness = 95 - t * 75; // 95% -> 20%
+                slice.style.color = `hsl(${hue}, 100%, ${lightness}%)`;
+                
+                // 最前面5层加高光，形成发光体积
+                if (j < 5) {
+                    slice.style.textShadow = `0 0 10px rgba(150, 220, 255, 0.8), 0 0 20px rgba(100, 150, 255, 0.4)`;
+                }
+
+                slice.style.transform = `translateZ(${z}px)`;
+                box.appendChild(slice);
+            }
+            textContainer.appendChild(box);
+        }
+    }
+
+    /* ============================================================
+       第四部分：启动
+       ============================================================ */
+    function init() {
+        resizeCanvas();
+        resizeParticleCanvas();
+        
+        const t0 = performance.now();
+        nextMeteorTime = t0 + 1000 + Math.random() * 2000;
+        nextBurstCheckTime = t0 + 30000 + Math.random() * 30000;
+
+        buildText();
+
+        window.addEventListener('resize', function () {
+            resizeCanvas();
+            resizeParticleCanvas();
+            buildText();
+        });
+
+        requestAnimationFrame(renderLoop);
+        animateParticles();
+    }
+
+    init();
+})();
+</script>
+</body>
+</html>
