@@ -205,12 +205,11 @@
   #autoToggle.on{opacity:1;}
   #autoToggle:active{transform:translateY(3px);box-shadow:0 1px 0 #b96b00;}
 
-  /* ===== 游戏内工具：速度 / 密度 ===== */
+  /* ===== 游戏内工具：性能 / 速度 / 密度（局内外都常驻） ===== */
   #gameTools{
     position:fixed;right:16px;bottom:70px;z-index:15;
-    display:none;flex-direction:column;gap:8px;align-items:flex-end;
+    display:flex;flex-direction:column;gap:8px;align-items:flex-end;
   }
-  #gameTools.show{display:flex;}
   #gameTools button{
     min-width:126px;padding:10px 16px;
     font-size:13px;font-weight:800;letter-spacing:1px;
@@ -229,6 +228,20 @@
     opacity:1;
   }
   #gameTools button.boost:active{box-shadow:0 1px 0 #b96b00;}
+  /* 性能模式：开 → 绿色 */
+  #gameTools button.perf-on{
+    background:linear-gradient(180deg,#b6f5a6,#3fc23a);
+    color:#0b2b06;box-shadow:0 4px 0 #1f7a1b,0 8px 22px rgba(0,0,0,.45);
+    opacity:1;
+  }
+  #gameTools button.perf-on:active{box-shadow:0 1px 0 #1f7a1b;}
+  /* 性能模式：极致 → 紫色 */
+  #gameTools button.perf-max{
+    background:linear-gradient(180deg,#e0b6ff,#8e3fd6);
+    color:#1a052e;box-shadow:0 4px 0 #4a1f7a,0 8px 22px rgba(0,0,0,.45);
+    opacity:1;
+  }
+  #gameTools button.perf-max:active{box-shadow:0 1px 0 #4a1f7a;}
 
   #confirmOverlay{
     position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
@@ -353,10 +366,11 @@
 
     <div class="shop-item">
       <div>
-        <div class="shop-item-name">🤖 自动指针速度 +5</div>
+        <div class="shop-item-name">🤖 自动指针速度 +15</div>
         <div class="shop-item-desc">
-          当前速度：<em id="shopAutoSpeed">15</em> → <em id="shopAutoSpeedNext">20</em><br>
-          开启自动模式后，虚拟指针自动追踪水果移动，速度越快切割越迅速（最高 100）。
+          当前速度：<em id="shopAutoSpeed">15</em> → <em id="shopAutoSpeedNext">30</em><br>
+          开启自动模式后，虚拟指针自动追踪水果移动，速度越快切割越迅速。<br>
+          最高 <em>300</em>（实际移动速度 = 数值 × 20 px/s）。
         </div>
       </div>
       <button id="buyAutoSpeedBtn" class="buy-btn">250 金币</button>
@@ -367,7 +381,7 @@
         <div class="shop-item-name">💰 金币加成 +3</div>
         <div class="shop-item-desc">
           当前每果：<em id="shopCoin">1</em> 💰 → <em id="shopCoinNext">4</em> 💰<br>
-          每切开一个水果获得的金币数提升，最高可达 <em>31</em> 💰 / 果。
+          每切开一个水果获得的金币数提升，最高可达 <em>100</em> 💰 / 果（33 级）。
         </div>
       </div>
       <button id="buyCoinBtn" class="buy-btn">300 金币</button>
@@ -405,6 +419,7 @@
 <button id="autoToggle">🤖 自动: 关</button>
 
 <div id="gameTools">
+  <button id="perfToggle">🚀 性能: 关</button>
   <button id="speedToggle">⚡ 速度: 1x</button>
   <button id="densityToggle">🍉 密度: 1x</button>
 </div>
@@ -431,6 +446,7 @@ const autoBtn = document.getElementById('autoBtn');
 const resetBtn = document.getElementById('resetBtn');
 const autoToggle = document.getElementById('autoToggle');
 const gameTools = document.getElementById('gameTools');
+const perfToggle = document.getElementById('perfToggle');
 const speedToggle = document.getElementById('speedToggle');
 const densityToggle = document.getElementById('densityToggle');
 const shopOverlay = document.getElementById('shopOverlay');
@@ -484,34 +500,63 @@ const BASE_BOMB_DEFUSE = 0.1;
 const BOMB_DEFUSE_PER_LEVEL = 0.1;
 const MAX_BOMB_DEFUSE_LEVEL = 9;
 
-/* 自动指针速度：基础15，每级+5，17级达到100 */
+/* 自动指针速度：
+ * - 0 级与老版本完全一致：15 显示值 × 20 = 300 px/s
+ * - 每级 +15 显示值（+300 px/s）
+ * - 19 级满级：15 + 15*19 = 300 显示值 × 20 = 6000 px/s */
 const BASE_AUTO_SPEED = 15;
-const AUTO_SPEED_PER_LEVEL = 5;
-const MAX_AUTO_SPEED_LEVEL = 17;
-const AUTO_SPEED_MAX = BASE_AUTO_SPEED + AUTO_SPEED_PER_LEVEL * MAX_AUTO_SPEED_LEVEL; // 100
+const AUTO_SPEED_PER_LEVEL = 15;
+const MAX_AUTO_SPEED_LEVEL = 19;
+const AUTO_SPEED_MAX = BASE_AUTO_SPEED + AUTO_SPEED_PER_LEVEL * MAX_AUTO_SPEED_LEVEL; // 300
 const AUTO_SPEED_PX_FACTOR = 20;
 
-/* 金币加成：基础1，每级+3，10级达到31金币/果 */
+/* 金币加成：基础 1，每级 +3，33 级达到 100 金币/果 */
 const BASE_COIN_PER_FRUIT = 1;
 const COIN_PER_FRUIT_PER_LEVEL = 3;
-const MAX_COIN_LEVEL = 10;
-const COIN_PER_FRUIT_MAX = BASE_COIN_PER_FRUIT + COIN_PER_FRUIT_PER_LEVEL * MAX_COIN_LEVEL; // 31
+const MAX_COIN_LEVEL = 33;
+const COIN_PER_FRUIT_MAX = BASE_COIN_PER_FRUIT + COIN_PER_FRUIT_PER_LEVEL * MAX_COIN_LEVEL; // 100
 
-/* ----- 游戏内倍率（速度 / 密度） ----- */
-const SPEED_OPTIONS   = [1, 2, 3, 5, 10];
-const DENSITY_OPTIONS = [1, 2, 3, 5, 10];
+/* ----- 游戏内倍率（速度 / 密度）：最高 20x，局内外都可调 ----- */
+const SPEED_OPTIONS   = [1, 2, 3, 5, 10, 15, 20];
+const DENSITY_OPTIONS = [1, 2, 3, 5, 10, 15, 20];
 let speedIdx = 0;
 let densityIdx = 0;
 function curSpeed()   { return SPEED_OPTIONS[speedIdx]; }
 function curDensity() { return DENSITY_OPTIONS[densityIdx]; }
+
+/* ===== 性能模式：0=关  1=开（无粒子/半果）  2=极致（无粒子/半果/飘字） ===== */
+let perfMode = 0;
 
 function refreshToolUI() {
   speedToggle.textContent = '⚡ 速度: ' + curSpeed() + 'x';
   densityToggle.textContent = '🍉 密度: ' + curDensity() + 'x';
   speedToggle.classList.toggle('boost', curSpeed() > 1);
   densityToggle.classList.toggle('boost', curDensity() > 1);
+
+  perfToggle.textContent = perfMode === 0 ? '🚀 性能: 关'
+                        : perfMode === 1 ? '🚀 性能: 开'
+                        : '🚀 性能: 极致';
+  perfToggle.classList.toggle('perf-on',  perfMode === 1);
+  perfToggle.classList.toggle('perf-max', perfMode === 2);
 }
 
+perfToggle.addEventListener('click', () => {
+  perfMode = (perfMode + 1) % 3;
+
+  // 切换时立即清空对应档位不该显示的对象，避免残留
+  if (perfMode >= 1) {
+    particles.length = 0;
+    halves.length = 0;
+  }
+  if (perfMode >= 2) {
+    floaters.length = 0;
+  }
+
+  refreshToolUI();
+  toast(perfMode === 0 ? '性能模式：关'
+      : perfMode === 1 ? '性能模式：开（无粒子 / 无半个水果）'
+      : '性能模式：极致（无粒子 / 无半果 / 无飘字）');
+});
 speedToggle.addEventListener('click', () => {
   speedIdx = (speedIdx + 1) % SPEED_OPTIONS.length;
   refreshToolUI();
@@ -558,23 +603,86 @@ let runCoins = 0;
 let elapsed = 0, spawnTimer = 0;
 let shake = 0, flash = 0;
 
-let trailPts = [];
-let pointerActive = false;
-let pointerX = 0, pointerY = 0;
+/* ============================================================
+ * 刀光系统：按"会话"隔离
+ * ============================================================ */
+const MAX_TRAIL_PTS = 70;
+const AUTO_BLADE_ID = 'auto';
+const blades = new Map();
+let bladeSeq = 0;
+const sessionBlade = { mouse: null, touch: null };
+let activeTouchId = null;
+
+const MOUSE_BREAK_DIST_FACTOR = 0.45;
+const MOUSE_JUMP_DIST_FACTOR = 0.6;
+
+function isTouchLike(e) {
+  return e.pointerType === 'touch' || e.pointerType === 'pen';
+}
+function getBlade(id) {
+  let b = blades.get(id);
+  if (!b) { b = { x: 0, y: 0, active: false, trail: [] }; blades.set(id, b); }
+  return b;
+}
+function pushBladePoint(id, x, y) {
+  if (!id) return;
+  const b = getBlade(id);
+  b.x = x; b.y = y; b.active = true;
+  b.trail.push({ x, y, t: performance.now() });
+  if (b.trail.length > MAX_TRAIL_PTS) b.trail.shift();
+}
+function deactivateBlade(id) {
+  if (!id) return;
+  const b = blades.get(id);
+  if (b) b.active = false;
+}
+function beginSession(source) {
+  bladeSeq++;
+  const id = source + '#' + bladeSeq;
+  sessionBlade[source] = id;
+  getBlade(id);
+  return id;
+}
+function endSession(source) {
+  const id = sessionBlade[source];
+  if (id) {
+    const b = blades.get(id);
+    if (b) b.active = false;
+  }
+  sessionBlade[source] = null;
+}
+function clearAllBlades() {
+  if (activeTouchId !== null) {
+    try { canvas.releasePointerCapture(activeTouchId); } catch (_) {}
+    activeTouchId = null;
+  }
+  blades.clear();
+  sessionBlade.mouse = null;
+  sessionBlade.touch = null;
+}
+function ensureMouseSession(x, y) {
+  const id = sessionBlade.mouse;
+  if (!id || !blades.has(id)) { beginSession('mouse'); return; }
+  const b = blades.get(id);
+  if (b.trail.length === 0) return;
+
+  const now = performance.now();
+  const cutoff = now - bladeLife() * 1000;
+  let last = null;
+  for (let i = b.trail.length - 1; i >= 0; i--) {
+    if (b.trail[i].t >= cutoff) { last = b.trail[i]; break; }
+  }
+  if (!last) return;
+
+  const thresh = Math.max(W, H) * MOUSE_BREAK_DIST_FACTOR;
+  if (Math.hypot(x - last.x, y - last.y) > thresh) {
+    beginSession('mouse');
+  }
+}
 
 const autoPointer = { x: null, y: null, target: null };
 
-/* ================= 存档系统 =================
- * 内置存档：AES-256-GCM + PBKDF2(100000) → Base64 → localStorage
- * 导出存档：与 AES256.html 工具完全一致的二进制 .aes 格式
- *   [0]       version = 0x01
- *   [1..4]    iterations (uint32 big-endian)
- *   [5..20]   salt (16 bytes)
- *   [21..32]  iv   (12 bytes)
- *   [33..]    ciphertext + 16-byte GCM tag
- *   AAD = 前 33 字节
- * 口令固定为 123456，用 AES256 工具在“解密文件”里输入 123456 即可读取。
- * ============================================ */
+/* ================= 存档系统 ================= */
 const SLOT_COUNT = 3;
 const SAVE_KEY_PREFIX = 'fruit_slice_save_slot_';
 const CURRENT_SLOT_KEY = 'fruit_slice_current_slot';
@@ -683,7 +791,6 @@ async function encodeSavePayload(obj) {
   return 'PLAIN:' + bufToB64(new TextEncoder().encode(JSON.stringify(obj)));
 }
 
-/* ----- 与 AES256.html 工具一致的二进制 .aes 格式 ----- */
 async function encryptToAesBytes(plainBuffer, iterations) {
   if (iterations === undefined) iterations = SAVE_ITER;
   const salt = crypto.getRandomValues(new Uint8Array(16));
@@ -862,11 +969,6 @@ function toast(msg) {
   toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
 }
 
-function downloadText(text, filename) {
-  const blob = new Blob([text], { type: 'text/plain' });
-  downloadBlob(blob, filename);
-}
-
 function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -924,7 +1026,7 @@ function maxLives()             { return BASE_LIFE + save.lifeLevel; }
 function cutRadius()            { return BASE_CUT_RANGE + save.rangeLevel * CUT_RANGE_PER_LEVEL; }
 function bladeLife()            { return BASE_BLADE_LIFE + save.bladeLevel * BLADE_LIFE_PER_LEVEL; }
 function bombDefuseChance()     { return Math.min(1, BASE_BOMB_DEFUSE + save.bombDefuseLevel * BOMB_DEFUSE_PER_LEVEL); }
-function autoSpeed()            { return BASE_AUTO_SPEED + save.autoSpeedLevel * AUTO_SPEED_PER_LEVEL; }
+function autoSpeed()            { return Math.min(AUTO_SPEED_MAX, BASE_AUTO_SPEED + save.autoSpeedLevel * AUTO_SPEED_PER_LEVEL); }
 function coinPerFruit()         { return BASE_COIN_PER_FRUIT + save.coinLevel * COIN_PER_FRUIT_PER_LEVEL; }
 
 /* ================= UI 刷新 ================= */
@@ -974,7 +1076,7 @@ function refreshShopUI() {
   shopDefuseNextEl.textContent = Math.round(Math.min(1, BASE_BOMB_DEFUSE + (save.bombDefuseLevel + 1) * BOMB_DEFUSE_PER_LEVEL) * 100);
   setBuyButton(buyDefuseBtn, save.bombDefuseLevel, MAX_BOMB_DEFUSE_LEVEL, defusePrice(save.bombDefuseLevel));
 
-  shopAutoSpeedEl.textContent = Math.min(AUTO_SPEED_MAX, BASE_AUTO_SPEED + save.autoSpeedLevel * AUTO_SPEED_PER_LEVEL);
+  shopAutoSpeedEl.textContent = autoSpeed();
   shopAutoSpeedNextEl.textContent = Math.min(AUTO_SPEED_MAX, BASE_AUTO_SPEED + (save.autoSpeedLevel + 1) * AUTO_SPEED_PER_LEVEL);
   setBuyButton(buyAutoSpeedBtn, save.autoSpeedLevel, MAX_AUTO_SPEED_LEVEL, autoSpeedPrice(save.autoSpeedLevel));
 
@@ -1022,7 +1124,7 @@ async function buyUpgrade(kind) {
     const p = autoSpeedPrice(save.autoSpeedLevel);
     if (save.coins < p) return;
     save.coins -= p; save.autoSpeedLevel++;
-    toast('自动指针速度提升至 ' + autoSpeed());
+    toast('自动指针速度提升至 ' + autoSpeed() + '（' + (autoSpeed() * AUTO_SPEED_PX_FACTOR) + ' px/s）');
   } else if (kind === 'coin') {
     if (save.coinLevel >= MAX_COIN_LEVEL) return;
     const p = coinPrice(save.coinLevel);
@@ -1114,7 +1216,6 @@ async function loadSlot(slot) {
   toast('已读取槽位 ' + (slot + 1));
 }
 
-/* 导出为 .aes 二进制文件（与 AES256.html 工具完全兼容） */
 async function exportSlot(slot) {
   const s = (slot === currentSlot) ? { ...save, ts: Date.now() } : slotSummaries[slot];
   if (!s) {
@@ -1171,10 +1272,8 @@ importFileInput.addEventListener('change', async (e) => {
 
     let obj;
     if (bytes.length >= 49 && bytes[0] === 0x01) {
-      // 标准 .aes 二进制（与 AES256.html 工具互通）
       obj = await decryptAesToJson(bytes);
     } else {
-      // 兼容旧版：Base64 / 明文 / PLAIN:
       const text = new TextDecoder().decode(bytes);
       obj = await decodeSavePayload(text);
     }
@@ -1200,8 +1299,7 @@ importFileInput.addEventListener('change', async (e) => {
 function forceBackToMenu() {
   state = 'menu';
   fruits = []; halves = []; particles = []; floaters = [];
-  trailPts = [];
-  pointerActive = false;
+  clearAllBlades();
   autoPointer.x = null;
   autoPointer.y = null;
   autoPointer.target = null;
@@ -1213,7 +1311,6 @@ function forceBackToMenu() {
   shake = 0;
   flash = 0;
   autoToggle.classList.remove('show');
-  gameTools.classList.remove('show');
 }
 
 async function resetSlot(slot) {
@@ -1289,11 +1386,18 @@ function closeSave() {
 /* ================= 自动模式 ================= */
 function setAutoMode(v) {
   save.autoMode = !!v;
-  autoPointer.x = null;
-  autoPointer.y = null;
-  autoPointer.target = null;
-  pointerActive = false;
-  trailPts = [];
+  const ab = blades.get(AUTO_BLADE_ID);
+
+  if (save.autoMode) {
+    if (ab) { ab.trail.length = 0; ab.active = false; }
+    autoPointer.x = null;
+    autoPointer.y = null;
+    autoPointer.target = null;
+  } else {
+    if (ab) ab.active = false;
+    autoPointer.target = null;
+  }
+
   refreshAutoUI();
   persistCurrent();
 }
@@ -1327,7 +1431,6 @@ function spawnOne(isBomb) {
 function spawnWave() {
   const diff = Math.min(elapsed / 50, 1);
 
-  /* ---- 密度：影响每波数量与波次间隔 ---- */
   const densMul = Math.sqrt(curDensity());
 
   let count = 1 + Math.floor(Math.random() * (1 + diff * 2.2));
@@ -1353,24 +1456,24 @@ function processCutting() {
   const cr = cutRadius();
   const segR = cr * 0.75;
 
-  const blades = [];
-  if (pointerActive) {
-    blades.push({ circle: true, x: pointerX, y: pointerY, r: cr });
+  const cuts = [];
+  for (const b of blades.values()) {
+    if (b.active) cuts.push({ circle: true, x: b.x, y: b.y, r: cr });
+    for (let i = 1; i < b.trail.length; i++) {
+      const a = b.trail[i - 1];
+      const c = b.trail[i];
+      cuts.push({ x1: a.x, y1: a.y, x2: c.x, y2: c.y, r: segR });
+    }
   }
-  for (let i = 1; i < trailPts.length; i++) {
-    const a = trailPts[i - 1];
-    const b = trailPts[i];
-    blades.push({ x1: a.x, y1: a.y, x2: b.x, y2: b.y, r: segR });
-  }
-  if (!blades.length) return;
+  if (!cuts.length) return;
 
   for (let i = fruits.length - 1; i >= 0; i--) {
     if (state !== 'playing') break;
     const f = fruits[i];
 
     let hitBlade = null;
-    for (let j = 0; j < blades.length; j++) {
-      const b = blades[j];
+    for (let j = 0; j < cuts.length; j++) {
+      const b = cuts[j];
       if (b.circle) {
         if (Math.hypot(f.x - b.x, f.y - b.y) < f.r + b.r) { hitBlade = b; break; }
       } else {
@@ -1443,16 +1546,18 @@ function updateAutoPointer(dt) {
   autoPointer.x = Math.max(0, Math.min(W, autoPointer.x));
   autoPointer.y = Math.max(0, Math.min(H, autoPointer.y));
 
-  pointerActive = true;
-  pointerX = autoPointer.x;
-  pointerY = autoPointer.y;
-
-  trailPts.push({ x: pointerX, y: pointerY, t: performance.now() });
-  if (trailPts.length > 70) trailPts.shift();
+  pushBladePoint(AUTO_BLADE_ID, autoPointer.x, autoPointer.y);
 }
 
-/* ================= 切割 / 炸弹效果 ================= */
+/* ================= 切割 / 炸弹效果 =================
+ * perfMode 分档：
+ *   0 关   ：全部显示
+ *   1 开   ：无粒子、无半个水果（飘字保留）
+ *   2 极致 ：在“开”基础上，金币 / 经验 / 连击飘字也全部不显示
+ * 顶部 HUD 的分数和金币数字在极致模式下依然正常更新
+ */
 function spawnBombBurst(f) {
+  if (perfMode >= 1) return;
   for (let i = 0; i < 70; i++) {
     const a = Math.random() * Math.PI * 2;
     const sp = 100 + Math.random() * 520;
@@ -1472,7 +1577,9 @@ function spawnBombBurst(f) {
 function hitBomb(f) {
   if (Math.random() < bombDefuseChance()) {
     spawnBombBurst(f);
-    floaters.push({ x: f.x, y: f.y - 30, text: '剑气砍爆! 💥', life: 1, maxLife: 1, color: '#8ef6ff' });
+    if (perfMode < 2) {
+      floaters.push({ x: f.x, y: f.y - 30, text: '剑气砍爆! 💥', life: 1, maxLife: 1, color: '#8ef6ff' });
+    }
     shake = 10;
     return;
   }
@@ -1480,7 +1587,9 @@ function hitBomb(f) {
   spawnBombBurst(f);
   shake = 26;
   flash = 1;
-  floaters.push({ x: f.x, y: f.y - 30, text: '-1 ❤️', life: 1, maxLife: 1, color: '#ff6b6b' });
+  if (perfMode < 2) {
+    floaters.push({ x: f.x, y: f.y - 30, text: '-1 ❤️', life: 1, maxLife: 1, color: '#ff6b6b' });
+  }
   loseLife();
 }
 
@@ -1488,35 +1597,37 @@ function sliceFruit(f, angle) {
   const nx = Math.cos(angle + Math.PI / 2);
   const ny = Math.sin(angle + Math.PI / 2);
 
-  for (const side of [1, -1]) {
-    halves.push({
-      x: f.x + nx * side * f.r * 0.22,
-      y: f.y + ny * side * f.r * 0.22,
-      vx: f.vx * 0.55 + nx * side * 175,
-      vy: f.vy * 0.55 + ny * side * 175 - 40,
-      r: f.r,
-      rot: angle,
-      vrot: side * (1.0 + Math.random() * 1.3),
-      side,
-      cfg: f.cfg,
-      seed: Math.random() * 1000
-    });
-  }
+  if (perfMode < 1) {
+    for (const side of [1, -1]) {
+      halves.push({
+        x: f.x + nx * side * f.r * 0.22,
+        y: f.y + ny * side * f.r * 0.22,
+        vx: f.vx * 0.55 + nx * side * 175,
+        vy: f.vy * 0.55 + ny * side * 175 - 40,
+        r: f.r,
+        rot: angle,
+        vrot: side * (1.0 + Math.random() * 1.3),
+        side,
+        cfg: f.cfg,
+        seed: Math.random() * 1000
+      });
+    }
 
-  for (let i = 0; i < 18; i++) {
-    const dir = Math.random() < 0.5 ? 1 : -1;
-    const sp = 80 + Math.random() * 260;
-    const ang = angle + (Math.PI / 2) * dir + (Math.random() - 0.5) * 1.2;
-    const life = 0.4 + Math.random() * 0.45;
-    particles.push({
-      x: f.x + (Math.random() - 0.5) * f.r * 0.6,
-      y: f.y + (Math.random() - 0.5) * f.r * 0.6,
-      vx: Math.cos(ang) * sp,
-      vy: Math.sin(ang) * sp,
-      r: 2 + Math.random() * 4.5,
-      color: Math.random() < 0.35 ? (f.cfg.inner2 || f.cfg.inner) : f.cfg.inner,
-      life, maxLife: life
-    });
+    for (let i = 0; i < 18; i++) {
+      const dir = Math.random() < 0.5 ? 1 : -1;
+      const sp = 80 + Math.random() * 260;
+      const ang = angle + (Math.PI / 2) * dir + (Math.random() - 0.5) * 1.2;
+      const life = 0.4 + Math.random() * 0.45;
+      particles.push({
+        x: f.x + (Math.random() - 0.5) * f.r * 0.6,
+        y: f.y + (Math.random() - 0.5) * f.r * 0.6,
+        vx: Math.cos(ang) * sp,
+        vy: Math.sin(ang) * sp,
+        r: 2 + Math.random() * 4.5,
+        color: Math.random() < 0.35 ? (f.cfg.inner2 || f.cfg.inner) : f.cfg.inner,
+        life, maxLife: life
+      });
+    }
   }
 
   combo++;
@@ -1527,10 +1638,13 @@ function sliceFruit(f, angle) {
   const gainedCoins = coinPerFruit();
   runCoins += gainedCoins;
 
-  floaters.push({ x: f.x, y: f.y - f.r * 0.4, text: '+' + gain, life: 0.8, maxLife: 0.8, color: '#fff3c4' });
-  floaters.push({ x: f.x + f.r * 0.55, y: f.y - f.r * 0.9, text: '+' + gainedCoins + '💰', life: 0.9, maxLife: 0.9, color: '#ffd166' });
-  if (combo >= 3) {
-    floaters.push({ x: f.x, y: f.y - f.r * 1.15, text: combo + ' 连击!', life: 0.95, maxLife: 0.95, color: '#ffd166' });
+  // 飘字：极致力模式（perfMode === 2）下全部不生成
+  if (perfMode < 2) {
+    floaters.push({ x: f.x, y: f.y - f.r * 0.4, text: '+' + gain, life: 0.8, maxLife: 0.8, color: '#fff3c4' });
+    floaters.push({ x: f.x + f.r * 0.55, y: f.y - f.r * 0.9, text: '+' + gainedCoins + '💰', life: 0.9, maxLife: 0.9, color: '#ffd166' });
+    if (combo >= 3) {
+      floaters.push({ x: f.x, y: f.y - f.r * 1.15, text: combo + ' 连击!', life: 0.95, maxLife: 0.95, color: '#ffd166' });
+    }
   }
 
   refreshCoinHud();
@@ -1541,7 +1655,15 @@ function sliceFruit(f, angle) {
 function update(dt) {
   const now = performance.now();
   const cutoff = now - bladeLife() * 1000;
-  while (trailPts.length && trailPts[0].t < cutoff) trailPts.shift();
+
+  for (const [id, b] of Array.from(blades)) {
+    while (b.trail.length && b.trail[0].t < cutoff) b.trail.shift();
+    if (!b.active && b.trail.length === 0) {
+      blades.delete(id);
+      if (sessionBlade.mouse === id) sessionBlade.mouse = null;
+      if (sessionBlade.touch === id) sessionBlade.touch = null;
+    }
+  }
 
   if (comboTimer > 0) {
     comboTimer -= dt;
@@ -1574,29 +1696,35 @@ function update(dt) {
     }
   }
 
-  for (let i = halves.length - 1; i >= 0; i--) {
-    const h = halves[i];
-    h.vy += G * dt;
-    h.x += h.vx * dt;
-    h.y += h.vy * dt;
-    h.rot += h.vrot * dt;
-    if (h.y - h.r > H + 110) halves.splice(i, 1);
+  /* 性能模式 1/2：halves 和 particles 数组为空，跳过物理更新 */
+  if (perfMode < 1) {
+    for (let i = halves.length - 1; i >= 0; i--) {
+      const h = halves[i];
+      h.vy += G * dt;
+      h.x += h.vx * dt;
+      h.y += h.vy * dt;
+      h.rot += h.vrot * dt;
+      if (h.y - h.r > H + 110) halves.splice(i, 1);
+    }
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.vy += G * 0.7 * dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.life -= dt;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
   }
 
-  for (let i = particles.length - 1; i >= 0; i--) {
-    const p = particles[i];
-    p.vy += G * 0.7 * dt;
-    p.x += p.vx * dt;
-    p.y += p.vy * dt;
-    p.life -= dt;
-    if (p.life <= 0) particles.splice(i, 1);
-  }
-
-  for (let i = floaters.length - 1; i >= 0; i--) {
-    const t = floaters[i];
-    t.y -= 62 * dt;
-    t.life -= dt;
-    if (t.life <= 0) floaters.splice(i, 1);
+  /* 极致模式：floaters 不生成，跳过物理更新 */
+  if (perfMode < 2) {
+    for (let i = floaters.length - 1; i >= 0; i--) {
+      const t = floaters[i];
+      t.y -= 62 * dt;
+      t.life -= dt;
+      if (t.life <= 0) floaters.splice(i, 1);
+    }
   }
 
   if (shake > 0) shake = Math.max(0, shake - dt * 70);
@@ -1753,50 +1881,53 @@ function drawFloater(t) {
 }
 
 function drawTrail() {
-  if (trailPts.length < 2) return;
-  const cutoff = performance.now() - bladeLife() * 1000;
-  const pts = [];
-  for (let i = 0; i < trailPts.length; i++) {
-    if (trailPts[i].t >= cutoff) pts.push(trailPts[i]);
-  }
-  if (pts.length < 2) return;
-
+  const now = performance.now();
+  const cutoff = now - bladeLife() * 1000;
   const cr = cutRadius();
+
   ctx.save();
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.shadowColor = '#8ef6ff';
   ctx.shadowBlur = 16;
-  for (let i = 1; i < pts.length; i++) {
-    const t = i / pts.length;
-    ctx.beginPath();
-    ctx.moveTo(pts[i - 1].x, pts[i - 1].y);
-    ctx.lineTo(pts[i].x, pts[i].y);
-    ctx.lineWidth = 2 + (8 + cr * 0.25) * t;
-    ctx.strokeStyle = 'rgba(190,248,255,' + (0.08 + 0.72 * t) + ')';
-    ctx.stroke();
+
+  for (const b of blades.values()) {
+    const pts = b.trail.filter(p => p.t >= cutoff);
+    if (pts.length < 2) continue;
+    for (let i = 1; i < pts.length; i++) {
+      const t = i / pts.length;
+      ctx.beginPath();
+      ctx.moveTo(pts[i - 1].x, pts[i - 1].y);
+      ctx.lineTo(pts[i].x, pts[i].y);
+      ctx.lineWidth = 2 + (8 + cr * 0.25) * t;
+      ctx.strokeStyle = 'rgba(190,248,255,' + (0.08 + 0.72 * t) + ')';
+      ctx.stroke();
+    }
   }
   ctx.restore();
 }
 
 function drawPointerRange() {
-  if (state !== 'playing' || !pointerActive) return;
+  if (state !== 'playing') return;
   const cr = cutRadius();
-  ctx.save();
-  const rg = ctx.createRadialGradient(pointerX, pointerY, 0, pointerX, pointerY, cr);
-  rg.addColorStop(0, 'rgba(160,240,255,0.20)');
-  rg.addColorStop(1, 'rgba(160,240,255,0)');
-  ctx.beginPath();
-  ctx.arc(pointerX, pointerY, cr, 0, Math.PI * 2);
-  ctx.fillStyle = rg;
-  ctx.fill();
+  for (const b of blades.values()) {
+    if (!b.active) continue;
+    ctx.save();
+    const rg = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, cr);
+    rg.addColorStop(0, 'rgba(160,240,255,0.20)');
+    rg.addColorStop(1, 'rgba(160,240,255,0)');
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, cr, 0, Math.PI * 2);
+    ctx.fillStyle = rg;
+    ctx.fill();
 
-  ctx.beginPath();
-  ctx.arc(pointerX, pointerY, cr, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(160,240,255,0.55)';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-  ctx.restore();
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, cr, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(160,240,255,0.55)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.restore();
+  }
 }
 
 function render() {
@@ -1813,9 +1944,15 @@ function render() {
     else drawWholeFruit(f.x, f.y, f.r, f.rot, f.cfg);
   }
 
-  for (const h of halves) drawHalf(h);
-  for (const p of particles) drawParticle(p);
-  for (const t of floaters) drawFloater(t);
+  /* 性能模式 1/2：跳过半个水果和粒子的绘制 */
+  if (perfMode < 1) {
+    for (const h of halves) drawHalf(h);
+    for (const p of particles) drawParticle(p);
+  }
+  /* 极致模式：跳过飘字绘制 */
+  if (perfMode < 2) {
+    for (const t of floaters) drawFloater(t);
+  }
 
   ctx.restore();
 
@@ -1860,8 +1997,7 @@ function startGame() {
   if (!saveReady) return;
   state = 'playing';
   fruits = []; halves = []; particles = []; floaters = [];
-  trailPts = [];
-  pointerActive = false;
+  clearAllBlades();
   autoPointer.x = null;
   autoPointer.y = null;
   autoPointer.target = null;
@@ -1877,14 +2013,12 @@ function startGame() {
   refreshToolUI();
   overlay.classList.add('hide');
   autoToggle.classList.add('show');
-  gameTools.classList.add('show');
 }
 
 function gameOver() {
   if (state === 'over') return;
   state = 'over';
   autoToggle.classList.remove('show');
-  gameTools.classList.remove('show');
 
   const earned = runCoins;
   save.coins += earned;
@@ -1928,35 +2062,101 @@ function getPos(e) {
   return { x: e.clientX - r.left, y: e.clientY - r.top };
 }
 
+function endTouchPointer(id) {
+  if (activeTouchId !== id) return;
+  try { canvas.releasePointerCapture(id); } catch (_) {}
+  activeTouchId = null;
+  endSession('touch');
+}
+
 canvas.addEventListener('pointerdown', (e) => {
   if (save.autoMode && state === 'playing') return;
-  const p = getPos(e);
-  pointerActive = true;
-  pointerX = p.x; pointerY = p.y;
-  trailPts.push({ x: p.x, y: p.y, t: performance.now() });
-  if (trailPts.length > 70) trailPts.shift();
+
+  if (isTouchLike(e)) {
+    if (activeTouchId !== null) return;
+    activeTouchId = e.pointerId;
+    try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+    beginSession('touch');
+    const p = getPos(e);
+    pushBladePoint(sessionBlade.touch, p.x, p.y);
+  } else {
+    if (e.button !== 0) return;
+    const p = getPos(e);
+    ensureMouseSession(p.x, p.y);
+    pushBladePoint(sessionBlade.mouse, p.x, p.y);
+  }
 });
 
 canvas.addEventListener('pointermove', (e) => {
   if (save.autoMode && state === 'playing') return;
-  const p = getPos(e);
-  pointerActive = true;
-  pointerX = p.x; pointerY = p.y;
-  trailPts.push({ x: p.x, y: p.y, t: performance.now() });
-  if (trailPts.length > 70) trailPts.shift();
+
+  if (isTouchLike(e)) {
+    if (e.pointerId !== activeTouchId) return;
+    const p = getPos(e);
+    pushBladePoint(sessionBlade.touch, p.x, p.y);
+  } else {
+    if (e.buttons !== 0 && (e.buttons & 1) === 0) {
+      endSession('mouse');
+      return;
+    }
+
+    const p = getPos(e);
+    if (!sessionBlade.mouse) {
+      beginSession('mouse');
+    } else {
+      const b = blades.get(sessionBlade.mouse);
+      if (b && b.trail.length > 0) {
+        const last = b.trail[b.trail.length - 1];
+        const thresh = Math.max(W, H) * MOUSE_JUMP_DIST_FACTOR;
+        if (Math.hypot(p.x - last.x, p.y - last.y) > thresh) {
+          endSession('mouse');
+          beginSession('mouse');
+        }
+      }
+    }
+    pushBladePoint(sessionBlade.mouse, p.x, p.y);
+  }
 });
 
-canvas.addEventListener('pointerup', () => {
-  if (save.autoMode && state === 'playing') return;
-  pointerActive = false;
+canvas.addEventListener('pointerenter', (e) => {
+  if (isTouchLike(e)) return;
+  const p = getPos(e);
+  ensureMouseSession(p.x, p.y);
+  if (!save.autoMode || state !== 'playing') {
+    pushBladePoint(sessionBlade.mouse, p.x, p.y);
+  }
 });
-canvas.addEventListener('pointercancel', () => {
-  if (save.autoMode && state === 'playing') return;
-  pointerActive = false;
+
+canvas.addEventListener('pointerleave', (e) => {
+  if (isTouchLike(e)) {
+    endTouchPointer(e.pointerId);
+  } else {
+    deactivateBlade(sessionBlade.mouse);
+  }
 });
-canvas.addEventListener('pointerleave', () => {
-  if (save.autoMode && state === 'playing') return;
-  pointerActive = false;
+
+function endPointer(e) {
+  if (isTouchLike(e)) {
+    endTouchPointer(e.pointerId);
+  } else {
+    deactivateBlade(sessionBlade.mouse);
+  }
+}
+canvas.addEventListener('pointerup', endPointer);
+canvas.addEventListener('pointercancel', endPointer);
+
+function handleWindowPointerEnd(e) {
+  if (isTouchLike(e)) endTouchPointer(e.pointerId);
+}
+window.addEventListener('pointerup', handleWindowPointerEnd);
+window.addEventListener('pointercancel', handleWindowPointerEnd);
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && activeTouchId !== null) {
+    try { canvas.releasePointerCapture(activeTouchId); } catch (_) {}
+    activeTouchId = null;
+    endSession('touch');
+  }
 });
 
 /* ================= 启动 ================= */
@@ -1965,11 +2165,10 @@ function loop(now) {
   const rawDt = Math.min((now - last) / 1000, 0.05);
   last = now;
 
-  /* ---- 游戏运行速度：拆分子步长，避免高速时物理跳步 ---- */
   const mult = (state === 'playing') ? curSpeed() : 1;
   let remaining = rawDt * mult;
   let guard = 0;
-  while (remaining > 0.0001 && guard++ < 24) {
+  while (remaining > 0.0001 && guard++ < 60) {
     const step = Math.min(remaining, 1 / 40);
     update(step);
     remaining -= step;
@@ -1983,10 +2182,8 @@ resize();
 refreshToolUI();
 updateHUD();
 refreshCoinHud();
-refreshAutoUiSafe();
+refreshAutoUI();
 requestAnimationFrame(loop);
-
-function refreshAutoUiSafe() { refreshAutoUI(); }
 
 initSave().then(() => {
   startBtn.disabled = false;
