@@ -205,7 +205,7 @@
   #autoToggle.on{opacity:1;}
   #autoToggle:active{transform:translateY(3px);box-shadow:0 1px 0 #b96b00;}
 
-  /* ===== 游戏内工具：性能 / 速度 / 密度（局内外都常驻） ===== */
+  /* ===== 游戏内工具：性能 / 难度 / 速度 / 密度（局内外都常驻） ===== */
   #gameTools{
     position:fixed;right:16px;bottom:70px;z-index:15;
     display:flex;flex-direction:column;gap:8px;align-items:flex-end;
@@ -242,6 +242,20 @@
     opacity:1;
   }
   #gameTools button.perf-max:active{box-shadow:0 1px 0 #4a1f7a;}
+  /* 难度：普通 → 橙色 */
+  #gameTools button.diff-normal{
+    background:linear-gradient(180deg,#ffd080,#e89a20);
+    color:#2a1600;box-shadow:0 4px 0 #a06800,0 8px 22px rgba(0,0,0,.45);
+    opacity:1;
+  }
+  #gameTools button.diff-normal:active{box-shadow:0 1px 0 #a06800;}
+  /* 难度：困难 → 红色 */
+  #gameTools button.diff-hard{
+    background:linear-gradient(180deg,#ff9090,#d02020);
+    color:#fff;box-shadow:0 4px 0 #800000,0 8px 22px rgba(0,0,0,.45);
+    opacity:1;
+  }
+  #gameTools button.diff-hard:active{box-shadow:0 1px 0 #800000;}
 
   #confirmOverlay{
     position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
@@ -420,6 +434,7 @@
 
 <div id="gameTools">
   <button id="perfToggle">🚀 性能: 关</button>
+  <button id="difficultyToggle">🎮 难度: 简单</button>
   <button id="speedToggle">⚡ 速度: 1x</button>
   <button id="densityToggle">🍉 密度: 1x</button>
 </div>
@@ -447,6 +462,7 @@ const resetBtn = document.getElementById('resetBtn');
 const autoToggle = document.getElementById('autoToggle');
 const gameTools = document.getElementById('gameTools');
 const perfToggle = document.getElementById('perfToggle');
+const difficultyToggle = document.getElementById('difficultyToggle');
 const speedToggle = document.getElementById('speedToggle');
 const densityToggle = document.getElementById('densityToggle');
 const shopOverlay = document.getElementById('shopOverlay');
@@ -527,6 +543,18 @@ function curDensity() { return DENSITY_OPTIONS[densityIdx]; }
 /* ===== 性能模式：0=关  1=开（无粒子/半果）  2=极致（无粒子/半果/飘字） ===== */
 let perfMode = 0;
 
+/* ===== 难度：0=简单  1=普通  2=困难 ===== */
+const DIFF_EASY = 0;
+const DIFF_NORMAL = 1;
+const DIFF_HARD = 2;
+const DIFF_NAMES = ['简单', '普通', '困难'];
+const DIFF_DESC = [
+  '简单：只从底部向上抛，重力向下',
+  '普通：上下左右四边都会丢水果，重力仍向下',
+  '困难：四面八方丢水果，每个水果有自己的 360° 重力方向'
+];
+let difficulty = DIFF_EASY;
+
 function refreshToolUI() {
   speedToggle.textContent = '⚡ 速度: ' + curSpeed() + 'x';
   densityToggle.textContent = '🍉 密度: ' + curDensity() + 'x';
@@ -538,24 +566,26 @@ function refreshToolUI() {
                         : '🚀 性能: 极致';
   perfToggle.classList.toggle('perf-on',  perfMode === 1);
   perfToggle.classList.toggle('perf-max', perfMode === 2);
+
+  difficultyToggle.textContent = '🎮 难度: ' + DIFF_NAMES[difficulty];
+  difficultyToggle.classList.remove('diff-normal', 'diff-hard');
+  if (difficulty === DIFF_NORMAL) difficultyToggle.classList.add('diff-normal');
+  if (difficulty === DIFF_HARD)   difficultyToggle.classList.add('diff-hard');
 }
 
 perfToggle.addEventListener('click', () => {
   perfMode = (perfMode + 1) % 3;
-
-  // 切换时立即清空对应档位不该显示的对象，避免残留
-  if (perfMode >= 1) {
-    particles.length = 0;
-    halves.length = 0;
-  }
-  if (perfMode >= 2) {
-    floaters.length = 0;
-  }
-
+  if (perfMode >= 1) { particles.length = 0; halves.length = 0; }
+  if (perfMode >= 2) { floaters.length = 0; }
   refreshToolUI();
   toast(perfMode === 0 ? '性能模式：关'
       : perfMode === 1 ? '性能模式：开（无粒子 / 无半个水果）'
       : '性能模式：极致（无粒子 / 无半果 / 无飘字）');
+});
+difficultyToggle.addEventListener('click', () => {
+  difficulty = (difficulty + 1) % 3;
+  refreshToolUI();
+  toast('难度：' + DIFF_NAMES[difficulty] + ' — ' + DIFF_DESC[difficulty]);
 });
 speedToggle.addEventListener('click', () => {
   speedIdx = (speedIdx + 1) % SPEED_OPTIONS.length;
@@ -1407,11 +1437,8 @@ function scaleFactor() {
   return Math.min(1.2, Math.max(0.62, Math.min(W, H) / 760));
 }
 
-function spawnOne(isBomb) {
-  const sf = scaleFactor();
-  const cfg = isBomb ? null : FRUIT_TYPES[(Math.random() * FRUIT_TYPES.length) | 0];
-  const r = (isBomb ? 30 : cfg.r) * sf;
-
+/* 简单：只从底部向上抛，重力向下（与原版一致） */
+function spawnEasy(cfg, r, isBomb) {
   const x = W * 0.12 + Math.random() * W * 0.76;
   const y = H + r + 10;
   const peakH = H * (0.55 + Math.random() * 0.28);
@@ -1424,8 +1451,118 @@ function spawnOne(isBomb) {
     x, y, vx, vy, r,
     rot: Math.random() * Math.PI * 2,
     vrot: (Math.random() - 0.5) * 3,
-    cfg, isBomb
+    cfg, isBomb,
+    gx: 0, gy: G,
+    entered: false
   });
+}
+
+/* 普通：四边随机出生，重力仍向下 */
+function spawnNormal(cfg, r, isBomb) {
+  const edge = Math.floor(Math.random() * 4);
+  let x, y, vx, vy;
+
+  if (edge === 0) {
+    // 底部：向上抛
+    x = W * 0.12 + Math.random() * W * 0.76;
+    y = H + r + 10;
+    const peakH = H * (0.55 + Math.random() * 0.28);
+    vy = -Math.sqrt(2 * G * peakH);
+    const t = -2 * vy / G;
+    const targetX = W * 0.15 + Math.random() * W * 0.7;
+    vx = (targetX - x) / t;
+  } else if (edge === 1) {
+    // 顶部：缓慢下落，重力加速
+    x = W * 0.12 + Math.random() * W * 0.76;
+    y = -r - 10;
+    vy = 200 + Math.random() * 300;
+    vx = (Math.random() - 0.5) * 300;
+  } else if (edge === 2) {
+    // 左侧：向右飞入，向上抛一点
+    x = -r - 10;
+    y = H * 0.25 + Math.random() * H * 0.5;
+    const riseH = H * (0.3 + Math.random() * 0.3);
+    vy = -Math.sqrt(2 * G * riseH);
+    const t = -2 * vy / G;
+    const targetX = W + r + 100 + Math.random() * 200;
+    vx = (targetX - x) / t;
+  } else {
+    // 右侧：向左飞入
+    x = W + r + 10;
+    y = H * 0.25 + Math.random() * H * 0.5;
+    const riseH = H * (0.3 + Math.random() * 0.3);
+    vy = -Math.sqrt(2 * G * riseH);
+    const t = -2 * vy / G;
+    const targetX = -r - 100 - Math.random() * 200;
+    vx = (targetX - x) / t;
+  }
+
+  fruits.push({
+    x, y, vx, vy, r,
+    rot: Math.random() * Math.PI * 2,
+    vrot: (Math.random() - 0.5) * 3,
+    cfg, isBomb,
+    gx: 0, gy: G,
+    entered: false
+  });
+}
+
+/* 困难：四边随机出生，重力方向 360° 随机 */
+function spawnHard(cfg, r, isBomb) {
+  const edge = Math.floor(Math.random() * 4);
+  let x, y, inwardBase;
+
+  if (edge === 0) {           // 底 → 朝上
+    x = W * 0.15 + Math.random() * W * 0.7;
+    y = H + r + 10;
+    inwardBase = -Math.PI / 2;
+  } else if (edge === 1) {    // 顶 → 朝下
+    x = W * 0.15 + Math.random() * W * 0.7;
+    y = -r - 10;
+    inwardBase = Math.PI / 2;
+  } else if (edge === 2) {    // 左 → 朝右
+    x = -r - 10;
+    y = H * 0.25 + Math.random() * H * 0.5;
+    inwardBase = 0;
+  } else {                    // 右 → 朝左
+    x = W + r + 10;
+    y = H * 0.25 + Math.random() * H * 0.5;
+    inwardBase = Math.PI;
+  }
+
+  // 朝内速度 + ±约14°扰动
+  const inwardAngle = inwardBase + (Math.random() - 0.5) * 0.5;
+  const speed = 700 + Math.random() * 300;
+  const vx = Math.cos(inwardAngle) * speed;
+  const vy = Math.sin(inwardAngle) * speed;
+
+  // 每个水果独立的 360° 重力
+  const gravAngle = Math.random() * Math.PI * 2;
+  const gx = Math.cos(gravAngle) * G;
+  const gy = Math.sin(gravAngle) * G;
+
+  fruits.push({
+    x, y, vx, vy, r,
+    rot: Math.random() * Math.PI * 2,
+    vrot: (Math.random() - 0.5) * 3,
+    cfg, isBomb,
+    gx, gy,
+    entered: false
+  });
+}
+
+function spawnOne(isBomb) {
+  const sf = scaleFactor();
+  const cfg = isBomb ? null : FRUIT_TYPES[(Math.random() * FRUIT_TYPES.length) | 0];
+  const r = (isBomb ? 30 : cfg.r) * sf;
+
+  if (difficulty === DIFF_EASY) {
+    spawnEasy(cfg, r, isBomb);
+  } else if (difficulty === DIFF_NORMAL) {
+    spawnNormal(cfg, r, isBomb);
+  } else {
+    spawnHard(cfg, r, isBomb);
+  }
 }
 
 function spawnWave() {
@@ -1549,13 +1686,7 @@ function updateAutoPointer(dt) {
   pushBladePoint(AUTO_BLADE_ID, autoPointer.x, autoPointer.y);
 }
 
-/* ================= 切割 / 炸弹效果 =================
- * perfMode 分档：
- *   0 关   ：全部显示
- *   1 开   ：无粒子、无半个水果（飘字保留）
- *   2 极致 ：在“开”基础上，金币 / 经验 / 连击飘字也全部不显示
- * 顶部 HUD 的分数和金币数字在极致模式下依然正常更新
- */
+/* ================= 切割 / 炸弹效果 ================= */
 function spawnBombBurst(f) {
   if (perfMode >= 1) return;
   for (let i = 0; i < 70; i++) {
@@ -1597,6 +1728,10 @@ function sliceFruit(f, angle) {
   const nx = Math.cos(angle + Math.PI / 2);
   const ny = Math.sin(angle + Math.PI / 2);
 
+  // 半果继承水果的重力，保证视觉效果一致
+  const hgx = f.gx || 0;
+  const hgy = f.gy !== undefined ? f.gy : G;
+
   if (perfMode < 1) {
     for (const side of [1, -1]) {
       halves.push({
@@ -1609,7 +1744,8 @@ function sliceFruit(f, angle) {
         vrot: side * (1.0 + Math.random() * 1.3),
         side,
         cfg: f.cfg,
-        seed: Math.random() * 1000
+        seed: Math.random() * 1000,
+        gx: hgx, gy: hgy
       });
     }
 
@@ -1638,7 +1774,6 @@ function sliceFruit(f, angle) {
   const gainedCoins = coinPerFruit();
   runCoins += gainedCoins;
 
-  // 飘字：极致力模式（perfMode === 2）下全部不生成
   if (perfMode < 2) {
     floaters.push({ x: f.x, y: f.y - f.r * 0.4, text: '+' + gain, life: 0.8, maxLife: 0.8, color: '#fff3c4' });
     floaters.push({ x: f.x + f.r * 0.55, y: f.y - f.r * 0.9, text: '+' + gainedCoins + '💰', life: 0.9, maxLife: 0.9, color: '#ffd166' });
@@ -1684,27 +1819,46 @@ function update(dt) {
   updateAutoPointer(dt);
   processCutting();
 
+  /* 水果物理：每个水果独立 gx/gy；出界判定：四方向 + entered 标志 */
+  const MARGIN = 90;
   for (let i = fruits.length - 1; i >= 0; i--) {
     const f = fruits[i];
-    f.vy += G * dt;
+    f.vy += f.gy * dt;
+    f.vx += f.gx * dt;
     f.x += f.vx * dt;
     f.y += f.vy * dt;
     f.rot += f.vrot * dt;
-    if (f.y - f.r > H + 90 && f.vy > 0) {
-      fruits.splice(i, 1);
-      if (!f.isBomb) loseLife();
+
+    if (!f.entered) {
+      if (f.x + f.r > 0 && f.x - f.r < W && f.y + f.r > 0 && f.y - f.r < H) {
+        f.entered = true;
+      }
+    }
+
+    if (f.entered) {
+      if (f.x + f.r < -MARGIN || f.x - f.r > W + MARGIN ||
+          f.y + f.r < -MARGIN || f.y - f.r > H + MARGIN) {
+        fruits.splice(i, 1);
+        if (!f.isBomb) loseLife();
+      }
     }
   }
 
-  /* 性能模式 1/2：halves 和 particles 数组为空，跳过物理更新 */
+  /* 半果物理：同样支持独立重力；四方向出界清理 */
   if (perfMode < 1) {
     for (let i = halves.length - 1; i >= 0; i--) {
       const h = halves[i];
-      h.vy += G * dt;
+      const hgx = h.gx || 0;
+      const hgy = h.gy !== undefined ? h.gy : G;
+      h.vy += hgy * dt;
+      h.vx += hgx * dt;
       h.x += h.vx * dt;
       h.y += h.vy * dt;
       h.rot += h.vrot * dt;
-      if (h.y - h.r > H + 110) halves.splice(i, 1);
+      if (h.x + h.r < -200 || h.x - h.r > W + 200 ||
+          h.y + h.r < -200 || h.y - h.r > H + 200) {
+        halves.splice(i, 1);
+      }
     }
 
     for (let i = particles.length - 1; i >= 0; i--) {
@@ -1717,7 +1871,6 @@ function update(dt) {
     }
   }
 
-  /* 极致模式：floaters 不生成，跳过物理更新 */
   if (perfMode < 2) {
     for (let i = floaters.length - 1; i >= 0; i--) {
       const t = floaters[i];
@@ -1944,12 +2097,10 @@ function render() {
     else drawWholeFruit(f.x, f.y, f.r, f.rot, f.cfg);
   }
 
-  /* 性能模式 1/2：跳过半个水果和粒子的绘制 */
   if (perfMode < 1) {
     for (const h of halves) drawHalf(h);
     for (const p of particles) drawParticle(p);
   }
-  /* 极致模式：跳过飘字绘制 */
   if (perfMode < 2) {
     for (const t of floaters) drawFloater(t);
   }
