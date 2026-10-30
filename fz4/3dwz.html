@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>全息 3D 文字编辑器 · 液态玻璃</title>
+<style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+        /* 无光球：仅用极淡径向渐变打底，让玻璃有微弱的色彩可折射 */
+        background:
+            radial-gradient(1100px 760px at 84% 14%, rgba(52,104,180,.20), transparent 62%),
+            radial-gradient(920px 720px at 8% 88%, rgba(108,64,168,.16), transparent 60%),
+            radial-gradient(720px 520px at 52% 122%, rgba(30,80,140,.14), transparent 65%),
+            #05070f;
+        color: #eaf4ff;
+        overflow: hidden;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===== 预览区 ===== */
+    #stage {
+        position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+        z-index: 1;
+        background: #03050b;
+        transition: left .45s cubic-bezier(.4,0,.2,1), bottom .45s cubic-bezier(.4,0,.2,1);
+    }
+    #preview { width: 100%; height: 100%; border: 0; display: block; background: #03050b; }
+    body.panel-open #stage { left: 400px; }
+
+    /* ============================================================
+       液态玻璃面板
+       ============================================================ */
+    #panel {
+        position: fixed;
+        top: 14px; left: 14px; bottom: 14px;
+        width: 372px;
+        z-index: 10;
+        display: flex; flex-direction: column;
+        border-radius: 28px;
+        overflow: hidden;
+
+        background: rgba(11, 17, 32, 0.42);
+
+        box-shadow:
+            0 26px 64px rgba(0,0,0,.62),
+            0 4px 14px rgba(0,0,0,.42),
+            inset 0 1px 0 rgba(255,255,255,.30),
+            inset 0 -1px 0 rgba(255,255,255,.05),
+            inset 1px 0 0 rgba(255,255,255,.14),
+            inset -1px 0 0 rgba(255,255,255,.14);
+
+        -webkit-backdrop-filter: blur(16px) saturate(165%);
+        backdrop-filter: blur(16px) saturate(165%);
+
+        transition: transform .45s cubic-bezier(.4,0,.2,1), opacity .3s;
+        will-change: transform;
+    }
+    body:not(.panel-open) #panel {
+        transform: translateX(calc(-100% - 24px));
+    }
+
+    #panel::after {
+        content: '';
+        position: absolute; inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        background:
+            radial-gradient(130% 62% at 18% -12%, rgba(255,255,255,.26), transparent 62%),
+            radial-gradient(90% 55% at 106% 112%, rgba(120,180,255,.16), transparent 70%),
+            linear-gradient(180deg, rgba(255,255,255,.07), transparent 22%);
+        mix-blend-mode: screen;
+    }
+
+    #panel .scroll {
+        position: relative; z-index: 1;
+        flex: 1; overflow-y: auto; overscroll-behavior: contain;
+        padding: 24px 22px 14px;
+        -webkit-overflow-scrolling: touch;
+    }
+    #panel .scroll::-webkit-scrollbar { width: 6px; }
+    #panel .scroll::-webkit-scrollbar-track { background: transparent; }
+    #panel .scroll::-webkit-scrollbar-thumb {
+        background: rgba(140, 200, 255, .26);
+        border-radius: 3px;
+    }
+    #panel .scroll::-webkit-scrollbar-thumb:hover {
+        background: rgba(140, 200, 255, .45);
+    }
+
+    /* ===== 标题 ===== */
+    .head h1 {
+        font-size: 17px; font-weight: 700; letter-spacing: .04em; margin: 0 0 6px;
+        background: linear-gradient(90deg, #7fe0ff, #b28bff);
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+        text-shadow: 0 0 22px rgba(95,208,255,.28);
+    }
+    .head p { font-size: 12px; color: #8ea6c2; margin: 0 0 22px; line-height: 1.55; }
+
+    /* ===== 表单 ===== */
+    .field { margin-bottom: 17px; }
+    .field label {
+        display: flex; justify-content: space-between; align-items: center;
+        font-size: 13px; color: #a3b9d4; margin-bottom: 9px; letter-spacing: .02em;
+    }
+    .field label b {
+        color: #7fdcff; font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        text-shadow: 0 0 12px rgba(95,208,255,.5);
+    }
+
+    textarea {
+        width: 100%; resize: vertical; min-height: 56px; max-height: 170px;
+        background: rgba(255,255,255,.065);
+        border: 1px solid rgba(255,255,255,.17);
+        border-radius: 12px; padding: 11px 13px;
+        color: #f2f9ff; font-size: 16px; line-height: 1.45;
+        font-family: inherit; outline: none;
+        box-shadow:
+            inset 0 1px 0 rgba(255,255,255,.20),
+            inset 0 -1px 0 rgba(0,0,0,.28);
+        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
+        transition: border-color .2s, box-shadow .2s, background .2s;
+    }
+    textarea:focus {
+        border-color: rgba(127,220,255,.62);
+        background: rgba(255,255,255,.09);
+        box-shadow:
+            inset 0 1px 0 rgba(255,255,255,.25),
+            0 0 0 3px rgba(95,208,255,.14),
+            0 0 18px rgba(95,208,255,.18);
+    }
+
+    input[type=range] {
+        -webkit-appearance: none; appearance: none;
+        width: 100%; height: 6px; border-radius: 6px; outline: none; cursor: pointer;
+        background: linear-gradient(90deg, rgba(95,208,255,.85), rgba(155,123,255,.85));
+        box-shadow:
+            inset 0 1px 0 rgba(255,255,255,.42),
+            inset 0 -1px 0 rgba(0,0,0,.35),
+            0 0 14px rgba(95,208,255,.22);
+    }
+    input[type=range]::-webkit-slider-thumb {
+        -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+        background:
+            radial-gradient(circle at 34% 28%, #ffffff 0%, #d6f2ff 32%, #6fd7ff 70%, #2b7fb8 100%);
+        border: 1px solid rgba(255,255,255,.75);
+        box-shadow:
+            0 2px 8px rgba(0,0,0,.55),
+            0 0 14px rgba(111,215,255,.65),
+            inset 0 -2px 4px rgba(0,40,80,.45);
+        cursor: grab;
+    }
+    input[type=range]::-webkit-slider-thumb:active { cursor: grabbing; }
+    input[type=range]::-moz-range-thumb {
+        width: 16px; height: 16px; border-radius: 50%;
+        background: radial-gradient(circle at 34% 28%, #fff, #d6f2ff 32%, #6fd7ff 70%, #2b7fb8 100%);
+        border: 1px solid rgba(255,255,255,.75);
+        box-shadow: 0 2px 8px rgba(0,0,0,.55), 0 0 14px rgba(111,215,255,.65);
+    }
+
+    .group-title {
+        font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+        color: #64809e; margin: 22px 0 14px;
+        display: flex; align-items: center; gap: 10px;
+    }
+    .group-title::after {
+        content: ''; flex: 1; height: 1px;
+        background: linear-gradient(90deg, rgba(127,220,255,.28), transparent);
+    }
+
+    /* ============================================================
+       液态玻璃按钮（通用）
+       ============================================================ */
+    button {
+        position: relative;
+        overflow: hidden;
+        font-family: inherit;
+        cursor: pointer;
+        border-radius: 14px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #eaf6ff;
+        border: 1px solid rgba(255,255,255,.26);
+        background: linear-gradient(155deg,
+            rgba(255,255,255,.20) 0%,
+            rgba(255,255,255,.055) 46%,
+            rgba(255,255,255,.12) 100%);
+        -webkit-backdrop-filter: blur(16px) saturate(190%);
+        backdrop-filter: blur(16px) saturate(190%);
+        box-shadow:
+            0 10px 26px rgba(0,0,0,.48),
+            0 2px 6px rgba(0,0,0,.32),
+            inset 0 1px 0 rgba(255,255,255,.58),
+            inset 0 -1px 0 rgba(0,0,0,.35),
+            inset 1px 0 0 rgba(255,255,255,.16),
+            inset -1px 0 0 rgba(255,255,255,.16);
+        text-shadow: 0 1px 2px rgba(0,10,30,.55);
+        transition: transform .16s ease, box-shadow .25s ease, background .25s ease, border-color .25s ease;
+    }
+    /* 顶部弧形高光，模拟玻璃受光面 */
+    button::before {
+        content: '';
+        position: absolute;
+        left: 6%; right: 6%; top: 1px; height: 46%;
+        border-radius: 14px 14px 60% 60% / 14px 14px 100% 100%;
+        background: linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,0) 78%);
+        opacity: .8;
+        pointer-events: none;
+        mix-blend-mode: screen;
+    }
+    button:hover {
+        background: linear-gradient(155deg,
+            rgba(255,255,255,.28) 0%,
+            rgba(255,255,255,.09) 46%,
+            rgba(255,255,255,.16) 100%);
+        border-color: rgba(255,255,255,.42);
+        box-shadow:
+            0 14px 34px rgba(0,0,0,.55),
+            0 2px 8px rgba(0,0,0,.35),
+            inset 0 1px 0 rgba(255,255,255,.70),
+            inset 0 -1px 0 rgba(0,0,0,.35),
+            inset 1px 0 0 rgba(255,255,255,.20),
+            inset -1px 0 0 rgba(255,255,255,.20);
+    }
+    button:active {
+        transform: translateY(1px) scale(.993);
+        box-shadow:
+            0 6px 16px rgba(0,0,0,.5),
+            inset 0 1px 0 rgba(255,255,255,.45),
+            inset 0 -1px 0 rgba(0,0,0,.3);
+    }
+
+    /* 彩色液态玻璃主按钮 */
+    .primary {
+        flex: 1;
+        padding: 13px;
+        color: #ffffff;
+        background: linear-gradient(155deg,
+            rgba(126,200,255,.42) 0%,
+            rgba(120,110,255,.30) 52%,
+            rgba(70,150,255,.24) 100%);
+        border: 1px solid rgba(190,225,255,.42);
+        box-shadow:
+            0 12px 30px rgba(50,120,255,.34),
+            0 2px 8px rgba(0,0,0,.35),
+            inset 0 1px 0 rgba(255,255,255,.66),
+            inset 0 -1px 0 rgba(20,50,140,.45),
+            inset 1px 0 0 rgba(255,255,255,.24),
+            inset -1px 0 0 rgba(255,255,255,.24);
+        text-shadow: 0 1px 3px rgba(0,20,80,.6);
+    }
+    .primary:hover {
+        background: linear-gradient(155deg,
+            rgba(146,215,255,.55) 0%,
+            rgba(140,125,255,.42) 52%,
+            rgba(80,165,255,.34) 100%);
+        border-color: rgba(210,235,255,.62);
+        box-shadow:
+            0 16px 40px rgba(60,130,255,.50),
+            0 2px 8px rgba(0,0,0,.40),
+            inset 0 1px 0 rgba(255,255,255,.82),
+            inset 0 -1px 0 rgba(20,50,140,.50),
+            inset 1px 0 0 rgba(255,255,255,.32),
+            inset -1px 0 0 rgba(255,255,255,.32);
+    }
+
+    /* 次级液态玻璃按钮 */
+    .ghost {
+        padding: 13px 16px;
+        color: #cbe7ff;
+        background: linear-gradient(155deg,
+            rgba(255,255,255,.14) 0%,
+            rgba(255,255,255,.045) 50%,
+            rgba(255,255,255,.09) 100%);
+        border: 1px solid rgba(255,255,255,.24);
+    }
+    .ghost:hover {
+        background: linear-gradient(155deg,
+            rgba(255,255,255,.22) 0%,
+            rgba(255,255,255,.08) 50%,
+            rgba(255,255,255,.14) 100%);
+        border-color: rgba(255,255,255,.40);
+    }
+
+    /* ===== 底部按钮区 ===== */
+    .footer {
+        position: relative; z-index: 1;
+        padding: 14px 22px calc(16px + env(safe-area-inset-bottom));
+        display: flex; gap: 10px;
+        border-top: 1px solid rgba(255,255,255,.10);
+        background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.06));
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+    }
+
+    /* ===== 悬浮开关（圆形液态玻璃）===== */
+    #fab {
+        position: fixed; right: 24px; bottom: 24px;
+        width: 58px; height: 58px;
+        border-radius: 50%;
+        z-index: 30;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 20px;
+        color: #bfe9ff;
+        padding: 0;
+        border: 1px solid rgba(255,255,255,.32);
+        background: linear-gradient(155deg,
+            rgba(255,255,255,.24) 0%,
+            rgba(255,255,255,.07) 48%,
+            rgba(255,255,255,.16) 100%);
+        -webkit-backdrop-filter: blur(18px) saturate(190%);
+        backdrop-filter: blur(18px) saturate(190%);
+        box-shadow:
+            0 14px 36px rgba(0,0,0,.55),
+            0 0 34px rgba(95,208,255,.26),
+            inset 0 1px 0 rgba(255,255,255,.70),
+            inset 0 -1px 0 rgba(0,0,0,.35),
+            inset 1px 0 0 rgba(255,255,255,.22),
+            inset -1px 0 0 rgba(255,255,255,.22);
+        transition: transform .25s ease, box-shadow .25s ease, background .25s ease, border-color .25s ease;
+    }
+    /* 圆形顶光 */
+    #fab::before {
+        left: 10%; right: 10%; top: 2px; height: 44%;
+        border-radius: 50% 50% 50% 50% / 100% 100% 80% 80%;
+    }
+    #fab:hover {
+        transform: scale(1.08);
+        background: linear-gradient(155deg,
+            rgba(255,255,255,.32) 0%,
+            rgba(255,255,255,.10) 48%,
+            rgba(255,255,255,.22) 100%);
+        border-color: rgba(255,255,255,.48);
+        box-shadow:
+            0 16px 42px rgba(0,0,0,.60),
+            0 0 46px rgba(95,208,255,.42),
+            inset 0 1px 0 rgba(255,255,255,.85),
+            inset 0 -1px 0 rgba(0,0,0,.35),
+            inset 1px 0 0 rgba(255,255,255,.28),
+            inset -1px 0 0 rgba(255,255,255,.28);
+    }
+    #fab:active { transform: scale(.96); }
+
+    /* ===== Toast ===== */
+    #toast {
+        position: fixed; left: 50%; bottom: 96px; z-index: 40;
+        transform: translate(-50%, 16px);
+        background: rgba(14,24,44,.92);
+        border: 1px solid rgba(255,255,255,.22);
+        color: #cdeaff; padding: 11px 22px; border-radius: 30px;
+        font-size: 13px; opacity: 0; pointer-events: none;
+        white-space: nowrap;
+        -webkit-backdrop-filter: blur(14px) saturate(160%);
+        backdrop-filter: blur(14px) saturate(160%);
+        box-shadow: 0 10px 30px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.28);
+        transition: opacity .3s, transform .3s;
+    }
+    #toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    /* ===== 移动端 ===== */
+    @media (max-width: 860px) {
+        #panel {
+            top: auto; left: 10px; right: 10px; bottom: 10px;
+            width: auto; height: 58vh;
+            border-radius: 26px;
+        }
+        body:not(.panel-open) #panel {
+            transform: translateY(calc(100% + 26px));
+        }
+        body.panel-open #stage { left: 0; bottom: 0; }
+        #fab { right: 16px; bottom: 16px; width: 54px; height: 54px; }
+    }
+</style>
+</head>
+<body class="panel-open">
+
+    <!-- 预览 -->
+    <div id="stage">
+        <iframe id="preview" title="3D 全息文字预览"></iframe>
+    </div>
+
+    <!-- 液态玻璃面板 -->
+    <aside id="panel">
+        <div class="scroll">
+            <div class="head">
+                <h1>全息 3D 文字</h1>
+                <p>输入文字 → 调整参数 → 导出独立的 HTML 文件</p>
+            </div>
+
+            <div class="field">
+                <label for="text">文字内容</label>
+                <textarea id="text" rows="2" spellcheck="false">星星的网页</textarea>
+            </div>
+
+            <div class="group-title">形态</div>
+
+            <div class="field">
+                <label for="layers">图层数量 <b id="v-layers">60</b></label>
+                <input id="layers" type="range" min="10" max="140" step="1" value="60">
+            </div>
+
+            <div class="field">
+                <label for="depth">文字厚度 <b id="v-depth">0.50</b></label>
+                <input id="depth" type="range" min="0.1" max="1.2" step="0.05" value="0.5">
+            </div>
+
+            <div class="field">
+                <label for="speed">旋转周期 <b id="v-speed">15s</b></label>
+                <input id="speed" type="range" min="4" max="40" step="1" value="15">
+            </div>
+
+            <div class="group-title">色彩</div>
+
+            <div class="field">
+                <label for="hueStart">起始色相 <b id="v-hueStart">190</b></label>
+                <input id="hueStart" type="range" min="0" max="360" step="1" value="190">
+            </div>
+
+            <div class="field">
+                <label for="hueEnd">结束色相 <b id="v-hueEnd">270</b></label>
+                <input id="hueEnd" type="range" min="0" max="360" step="1" value="270">
+            </div>
+
+            <div class="field">
+                <label for="lightStart">前层亮度 <b id="v-lightStart">95</b></label>
+                <input id="lightStart" type="range" min="0" max="100" step="1" value="95">
+            </div>
+
+            <div class="field">
+                <label for="lightEnd">后层亮度 <b id="v-lightEnd">20</b></label>
+                <input id="lightEnd" type="range" min="0" max="100" step="1" value="20">
+            </div>
+
+            <div class="group-title">散光 / 光晕</div>
+
+            <div class="field">
+                <label for="glow">光晕强度 <b id="v-glow">55</b></label>
+                <input id="glow" type="range" min="0" max="100" step="1" value="55">
+            </div>
+
+            <div class="field">
+                <label for="glowLayers">光晕层数 <b id="v-glowLayers">5</b></label>
+                <input id="glowLayers" type="range" min="1" max="20" step="1" value="5">
+            </div>
+        </div>
+
+        <div class="footer">
+            <button id="export" class="primary">导出 HTML 文件</button>
+            <button id="copy" class="ghost">复制源码</button>
+        </div>
+    </aside>
+
+    <button id="fab" title="显示 / 隐藏控制面板">✎</button>
+    <div id="toast"></div>
+
+<script>
+(function () {
+    "use strict";
+
+    /* ============================================================
+       一、生成最终 HTML（编辑器与导出共用同一份模板）
+       ============================================================ */
+
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
+
+    function num(v, fallback, min, max) {
+        v = Number(v);
+        if (!isFinite(v)) v = fallback;
+        if (v < min) v = min;
+        if (v > max) v = max;
+        return v;
+    }
+
+    function buildHTML(cfg) {
+        var textLiteral = JSON.stringify(String(cfg.text || ' ')).replace(/</g, '\\u003c');
+        var title = escapeHtml(cfg.text || '全息 3D 文字');
+
+        return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>${title}</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+    html, body {
+        width: 100%; height: 100%; overflow: hidden;
+        font-family: 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', 'Helvetica Neue', sans-serif;
+        background: #03050b; color: #fff;
+    }
+    #starCanvas, #particleCanvas {
+        position: fixed; top: 0; left: 0;
+        width: 100%; height: 100%; display: block; pointer-events: none;
+    }
+    #starCanvas { z-index: 0; }
+    #particleCanvas { z-index: 1; }
+
+    .content {
+        position: relative; z-index: 2;
+        width: 100%; height: 100%;
+        display: flex; align-items: center; justify-content: center;
+        perspective: 1200px;
+    }
+    .text-container {
+        display: flex; transform-style: preserve-3d; will-change: transform;
+        animation: spin3d ${cfg.speed}s linear infinite;
+    }
+    @keyframes spin3d {
+        0%   { transform: rotateX(-10deg) rotateY(0deg); }
+        100% { transform: rotateX(-10deg) rotateY(360deg); }
+    }
+    .char-box {
+        position: relative; width: 1.1em; height: 1.2em; margin: 0 0.02em;
+        font-weight: 900; transform-style: preserve-3d;
+    }
+    .char-slice {
+        position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+        display: flex; align-items: center; justify-content: center;
+        white-space: nowrap;
+        -webkit-font-smoothing: antialiased;
+    }
+</style>
+</head>
+<body>
+
+    <canvas id="starCanvas"></canvas>
+    <canvas id="particleCanvas"></canvas>
+
+    <div class="content">
+        <div class="text-container" id="textContainer"></div>
+    </div>
+
+<script>
+(function () {
+    "use strict";
+
+    /* ============================================================
+       第一部分：星空 + 流星雨
+       ============================================================ */
+    const canvas = document.getElementById('starCanvas');
+    const ctx = canvas.getContext('2d');
+    let stars = [], width = 0, height = 0;
+    const STAR_COUNT = 220, meteors = [], MAX_METEORS = 3;
+    let nextMeteorTime = 0, burstRemaining = 0, nextBurstShotTime = 0, nextBurstCheckTime = 0;
+
+    function scheduleNextMeteor(now) { nextMeteorTime = now + 2500 + Math.random() * 5500; }
+    function scheduleNextBurstShot(now) { nextBurstShotTime = now + 200 + Math.random() * 600; }
+
+    function initStars() {
+        stars = [];
+        for (let i = 0; i < STAR_COUNT; i++) {
+            stars.push({
+                x: Math.random() * width, y: Math.random() * height,
+                radius: Math.random() * 2.2 + 0.8, alpha: Math.random() * 0.5 + 0.3,
+                speed: 0.002 + Math.random() * 0.008, offset: Math.random() * Math.PI * 2
+            });
+        }
+    }
+
+    function resizeCanvas() {
+        width = window.innerWidth; height = window.innerHeight;
+        canvas.width = width; canvas.height = height;
+        initStars();
+    }
+
+    function spawnMeteor(speedBoost, now) {
+        if (meteors.length >= MAX_METEORS) return;
+        const baseSpeed = 320 + Math.random() * 420;
+        const speed = speedBoost ? baseSpeed * 1.4 : baseSpeed;
+        const pad = 120;
+        const edge = Math.floor(Math.random() * 4);
+        let startX, startY;
+        if (edge === 0) { startX = Math.random() * width; startY = -pad; }
+        else if (edge === 1) { startX = width + pad; startY = Math.random() * height; }
+        else if (edge === 2) { startX = Math.random() * width; startY = height + pad; }
+        else { startX = -pad; startY = Math.random() * height; }
+
+        const targetX = width * (0.1 + Math.random() * 0.8);
+        const targetY = height * (0.1 + Math.random() * 0.8);
+        const dx = targetX - startX, dy = targetY - startY;
+        const d = Math.sqrt(dx * dx + dy * dy) || 1;
+        const warm = Math.random() < 0.22;
+
+        meteors.push({
+            x: startX, y: startY, vx: (dx / d) * speed, vy: (dy / d) * speed,
+            len: 80 + Math.random() * 200, width: 0.8 + Math.random() * 1.6,
+            bornAt: now, fadeIn: 60 + Math.random() * 80,
+            hue: warm ? '255, 240, 220' : '198, 224, 255'
+        });
+    }
+
+    function updateMeteors(now, dtSec) {
+        if (now >= nextMeteorTime) { spawnMeteor(false, now); scheduleNextMeteor(now); }
+        if (burstRemaining === 0 && now >= nextBurstCheckTime) {
+            if (Math.random() < 0.5) { burstRemaining = 2 + Math.floor(Math.random() * 2); nextBurstShotTime = now; }
+            nextBurstCheckTime = now + 30000 + Math.random() * 60000;
+        }
+        if (burstRemaining > 0 && now >= nextBurstShotTime) {
+            spawnMeteor(true, now); burstRemaining--;
+            if (burstRemaining > 0) scheduleNextBurstShot(now);
+        }
+        const pad = 100;
+        for (let i = meteors.length - 1; i >= 0; i--) {
+            const m = meteors[i];
+            m.x += m.vx * dtSec; m.y += m.vy * dtSec;
+            const offDist = Math.max(-m.x - pad, m.x - width - pad, -m.y - pad, m.y - height - pad, 0);
+            if (offDist > 320) meteors.splice(i, 1);
+        }
+    }
+
+    function drawMeteors(now) {
+        const pad = 100;
+        for (let i = 0; i < meteors.length; i++) {
+            const m = meteors[i];
+            const d = Math.sqrt(m.vx * m.vx + m.vy * m.vy) || 1;
+            const ux = m.vx / d, uy = m.vy / d;
+            const tailX = m.x - ux * m.len, tailY = m.y - uy * m.len;
+            let a = 1;
+            const age = now - m.bornAt;
+            if (age < m.fadeIn) a = age / m.fadeIn;
+            const offDist = Math.max(-m.x - pad, m.x - width - pad, -m.y - pad, m.y - height - pad, 0);
+            a *= 1 - Math.min(1, offDist / 250);
+            if (a <= 0.02) continue;
+
+            const grad = ctx.createLinearGradient(m.x, m.y, tailX, tailY);
+            grad.addColorStop(0, 'rgba(255, 255, 255, ' + (a * 0.95) + ')');
+            grad.addColorStop(0.12, 'rgba(' + m.hue + ', ' + (a * 0.72) + ')');
+            grad.addColorStop(0.55, 'rgba(' + m.hue + ', ' + (a * 0.20) + ')');
+            grad.addColorStop(1, 'rgba(' + m.hue + ', 0)');
+
+            ctx.save();
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = grad; ctx.globalAlpha = 0.35; ctx.lineWidth = m.width * 3.2;
+            ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(tailX, tailY); ctx.stroke();
+            ctx.globalAlpha = 1; ctx.strokeStyle = grad; ctx.lineWidth = m.width;
+            ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(tailX, tailY); ctx.stroke();
+            ctx.beginPath(); ctx.arc(m.x, m.y, m.width * 3.4, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(' + m.hue + ', ' + (a * 0.13) + ')'; ctx.fill();
+            ctx.beginPath(); ctx.arc(m.x, m.y, m.width * 0.9, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, ' + (a * 0.92) + ')'; ctx.fill();
+            ctx.restore();
+        }
+    }
+
+    let lastFrameTime = 0;
+    function renderLoop(now) {
+        if (lastFrameTime === 0) lastFrameTime = now;
+        const dt = Math.min(now - lastFrameTime, 100);
+        lastFrameTime = now; const dtSec = dt / 1000;
+
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = '#03050b'; ctx.fillRect(0, 0, width, height);
+
+        const nowSec = now / 1000;
+        for (let i = 0; i < stars.length; i++) {
+            const star = stars[i];
+            const twinkle = 0.5 + 0.5 * Math.sin(nowSec * star.speed * 2.5 + star.offset);
+            const alpha = Math.min(star.alpha * (0.6 + twinkle * 0.5), 0.95);
+            ctx.beginPath(); ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(225, 235, 255, ' + alpha + ')'; ctx.fill();
+            if (star.radius > 1.5 && twinkle > 0.7) {
+                ctx.beginPath(); ctx.arc(star.x, star.y, star.radius * 1.5, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(180, 210, 255, ' + (alpha * 0.2) + ')'; ctx.fill();
+            }
+        }
+        updateMeteors(now, dtSec);
+        drawMeteors(now);
+        requestAnimationFrame(renderLoop);
+    }
+
+    /* ============================================================
+       第二部分：微粒子
+       ============================================================ */
+    const particleCanvas = document.getElementById('particleCanvas');
+    const particleCtx = particleCanvas.getContext('2d');
+    let particles = [];
+    const PARTICLE_COUNT = 30;
+
+    function initParticles() {
+        particles = [];
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
+            particles.push({
+                x: Math.random() * window.innerWidth, y: Math.random() * window.innerHeight,
+                size: Math.random() * 2 + 1, alpha: 0.2,
+                vx: (Math.random() - 0.5) * 0.2, vy: (Math.random() - 0.5) * 0.1
+            });
+        }
+    }
+
+    function resizeParticleCanvas() {
+        particleCanvas.width = window.innerWidth;
+        particleCanvas.height = window.innerHeight;
+        initParticles();
+    }
+
+    function animateParticles() {
+        const W = particleCanvas.width, H = particleCanvas.height;
+        particleCtx.clearRect(0, 0, W, H);
+        for (let i = 0; i < particles.length; i++) {
+            const p = particles[i];
+            p.x += p.vx; p.y += p.vy;
+            if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+            if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+            particleCtx.beginPath();
+            particleCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            particleCtx.fillStyle = 'rgba(180, 200, 255, ' + (p.alpha * 0.5) + ')';
+            particleCtx.fill();
+        }
+        requestAnimationFrame(animateParticles);
+    }
+
+    /* ============================================================
+       第三部分：全息实体 3D 文字构建
+       ============================================================ */
+    const TEXT        = ${textLiteral};
+    const LAYERS      = ${cfg.layers};
+    const DEPTH_RATIO = ${cfg.depth};
+    const HUE_START   = ${cfg.hueStart};
+    const HUE_END     = ${cfg.hueEnd};
+    const LIGHT_START = ${cfg.lightStart};
+    const LIGHT_END   = ${cfg.lightEnd};
+    const GLOW        = ${cfg.glow};
+    const GLOW_LAYERS = ${cfg.glowLayers};
+
+    const textContainer = document.getElementById('textContainer');
+
+    function buildText() {
+        textContainer.innerHTML = '';
+
+        const vw  = window.innerWidth;
+        const len = Math.max(TEXT.length, 1);
+        const fs = Math.min(vw * 0.12, 110, (vw * 0.88) / (len * 1.14));
+
+        const totalDepth = fs * DEPTH_RATIO;
+        const step = totalDepth / LAYERS;
+        const glowAmt = GLOW / 100;
+
+        for (let i = 0; i < TEXT.length; i++) {
+            const char = TEXT[i];
+            const box = document.createElement('div');
+            box.className = 'char-box';
+            box.style.fontSize = fs + 'px';
+
+            for (let j = 0; j < LAYERS; j++) {
+                const slice = document.createElement('div');
+                slice.className = 'char-slice';
+                slice.textContent = char;
+
+                const z = -j * step;
+                const t = LAYERS > 1 ? j / (LAYERS - 1) : 0;
+
+                const hue = HUE_START + t * (HUE_END - HUE_START);
+                const lightness = LIGHT_START - t * (LIGHT_START - LIGHT_END);
+                slice.style.color = 'hsl(' + hue + ', 100%, ' + lightness + '%)';
+
+                if (j < GLOW_LAYERS && glowAmt > 0.005) {
+                    const hue2 = hue + 26;
+                    const r1 = 6 + 16 * glowAmt;
+                    const r2 = 14 + 34 * glowAmt;
+                    const a1 = (0.90 * glowAmt).toFixed(3);
+                    const a2 = (0.45 * glowAmt).toFixed(3);
+                    slice.style.textShadow =
+                        '0 0 ' + r1.toFixed(1) + 'px hsla(' + hue.toFixed(1) + ', 100%, 72%, ' + a1 + '), ' +
+                        '0 0 ' + r2.toFixed(1) + 'px hsla(' + hue2.toFixed(1) + ', 100%, 60%, ' + a2 + ')';
+                }
+
+                slice.style.transform = 'translateZ(' + z + 'px)';
+                box.appendChild(slice);
+            }
+            textContainer.appendChild(box);
+        }
+    }
+
+    /* ============================================================
+       第四部分：启动
+       ============================================================ */
+    function init() {
+        resizeCanvas();
+        resizeParticleCanvas();
+
+        const t0 = performance.now();
+        nextMeteorTime = t0 + 1000 + Math.random() * 2000;
+        nextBurstCheckTime = t0 + 30000 + Math.random() * 30000;
+
+        buildText();
+
+        window.addEventListener('resize', function () {
+            resizeCanvas();
+            resizeParticleCanvas();
+            buildText();
+        });
+
+        requestAnimationFrame(renderLoop);
+        animateParticles();
+    }
+
+    init();
+})();
+<\/script>
+</body>
+</html>`;
+    }
+
+    /* ============================================================
+       二、液态玻璃面板：SVG feDisplacementMap 折射
+       ============================================================ */
+
+    function calculateRefractionProfile(glassThickness, bezelWidth, heightFn, ior, samples) {
+        samples = samples || 128;
+        var eta = 1 / ior;
+        function refract(nx, ny) {
+            var dot = ny;
+            var k = 1 - eta * eta * (1 - dot * dot);
+            if (k < 0) return null;
+            var sq = Math.sqrt(k);
+            return [-(eta * dot + sq) * nx, eta - (eta * dot + sq) * ny];
+        }
+        var profile = new Float64Array(samples);
+        for (var i = 0; i < samples; i++) {
+            var x = i / samples;
+            var y = heightFn(x);
+            var dx = x < 1 ? 0.0001 : -0.0001;
+            var y2 = heightFn(x + dx);
+            var deriv = (y2 - y) / dx;
+            var mag = Math.sqrt(deriv * deriv + 1);
+            var ref = refract(-deriv / mag, -1 / mag);
+            if (!ref) { profile[i] = 0; continue; }
+            profile[i] = ref[0] * ((y * bezelWidth + glassThickness) / ref[1]);
+        }
+        return profile;
+    }
+
+    function generateDisplacementMap(w, h, radius, bezelWidth, profile, maxDisp) {
+        var c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        var ctx = c.getContext('2d');
+        var img = ctx.createImageData(w, h);
+        var d = img.data;
+        for (var i = 0; i < d.length; i += 4) {
+            d[i] = 128; d[i + 1] = 128; d[i + 2] = 0; d[i + 3] = 255;
+        }
+        var r = Math.min(radius, Math.min(w, h) / 2 - 1);
+        if (r <= 0) return c.toDataURL();
+        var clampedBezel = Math.min(bezelWidth, r - 1);
+        if (clampedBezel <= 1) return c.toDataURL();
+        var rSq = r * r;
+        var r1Sq = (r + 1) * (r + 1);
+        var rBSq = Math.max(r - clampedBezel, 0) * Math.max(r - clampedBezel, 0);
+        var wB = w - r * 2;
+        var hB = h - r * 2;
+        var S = profile.length;
+        if (wB < 0 || hB < 0) return c.toDataURL();
+
+        for (var y1 = 0; y1 < h; y1++) {
+            for (var x1 = 0; x1 < w; x1++) {
+                var dx, dy;
+                if (x1 < r) { dx = x1 - r; }
+                else if (x1 >= w - r) { dx = x1 - r - wB; }
+                else { dx = 0; }
+                if (y1 < r) { dy = y1 - r; }
+                else if (y1 >= h - r) { dy = y1 - r - hB; }
+                else { dy = 0; }
+                var dSq = dx * dx + dy * dy;
+                if (dSq > r1Sq || dSq < rBSq) continue;
+                var dist = Math.sqrt(dSq);
+                var fromSide = r - dist;
+                var op = dSq < rSq ? 1 : 1 - (dist - Math.sqrt(rSq)) / (Math.sqrt(r1Sq) - Math.sqrt(rSq));
+                if (op <= 0 || dist === 0) continue;
+                var cos = dx / dist;
+                var sin = dy / dist;
+                var bi = Math.min(Math.floor((fromSide / clampedBezel) * S), S - 1);
+                var disp = profile[bi] || 0;
+                var dX = (-cos * disp) / maxDisp;
+                var dY = (-sin * disp) / maxDisp;
+                var idx = (y1 * w + x1) * 4;
+                d[idx]     = Math.min(255, Math.max(0, (128 + dX * 127 * op + 0.5) | 0));
+                d[idx + 1] = Math.min(255, Math.max(0, (128 + dY * 127 * op + 0.5) | 0));
+            }
+        }
+        ctx.putImageData(img, 0, 0);
+        return c.toDataURL();
+    }
+
+    function generateSpecularMap(w, h, radius, bezelWidth, angle) {
+        angle = angle != null ? angle : Math.PI / 3;
+        var c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        var ctx = c.getContext('2d');
+        var img = ctx.createImageData(w, h);
+        var d = img.data;
+        for (var i = 0; i < d.length; i += 4) {
+            d[i] = 0; d[i + 1] = 0; d[i + 2] = 0; d[i + 3] = 0;
+        }
+        var r = Math.min(radius, Math.min(w, h) / 2 - 1);
+        if (r <= 0) return c.toDataURL();
+        var clampedBezel = Math.min(bezelWidth, r - 1);
+        if (clampedBezel <= 1) return c.toDataURL();
+        var rSq = r * r;
+        var r1Sq = (r + 1) * (r + 1);
+        var rBSq = Math.max(r - clampedBezel, 0) * Math.max(r - clampedBezel, 0);
+        var wB = w - r * 2;
+        var hB = h - r * 2;
+        var lightVec = [Math.cos(angle), Math.sin(angle)];
+
+        for (var y1 = 0; y1 < h; y1++) {
+            for (var x1 = 0; x1 < w; x1++) {
+                var dx, dy;
+                if (x1 < r) { dx = x1 - r; }
+                else if (x1 >= w - r) { dx = x1 - r - wB; }
+                else { dx = 0; }
+                if (y1 < r) { dy = y1 - r; }
+                else if (y1 >= h - r) { dy = y1 - r - hB; }
+                else { dy = 0; }
+                var dSq = dx * dx + dy * dy;
+                if (dSq > r1Sq || dSq < rBSq) continue;
+                var dist = Math.sqrt(dSq);
+                var fromSide = r - dist;
+                var op = dSq < rSq ? 1 : 1 - (dist - Math.sqrt(rSq)) / (Math.sqrt(r1Sq) - Math.sqrt(rSq));
+                if (op <= 0 || dist === 0) continue;
+                var cos = dx / dist;
+                var sin = -dy / dist;
+                var dot = Math.abs(cos * lightVec[0] + sin * lightVec[1]);
+                var edge = Math.sqrt(Math.max(0, 1 - Math.pow(1 - fromSide, 2)));
+                var coeff = dot * edge;
+                var col = (255 * coeff) | 0;
+                var alpha = Math.min(255, Math.max(0, (col * coeff * op * 0.85) | 0));
+                var idx = (y1 * w + x1) * 4;
+                d[idx] = col; d[idx + 1] = col; d[idx + 2] = col; d[idx + 3] = alpha;
+            }
+        }
+        ctx.putImageData(img, 0, 0);
+        return c.toDataURL();
+    }
+
+    function squircleSurface(t) {
+        return Math.pow(1 - Math.pow(1 - t, 4), 0.25);
+    }
+
+    function buildSVGFilter(filterId, dispUrl, specUrl, scale, w, h, specOpacity) {
+        specOpacity = specOpacity != null ? specOpacity : 0.3;
+        var fc = '';
+        fc += '<feImage href="' + dispUrl + '" x="0" y="0" width="' + w + '" height="' + h + '" result="disp_map" />';
+        fc += '<feDisplacementMap in="SourceGraphic" in2="disp_map" scale="' + scale + '" xChannelSelector="R" yChannelSelector="G" result="displaced" />';
+        if (specUrl) {
+            fc += '<feImage href="' + specUrl + '" x="0" y="0" width="' + w + '" height="' + h + '" result="spec_layer" />';
+            fc += '<feComposite in="displaced" in2="spec_layer" operator="in" result="spec_masked" />';
+            fc += '<feComponentTransfer in="spec_layer" result="spec_faded"><feFuncA type="linear" slope="' + specOpacity + '" /></feComponentTransfer>';
+            fc += '<feBlend in="spec_masked" in2="displaced" mode="screen" result="with_spec" />';
+            fc += '<feBlend in="spec_faded" in2="with_spec" mode="screen" />';
+        }
+        return fc;
+    }
+
+    /* ---------- 构建面板玻璃滤镜 ---------- */
+    const GLASS_FILTER_ID = 'panel-glass';
+    const panel = document.getElementById('panel');
+
+    var glassDefs = null;
+    var glassReady = false;
+
+    function makeSVG(tag, attrs) {
+        var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+        for (var k in attrs) el.setAttribute(k, attrs[k]);
+        return el;
+    }
+
+    function ensureGlassSVG() {
+        var old = document.getElementById('glass-svg');
+        if (old) old.parentNode.removeChild(old);
+        var svg = makeSVG('svg', {
+            id: 'glass-svg',
+            width: '0',
+            height: '0',
+            style: 'position:absolute;overflow:hidden;pointer-events:none;',
+            'color-interpolation-filters': 'sRGB'
+        });
+        glassDefs = makeSVG('defs', {});
+        svg.appendChild(glassDefs);
+        document.body.appendChild(svg);
+    }
+
+    function writeGlassFilter(html) {
+        if (!glassDefs) return;
+        var old = document.getElementById(GLASS_FILTER_ID);
+        if (old) old.parentNode.removeChild(old);
+        glassReady = false;
+        if (!html) return;
+        var f = makeSVG('filter', {
+            id: GLASS_FILTER_ID,
+            x: '0%', y: '0%', width: '100%', height: '100%'
+        });
+        f.innerHTML = html;
+        glassDefs.appendChild(f);
+        glassReady = true;
+    }
+
+    function supportsSvgBackdrop() {
+        if (!window.CSS || !window.CSS.supports) return false;
+        try {
+            return window.CSS.supports('backdrop-filter', 'url(#a)') ||
+                   window.CSS.supports('-webkit-backdrop-filter', 'url(#a)');
+        } catch (e) {
+            return false;
+        }
+    }
+
+    const SVG_BACKDROP_OK = supportsSvgBackdrop();
+
+    function applyBackdrop() {
+        var val;
+        if (SVG_BACKDROP_OK && glassReady) {
+            val = 'url(#' + GLASS_FILTER_ID + ') blur(1.4px) saturate(165%) brightness(0.94)';
+        } else {
+            val = 'blur(18px) saturate(165%) brightness(0.94)';
+        }
+        panel.style.webkitBackdropFilter = val;
+        panel.style.backdropFilter = val;
+    }
+
+    function rebuildPanelGlass() {
+        if (!glassDefs) return;
+        var w = Math.round(panel.offsetWidth);
+        var h = Math.round(panel.offsetHeight);
+        if (w < 40 || h < 40) return;
+
+        var radius = window.innerWidth <= 860 ? 26 : 28;
+        var bezel = Math.min(18, radius - 2);
+        if (bezel <= 1) { writeGlassFilter(''); applyBackdrop(); return; }
+
+        var THICKNESS = 170;
+        var IOR = 2.1;
+
+        var profile = calculateRefractionProfile(THICKNESS, bezel, squircleSurface, IOR, 128);
+        var maxDisp = 0;
+        for (var i = 0; i < profile.length; i++) {
+            var a = Math.abs(profile[i]);
+            if (a > maxDisp) maxDisp = a;
+        }
+        if (maxDisp < 0.001) maxDisp = 1;
+
+        var scale = maxDisp * 0.85;
+        var dispUrl = generateDisplacementMap(w, h, radius, bezel, profile, maxDisp);
+        var specUrl = generateSpecularMap(w, h, radius, bezel * 2.6, Math.PI / 3.2);
+
+        if (!dispUrl || dispUrl.length < 100) {
+            writeGlassFilter('');
+            applyBackdrop();
+            return;
+        }
+
+        var html = buildSVGFilter(GLASS_FILTER_ID, dispUrl, specUrl, scale, w, h, 0.22);
+        writeGlassFilter(html);
+        applyBackdrop();
+    }
+
+    /* ============================================================
+       三、编辑器逻辑
+       ============================================================ */
+
+    function $(id) { return document.getElementById(id); }
+
+    var els = {
+        text: $('text'),
+        layers: $('layers'),
+        depth: $('depth'),
+        speed: $('speed'),
+        hueStart: $('hueStart'),
+        hueEnd: $('hueEnd'),
+        lightStart: $('lightStart'),
+        lightEnd: $('lightEnd'),
+        glow: $('glow'),
+        glowLayers: $('glowLayers')
+    };
+
+    var labels = {
+        layers: $('v-layers'),
+        depth: $('v-depth'),
+        speed: $('v-speed'),
+        hueStart: $('v-hueStart'),
+        hueEnd: $('v-hueEnd'),
+        lightStart: $('v-lightStart'),
+        lightEnd: $('v-lightEnd'),
+        glow: $('v-glow'),
+        glowLayers: $('v-glowLayers')
+    };
+
+    var preview = $('preview');
+
+    function readConfig() {
+        return {
+            text: els.text.value || ' ',
+            layers: Math.round(num(els.layers.value, 60, 10, 140)),
+            depth: num(els.depth.value, 0.5, 0.1, 1.2),
+            speed: num(els.speed.value, 15, 4, 40),
+            hueStart: num(els.hueStart.value, 190, 0, 360),
+            hueEnd: num(els.hueEnd.value, 270, 0, 360),
+            lightStart: num(els.lightStart.value, 95, 0, 100),
+            lightEnd: num(els.lightEnd.value, 20, 0, 100),
+            glow: num(els.glow.value, 55, 0, 100),
+            glowLayers: Math.round(num(els.glowLayers.value, 5, 1, 20))
+        };
+    }
+
+    function syncLabels() {
+        labels.layers.textContent = els.layers.value;
+        labels.depth.textContent = (+els.depth.value).toFixed(2);
+        labels.speed.textContent = els.speed.value + 's';
+        labels.hueStart.textContent = els.hueStart.value;
+        labels.hueEnd.textContent = els.hueEnd.value;
+        labels.lightStart.textContent = els.lightStart.value;
+        labels.lightEnd.textContent = els.lightEnd.value;
+        labels.glow.textContent = els.glow.value;
+        labels.glowLayers.textContent = els.glowLayers.value;
+    }
+
+    var previewTimer = null;
+    function applyPreview() {
+        preview.srcdoc = buildHTML(readConfig());
+    }
+
+    function onInput() {
+        syncLabels();
+        clearTimeout(previewTimer);
+        previewTimer = setTimeout(applyPreview, 320);
+    }
+
+    /* 面板开关 */
+    var fab = $('fab');
+    fab.addEventListener('click', function () {
+        document.body.classList.toggle('panel-open');
+    });
+
+    /* Toast */
+    var toastTimer = null;
+    function toast(msg) {
+        var el = $('toast');
+        el.textContent = msg;
+        el.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { el.classList.remove('show'); }, 1800);
+    }
+
+    /* 导出文件 */
+    $('export').addEventListener('click', function () {
+        var cfg = readConfig();
+        var html = buildHTML(cfg);
+
+        var base = String(cfg.text).replace(/[\\/:*?"<>|\s]+/g, '_').slice(0, 24) || 'hologram';
+        var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        var url = URL.createObjectURL(blob);
+
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = base + '.html';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        setTimeout(function () { URL.revokeObjectURL(url); }, 3000);
+        toast('已导出 ' + base + '.html');
+    });
+
+    /* 复制源码 */
+    $('copy').addEventListener('click', function () {
+        var html = buildHTML(readConfig());
+        var done = function () { toast('源码已复制到剪贴板'); };
+        var fail = function () { toast('复制失败，请手动导出文件'); };
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(html).then(done).catch(fail);
+        } else {
+            var ta = document.createElement('textarea');
+            ta.value = html;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); done(); } catch (e) { fail(); }
+            ta.remove();
+        }
+    });
+
+    /* 绑定所有输入 */
+    [els.text, els.layers, els.depth, els.speed,
+     els.hueStart, els.hueEnd, els.lightStart, els.lightEnd,
+     els.glow, els.glowLayers].forEach(function (el) {
+        el.addEventListener('input', onInput);
+    });
+
+    /* 小屏默认收起面板 */
+    if (window.innerWidth <= 860) {
+        document.body.classList.remove('panel-open');
+    }
+
+    /* 首次渲染 */
+    syncLabels();
+    applyPreview();
+
+    /* ============================================================
+       四、液态玻璃面板初始化
+       ============================================================ */
+    ensureGlassSVG();
+    applyBackdrop();
+
+    requestAnimationFrame(function () {
+        rebuildPanelGlass();
+
+        var glassTimer = null;
+        function scheduleGlass() {
+            clearTimeout(glassTimer);
+            glassTimer = setTimeout(rebuildPanelGlass, 120);
+        }
+
+        if (typeof ResizeObserver !== 'undefined') {
+            var ro = new ResizeObserver(scheduleGlass);
+            ro.observe(panel);
+        }
+        window.addEventListener('resize', scheduleGlass);
+        window.addEventListener('orientationchange', scheduleGlass);
+    });
+
+    /* 预览区尺寸变化时，让内部文字重新自适应 */
+    var stageTimer = null;
+    window.addEventListener('resize', function () {
+        clearTimeout(stageTimer);
+        stageTimer = setTimeout(applyPreview, 420);
+    });
+
+})();
+</script>
+</body>
+</html>
