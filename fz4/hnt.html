@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>汉诺塔 · 加密存档版</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    margin:0;display:grid;place-items:center;padding:22px 14px;
+    background:radial-gradient(1200px 700px at 50% -12%,#1c2b54 0%,#0b1020 55%,#070a14 100%);
+    color:#e8eeff;
+    font-family:ui-sans-serif,system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    user-select:none;
+  }
+
+  .app{width:min(880px,100%)}
+
+  h1{
+    margin:0;text-align:center;font-size:clamp(22px,4.4vw,30px);letter-spacing:.08em;
+    background:linear-gradient(90deg,#7ce7ff,#a78bfa,#ff9ad5);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .sub{margin:8px 0 0;text-align:center;font-size:12.5px;color:#8a9ac0;line-height:1.7}
+
+  /* ---------- HUD ---------- */
+  .hud{display:flex;gap:10px;margin:18px 0 12px}
+  .stat{
+    flex:1;display:flex;flex-direction:column;gap:2px;padding:9px 12px;border-radius:14px;
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+  }
+  .stat .label{font-size:11px;color:#7f8faf;letter-spacing:.1em}
+  .stat .value{
+    font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;
+    background:linear-gradient(90deg,#8ee9ff,#c4b5fd);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+
+  /* ---------- 棋盘 ---------- */
+  .board{
+    position:relative;width:100%;border-radius:18px;overflow:hidden;
+    background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.008));
+    border:1px solid rgba(255,255,255,.07);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 18px 40px -20px rgba(0,0,0,.9);
+  }
+
+  .base{
+    position:absolute;left:2%;right:2%;bottom:0;height:16px;border-radius:9px 9px 3px 3px;
+    background:linear-gradient(180deg,#63779f,#2b3856);
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.18), 0 10px 26px rgba(0,0,0,.55);
+  }
+
+  .slot{
+    position:absolute;top:0;bottom:0;width:33.3333%;cursor:pointer;z-index:5;
+  }
+  .slot[data-i="0"]{left:0}
+  .slot[data-i="1"]{left:33.3333%}
+  .slot[data-i="2"]{left:66.6667%}
+
+  .rod{
+    position:absolute;left:50%;bottom:16px;width:12px;transform:translateX(-50%);
+    border-radius:6px 6px 0 0;
+    background:linear-gradient(90deg,#42527a,#7f95c4 42%,#d6e6ff 50%,#7f95c4 58%,#42527a);
+    box-shadow:0 0 14px rgba(120,170,255,.22);
+    transition:box-shadow .2s, filter .2s;
+  }
+  .slot:hover .rod{filter:brightness(1.45);box-shadow:0 0 22px rgba(140,200,255,.5)}
+  .slot.selected .rod{
+    background:linear-gradient(90deg,#3f8fd0,#8fd8ff 45%,#ffffff 50%,#8fd8ff 55%,#3f8fd0);
+    box-shadow:0 0 26px rgba(120,220,255,.85);
+  }
+
+  /* ---------- 圆盘 ---------- */
+  .disk{
+    position:absolute;border-radius:999px;pointer-events:none;
+    box-shadow:0 5px 16px rgba(0,0,0,.5),
+               inset 0 1px 0 rgba(255,255,255,.5),
+               inset 0 -3px 7px rgba(0,0,0,.28);
+    transition:transform .18s ease, box-shadow .18s ease, filter .18s ease;
+    will-change:left, bottom;
+  }
+  .disk::after{
+    content:"";position:absolute;left:9px;right:9px;top:2px;height:34%;
+    border-radius:999px;
+    background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,0));
+    opacity:.75;
+  }
+  .disk.picked{
+    transform:translateY(-11px) scale(1.03);
+    filter:brightness(1.3) saturate(1.15);
+    box-shadow:0 0 0 2px rgba(255,255,255,.6),
+               0 0 26px rgba(140,220,255,.75),
+               0 10px 22px rgba(0,0,0,.55);
+  }
+  .no-anim .disk,.no-anim .rod{transition:none !important}
+
+  @keyframes shake{
+    0%,100%{transform:translateX(0)}
+    20%{transform:translateX(-6px)}
+    50%{transform:translateX(6px)}
+    80%{transform:translateX(-3px)}
+  }
+  .shake{animation:shake .3s ease}
+
+  /* ---------- 控制区 ---------- */
+  .controls{
+    display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;
+    align-items:center;justify-content:center;
+  }
+  .stepper{
+    display:flex;align-items:center;gap:4px;padding:4px;border-radius:15px;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  }
+  .stepper button{
+    width:34px;height:34px;border:0;border-radius:10px;cursor:pointer;
+    background:rgba(255,255,255,.08);color:#dfe8ff;font-size:19px;line-height:1;
+    font-family:inherit;transition:.15s;
+  }
+  .stepper button:hover{background:rgba(255,255,255,.18)}
+  .stepper button:active{transform:scale(.93)}
+  .stepper span{min-width:66px;text-align:center;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+
+  .btn{
+    height:42px;padding:0 18px;border-radius:14px;cursor:pointer;font-family:inherit;
+    border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);
+    color:#dbe4ff;font-size:14px;font-weight:600;transition:.18s;
+  }
+  .btn:hover:not(:disabled){background:rgba(255,255,255,.14);transform:translateY(-1px)}
+  .btn:active:not(:disabled){transform:translateY(0) scale(.98)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn.primary{
+    background:linear-gradient(135deg,#3b82f6,#8b5cf6);border-color:transparent;color:#fff;
+    box-shadow:0 8px 22px -6px rgba(99,102,241,.75);
+  }
+  .btn.primary.paused{
+    background:linear-gradient(135deg,#f59e0b,#f97316);
+    box-shadow:0 8px 22px -6px rgba(249,115,22,.75);
+  }
+  .btn.save{
+    background:linear-gradient(135deg,#10b981,#059669);border-color:transparent;color:#fff;
+  }
+  .btn.load{
+    background:linear-gradient(135deg,#f59e0b,#d97706);border-color:transparent;color:#fff;
+  }
+
+  /* ---------- 全屏确认弹窗 ---------- */
+  .confirm-overlay{
+    position:fixed;inset:0;display:grid;place-items:center;z-index:100;
+    background:rgba(5,8,18,.78);backdrop-filter:blur(8px);
+    opacity:0;pointer-events:none;transition:opacity .22s;
+  }
+  .confirm-overlay.show{opacity:1;pointer-events:auto}
+  .confirm-card{
+    width:min(360px,90vw);padding:26px 24px 20px;border-radius:20px;
+    background:linear-gradient(180deg,#1b2545,#111a30);
+    border:1px solid rgba(255,255,255,.13);
+    box-shadow:0 26px 70px rgba(0,0,0,.7);
+    text-align:center;transform:translateY(12px) scale(.96);
+    transition:transform .28s cubic-bezier(.34,1.4,.5,1);
+  }
+  .confirm-overlay.show .confirm-card{transform:none}
+  .confirm-card .confirm-icon{font-size:2.4rem;margin-bottom:10px}
+  .confirm-card h3{margin:0 0 8px;font-size:18px;letter-spacing:.04em}
+  .confirm-card p{margin:0 0 20px;font-size:13px;color:#93a3c6;line-height:1.6}
+  .confirm-actions{display:flex;gap:10px;justify-content:center}
+  .confirm-actions button{
+    flex:1;height:40px;border-radius:12px;border:none;font-family:inherit;
+    font-size:14px;font-weight:600;cursor:pointer;transition:.15s;
+  }
+  .confirm-actions .cancel{background:rgba(255,255,255,.1);color:#dfe8ff}
+  .confirm-actions .cancel:hover{background:rgba(255,255,255,.18)}
+  .confirm-actions .confirm{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff}
+  .confirm-actions .confirm:hover{background:linear-gradient(135deg,#dc2626,#b91c1c)}
+
+  /* ---------- 胜利弹窗 ---------- */
+  .win{
+    position:fixed;inset:0;display:grid;place-items:center;z-index:50;
+    background:rgba(5,8,18,.72);backdrop-filter:blur(6px);
+    opacity:0;pointer-events:none;transition:opacity .25s;
+  }
+  .win.show{opacity:1;pointer-events:auto}
+  .win-card{
+    text-align:center;padding:30px 36px;border-radius:22px;
+    background:linear-gradient(180deg,#1b2545,#111a30);
+    border:1px solid rgba(255,255,255,.13);
+    box-shadow:0 26px 70px rgba(0,0,0,.7);
+    transform:translateY(14px) scale(.95);
+    transition:transform .32s cubic-bezier(.34,1.4,.5,1);
+  }
+  .win.show .win-card{transform:none}
+  .win-card h2{margin:0 0 10px;font-size:23px;letter-spacing:.04em}
+  .win-card p{margin:0 0 20px;font-size:13.5px;color:#93a3c6}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>汉 诺 塔</h1>
+  <p class="sub">把所有圆盘从最左柱移到最右柱 · 每次只能移动一个 · 大盘不能压在小盘上</p>
+
+  <div class="hud">
+    <div class="stat"><span class="label">步数</span><span class="value" id="movesEl">0</span></div>
+    <div class="stat"><span class="label">最少步数</span><span class="value" id="bestEl">15</span></div>
+    <div class="stat"><span class="label">层数</span><span class="value" id="lvlEl">4</span></div>
+  </div>
+
+  <div class="board" id="board">
+    <div class="base"></div>
+    <div class="slot" data-i="0"><div class="rod"></div></div>
+    <div class="slot" data-i="1"><div class="rod"></div></div>
+    <div class="slot" data-i="2"><div class="rod"></div></div>
+  </div>
+
+  <div class="controls">
+    <div class="stepper">
+      <button id="minus" title="减少一层">−</button>
+      <span id="nLabel">4 层</span>
+      <button id="plus" title="增加一层">+</button>
+    </div>
+    <button class="btn" id="resetBtn">重新开始</button>
+    <button class="btn" id="undoBtn">撤销</button>
+    <button class="btn primary" id="autoBtn">自动模式</button>
+    <button class="btn save" id="saveBtn">💾 保存存档</button>
+    <button class="btn load" id="loadBtn">📂 加载存档</button>
+    <input type="file" id="loadInput" accept=".aes" style="display:none">
+  </div>
+</div>
+
+<!-- 全屏确认弹窗 -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-card">
+    <div class="confirm-icon" id="confirmIcon">⚠️</div>
+    <h3 id="confirmTitle">确认操作</h3>
+    <p id="confirmMessage">确定要执行此操作吗？</p>
+    <div class="confirm-actions">
+      <button class="cancel" id="confirmCancel">取消</button>
+      <button class="confirm" id="confirmOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="win" id="winOverlay">
+  <div class="win-card">
+    <h2 id="winTitle">🎉 完成！</h2>
+    <p id="winText"></p>
+    <button class="btn primary" id="againBtn">再来一次</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ==================== 常量 ==================== */
+  const MIN_N = 3, MAX_N = 15;
+  const T_LIFT = 180, T_SLIDE = 320, T_DROP = 190;   // 基础时长（手动）
+  const AUTO_BUDGET = 120000;                        // 自动模式总时长预算(ms)
+  const MIN_STEP = 36;                               // 自动模式单步最小总时长
+
+  // 加密存档固定参数
+  const SAVE_PASSWORD = '123456';
+  const SAVE_ITERATIONS = 100000;
+
+  /* ==================== DOM ==================== */
+  const board      = document.getElementById('board');
+  const movesEl    = document.getElementById('movesEl');
+  const bestEl     = document.getElementById('bestEl');
+  const lvlEl      = document.getElementById('lvlEl');
+  const nLabel     = document.getElementById('nLabel');
+  const undoBtn    = document.getElementById('undoBtn');
+  const autoBtn    = document.getElementById('autoBtn');
+  const winOverlay = document.getElementById('winOverlay');
+  const winTitle   = document.getElementById('winTitle');
+  const winText    = document.getElementById('winText');
+
+  // 确认弹窗
+  const confirmOverlay = document.getElementById('confirmOverlay');
+  const confirmIcon    = document.getElementById('confirmIcon');
+  const confirmTitle   = document.getElementById('confirmTitle');
+  const confirmMessage = document.getElementById('confirmMessage');
+  const confirmCancel  = document.getElementById('confirmCancel');
+  const confirmOk      = document.getElementById('confirmOk');
+
+  // 存档
+  const saveBtn = document.getElementById('saveBtn');
+  const loadBtn = document.getElementById('loadBtn');
+  const loadInput = document.getElementById('loadInput');
+
+  /* ==================== 状态 ==================== */
+  let n = 4;
+  let pegs = [[], [], []];
+  let diskEls = [];
+  let moves = 0;
+  let history = [];
+  let selected = null;
+  let solved = false;
+
+  // 自动模式：'idle' | 'running' | 'paused'
+  let autoState = 'idle';
+  let autoToken = 0;
+
+  let animatingDisk = null;
+  let animScale = 1;   // 动画倍率：手动固定 1，自动按步数缩放
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  /* ==================== 全屏确认 ==================== */
+  function showConfirm(message, title = '确认操作', icon = '⚠️') {
+    return new Promise((resolve) => {
+      confirmIcon.textContent = icon;
+      confirmTitle.textContent = title;
+      confirmMessage.textContent = message;
+      confirmOverlay.classList.add('show');
+
+      const cleanup = () => {
+        confirmOverlay.classList.remove('show');
+        confirmOk.removeEventListener('click', onOk);
+        confirmCancel.removeEventListener('click', onCancel);
+        confirmOverlay.removeEventListener('click', onOverlayClick);
+        document.removeEventListener('keydown', onEsc);
+      };
+      const onOk = () => { cleanup(); resolve(true); };
+      const onCancel = () => { cleanup(); resolve(false); };
+      const onOverlayClick = (e) => {
+        if (e.target === confirmOverlay) onCancel();
+      };
+      const onEsc = (e) => {
+        if (e.key === 'Escape') onCancel();
+      };
+
+      confirmOk.addEventListener('click', onOk);
+      confirmCancel.addEventListener('click', onCancel);
+      confirmOverlay.addEventListener('click', onOverlayClick);
+      document.addEventListener('keydown', onEsc);
+    });
+  }
+
+  /* ==================== 加密工具 ==================== */
+  async function deriveAesKey(password, salt, iterations) {
+    const enc = new TextEncoder();
+    const baseKey = await crypto.subtle.importKey(
+      'raw', enc.encode(password),
+      { name: 'PBKDF2' }, false, ['deriveKey']
+    );
+    return crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+      baseKey,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
+  }
+
+  async function encryptState(stateObj) {
+    const plaintext = new TextEncoder().encode(JSON.stringify(stateObj));
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const version = new Uint8Array([0x01]);
+    const iterBytes = new Uint8Array(4);
+    new DataView(iterBytes.buffer).setUint32(0, SAVE_ITERATIONS, false);
+
+    const aad = new Uint8Array(1 + 4 + 16 + 12);
+    aad.set(version, 0);
+    aad.set(iterBytes, 1);
+    aad.set(salt, 5);
+    aad.set(iv, 21);
+
+    const key = await deriveAesKey(SAVE_PASSWORD, salt, SAVE_ITERATIONS);
+    const encrypted = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv, tagLength: 128, additionalData: aad },
+      key, plaintext
+    );
+
+    const combined = new Uint8Array(aad.length + encrypted.byteLength);
+    combined.set(aad, 0);
+    combined.set(new Uint8Array(encrypted), aad.length);
+    return combined.buffer;
+  }
+
+  async function decryptState(buffer) {
+    const data = new Uint8Array(buffer);
+    if (data.length < 49) throw new Error('存档文件过短或已损坏');
+    if (data[0] !== 0x01) throw new Error('不支持的存档格式');
+    const iterations = new DataView(data.buffer).getUint32(1, false);
+    const salt = data.slice(5, 21);
+    const iv = data.slice(21, 33);
+    const aad = data.slice(0, 33);
+    const ciphertext = data.slice(33);
+
+    const key = await deriveAesKey(SAVE_PASSWORD, salt, iterations);
+    try {
+      const decrypted = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv, tagLength: 128, additionalData: aad },
+        key, ciphertext
+      );
+      return JSON.parse(new TextDecoder().decode(decrypted));
+    } catch (e) {
+      throw new Error('解密失败：密码错误或文件已损坏');
+    }
+  }
+
+  /* ==================== 几何 ==================== */
+  function geom() {
+    const W = board.clientWidth;
+    const H = board.clientHeight;
+    const slot  = W / 3;
+    const baseH = 16;
+    const gap   = 3;
+    const liftMargin = 28;
+    const topPad = 8;
+
+    const dhByHeight = (H - baseH - 8 - liftMargin - topPad - n * gap) / (n + 1);
+    const dhByFit    = (H - baseH - 30) / n - gap;
+    const dh = Math.min(30, Math.max(8, Math.min(dhByFit, dhByHeight)));
+
+    const maxW  = slot * 0.82;
+    const minW  = Math.max(slot * 0.28, 26);
+    const stepW = n > 1 ? (maxW - minW) / (n - 1) : 0;
+
+    const maxRodH = H - baseH - 12;
+    const rodH    = Math.min(maxRodH, n * (dh + gap) + 8);
+
+    return { W, H, slot, baseH, gap, dh, minW, stepW, rodH, liftMargin, topPad };
+  }
+
+  function updateBoardHeight() {
+    const vh = window.innerHeight || 800;
+    const maxH = Math.max(260, Math.min(vh * 0.6, 560));
+    const neededH = 16 + n * 22 + 80;
+    const boardH = Math.min(maxH, Math.max(300, neededH));
+    board.style.height = boardH + 'px';
+    void board.offsetHeight;
+  }
+
+  /* ==================== 渲染 ==================== */
+  function buildDisks() {
+    board.querySelectorAll('.disk').forEach(el => el.remove());
+    diskEls = [];
+    const g = geom();
+    for (let i = 0; i < n; i++) {
+      const el = document.createElement('div');
+      el.className = 'disk';
+      const hue = n > 1 ? 195 + (i / (n - 1)) * 165 : 220;
+      el.style.background =
+        `linear-gradient(180deg, hsl(${hue} 92% 74%), hsl(${hue} 78% 50%))`;
+      el.style.height = g.dh + 'px';
+      board.appendChild(el);
+      diskEls.push(el);
+    }
+  }
+
+  function layout() {
+    const g = geom();
+    pegs.forEach((peg, pi) => {
+      peg.forEach((disk, di) => {
+        if (disk === animatingDisk) return;
+        const el = diskEls[disk];
+        if (!el) return;
+        const w = g.minW + disk * g.stepW;
+        el.style.width  = w + 'px';
+        el.style.height = g.dh + 'px';
+        el.style.left   = (g.slot * (pi + 0.5) - w / 2) + 'px';
+        el.style.bottom = (g.baseH + di * (g.dh + g.gap)) + 'px';
+        el.style.zIndex = 10 + di;
+      });
+    });
+    document.querySelectorAll('.rod').forEach(r => r.style.height = g.rodH + 'px');
+  }
+
+  function updateSelection() {
+    document.querySelectorAll('.slot').forEach((s, i) => {
+      s.classList.toggle('selected', selected === i);
+    });
+    diskEls.forEach(el => el.classList.remove('picked'));
+    if (selected !== null) {
+      const stack = pegs[selected];
+      if (stack.length) diskEls[stack[stack.length - 1]].classList.add('picked');
+    }
+  }
+
+  function updateAutoBtn() {
+    autoBtn.classList.toggle('paused', autoState === 'paused');
+    if (autoState === 'running')      autoBtn.textContent = '暂停';
+    else if (autoState === 'paused')  autoBtn.textContent = '继续';
+    else                              autoBtn.textContent = '自动模式';
+  }
+
+  function updateHUD() {
+    movesEl.textContent = moves;
+    bestEl.textContent  = Math.pow(2, n) - 1;
+    lvlEl.textContent   = n;
+    nLabel.textContent  = n + ' 层';
+
+    const autoActive = autoState !== 'idle';
+    const animating  = animatingDisk !== null;
+
+    undoBtn.disabled = autoActive || animating || history.length === 0;
+    autoBtn.disabled = !autoActive && animating;
+  }
+
+  /* ==================== 初始化 ==================== */
+  function setup(count) {
+    n = count;
+    updateBoardHeight();
+
+    pegs = [[], [], []];
+    for (let i = n - 1; i >= 0; i--) pegs[0].push(i);
+
+    moves = 0;
+    history = [];
+    selected = null;
+    solved = false;
+    animatingDisk = null;
+    animScale = 1;
+    winOverlay.classList.remove('show');
+
+    board.classList.add('no-anim');
+    buildDisks();
+    layout();
+    updateHUD();
+    updateSelection();
+
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      board.classList.remove('no-anim');
+    }));
+  }
+
+  function cancelAuto() {
+    if (autoState !== 'idle') {
+      autoToken++;
+      autoState = 'idle';
+      animScale = 1;
+      updateAutoBtn();
+      updateHUD();
+    }
+  }
+
+  function resetGame() {
+    cancelAuto();
+    setup(n);
+  }
+
+  /* ==================== 核心动画 ==================== */
+  async function performMove(from, to, opts = {}) {
+    const { record = true, countMove = true } = opts;
+
+    const src = pegs[from];
+    if (!src.length) return false;
+    const disk = src[src.length - 1];
+    const dst = pegs[to];
+    if (dst.length && dst[dst.length - 1] < disk) return false;
+
+    src.pop();
+    const targetIndex = dst.length;
+    dst.push(disk);
+    if (record) history.push([from, to]);
+    if (countMove) moves++;
+    updateHUD();
+
+    const el = diskEls[disk];
+    el.classList.remove('picked');
+
+    animatingDisk = disk;
+    layout();
+
+    const g = geom();
+    const w = g.minW + disk * g.stepW;
+
+    let maxStackTop = 0;
+    pegs.forEach(peg => {
+      if (peg.length) {
+        const topIdx = peg.length - 1;
+        maxStackTop = Math.max(
+          maxStackTop,
+          g.baseH + topIdx * (g.dh + g.gap) + g.dh
+        );
+      }
+    });
+    const rodTop  = g.baseH + g.rodH;
+    const highest = Math.max(rodTop, maxStackTop);
+
+    const liftBottom = Math.min(
+      highest + g.liftMargin,
+      g.H - g.dh - g.topPad
+    );
+
+    const targetLeft   = g.slot * (to + 0.5) - w / 2;
+    const targetBottom = g.baseH + targetIndex * (g.dh + g.gap);
+
+    const s  = animScale;
+    const t1 = Math.max(7, T_LIFT  * s);
+    const t2 = Math.max(9, T_SLIDE * s);
+    const t3 = Math.max(7, T_DROP  * s);
+
+    el.style.zIndex = 999;
+
+    el.style.transition = `bottom ${t1}ms cubic-bezier(0.3, 0.7, 0.4, 1)`;
+    el.style.bottom = liftBottom + 'px';
+    await sleep(t1 + 5);
+
+    el.style.transition = `left ${t2}ms cubic-bezier(0.45,0,0.2,1)`;
+    el.style.left = targetLeft + 'px';
+    await sleep(t2 + 5);
+
+    el.style.transition = `bottom ${t3}ms cubic-bezier(0.34,1.3,0.5,1)`;
+    el.style.bottom = targetBottom + 'px';
+    await sleep(t3 + 5);
+
+    el.style.transition = '';
+    animatingDisk = null;
+    layout();
+    updateHUD();
+    checkWin();
+    return true;
+  }
+
+  /* ==================== 交互 ==================== */
+  function shake(i) {
+    const slot = board.querySelector(`.slot[data-i="${i}"]`);
+    slot.classList.remove('shake');
+    void slot.offsetWidth;
+    slot.classList.add('shake');
+    setTimeout(() => slot.classList.remove('shake'), 320);
+  }
+
+  function handleSlot(i) {
+    if (animatingDisk !== null) return;
+    if (autoState !== 'idle') cancelAuto();
+    if (solved) return;
+
+    if (selected === null) {
+      if (!pegs[i].length) { shake(i); return; }
+      selected = i;
+      updateSelection();
+      return;
+    }
+
+    if (selected === i) {
+      selected = null;
+      updateSelection();
+      return;
+    }
+
+    const from = selected;
+    const src = pegs[from];
+    const dst = pegs[i];
+    const disk = src[src.length - 1];
+
+    if (dst.length && dst[dst.length - 1] < disk) {
+      shake(i);
+      return;
+    }
+
+    selected = null;
+    updateSelection();
+    performMove(from, i);
+  }
+
+  async function undo() {
+    if (autoState !== 'idle' || animatingDisk !== null || !history.length) return;
+    if (solved) { solved = false; winOverlay.classList.remove('show'); }
+
+    const [from, to] = history.pop();
+    moves = Math.max(0, moves - 1);
+    selected = null;
+    updateSelection();
+    updateHUD();
+
+    await performMove(to, from, { record: false, countMove: false });
+  }
+
+  function checkWin() {
+    if (solved) return;
+    if (pegs[2].length === n) {
+      solved = true;
+      setTimeout(showWin, 320);
+    }
+  }
+
+  function showWin() {
+    const min = Math.pow(2, n) - 1;
+    winTitle.textContent = moves === min ? '🏆 完美通关！' : '🎉 完成！';
+    winText.textContent  = `用了 ${moves} 步，最少需要 ${min} 步`;
+    winOverlay.classList.add('show');
+  }
+
+  /* ==================== 自动模式 ==================== */
+  function buildSolve(k, from, to, via, out) {
+    if (k === 0) return;
+    buildSolve(k - 1, from, via, to, out);
+    out.push([from, to]);
+    buildSolve(k - 1, via, to, from, out);
+  }
+
+  async function waitWhilePaused(token) {
+    while (token === autoToken && autoState === 'paused') {
+      await sleep(60);
+    }
+    return token === autoToken && autoState === 'running';
+  }
+
+  async function startAuto() {
+    const token = ++autoToken;
+    autoState = 'running';
+
+    setup(n);
+    autoState = 'running';
+    updateAutoBtn();
+    updateHUD();
+
+    const list = [];
+    buildSolve(n, 0, 2, 1, list);
+    const L = list.length;
+
+    const perMove = Math.max(MIN_STEP, AUTO_BUDGET / L);
+    animScale = Math.min(1, perMove / (T_LIFT + T_SLIDE + T_DROP));
+
+    try {
+      for (const [f, t] of list) {
+        if (token !== autoToken) return;
+        const ok = await waitWhilePaused(token);
+        if (!ok) return;
+        await performMove(f, t);
+        if (token !== autoToken) return;
+      }
+    } finally {
+      if (token === autoToken) {
+        autoState = 'idle';
+        animScale = 1;
+        updateAutoBtn();
+        updateHUD();
+      }
+    }
+  }
+
+  function toggleAuto() {
+    if (autoState === 'idle') {
+      startAuto();
+    } else if (autoState === 'running') {
+      autoState = 'paused';
+      updateAutoBtn();
+      updateHUD();
+    } else if (autoState === 'paused') {
+      autoState = 'running';
+      updateAutoBtn();
+      updateHUD();
+    }
+  }
+
+  /* ==================== 存档 ==================== */
+  function collectState() {
+    return {
+      n,
+      pegs: pegs.map(p => p.slice()),
+      history: history.slice(),
+      moves,
+      solved,
+      timestamp: Date.now()
+    };
+  }
+
+  async function saveGame() {
+    if (autoState !== 'idle') {
+      const ok = await showConfirm('自动模式正在运行，保存前将先暂停。是否继续保存？', '保存存档', '💾');
+      if (!ok) return;
+      cancelAuto();
+    }
+    const state = collectState();
+    try {
+      const encrypted = await encryptState(state);
+      const blob = new Blob([encrypted], { type: 'application/octet-stream' });
+      const ts = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `hanoi_save_${ts}.aes`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+      // 简单提示
+      showToast('✅ 存档已加密导出');
+    } catch (e) {
+      showToast('❌ 存档失败：' + e.message, true);
+    }
+  }
+
+  async function loadGame(file) {
+    try {
+      const buf = await file.arrayBuffer();
+      const state = await decryptState(buf);
+      if (!state || !state.pegs || typeof state.n !== 'number') {
+        throw new Error('存档内容无效');
+      }
+      if (state.n < MIN_N || state.n > MAX_N) {
+        throw new Error('存档层数超出范围');
+      }
+
+      // 确认覆盖
+      const ok = await showConfirm(
+        `即将加载存档（${state.n} 层，步数 ${state.moves || 0}）。\n当前进度将被覆盖，确定继续吗？`,
+        '加载存档',
+        '📂'
+      );
+      if (!ok) return;
+
+      cancelAuto();
+      // 初始化
+      n = state.n;
+      updateBoardHeight();
+      pegs = state.pegs.map(p => p.slice());
+      history = Array.isArray(state.history) ? state.history.slice() : [];
+      moves = typeof state.moves === 'number' ? state.moves : history.length;
+      solved = !!state.solved;
+      selected = null;
+      animatingDisk = null;
+      animScale = 1;
+      winOverlay.classList.remove('show');
+
+      board.classList.add('no-anim');
+      buildDisks();
+      layout();
+      updateHUD();
+      updateSelection();
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        board.classList.remove('no-anim');
+      }));
+      showToast('✅ 存档已加载');
+    } catch (e) {
+      showToast('❌ 加载失败：' + e.message, true);
+    }
+  }
+
+  function showToast(msg, isError = false) {
+    // 复用 autoBtn 旁边的位置？简单创建一个浮动提示
+    const el = document.createElement('div');
+    el.textContent = msg;
+    el.style.cssText = `
+      position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+      padding:10px 22px; border-radius:30px; font-size:14px; font-weight:600;
+      background:${isError ? 'linear-gradient(135deg,#ef4444,#dc2626)' : 'linear-gradient(135deg,#10b981,#059669)'};
+      color:#fff; box-shadow:0 10px 30px rgba(0,0,0,.5); z-index:999;
+      animation:toastIn .25s ease;
+    `;
+    // 简单动画
+    const style = document.createElement('style');
+    style.textContent = '@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}';
+    document.head.appendChild(style);
+    document.body.appendChild(el);
+    setTimeout(() => { el.remove(); style.remove(); }, 2600);
+  }
+
+  /* ==================== 事件绑定 ==================== */
+  board.querySelectorAll('.slot').forEach(slot => {
+    slot.addEventListener('click', () => handleSlot(Number(slot.dataset.i)));
+  });
+
+  document.getElementById('minus').addEventListener('click', () => {
+    if (n > MIN_N) { n--; resetGame(); }
+  });
+  document.getElementById('plus').addEventListener('click', () => {
+    if (n < MAX_N) { n++; resetGame(); }
+  });
+
+  // 重新开始：全屏确认
+  document.getElementById('resetBtn').addEventListener('click', async () => {
+    const ok = await showConfirm(
+      '当前进度将丢失，确定重新开始吗？',
+      '重新开始',
+      '🔄'
+    );
+    if (ok) resetGame();
+  });
+
+  undoBtn.addEventListener('click', undo);
+  autoBtn.addEventListener('click', toggleAuto);
+
+  saveBtn.addEventListener('click', saveGame);
+  loadBtn.addEventListener('click', () => loadInput.click());
+  loadInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    await loadGame(file);
+    loadInput.value = '';
+  });
+
+  document.getElementById('againBtn').addEventListener('click', () => {
+    winOverlay.classList.remove('show');
+    resetGame();
+  });
+  winOverlay.addEventListener('click', e => {
+    if (e.target === winOverlay) winOverlay.classList.remove('show');
+  });
+
+  // 键盘：1/2/3 或 A/S/D 选柱，Ctrl+Z 撤销，空格切换自动模式
+  window.addEventListener('keydown', e => {
+    const k = e.key.toLowerCase();
+    if (k === '1' || k === 'a') handleSlot(0);
+    else if (k === '2' || k === 's') handleSlot(1);
+    else if (k === '3' || k === 'd') handleSlot(2);
+    else if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); undo(); }
+    else if (e.code === 'Space') { e.preventDefault(); toggleAuto(); }
+  });
+
+  let rt;
+  window.addEventListener('resize', () => {
+    clearTimeout(rt);
+    rt = setTimeout(() => {
+      updateBoardHeight();
+      layout();
+    }, 100);
+  });
+
+  /* ==================== 启动 ==================== */
+  setup(n);
+  updateAutoBtn();
+})();
+</script>
+</body>
+</html>
