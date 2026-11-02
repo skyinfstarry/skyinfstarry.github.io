@@ -88,7 +88,7 @@
     display: flex; gap: 12px; flex: 1; min-height: 170px;
   }
   #build-panel {
-    width: 640px; flex: 0 0 auto; display: flex; flex-direction: column;
+    width: 700px; flex: 0 0 auto; display: flex; flex-direction: column;
     overflow: hidden;
   }
   .section-title {
@@ -96,7 +96,7 @@
     text-transform: uppercase; margin-bottom: 6px;
   }
   .tower-list {
-    display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin-top: auto;
+    display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px; margin-top: auto;
   }
   .tower-btn {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -365,20 +365,21 @@
       <p>⚡ <b>电击器</b>：无视护盾真伤，对空加成。</p>
       <p>💣 <b>火炮</b>：超远射程重炮。</p>
       <p>🚀 <b>防空炮</b>：仅对空，拦截飞行器。</p>
-      <p>🔧 <b>维修塔</b>：修复建筑，或为拦截器/电池/光棱炮/能量转换器充能。</p>
+      <p>🔧 <b>维修塔</b>：修复建筑，或为拦截器/电池/光棱炮/能量转换器/电磁护盾充能。</p>
       <p>🔄 <b>能量转换器</b>：接收维修塔/毫米波供能并转化为金币。T1 汇率 1 能量=0.1 金币，每级 +0.1，有多少转多少。优先级最低。</p>
       <p>🛰️ <b>拦截器</b>：消耗 100 能量发射红色激光拦截炮弹（无冷却）。</p>
       <p>🔋 <b>能量电池</b>：储存能量，供毫米波使用。</p>
-      <p>📡 <b>毫米波</b>：瞬间从电池抽电修复范围内所有建筑，传输损耗 10%（无冷却）。选中后可设置是否为转换器/光棱炮充能（默认关）。</p>
+      <p>📡 <b>毫米波</b>：瞬间从电池抽电修复范围内所有建筑，并给拦截器/电池/光棱炮/电磁护盾充能。直连电池无损，经中继毫米波每跳损耗 10%（无冷却）。选中后可设置是否为转换器/光棱炮充能（默认关）。</p>
       <p>🧊 <b>电池组</b>：价格 10 倍的小型电池组（容量为能量电池 5 倍）。T20 满级后可升阶：中型容量×2、大型容量×4；升阶费为 T21 原价×2，升级费×3/×9。电池组完全免疫 EMP。</p>
-      <p>💠 <b>光棱炮</b>：T1-T19 为充能状态。T20 且满 10 万能量时，引发轨道激光打击。</p>
-      <p>☢️ <b>核弹发射井</b>：建核弹300万/30s，最多存5枚。发射后直径90%范围秒杀。</p>
+      <p>💠 <b>光棱炮</b>：T1-T9 为充能状态，受 EMP 惩罚（清空电量+扣80%最大耐久+瘫痪5秒）。T10-T19 自身免疫 EMP（受冲击时短暂闪现小护盾圈）。T20 且满 10 万能量时引发轨道激光打击（圈内己方塔与指挥塔耐久均设为 1），且免疫 EMP 并为九宫格内电子设施提供完全庇护（建造中/关闭时不作庇护源）。</p>
+      <p>🛡️ <b style="color:#38bdf8">电磁护盾</b>：不可攻击、可升 T20。为 3×3 格内的维修塔/拦截器/转换器抵挡 EMP：每次庇护扣耗能，受护塔按护盾等级扣血比例受损+短暂瘫痪+电量清零；受护塔将死时保留 1 点耐久，溢出致死伤害由护盾替死承受（护盾可能过载摧毁）。维修塔/毫米波可为其充能。</p>
+      <p>☢️ <b>核弹发射井</b>：建核弹300万/30s，最多存5枚。发射后直径90%范围秒杀敌人；范围内己方塔扣除90%最大耐久（当前耐久≤90%即被摧毁），指挥塔固定扣900（扣死即失败）；并留下辐射区：区内己方设施（含指挥塔）每秒受到 15 点持续伤害。</p>
       <p>🚀 <b>导弹发射井</b>：可升级，升级加速建弹、增加伤害与弹夹。全图集群齐射（单体伤害，激光怪可拦截）。</p>
       <p>💡 <b>工作开关</b>：选中任意设施，升级按钮上方可切换工作状态。停用后该设施停止一切运作（建造/升级进度照常完成）。</p>
       <p>⚡ <b style="color:#ff00ff">激光怪</b>：陆空双形态。发射品红色光束持续灼烧防御设施（帧伤），并会拦截我方战术导弹（150px内，最快0.1s/枚）。</p>
       <p>➕ <b style="color:#7ef0a0">治疗怪</b>：陆空双形态。跟随敌军并持续治疗伤员，优先击杀它！</p>
-      <p>⚡ <b style="color:#4fd8ff">EMP电磁怪</b>：不攻击，渗透直捣指挥塔。死亡自爆（半径全图60%）：仅维修塔/拦截器/转换器受罚——清空电量+损失80%耐久+瘫痪5秒；电池/电池组/光棱炮/物理塔完全免疫。光棱炮为九宫格相邻的电子塔提供🛡️庇护。还会瘫痪范围内护盾怪的护盾5秒。第15波起出现，第25波起出现飞行形态。</p>
-      <p>☢️ <b style="color:#ff8a3d">BOSS 自爆</b>：第50波起 BOSS 死亡原地核爆（大范围秒杀敌人+己方塔剩10%耐久+辐射区）；第100波起额外引发 EMP 电磁脉冲！留意击杀位置。</p>
+      <p>⚡ <b style="color:#4fd8ff">EMP电磁怪</b>：不攻击，渗透直捣指挥塔。陆地形态接触任意防御塔或到达指挥塔即自爆；飞行形态到达指挥塔附近自爆；被打死同样自爆（半径全图60%，判定使用平面距离、飞行形态不与地面塔碰撞）。受罚名单：维修塔/拦截器/转换器/电击器/光棱炮T1-T9——清空电量+扣80%最大耐久+瘫痪5秒；T10-T19光棱炮自身免疫；T20光棱炮免疫并庇护九宫格电子设施；电池/电池组/毫米波/物理塔免疫；电磁护盾（耗能）为九宫格内维修塔/拦截器/转换器分担伤害。关闭设施免疫 EMP、不接受充能但照常被修；关闭光棱炮不作庇护源。还会瘫痪范围内护盾怪的护盾5秒。第15波起出现，第25波起出现飞行形态。</p>
+      <p>☢️ <b style="color:#ff8a3d">BOSS 自爆</b>：第50波起 BOSS 死亡原地核爆（大范围秒杀敌人；对己方塔与指挥塔的伤害与核弹一致：塔扣90%最大耐久、当前耐久≤90%即被摧毁，指挥塔扣900扣死即失败；辐射区同规格：区内己方设施含指挥塔每秒15点）。第100波起额外引发 EMP 电磁脉冲！留意击杀位置。</p>
     </div>
   </div>
 </div>
@@ -440,6 +441,11 @@ const TOWER_BASE_HP = {
 };
 
 function towerMaxHp(type, level) {
+  // 电磁护盾：使用专属血量曲线（非通用倍率）
+  if (type === 'empShield') {
+    const L = TOWER_DEFS.empShield.levels[Math.min(20, Math.max(1, level)) - 1];
+    return L.shieldHp;
+  }
   const base = TOWER_BASE_HP[type] || 150;
   return Math.round(base * (1 + (level - 1) * 0.4));
 }
@@ -508,7 +514,7 @@ const TOWER_DEFS = {
   },
   repair: {
     key: 'repair', name: '维修塔', icon: '🔧', cost: 75, color: '#4ade80',
-    kind: 'heal', desc: '修复建筑，或为拦截器/电池/光棱炮/转换器充能',
+    kind: 'heal', desc: '修复建筑，或为拦截器/电池/光棱炮/转换器/电磁护盾充能',
     levels: genLevels('维修塔', 20, 20, 0, 130, 1, { barrels: 1, barrelLen: 12, barrelW: 4, healRate: 15 })
   },
   laser: {
@@ -553,6 +559,34 @@ const TOWER_DEFS = {
       name: '光棱炮 T' + (i+1), damage: 0, range: 0, cooldown: 1,
       armor: Math.floor(i/2), isPrism: true, maxEnergy: 100000
     }))
+  },
+  empShield: {
+    key: 'empShield', name: '电磁护盾', icon: '🛡️', cost: 500, color: '#3b82f6',
+    kind: 'empShield', desc: '不可攻击。为3×3格内的维修塔/拦截器/转换器抵挡EMP冲击：每次庇护扣除耗能，受护塔按护盾等级扣血比例受损+短暂瘫痪+电量清零；受护塔将死时强制保留1点耐久，溢出致死伤害由护盾替死承受',
+    levels: Array.from({ length: 20 }, (_, i) => {
+      const lv = i + 1;
+      let shieldHp, maxEnergy, costPerHit, hpLossRatio, paralysisTime;
+      if (lv <= 10) {
+        shieldHp = 500 + (lv - 1) * 200;
+        maxEnergy = 5000 + (lv - 1) * 1250;
+        costPerHit = 2500 + (lv - 1) * 400;
+        hpLossRatio = 0.75 - (lv - 1) * 0.02;
+        paralysisTime = 4.0 - (lv - 1) * 0.15;
+      } else if (lv < 20) {
+        shieldHp = 2300 + (lv - 10) * 250;
+        maxEnergy = 16250 + (lv - 10) * 1250;
+        costPerHit = 6100 + (lv - 10) * 400;
+        hpLossRatio = Math.max(0.40, 0.57 - (lv - 10) * 0.02);
+        paralysisTime = Math.max(1.30, 2.65 - (lv - 10) * 0.15);
+      } else {
+        shieldHp = 5000; maxEnergy = 30000; costPerHit = 10000; hpLossRatio = 0.40; paralysisTime = 1.00;
+      }
+      return {
+        name: '电磁护盾 T' + lv, damage: 0, range: 0, cooldown: 1,
+        armor: Math.floor((lv - 1) / 2), isEmpShield: true,
+        maxEnergy, costPerHit, hpLossRatio, paralysisTime, shieldHp
+      };
+    })
   },
   resource: {
     key: 'resource', name: '采集器', icon: '⛏️', cost: 80, color: '#facc15',
@@ -806,7 +840,7 @@ function addLog(msg, type = 'info') {
   div.innerHTML = `<span class="log-time">[${time}]</span> <span>${msg}</span>`;
   logContent.appendChild(div);
   logContent.scrollTop = logContent.scrollHeight;
-  if (logContent.children.length > 50) {
+  if (logContent.children.length > 20) {
     logContent.removeChild(logContent.firstChild);
   }
 }
@@ -836,7 +870,10 @@ function towerStats(t) {
     convertRate: L.convertRate || 0,
     missileCost: L.missileCost || 100,
     buildTime: L.buildTime || 5,
-    maxMissiles: L.maxMissiles || 10
+    maxMissiles: L.maxMissiles || 10,
+    costPerHit: L.costPerHit || 0,
+    hpLossRatio: L.hpLossRatio || 0,
+    paralysisTime: L.paralysisTime || 0
   };
 }
 
@@ -1308,6 +1345,37 @@ function launchMissileSwarm(tx, ty) {
   }
 }
 
+// 核爆对己方统一结算（核弹发射与 BOSS 自爆共用）：
+// 范围内己方塔扣除其最大耐久的 90%（当前耐久 ≤ 90% 最大耐久即被摧毁）；指挥塔固定扣其最大耐久 90%（900）。
+// 不享受「终极防线」成就减伤；指挥塔耐久 ≤ 0 时走既有失败流程。
+function nukeBlastOwnSide(cx, cy, radius) {
+  let anyDestroyed = false;
+  for (const o of towers) {
+    if (o.destroyed) continue;
+    if (Math.hypot(o.x - cx, o.y - cy) > radius) continue;
+    o.hp -= o.maxHp * 0.9;
+    o.hitFlash = 1;
+    addParticles(o.x, o.y, '#ff8a8a', 5, 80);
+    if (o.hp <= 0) {
+      o.hp = 0;
+      o.destroyed = true;
+      anyDestroyed = true;
+      addParticles(o.x, o.y, o.def.color, 22, 190);
+      addParticles(o.x, o.y, '#ff6b6b', 10, 120);
+      addFloat(o.x, o.y - 20, '摧毁', '#ff6b6b');
+      addLog(`警告：${o.def.name} 被核爆摧毁！`, 'danger');
+      if (selectedTower === o) selectedTower = null;
+      if (aimingNukeTower === o) aimingNukeTower = null;
+    }
+  }
+  if (anyDestroyed) checkEnclosure();
+
+  if (Math.hypot(CASTLE_CX - cx, CASTLE_CY - cy) <= radius) {
+    castleHp -= CASTLE_MAX_HP * 0.9;
+    addParticles(CASTLE_CX, CASTLE_CY, '#ff8a3d', 10, 120);
+  }
+}
+
 function launchNuke(t, tx, ty) {
   if (!t || t.destroyed || t.nukeCount <= 0) return;
   t.nukeCount--;
@@ -1330,12 +1398,8 @@ function launchNuke(t, tx, ty) {
       addParticles(e.x, e.y, '#fff', 10, 200);
     }
   }
-  for (let o of towers) {
-    if (!o.destroyed && Math.hypot(o.x - tx, o.y - ty) <= blastRadius) {
-      o.hp = Math.max(1, Math.floor(o.maxHp * 0.1));
-      addParticles(o.x, o.y, '#ff8a8a', 5, 80);
-    }
-  }
+  nukeBlastOwnSide(tx, ty, blastRadius);
+
   radiationZones.push({
     x: tx, y: ty,
     radius: radRadius,
@@ -1358,13 +1422,7 @@ function detonateBoss(e) {
         addParticles(o.x, o.y, '#fff', 8, 160);
       }
     }
-    for (const o of towers) {
-      if (!o.destroyed && Math.hypot(o.x - e.x, o.y - e.y) <= blastRadius) {
-        o.hp = Math.max(1, Math.floor(o.maxHp * 0.1));
-        o.hitFlash = 1;
-        addParticles(o.x, o.y, '#ff8a8a', 5, 80);
-      }
-    }
+    nukeBlastOwnSide(e.x, e.y, blastRadius);
     radiationZones.push({ x: e.x, y: e.y, radius: MAP_DIAG * 0.2, life: 100, maxLife: 100 });
     addLog('☢️ BOSS 死亡引发核爆！', 'danger');
   }
@@ -1375,15 +1433,43 @@ function detonateBoss(e) {
   }
 }
 
-// EMP 电磁怪：不直接攻击，走向指挥塔渗透；死亡自爆造成电磁冲击
+// EMP 电磁怪：不直接攻击，走向指挥塔渗透；到达指挥塔附近、（陆地形态）接触任意防御塔或被打死时自爆。
+// 判定使用平面距离（不考虑高度）；飞行形态不与地面塔发生碰撞；不设出场无敌/碰撞延迟。
 function updateEmpEnemy(e, dt) {
-  const dCastle = Math.hypot(CASTLE_CX - e.x, CASTLE_CY - e.y);
+  const detonateHere = () => {
+    if (e.detonated) return;
+    e.detonated = true;
+    e.hp = 0;
+    e.alive = false;
+    explodeEMP(e.x, e.y);
+  };
+
+  let dCastle = Math.hypot(CASTLE_CX - e.x, CASTLE_CY - e.y);
   if (dCastle > 34) {
     const dx = CASTLE_CX - e.x, dy = CASTLE_CY - e.y;
     const dist = dCastle || 1;
     const step = e.speed * e.slowFactor * dt;
     e.x += (dx / dist) * step;
     e.y += (dy / dist) * step;
+    dCastle = Math.hypot(CASTLE_CX - e.x, CASTLE_CY - e.y);
+  }
+
+  // 引爆判定：到达指挥塔附近（移动后重算的平面距离，大步长不漏判）
+  if (dCastle <= 40) {
+    detonateHere();
+    return;
+  }
+
+  // 陆地形态：平面接触任意防御塔即自爆（飞行形态不与地面塔碰撞）
+  if (!e.def.flying) {
+    for (let j = 0; j < towers.length; j++) {
+      const t = towers[j];
+      if (t.destroyed) continue;
+      if (Math.hypot(t.x - e.x, t.y - e.y) <= e.radius + 15) {
+        detonateHere();
+        return;
+      }
+    }
   }
 }
 
@@ -1396,32 +1482,114 @@ function explodeEMP(x, y) {
   addFloat(x, y - 20, 'EMP!', '#4fd8ff');
   addLog('⚡ EMP电磁怪自爆！范围内设施遭电磁冲击！', 'danger');
 
-  // 光棱炮庇护力场：收集爆炸范围内未摧毁的光棱炮
-  const activePrisms = [];
+  // T20 光棱炮庇护源：未摧毁、不在建造中、未关闭的 T20 光棱炮（建造中/关闭的均不作庇护源）
+  const t20Shelters = [];
   for (const p of towers) {
-    if (p.destroyed || p.type !== 'prism') continue;
-    if (Math.hypot(p.x - x, p.y - y) <= EMP_BLAST_RADIUS) activePrisms.push(p);
+    if (p.destroyed || p.type !== 'prism' || p.level < 20) continue;
+    if (p.buildingTimer > 0 || p.enabled === false) continue;
+    t20Shelters.push(p);
   }
-  const isShielded = (t) => activePrisms.some(p =>
-    Math.abs(t.gx - p.gx) <= 1 && Math.abs(t.gy - p.gy) <= 1
-  );
-  // 光棱炮自身激活力场视觉
-  for (const p of activePrisms) p.empShieldTimer = 1.5;
+  const findT20Shelter = (t) => {
+    for (const p of t20Shelters) {
+      if (Math.abs(t.gx - p.gx) <= 1 && Math.abs(t.gy - p.gy) <= 1) return p;
+    }
+    return null;
+  };
+
+  // 视觉：T10–T19 光棱炮受 EMP 冲击时自身小护盾圈闪烁 1.5 秒（非九宫格范围）；
+  // T1–T9 光棱炮被 EMP 攻击时不触发任何力场视觉；关闭/建造中的光棱炮不参与。
+  const flashT20 = new Set();
+  for (const p of towers) {
+    if (p.destroyed || p.type !== 'prism' || p.buildingTimer > 0 || p.enabled === false) continue;
+    if (Math.hypot(p.x - x, p.y - y) > EMP_BLAST_RADIUS) continue;
+    if (p.level >= 20) flashT20.add(p);
+    else if (p.level >= 10) p.selfShieldTimer = 1.5;
+  }
+
+  // 电磁护盾庇护：3x3 范围内电量充足（>= 耗能）的护盾塔，取电量最高的一座
+  const findEmpShield = (t) => {
+    let best = null;
+    for (const p of towers) {
+      if (p.destroyed || p.type !== 'empShield') continue;
+      if (p.buildingTimer > 0 || p.enabled === false) continue;
+      if (Math.abs(t.gx - p.gx) <= 1 && Math.abs(t.gy - p.gy) <= 1) {
+        if (p.energy >= towerStats(p).costPerHit) {
+          if (!best || p.energy > best.energy) best = p;
+        }
+      }
+    }
+    return best;
+  };
+
+  let anyDestroyed = false;
 
   for (let i = 0; i < towers.length; i++) {
     const t = towers[i];
     if (t.destroyed) continue;
     if (Math.hypot(t.x - x, t.y - y) > EMP_BLAST_RADIUS) continue;
 
-    // 绝对免疫层：纯物理设施 / 光棱炮 / 能量电池 / 电池组 —— 一滴能量都不掉
-    if (t.type !== 'repair' && t.type !== 'laser' && t.type !== 'converter') continue;
+    // 建造中的塔免疫 EMP（升级中的塔不免疫）
+    if (t.buildingTimer > 0) continue;
 
-    // 普通电子层（维修塔/拦截器/转换器）：先检查光棱炮庇护（九宫格相邻 = 完全免疫）
-    if (isShielded(t)) {
+    // 关闭状态的设施一律不进入受罚流程
+    if (t.enabled === false) continue;
+
+    // 绝对免疫层：纯物理设施 / 能量电池 / 电池组 / 毫米波 / 电磁护盾 / T10 及以上光棱炮 —— 一滴能量都不掉
+    const isPrism = t.type === 'prism';
+    const isLowPrism = isPrism && t.level < 10;
+    const isElectronic = t.type === 'repair' || t.type === 'laser' || t.type === 'converter' ||
+      t.type === 'lightning' || isLowPrism;
+    if (!isElectronic) continue;
+
+    // T20 光棱炮庇护：九宫格内电子设施完全免疫，不进入受罚流程（T1–T9 光棱炮被覆盖同样被庇护）
+    const shelter = findT20Shelter(t);
+    if (shelter) {
+      flashT20.add(shelter);
       addFloat(t.x, t.y - 20, '🛡️ 庇护', '#ffffff');
       continue;
     }
 
+    // 电磁护盾庇护（既有机制，仅覆盖维修塔/拦截器/转换器）：扣耗能 + 受护塔按护盾等级扣血比例受损 + 瘫痪 + 电量清零 + 替死
+    if (t.type === 'repair' || t.type === 'laser' || t.type === 'converter') {
+      const p = findEmpShield(t);
+      if (p) {
+        const pSt = towerStats(p);
+        p.energy -= pSt.costPerHit;
+        p.empBlockFlash = 0.5;
+        addFloat(p.x, p.y - 20, '🔋 -' + pSt.costPerHit, '#38bdf8');
+
+        t.energy = 0;
+        t.hp -= t.maxHp * pSt.hpLossRatio;
+        t.paralysisTimer = pSt.paralysisTime;
+        t.hitFlash = 1;
+        addFloat(t.x, t.y - 20, '🛡️ 庇护', '#4fd8ff');
+
+        // 替死机制：受护塔扣血后致死 → 强制保留 1 HP，溢出伤害转移给护盾塔
+        if (t.hp <= 0) {
+          const overflowDamage = -t.hp;
+          t.hp = 1;
+          p.hp -= overflowDamage;
+          if (p.hp <= 0) {
+            p.hp = 0;
+            p.destroyed = true;
+            anyDestroyed = true;
+            addParticles(p.x, p.y, p.def.color, 22, 190);
+            addParticles(p.x, p.y, '#ff6b6b', 10, 120);
+            addFloat(p.x, p.y - 20, '过载摧毁', '#ff6b6b');
+            addLog(`🛡️ 电磁护盾 替死过载，被摧毁！（转移伤害 ${Math.round(overflowDamage)}）`, 'danger');
+            if (selectedTower === p) selectedTower = null;
+            if (aimingNukeTower === p) aimingNukeTower = null;
+            checkEnclosure();
+          } else if (overflowDamage >= 1) {
+            addFloat(p.x, p.y - 34, '💥 替死 -' + Math.round(overflowDamage), '#ff8a8a');
+            addLog(`🛡️ 电磁护盾 替死承受 ${Math.round(overflowDamage)} 溢出伤害`, 'warning');
+          }
+        }
+        continue;
+      }
+    }
+
+    // 受罚（维修塔/拦截器/转换器/电击器/光棱炮 T1–T9）：能量清零 + 扣最大耐久 80% + 瘫痪 5 秒
     t.energy = 0;
     t.hp -= t.maxHp * 0.8;
     t.paralysisTimer = 5;
@@ -1429,12 +1597,20 @@ function explodeEMP(x, y) {
     if (t.hp <= 0) {
       t.hp = 0;
       t.destroyed = true;
+      anyDestroyed = true;
       addParticles(t.x, t.y, t.def.color, 22, 190);
       addParticles(t.x, t.y, '#ff6b6b', 10, 120);
       addFloat(t.x, t.y - 20, '摧毁', '#ff6b6b');
       addLog(`${t.def.name} 被 EMP 冲击摧毁！`, 'danger');
+      if (selectedTower === t) selectedTower = null;
+      if (aimingNukeTower === t) aimingNukeTower = null;
     }
   }
+
+  if (anyDestroyed) checkEnclosure();
+
+  // T20 光棱炮庇护力场视觉（受击或实际庇护时激活 1.5 秒）
+  for (const p of flashT20) p.empShieldTimer = 1.5;
 
   // 破盾打击：范围内护盾怪的护盾系统瘫痪 5 秒（移动/攻击不受影响）
   for (let i = 0; i < enemies.length; i++) {
@@ -1698,6 +1874,10 @@ function update(dt) {
         t.hitFlash = Math.max(t.hitFlash, 0.1);
       }
     }
+    // 辐射区对指挥塔：每秒 15 点持续伤害（耐久 ≤ 0 走既有失败流程）
+    if (Math.hypot(CASTLE_CX - rz.x, CASTLE_CY - rz.y) <= rz.radius) {
+      castleHp -= 15 * dt;
+    }
   }
 
   if (autoUpgrade && !gameOver && !paused) {
@@ -1710,7 +1890,7 @@ function update(dt) {
           if (achTesla) maxLv += 5;
           if (achTesla2) maxLv += 5;
       }
-      if (t.type === 'prism' || t.type === 'missileSilo' || t.type === 'converter' || t.type === 'batteryPack') maxLv = 20;
+      if (t.type === 'prism' || t.type === 'missileSilo' || t.type === 'converter' || t.type === 'batteryPack' || t.type === 'empShield') maxLv = 20;
       return t.level < maxLv;
     });
     if (candidates.length > 0) {
@@ -1724,6 +1904,25 @@ function update(dt) {
           addLog(`自动升级 ${t.def.name} 至 T${t.level + 1}...`, 'info');
         }
       }
+    }
+
+    // 电池组自动升阶：T20 且未达最高阶时自动执行（与手动升阶一致，静默无提示，费用足够即升）
+    for (const t of towers) {
+      if (t.destroyed || t.type !== 'batteryPack') continue;
+      if (t.buildingTimer > 0 || t.upgradingTimer > 0) continue;
+      if (t.level < 20) continue;
+      const bpTier = Math.min(3, Math.max(1, t.batteryTier || 1));
+      if (bpTier >= 3) continue;
+      const cost = ascendCost(t);
+      if (gold < cost) continue;
+      gold -= cost;
+      t.invested += cost;
+      t.batteryTier = bpTier + 1;
+      t.level = 1;
+      t.maxHp = towerMaxHp('batteryPack', 1);
+      t.hp = t.maxHp;
+      t.energy = 0;
+      t.paralysisTimer = 0;
     }
   }
 
@@ -1879,11 +2078,19 @@ function update(dt) {
 
     if (t.recoil > 0) t.recoil = Math.max(0, t.recoil - dt * 6);
     if (t.hitFlash > 0) t.hitFlash = Math.max(0, t.hitFlash - dt * 4);
+    // 电磁护盾触发闪烁计时（游戏内时间，兼容加速系统）
+    if (t.empBlockFlash > 0) t.empBlockFlash = Math.max(0, t.empBlockFlash - dt);
 
     // 光棱炮 EMP 庇护力场计时（游戏内时间，兼容加速系统）
     if (t.empShieldTimer > 0) {
       t.empShieldTimer -= dt;
       if (t.empShieldTimer < 0) t.empShieldTimer = 0;
+    }
+
+    // T10–T19 光棱炮自身防护视觉计时（小护盾圈闪烁 1.5 秒）
+    if (t.selfShieldTimer > 0) {
+      t.selfShieldTimer -= dt;
+      if (t.selfShieldTimer < 0) t.selfShieldTimer = 0;
     }
 
     // 工作开关：停用的塔不执行任何运作（建造/升级进度仍照常完成）
@@ -1982,8 +2189,9 @@ function update(dt) {
         for (let j = 0; j < towers.length; j++) {
           const o = towers[j];
           if (o === t || o.destroyed || o.buildingTimer > 0) continue;
+          if (o.enabled === false) continue; // 关闭状态的设施不接受外部充能
           const oSt = towerStats(o);
-          if ((o.type === 'laser' || o.type === 'battery' || o.type === 'batteryPack' || o.type === 'prism') && o.energy < oSt.maxEnergy) {
+          if ((o.type === 'laser' || o.type === 'battery' || o.type === 'batteryPack' || o.type === 'prism' || o.type === 'empShield') && o.energy < oSt.maxEnergy) {
             const d = Math.hypot(o.x - t.x, o.y - t.y);
             if (d <= st.range && d < minD) { minD = d; targetTower = o; }
           }
@@ -1994,6 +2202,7 @@ function update(dt) {
         for (let j = 0; j < towers.length; j++) {
           const o = towers[j];
           if (o === t || o.destroyed || o.type !== 'converter' || o.buildingTimer > 0) continue;
+          if (o.enabled === false) continue; // 关闭状态的设施不接受外部充能
           const oSt = towerStats(o);
           if (o.energy < oSt.maxEnergy) {
             const d = Math.hypot(o.x - t.x, o.y - t.y);
@@ -2009,7 +2218,7 @@ function update(dt) {
           castleHp = Math.min(CASTLE_MAX_HP, castleHp + st.healRate * dt);
         } else {
           t.angle = Math.atan2(targetTower.y - t.y, targetTower.x - t.x);
-          if (targetTower.type === 'laser' || targetTower.type === 'battery' || targetTower.type === 'batteryPack' || targetTower.type === 'prism') {
+          if (targetTower.type === 'laser' || targetTower.type === 'battery' || targetTower.type === 'batteryPack' || targetTower.type === 'prism' || targetTower.type === 'empShield') {
             const targetSt = towerStats(targetTower);
             if (targetTower.hp < targetTower.maxHp) {
               targetTower.hp = Math.min(targetTower.maxHp, targetTower.hp + st.healRate * dt);
@@ -2077,6 +2286,11 @@ function update(dt) {
       continue;
     }
 
+    // 电磁护盾：纯被动庇护设施，无主动运作
+    if (t.type === 'empShield') {
+      continue;
+    }
+
     if (t.type === 'prism') {
       if (t.level === 20 && t.energy >= 100000 && enemies.length > 0) {
         t.energy -= 100000;
@@ -2109,6 +2323,10 @@ function update(dt) {
             addParticles(o.x, o.y, '#ff8a8a', 5, 80);
           }
         }
+        // 轨道打击圈内指挥塔耐久同样赋值到 1
+        if (Math.hypot(CASTLE_CX - targetX, CASTLE_CY - targetY) <= strikeRadius) {
+          castleHp = 1;
+        }
       }
       continue;
     }
@@ -2119,6 +2337,17 @@ function update(dt) {
       const tier2 = [];
       const tier3 = [];
 
+      // 电池/电池组是否已被可用的维修塔覆盖（维修塔处于其射程内，且未关闭、未瘫痪、未建造中、未被摧毁）
+      const isBatteryCoveredByRepair = (b) => {
+        for (let k = 0; k < towers.length; k++) {
+          const r = towers[k];
+          if (r.destroyed || r.type !== 'repair' || r.buildingTimer > 0) continue;
+          if (r.enabled === false || r.paralysisTimer > 0) continue;
+          if (Math.hypot(r.x - b.x, r.y - b.y) <= towerStats(r).range) return true;
+        }
+        return false;
+      };
+
       for (let j = 0; j < towers.length; j++) {
         const o = towers[j];
         if (o === t || o.destroyed || o.buildingTimer > 0) continue;
@@ -2127,6 +2356,7 @@ function update(dt) {
         const oSt = towerStats(o);
 
         if (o.type === 'converter') {
+          if (o.enabled === false) continue; // 关闭状态的设施不作为充能目标
           if (t.mmToConverter === true && o.energy < oSt.maxEnergy) {
             tier3.push({ obj: o, need: oSt.maxEnergy - o.energy, isCastle: false, kind: 'energy' });
           }
@@ -2135,8 +2365,14 @@ function update(dt) {
         if (o.hp < o.maxHp) {
           tier1.push({ obj: o, need: o.maxHp - o.hp, isCastle: false, kind: 'hp' });
         }
-        if ((o.type === 'laser' || o.type === 'battery' || o.type === 'batteryPack' || (o.type === 'prism' && t.mmToPrism === true)) && o.energy < oSt.maxEnergy) {
-          tier2.push({ obj: o, need: oSt.maxEnergy - o.energy, isCastle: false, kind: 'energy' });
+        if (o.enabled !== false) { // 关闭状态的设施不作为充能目标（耐久修复照常）
+          if ((o.type === 'laser' || o.type === 'empShield' || (o.type === 'prism' && t.mmToPrism === true)) && o.energy < oSt.maxEnergy) {
+            tier2.push({ obj: o, need: oSt.maxEnergy - o.energy, isCastle: false, kind: 'energy' });
+          }
+          // 电池/电池组已被可用维修塔覆盖时，毫米波不为其充能（光棱炮 mmToPrism 供能不受此规则影响）
+          if ((o.type === 'battery' || o.type === 'batteryPack') && o.energy < oSt.maxEnergy && !isBatteryCoveredByRepair(o)) {
+            tier2.push({ obj: o, need: oSt.maxEnergy - o.energy, isCastle: false, kind: 'energy' });
+          }
         }
       }
       const dCastle = Math.hypot(CASTLE_CX - t.x, CASTLE_CY - t.y);
@@ -2157,6 +2393,7 @@ function update(dt) {
         for (let k = 0; k < towers.length; k++) {
           const other = towers[k];
           if (other.destroyed || other.buildingTimer > 0) continue;
+          if (other.enabled === false) continue; // 关闭状态的中继毫米波不参与传导，关闭状态的电池不被抽取
           if (Math.hypot(other.x - tower.x, other.y - tower.y) <= tRange) {
             if ((other.type === 'battery' || other.type === 'batteryPack') && other.energy > 0) {
               sources.push({ battery: other, loss: loss });
@@ -2177,6 +2414,7 @@ function update(dt) {
           if (remainNeed <= 0) break;
           const bat = src.battery;
           if (bat.energy <= 0) continue;
+          if (tgt.obj !== 'castle' && bat === tgt.obj) continue; // 不以当前正在处理的目标设施本身作为电力来源
 
           const neededFromBat = remainNeed / src.loss;
           const take = Math.min(bat.energy, neededFromBat);
@@ -2451,6 +2689,17 @@ function barrelLayout(n, w) {
   ];
 }
 
+// 顶点朝上/下的正六边形路径（电磁护盾雷达罩用）
+function hexPath(ctx, r) {
+  ctx.beginPath();
+  for (let k = 0; k < 6; k++) {
+    const a = Math.PI / 6 + k * Math.PI / 3;
+    const px = Math.cos(a) * r, py = Math.sin(a) * r;
+    if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+}
+
 function drawTower(t) {
   const x = t.x, y = t.y;
   const st = towerStats(t);
@@ -2538,6 +2787,20 @@ function drawTower(t) {
     ctx.restore();
   }
 
+  // T10–T19 光棱炮自身防护视觉：小护盾圈（非九宫格范围），EMP 冲击时短暂闪烁 1.5 秒
+  if (t.type === 'prism' && t.selfShieldTimer > 0) {
+    const frac = Math.min(1, t.selfShieldTimer / 1.5);
+    ctx.save();
+    ctx.strokeStyle = 'rgba(147, 197, 253, ' + (0.9 * frac).toFixed(3) + ')';
+    ctx.lineWidth = 2.5;
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = '#93c5fd';
+    ctx.beginPath();
+    ctx.arc(x, y, 18, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   if (t.enabled === false) {
     ctx.fillStyle = 'rgba(30, 35, 45, 0.55)';
     ctx.beginPath(); ctx.arc(x, y, 15, 0, Math.PI * 2); ctx.fill();
@@ -2562,13 +2825,13 @@ function drawTower(t) {
     ctx.stroke();
   }
 
-  if (t.type === 'laser' || t.type === 'battery' || t.type === 'batteryPack' || t.type === 'prism') {
-    const energyFrac = t.energy / st.maxEnergy;
+  if (t.type === 'laser' || t.type === 'battery' || t.type === 'batteryPack' || t.type === 'prism' || t.type === 'empShield') {
+    const energyFrac = st.maxEnergy > 0 ? Math.max(0, Math.min(1, t.energy / st.maxEnergy)) : 0;
     ctx.strokeStyle = t.type === 'laser' ? '#ff00ff'
       : (t.type === 'battery' || t.type === 'batteryPack')
         ? (t.type === 'battery' ? '#38bdf8'
           : ['#0284c7', '#a855f7', '#ffd166'][Math.min(3, Math.max(1, t.batteryTier || 1)) - 1])
-        : '#f8fafc';
+        : t.type === 'empShield' ? '#38bdf8' : '#f8fafc';
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.arc(x, y, 14, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * energyFrac);
@@ -2584,7 +2847,7 @@ function drawTower(t) {
   const recoil = t.recoil || 0;
   const back = recoil * 5;
 
-  if (t.type !== 'resource' && t.type !== 'battery' && t.type !== 'batteryPack' && t.type !== 'mmwave' && t.type !== 'nukeSilo' && t.type !== 'missileSilo' && t.type !== 'converter') {
+  if (t.type !== 'resource' && t.type !== 'battery' && t.type !== 'batteryPack' && t.type !== 'mmwave' && t.type !== 'nukeSilo' && t.type !== 'missileSilo' && t.type !== 'converter' && t.type !== 'empShield') {
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(t.angle);
@@ -2835,6 +3098,67 @@ function drawTower(t) {
       ctx.closePath();
       ctx.fill();
       ctx.restore();
+    }
+    ctx.restore();
+  } else if (t.type === 'empShield') {
+    ctx.save();
+    ctx.translate(x, y);
+
+    // 电量比例 → 亮度：0 = 暗灰 (68,80,92)，满 = 亮蓝 (56,189,248)
+    const frac = st.maxEnergy > 0 ? Math.max(0, Math.min(1, t.energy / st.maxEnergy)) : 0;
+    const cr = Math.round(68 + (56 - 68) * frac);
+    const cg = Math.round(80 + (189 - 80) * frac);
+    const cb = Math.round(92 + (248 - 92) * frac);
+    const col = (a) => 'rgba(' + cr + ',' + cg + ',' + cb + ',' + a.toFixed(3) + ')';
+
+    // 外层六边形雷达罩
+    ctx.lineWidth = 2.2;
+    ctx.strokeStyle = col(0.4 + 0.55 * frac);
+    ctx.fillStyle = col(0.10 + 0.20 * frac);
+    hexPath(ctx, 12);
+    ctx.fill();
+    ctx.stroke();
+
+    // 内层六边形
+    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = col(0.3 + 0.5 * frac);
+    hexPath(ctx, 7.5);
+    ctx.stroke();
+
+    // 雷达扫描线 + 余辉（有电才旋转）
+    if (frac > 0) {
+      const sweep = (performance.now() / 500) % (Math.PI * 2);
+      ctx.fillStyle = col(0.08 + 0.16 * frac);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, 10.2, sweep - 0.75, sweep);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = col(0.55 + 0.4 * frac);
+      ctx.lineWidth = 1.8;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(sweep) * 10.2, Math.sin(sweep) * 10.2);
+      ctx.stroke();
+    }
+
+    // 中心核心
+    ctx.fillStyle = col(0.5 + 0.5 * frac);
+    ctx.beginPath();
+    ctx.arc(0, 0, 2.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 庇护触发：闪烁 0.5 秒（六边形冲击环）
+    if (t.empBlockFlash > 0) {
+      const f = t.empBlockFlash / 0.5;
+      if (Math.sin(performance.now() / 35) > -0.5) {
+        ctx.strokeStyle = 'rgba(140, 224, 255, ' + (0.95 * f).toFixed(3) + ')';
+        ctx.lineWidth = 2.6;
+        hexPath(ctx, 12 + (1 - f) * 10);
+        ctx.stroke();
+      }
     }
     ctx.restore();
   } else {
@@ -3195,6 +3519,17 @@ function draw() {
         drawRange((mouse.gx + 0.5) * TILE, (mouse.gy + 0.5) * TILE, L.range,
                   selectedType === 'repair' ? 'rgba(74,222,128,.10)' : undefined);
       }
+      // 电磁护盾：预览 3×3 庇护范围
+      if (selectedType === 'empShield') {
+        ctx.save();
+        ctx.fillStyle = 'rgba(79, 216, 255, 0.10)';
+        ctx.strokeStyle = 'rgba(79, 216, 255, 0.55)';
+        ctx.lineWidth = 1.5;
+        const bx = (mouse.gx - 1) * TILE, by = (mouse.gy - 1) * TILE;
+        ctx.fillRect(bx, by, TILE * 3, TILE * 3);
+        ctx.strokeRect(bx + 1, by + 1, TILE * 3 - 2, TILE * 3 - 2);
+        ctx.restore();
+      }
     }
   }
 
@@ -3203,6 +3538,17 @@ function draw() {
     if (st.range > 0) {
       drawRange(selectedTower.x, selectedTower.y, st.range,
                 selectedTower.type === 'repair' ? 'rgba(74,222,128,.10)' : undefined);
+    }
+    // 电磁护盾：选中时显示 3×3 庇护范围
+    if (selectedTower.type === 'empShield') {
+      ctx.save();
+      ctx.fillStyle = 'rgba(79, 216, 255, 0.08)';
+      ctx.strokeStyle = 'rgba(79, 216, 255, 0.5)';
+      ctx.lineWidth = 1.5;
+      const bx = (selectedTower.gx - 1) * TILE, by = (selectedTower.gy - 1) * TILE;
+      ctx.fillRect(bx, by, TILE * 3, TILE * 3);
+      ctx.strokeRect(bx + 1, by + 1, TILE * 3 - 2, TILE * 3 - 2);
+      ctx.restore();
     }
     ctx.strokeStyle = 'rgba(255,255,255,.85)';
     ctx.lineWidth = 2;
@@ -3543,7 +3889,7 @@ function updateHUD() {
       if (achTesla) maxLv += 5;
       if (achTesla2) maxLv += 5;
     }
-    if (t.type === 'prism' || t.type === 'batteryPack') maxLv = 20;
+    if (t.type === 'prism' || t.type === 'batteryPack' || t.type === 'empShield') maxLv = 20;
     if (t.type === 'nukeSilo') maxLv = 1;
     if (t.type === 'missileSilo') maxLv = 20;
     if (t.type === 'converter') maxLv = 20;
@@ -3570,15 +3916,18 @@ function updateHUD() {
       hpEl.className = frac > 0.5 ? 'hp-ok' : frac > 0.25 ? 'hp-mid' : 'hp-low';
     }
 
-    if (t.type === 'laser' || t.type === 'battery' || t.type === 'batteryPack' || t.type === 'prism') {
+    if (t.type === 'laser' || t.type === 'battery' || t.type === 'batteryPack' || t.type === 'prism' || t.type === 'empShield') {
       $('rowEnergy').style.display = 'flex';
       const enEl = $('selEnergy');
-      enEl.textContent = Math.floor(t.energy) + ' / ' + st.maxEnergy;
+      enEl.textContent = Math.floor(t.energy) + ' / ' + st.maxEnergy +
+        (t.type === 'empShield' ? ' (一次耗 ' + st.costPerHit + ')' : '');
       enEl.className = t.energy >= st.maxEnergy ? 'energy-full' : 'energy-mid';
     } else {
       $('rowEnergy').style.display = 'none';
     }
 
+    // 重置可能的样式残留（如光棱炮「充能中」灰色）
+    $('selDmg').style.color = '';
     if (t.type === 'resource') {
       $('selStatLabel').textContent = '产出';
       $('selDmg').textContent = '+' + st.income + ' / ' + st.interval.toFixed(2) + 's';
@@ -3609,6 +3958,11 @@ function updateHUD() {
       $('selDmg').textContent = '1 能量 = ' + st.convertRate + ' 金币';
       $('selRange').textContent = '—';
       $('selRate').textContent = '持续';
+    } else if (t.type === 'empShield') {
+      $('selStatLabel').textContent = '受护塔扣血';
+      $('selDmg').textContent = Math.round(st.hpLossRatio * 100) + '%';
+      $('selRange').textContent = '3×3 格';
+      $('selRate').textContent = '瘫 ' + st.paralysisTime.toFixed(2) + 's';
     } else if (t.type === 'prism') {
       $('selStatLabel').textContent = '状态';
       if (t.level < 20) {
@@ -3858,6 +4212,7 @@ function tryBuild(gx, gy, type) {
     mmToPrism: false,
     paralysisTimer: 0,
     empShieldTimer: 0,
+    selfShieldTimer: 0,
     batteryTier: 1,
     invested: def.cost,
     hp: maxHp,
@@ -3918,7 +4273,7 @@ function selectType(type) {
 
 (function buildTowerButtons() {
   const list = $('towerList');
-  const keys = ['arrow', 'cannon', 'flame', 'lightning', 'antiair', 'repair', 'laser', 'battery', 'batteryPack', 'mmwave', 'converter', 'prism', 'resource', 'nukeSilo', 'missileSilo'];
+  const keys = ['arrow', 'cannon', 'flame', 'lightning', 'antiair', 'repair', 'laser', 'battery', 'batteryPack', 'mmwave', 'converter', 'prism', 'empShield', 'resource', 'nukeSilo', 'missileSilo'];
   keys.forEach(key => {
     const def = TOWER_DEFS[key];
     const btn = document.createElement('button');
@@ -4007,7 +4362,7 @@ $('btnUpgrade').addEventListener('click', () => {
     if (achTesla) maxLv += 5;
     if (achTesla2) maxLv += 5;
   }
-  if (t.type === 'prism' || t.type === 'missileSilo' || t.type === 'converter' || t.type === 'batteryPack') maxLv = 20;
+  if (t.type === 'prism' || t.type === 'missileSilo' || t.type === 'converter' || t.type === 'batteryPack' || t.type === 'empShield') maxLv = 20;
 
   if (t.level >= maxLv) { toast('已达到最大等级'); return; }
   if (t.buildingTimer > 0) { toast('建造中'); return; }
@@ -4307,6 +4662,7 @@ function applySave(data) {
       mmToPrism: !!td.mmToPrism,
       paralysisTimer: 0,
       empShieldTimer: 0,
+      selfShieldTimer: 0,
       batteryTier: Math.min(3, Math.max(1, Math.floor(td.batteryTier) || 1)),
       invested: Math.max(def.cost, Math.floor(td.invested) || def.cost),
       hp, maxHp,
