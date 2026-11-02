@@ -17,7 +17,6 @@
     transition: background 2s ease, color 1s ease;
   }
   
-  /* 主题类，仅用于控制文字颜色 */
   body.night #score { color: #fff; text-shadow: 0 3px 14px rgba(0,0,0,.45); }
   body.night #bestWrap, body.night #bestWrap b { color: #aab4d8; }
   body.night #toast { color: #fff; text-shadow: 0 2px 16px rgba(79, 140, 255, 0.95); }
@@ -26,7 +25,6 @@
 
   #game { position: fixed; inset: 0; display: block; }
 
-  /* ---------- HUD ---------- */
   #hud {
     position: fixed; top: 0; left: 0; right: 0;
     padding: max(20px, env(safe-area-inset-top)) 26px 0;
@@ -40,15 +38,15 @@
     transition: transform .12s, color .3s;
   }
   #score.pop { transform: scale(1.22); }
+  
   #bestWrap {
     text-align: right; font-size: 13px; color: #7b86a3;
     font-weight: 600; letter-spacing: .5px; padding-top: 6px;
     transition: color .3s;
   }
-  #bestWrap b { display: block; font-size: 22px; color: #4a5578; letter-spacing: -0.5px; transition: transform 0.2s; }
+  #bestWrap b { display: block; font-size: 22px; color: #4a5578; letter-spacing: -0.5px; transition: transform 0.2s, color 0.2s; }
   #bestWrap b.pop { transform: scale(1.3); color: #ffc107; }
 
-  /* ---------- 连击 UI ---------- */
   #comboBadge {
     position: fixed;
     top: calc(max(20px, env(safe-area-inset-top)) + 84px); right: 26px;
@@ -68,7 +66,6 @@
     transform-origin: right center;
   }
 
-  /* ---------- 智能蓄力条 ---------- */
   #power {
     position: fixed;
     left: 50%; bottom: max(46px, env(safe-area-inset-bottom));
@@ -105,7 +102,6 @@
     border-right: 2px solid #4f8cff;
   }
 
-  /* ---------- 完美提示 ---------- */
   #toast {
     position: fixed; left: 50%; top: 34%;
     transform: translate(-50%, 0);
@@ -122,7 +118,6 @@
     100% { opacity: 0; transform: translate(-50%, -34px) scale(.95); }
   }
 
-  /* ---------- 右下角按钮区 ---------- */
   #controls {
     position: fixed;
     right: max(20px, env(safe-area-inset-right));
@@ -145,7 +140,6 @@
   }
   .ctrlBtn.muted { opacity: 0.5; }
 
-  /* ---------- 覆盖层 & 挂起 ---------- */
   .screen {
     position: fixed; inset: 0;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -198,7 +192,12 @@
 
 <div id="hud">
   <div id="score">0</div>
-  <div id="bestWrap">最高分<b id="best">0</b></div>
+  <div id="bestWrap">
+    <div>总最高 <b id="bestOverall">0</b></div>
+    <div style="font-size: 11px; margin-top: 4px; color: #aab4d8; display: flex; justify-content: flex-end; align-items: baseline; gap: 4px;">
+      纯手动 <b id="bestManual" style="font-size: 16px; color: #7b86a3; display: inline-block; position: relative; top: 2px;">0</b>
+    </div>
+  </div>
 </div>
 
 <div id="comboBadge">
@@ -238,7 +237,9 @@
     <div>最长连击 <span id="statCombo">0</span></div>
     <div>完美率 <span id="statPerfect">0%</span></div>
     <div>总场次 <span id="statGames">0</span></div>
-    <div>历史最高 <span id="statBest">0</span></div>
+    <div>总落地 <span id="statLandings">0</span></div>
+    <div>总最高 <span id="statBestOverall">0</span></div>
+    <div>纯手动 <span id="statBestManual">0</span></div>
   </div>
   <button class="btn" id="retryBtn">再来一次</button>
 </div>
@@ -253,7 +254,8 @@
 var canvas      = document.getElementById('game');
 var ctx         = canvas.getContext('2d');
 var scoreEl     = document.getElementById('score');
-var bestEl      = document.getElementById('best');
+var bestOverallEl = document.getElementById('bestOverall');
+var bestManualEl  = document.getElementById('bestManual');
 var powerEl     = document.getElementById('power');
 var powerSafeEl = document.getElementById('powerSafe');
 var powerPerfectEl = document.getElementById('powerPerfect');
@@ -273,18 +275,45 @@ var comboBadge  = document.getElementById('comboBadge');
 var comboCount  = document.getElementById('comboCount');
 var comboBarFill= document.getElementById('comboBarFill');
 
-// 统计持久化
+// 统计持久化（含旧数据迁移）
 var stats = { games: 0, perfects: 0, maxCombo: 0, landings: 0 };
 try {
-  var savedStats = JSON.parse(localStorage.getItem('jump_stats') || '{}');
-  stats.games = savedStats.games || 0;
-  stats.perfects = savedStats.perfects || 0;
-  stats.maxCombo = savedStats.maxCombo || 0;
-  stats.landings = savedStats.landings || 0;
+  var savedStats = JSON.parse(localStorage.getItem('jump_stats_v2') || 'null');
+  if (savedStats) {
+    stats.games = savedStats.games || 0;
+    stats.perfects = savedStats.perfects || 0;
+    stats.maxCombo = savedStats.maxCombo || 0;
+    stats.landings = savedStats.landings || 0;
+  } else {
+    var oldStats = JSON.parse(localStorage.getItem('jump_stats') || '{}');
+    stats.games = oldStats.games || 0;
+    stats.perfects = oldStats.perfects || 0;
+    stats.maxCombo = oldStats.maxCombo || 0;
+    stats.landings = oldStats.landings || 0;
+    try { localStorage.setItem('jump_stats_v2', JSON.stringify(stats)); } catch(e) {}
+  }
 } catch(e) {}
 
-var best = 0;
-try { best = parseInt(localStorage.getItem('jump_best') || '0', 10) || 0; } catch(e){}
+// 两个最高分：总最高 & 纯手动最高（含旧数据迁移）
+var bestOverall = 0;
+var bestManual = 0;
+try {
+  var newOverall = localStorage.getItem('jump_best_overall');
+  var newManual = localStorage.getItem('jump_best_manual');
+  if (newOverall !== null) {
+    bestOverall = parseInt(newOverall, 10) || 0;
+    bestManual = parseInt(newManual, 10) || 0;
+  } else {
+    var oldBest = parseInt(localStorage.getItem('jump_best') || '0', 10) || 0;
+    bestOverall = oldBest;
+    bestManual = oldBest;
+    try { localStorage.setItem('jump_best_overall', String(bestOverall)); } catch(e) {}
+    try { localStorage.setItem('jump_best_manual', String(bestManual)); } catch(e) {}
+  }
+} catch(e){}
+
+// 本局是否被自动污染
+var usedAutoThisRun = false;
 
 // 开关状态
 var isMuted = false;
@@ -426,10 +455,9 @@ var combo = 0;
 var comboTimer = 0;
 
 var isPaused = false;
-var skyTime = 15; // 从日出开始
-var lightPos = { x: 0.5, y: 0.5 }; // 用于全局判断
+var skyTime = 15; 
+var lightPos = { x: 0.5, y: 0.5 }; 
 
-// 延时动作队列，确保暂停时停止倒计时
 var pendingActions = [];
 
 function scheduleAction(delay, fn) {
@@ -453,6 +481,25 @@ var SHAPES = [
   { name: 'Hexagon',  verts: makePoly(6, 1.0, 0), radius: 1.0 },
   { name: 'Circle',   verts: null, radius: 1.0 }
 ];
+
+// 射线与多边形求交，返回沿 (dirX, dirZ) 的边界距离
+function rayHitDist(verts, dirX, dirZ) {
+  var minT = Infinity;
+  var len = verts.length;
+  for (var i = 0; i < len; i++) {
+    var A = verts[i];
+    var B = verts[(i+1)%len];
+    var ex = B.x - A.x, ez = B.z - A.z;
+    var denom = dirX * ez - dirZ * ex;
+    if (Math.abs(denom) < 1e-9) continue;
+    var t = (A.x * ez - A.z * ex) / denom;
+    var s = (dirZ * A.x - dirX * A.z) / denom;
+    if (t > 1e-6 && s >= -1e-6 && s <= 1+1e-6) {
+      if (t < minT) minT = t;
+    }
+  }
+  return minT === Infinity ? 0 : minT;
+}
 
 var W = 0, H = 0, DPR = 1, K = 48;
 var cam     = { x: 0, y: 2.0, z: 0 };
@@ -530,9 +577,9 @@ function updateBarWidth() {
 function updateTheme() {
   var t = skyTime % 120;
   var phase = 'day';
-  if (t < 15) phase = 'night'; // 黎明前依然是黑夜
+  if (t < 15) phase = 'night'; 
   else if (t < 45) phase = 'day';
-  else if (t < 58) phase = 'dusk'; // 提前到 58 切夜
+  else if (t < 58) phase = 'dusk'; 
   else phase = 'night';
   
   if (document.body.className !== phase) {
@@ -654,7 +701,7 @@ function spawnText(x, z, text, color) {
 }
 
 /* =======================================================
-   5. 方块生成
+   5. 方块生成（清理 minGap）
 ======================================================= */
 function spawnNext() {
   var isRight = Math.random() < 0.5;
@@ -668,22 +715,20 @@ function spawnNext() {
   var scale = Math.max(0.6, 1.0 - score * 0.002);
   var newRadius = shape.radius * scale;
 
-  var o = (player.x - curBlock.cx) * normDirX + (player.z - curBlock.cz) * normDirZ;
-  var minGap = curBlock.radius + newRadius + 0.2;
   var gap = curBlock.radius + newRadius + 0.45 + Math.random() * 0.6;
-
-  var speed = getChargeSpeed();
-  var maxReach = MAX_CHARGE * speed * 0.95;
-  
-  if (gap - o > maxReach) {
-    gap = maxReach + o;
-  }
-  if (gap < minGap) {
-    gap = minGap;
-  }
-
   var perfectX = curBlock.cx + normDirX * gap;
   var perfectZ = curBlock.cz + normDirZ * gap;
+
+  var pdx = perfectX - player.x, pdz = perfectZ - player.z;
+  var distToPlayer = Math.sqrt(pdx*pdx + pdz*pdz);
+  var speed = getChargeSpeed();
+  var maxReach = MAX_CHARGE * speed * 0.95;
+
+  if (distToPlayer > maxReach) {
+    var ratio = maxReach / distToPlayer;
+    perfectX = player.x + (perfectX - player.x) * ratio;
+    perfectZ = player.z + (perfectZ - player.z) * ratio;
+  }
 
   var hue = (195 + blockSeq * 24) % 360;
   blockSeq++;
@@ -691,7 +736,6 @@ function spawnNext() {
   var b = {
     cx: perfectX, cz: perfectZ, hue: hue,
     shape: shape, radius: newRadius, scale: scale,
-    dirX: normDirX, dirZ: normDirZ,
     animOffset: -1.3
   };
   
@@ -713,7 +757,7 @@ function resetScene() {
   floatTexts.length = 0;
   trailPoints.length = 0;
   meteors.length = 0;
-  pendingActions.length = 0; // 清空延时队列
+  pendingActions.length = 0; 
   blockSeq = 0;
   score = 0;
   combo = 0;
@@ -726,6 +770,8 @@ function resetScene() {
   isPaused = false;
   pauseOverlay.classList.remove('show');
   
+  usedAutoThisRun = isAuto;
+  
   updateComboUI();
 
   var hue = 195;
@@ -733,7 +779,6 @@ function resetScene() {
     cx: 0, cz: 0, hue: hue,
     shape: SHAPES[0], radius: 0.9, scale: 1,
     verts: SHAPES[0].verts.map(function(v) { return {x: v.x, z: v.z}; }),
-    dirX: 0, dirZ: 1,
     animOffset: 0
   };
   blocks.push(curBlock);
@@ -755,7 +800,8 @@ function resetScene() {
   }
 
   scoreEl.textContent = '0';
-  bestEl.textContent  = best;
+  bestOverallEl.textContent = bestOverall;
+  bestManualEl.textContent = bestManual;
   powerEl.classList.remove('show');
   powerFillEl.style.width = '0%';
   toastEl.classList.remove('show');
@@ -766,7 +812,7 @@ function resetScene() {
 }
 
 /* =======================================================
-   7. 蓄力条 UI
+   7. 蓄力条 UI（修复：区分近侧/远侧）
 ======================================================= */
 function setupPowerUI() {
   if (!nextBlock) return;
@@ -774,26 +820,18 @@ function setupPowerUI() {
   var maxDist = MAX_CHARGE * speed;
   var currentPerfectR = PERFECT_R * nextBlock.scale;
   
-  var projMin = 999, projMax = -999;
+  var dirX = nextBlock.cx - player.x;
+  var dirZ = nextBlock.cz - player.z;
+  var jumpLen = Math.sqrt(dirX*dirX + dirZ*dirZ);
+  if (jumpLen > 0) { dirX /= jumpLen; dirZ /= jumpLen; }
   
-  if (nextBlock.verts) {
-    nextBlock.verts.forEach(function(v) {
-      var worldX = nextBlock.cx + v.x;
-      var worldZ = nextBlock.cz + v.z;
-      var proj = (worldX - player.x) * nextBlock.dirX + (worldZ - player.z) * nextBlock.dirZ;
-      if (proj < projMin) projMin = proj;
-      if (proj > projMax) projMax = proj;
-    });
-  } else {
-    var projCenter = (nextBlock.cx - player.x) * nextBlock.dirX + (nextBlock.cz - player.z) * nextBlock.dirZ;
-    projMin = projCenter - nextBlock.radius;
-    projMax = projCenter + nextBlock.radius;
-  }
+  // 核心修复：分别求远侧（沿方向）和近侧（反向）边界
+  var farHit  = nextBlock.verts ? rayHitDist(nextBlock.verts,  dirX,  dirZ) : nextBlock.radius;
+  var nearHit = nextBlock.verts ? rayHitDist(nextBlock.verts, -dirX, -dirZ) : nextBlock.radius;
+  var perfectDist = jumpLen;
   
-  var perfectDist = (nextBlock.cx - player.x) * nextBlock.dirX + (nextBlock.cz - player.z) * nextBlock.dirZ;
-  
-  var sStart = Math.max(0, projMin / maxDist);
-  var sEnd = Math.min(1, projMax / maxDist);
+  var sStart = Math.max(0, (perfectDist - nearHit) / maxDist);
+  var sEnd = Math.min(1, (perfectDist + farHit) / maxDist);
   var pStart = Math.max(0, (perfectDist - currentPerfectR) / maxDist);
   var pEnd = Math.min(1, (perfectDist + currentPerfectR) / maxDist);
   
@@ -811,10 +849,16 @@ function doJump() {
   var speed = getChargeSpeed();
   var dist = Math.max(MIN_DIST, chargeTime * speed);
   
+  var bx = nextBlock.cx - player.x;
+  var bz = nextBlock.cz - player.z;
+  var jumpLen = Math.sqrt(bx*bx + bz*bz);
+  var dirX = jumpLen > 0 ? bx / jumpLen : 0;
+  var dirZ = jumpLen > 0 ? bz / jumpLen : 0;
+  
   jumpState = {
     t: 0, dur: 0.38 + dist * 0.04,
     fx: player.x, fz: player.z, fy: player.y,
-    dx: nextBlock.dirX, dz: nextBlock.dirZ,
+    dx: dirX, dz: dirZ,
     dist: dist, h: 0.80 + dist * 0.22
   };
 
@@ -849,8 +893,9 @@ function onLand() {
 
   if (landed) {
     if (!isAuto) stats.landings++;
+    
     var currentPerfectR = PERFECT_R * nextBlock.scale;
-    var d = Math.sqrt((px - nextBlock.cx) * (px - nextBlock.cx) + (pz - nextBlock.cz) * (pz - nextBlock.cz));
+    var d = Math.sqrt(localX * localX + localZ * localZ);
     var perfect = d < currentPerfectR;
     var oldLevel = Math.floor(score / 100);
 
@@ -888,24 +933,45 @@ function onLand() {
       player.z = pz + (nextBlock.cz - pz) * 0.2;
     }
 
-    var isRecord = !isAuto && score > best && best > 0;
+    // 双最高分判定
+    var oldBestOverall = bestOverall;
+    var oldBestManual = bestManual;
+    var isRecord = false;
+    var popOverall = false;
+    var popManual = false;
 
-    if (!isAuto && score > best) {
-      best = score;
-      bestEl.textContent = best;
-      try { localStorage.setItem('jump_best', String(best)); } catch (e) {}
+    if (score > bestOverall) {
+      bestOverall = score;
+      isRecord = true;
+      popOverall = (oldBestOverall > 0);
+      try { localStorage.setItem('jump_best_overall', String(bestOverall)); } catch (e) {}
+    }
+    if (!usedAutoThisRun && score > bestManual) {
+      bestManual = score;
+      isRecord = true;
+      popManual = (oldBestManual > 0);
+      try { localStorage.setItem('jump_best_manual', String(bestManual)); } catch (e) {}
     }
 
-    if (isRecord && !hasBeatenBestThisRun) {
+    if (isRecord) {
+      bestOverallEl.textContent = bestOverall;
+      bestManualEl.textContent = bestManual;
+    }
+
+    var hasOldRecord = (oldBestOverall > 0 || oldBestManual > 0);
+    if (isRecord && hasOldRecord && !hasBeatenBestThisRun && !isAuto) {
       hasBeatenBestThisRun = true;
       var recordX = player.x, recordZ = player.z;
-      // 改用 scheduleAction，暂停时不走表
       scheduleAction(0.65, function () {
         showToast('新纪录！');
         spawnParticles(recordX, recordZ, 30, 'rainbow', 2.5);
         playSound('milestone');
-        bestEl.classList.add('pop');
-        scheduleAction(0.3, function() { bestEl.classList.remove('pop'); });
+        if (popOverall) bestOverallEl.classList.add('pop');
+        if (popManual) bestManualEl.classList.add('pop');
+        scheduleAction(0.3, function() {
+          bestOverallEl.classList.remove('pop');
+          bestManualEl.classList.remove('pop');
+        });
       });
     }
 
@@ -976,7 +1042,7 @@ function onLand() {
 }
 
 /* =======================================================
-   9. 游戏结束
+   9. 游戏结束（修复：存档不因 isAuto 丢失）
 ======================================================= */
 function gameOver() {
   if (state === 'over') return;
@@ -986,14 +1052,16 @@ function gameOver() {
   updateComboUI();
   releaseWakeLock();
 
-  if (!isAuto) {
-    stats.games++;
-    try { localStorage.setItem('jump_stats', JSON.stringify(stats)); } catch(e) {}
-  }
+  if (!isAuto) stats.games++;
+  
+  // 核心修复：无论死亡瞬间是什么状态，都把内存中的 stats 落盘
+  try { localStorage.setItem('jump_stats_v2', JSON.stringify(stats)); } catch(e) {}
 
-  document.getElementById('statBest').textContent = best;
+  document.getElementById('statBestOverall').textContent = bestOverall;
+  document.getElementById('statBestManual').textContent = bestManual;
   document.getElementById('statCombo').textContent = stats.maxCombo;
   document.getElementById('statGames').textContent = stats.games;
+  document.getElementById('statLandings').textContent = stats.landings;
   document.getElementById('statPerfect').textContent = 
     Math.round(stats.perfects / Math.max(1, stats.landings) * 100) + '%';
 
@@ -1099,6 +1167,7 @@ autoBtn.addEventListener('click', function (e) {
   e.stopPropagation();
   isAuto = !isAuto;
   if (isAuto) {
+    usedAutoThisRun = true;
     autoBtn.classList.add('active');
     autoBtn.textContent = '演示中...';
   } else {
@@ -1138,7 +1207,7 @@ function showToast(txt) {
 }
 
 /* =======================================================
-   12. 平滑天气系统（时间驱动）
+   12. 平滑天气系统
 ======================================================= */
 function lerpColor(c1, c2, t) {
   var r1 = parseInt(c1.substring(1,3),16), g1 = parseInt(c1.substring(3,5),16), b1 = parseInt(c1.substring(5,7),16);
@@ -1150,14 +1219,14 @@ function lerpColor(c1, c2, t) {
 }
 
 var skyFrames = [
-  { t: 0,   top: '#1a1a2e', bot: '#302b63' }, // 黎明前
-  { t: 15,  top: '#ffecd2', bot: '#fcb69f' }, // 日出
-  { t: 25,  top: '#eaf1f8', bot: '#ccdcee' }, // 正午
-  { t: 45,  top: '#eaf1f8', bot: '#ccdcee' }, // 正午尾
-  { t: 55,  top: '#ff7e5f', bot: '#feb47b' }, // 黄昏
-  { t: 60,  top: '#1a1a2e', bot: '#16213e' }, // 日落，全黑
-  { t: 110, top: '#1a1a2e', bot: '#16213e' }, // 保持全黑
-  { t: 120, top: '#1a1a2e', bot: '#302b63' }  // 黎明前
+  { t: 0,   top: '#1a1a2e', bot: '#302b63' }, 
+  { t: 15,  top: '#ffecd2', bot: '#fcb69f' }, 
+  { t: 25,  top: '#eaf1f8', bot: '#ccdcee' }, 
+  { t: 45,  top: '#eaf1f8', bot: '#ccdcee' }, 
+  { t: 55,  top: '#ff7e5f', bot: '#feb47b' }, 
+  { t: 60,  top: '#1a1a2e', bot: '#16213e' }, 
+  { t: 110, top: '#1a1a2e', bot: '#16213e' }, 
+  { t: 120, top: '#1a1a2e', bot: '#302b63' }  
 ];
 
 function getSkyColor(t, type) {
@@ -1191,7 +1260,6 @@ function drawSky() {
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, W, H);
   
-  // 星星
   if (t >= 55) {
     var starAlpha = 0;
     if (t < 65) starAlpha = (t - 55) / 10;
@@ -1254,7 +1322,6 @@ function drawSky() {
     ctx.fillStyle = '#f0f0ff';
     ctx.fill();
 
-    // 完美月牙：用当前渐变盖住，不留透明底
     var moonShadow = ctx.createLinearGradient(0, 0, 0, H);
     moonShadow.addColorStop(0, topColor);
     moonShadow.addColorStop(1, botColor);
@@ -1264,7 +1331,6 @@ function drawSky() {
     ctx.fill();
   }
   
-  // 流星（画在月亮之后，云朵之前，符合大气层物理）
   meteors.forEach(function(m) {
     var dx = Math.cos(m.angle) * m.len;
     var dy = Math.sin(m.angle) * m.len;
@@ -1279,7 +1345,6 @@ function drawSky() {
     ctx.stroke();
   });
   
-  // 云朵
   if (t >= 15 && t <= 50) {
     var cloudAlpha = 1;
     if (t < 20) cloudAlpha = (t - 15) / 5;
@@ -1379,7 +1444,6 @@ function drawPlayer() {
     var sc = Math.max(0.35, 1 - h * 0.4);
     var sp = project(player.x, BLOCK_H, player.z);
     
-    // 动态影子偏移：负号表示背向光源
     var light = getLighting();
     var shadowOffsetX = -light.k * h * 0.35 * K;
     
@@ -1455,9 +1519,15 @@ function drawAimLine() {
   var speed = getChargeSpeed();
   var dist = Math.max(MIN_DIST, chargeTime * speed);
   
+  var bx = nextBlock.cx - player.x;
+  var bz = nextBlock.cz - player.z;
+  var jumpLen = Math.sqrt(bx*bx + bz*bz);
+  var dirX = jumpLen > 0 ? bx / jumpLen : 0;
+  var dirZ = jumpLen > 0 ? bz / jumpLen : 0;
+  
   var startX = player.x, startZ = player.z;
-  var endX = startX + nextBlock.dirX * dist;
-  var endZ = startZ + nextBlock.dirZ * dist;
+  var endX = startX + dirX * dist;
+  var endZ = startZ + dirZ * dist;
 
   var p1 = project(startX, BLOCK_H, startZ);
   var p2 = project(endX, BLOCK_H, endZ);
@@ -1559,12 +1629,10 @@ function loop(now) {
     return;
   }
 
-  // 只在游玩中流逝时间
   var playing = (state === 'ready' || state === 'jumping' || state === 'falling');
   if (playing) skyTime += dt;
   updateTheme();
 
-  // 流星生成与更新（修复帧率依赖和暂停生成）
   var tNow = skyTime % 120;
   if (playing && !reduceMotion && tNow >= 65 && tNow < 115 && Math.random() < dt * 0.1) {
     meteors.push({
@@ -1584,13 +1652,14 @@ function loop(now) {
     if (m.life <= 0 || m.x > W || m.y > H) meteors.splice(mi, 1);
   }
 
-  // 延时动作队列
-  for (var pai = pendingActions.length - 1; pai >= 0; pai--) {
-    pendingActions[pai].timeLeft -= dt;
-    if (pendingActions[pai].timeLeft <= 0) {
-      var act = pendingActions[pai].fn;
-      pendingActions.splice(pai, 1);
-      act();
+  if (playing) {
+    for (var pai = pendingActions.length - 1; pai >= 0; pai--) {
+      pendingActions[pai].timeLeft -= dt;
+      if (pendingActions[pai].timeLeft <= 0) {
+        var act = pendingActions[pai].fn;
+        pendingActions.splice(pai, 1);
+        act();
+      }
     }
   }
 
@@ -1649,7 +1718,9 @@ function loop(now) {
   }
 
   if (isAuto && state === 'ready' && !charging) {
-    var perfectDist = (nextBlock.cx - player.x) * nextBlock.dirX + (nextBlock.cz - player.z) * nextBlock.dirZ;
+    usedAutoThisRun = true;
+    var pdx = nextBlock.cx - player.x, pdz = nextBlock.cz - player.z;
+    var perfectDist = Math.sqrt(pdx*pdx + pdz*pdz);
     var speed = getChargeSpeed();
     var targetTime = perfectDist / speed;
     if (targetTime > MAX_CHARGE) targetTime = MAX_CHARGE;
@@ -1751,7 +1822,8 @@ resize();
 window.addEventListener('resize', resize);
 resetScene();
 state = 'idle';
-bestEl.textContent = best;
+bestOverallEl.textContent = bestOverall;
+bestManualEl.textContent = bestManual;
 requestAnimationFrame(loop);
 
 })();
