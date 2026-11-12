@@ -316,7 +316,7 @@
       <button class="btn auto-off" id="btnMmConv" style="display:none; margin-top:4px;">🔄 供能转换器：关</button>
       <button class="btn auto-off" id="btnMmPrism" style="display:none; margin-top:4px;">💠 供能光棱炮：关</button>
       <button class="btn auto-on" id="btnRepPrism" style="display:none; margin-top:4px;">💠 供能光棱炮(全局)：开</button>
-      <button class="btn auto-off" id="btnOverclock" style="display:none; margin-top:4px;">⚡ 超频EMP免疫：关</button>
+      <button class="btn auto-off" id="btnOverclock" style="display:none; margin-top:4px;">⚡ 超频EMP免疫(全局)：关</button>
       <button class="btn up" id="btnUpgrade">升级</button>
       <button class="btn sell" id="btnSell">出售</button>
 
@@ -373,11 +373,12 @@
       <p>🧊 <b>电池组</b>：储存能量，供毫米波使用与护盾抽电（T1 容量 12500）。T20 满级后可升阶：中型容量×2、大型容量×4；升阶费为 T21 原价×2，升级费×3/×9。电池组完全免疫 EMP。（能量电池已移除，按键 8 直达电池组）</p>
       <p>📡 <b>毫米波</b>：瞬间从电池组抽电修复范围内所有建筑，并给拦截器/电池组/光棱炮/电磁护盾充能。直连电池组无损，经中继毫米波每跳损耗 10%（无冷却）。选中后可设置是否为转换器/光棱炮充能（默认关）。电磁护盾防御/替死能量不足时，会经毫米波瞬间从电池组抽电补能（遵循同样跳损规则，关闭/建造中的毫米波与电池组不参与）。</p>
       <p>💠 <b>光棱炮</b>：T1-T9 为充能状态，受 EMP 惩罚（清空电量+扣80%最大耐久+瘫痪5秒），但在电磁护盾九宫格内可被庇护减伤减秒。T10-T19 自身免疫 EMP（受冲击时短暂闪现小护盾圈）。T20 且满 10 万能量时引发轨道激光打击（圈内己方塔与指挥塔耐久均设为 1），且免疫 EMP 并为九宫格内电子设施提供完全庇护（建造中/关闭时不作庇护源）。</p>
-      <p>🔮 <b style="color:#67e8f9">球状闪电发生器</b>：初始 1500 金币的终极吞金塔（通用升级公式，T20 累计约 2582 万）。T1-T19 无任何攻击力；T20 激活核心：每 2 秒聚能产出 1 枚球状闪电，场上共享上限 = 2 × T20 塔数（3 座塔=6 球）。球体独立游走 10 秒（40-60px/s 随机偏转、边缘反弹），电弧真伤 90/s（无视敌方能量盾与特警盾）+2 次连锁跳跃（每跳衰减 20%，不分对空对地）+ 贴身帧伤 27/s；到期爆炸：55px 内 270 真伤 + 120px 小型 EMP（敌方护盾怪清盾瘫 5 秒，对己方无影响）。最后 0.5 秒预警（减速闪烁）。工作开关关闭时聚能进度每秒倒退 20%；满上限时新球排斥消散（进度重置）。塔与球体完全免疫 EMP。按键 . 快速选择。</p>
-      <p>🛡️ <b style="color:#38bdf8">电磁护盾</b>：不可攻击、可升 T20。为 3×3 格内的维修塔/拦截器/转换器/电击器/光棱炮T1-T9抵挡 EMP：受护塔按护盾等级扣血比例受损+按护盾等级秒数短暂瘫痪+电量清零；每次庇护扣耗能，自身能量不足时经毫米波瞬间从电池组抽电补足，仍不足则本次不庇护；受护塔将死时保留 1 点耐久，溢出致死伤害由护盾替死承受（护盾可能过载摧毁）。选中护盾可开启「⚡ 超频」：EMP 完全免疫（不扣血/不瘫痪/不清电），每次耗能 = 庇护耗能 costPerHit + 受护塔最大生命值×3（同样支持毫米波抽电），能量不足自动回退普通庇护。T15 起为 3×3 格内所有建筑及自身（含光棱炮）抵挡能量攻击（激光怪光束/远程能量炮弹）；T20 起再抵挡近战攻击与核爆（护盾挡不了光棱炮 T20 轨道打击的友伤）。庇护时受护塔的扣血先由护盾能量抵扣（走通用预算/汇率/抽电），剩余才扣塔本体，将死再替死。T20 致命替死：可为范围内任意一座炮台抵御一次任何类型的致命伤害（含核爆），抵挡后自身死亡；被救塔保留 10% 最大耐久（T20 以下护盾保留 1 HP）；一次爆炸只救一座、救最贵的（invested 最大）、不救护盾自己。通用防御费率：每秒防御预算 = 500×等级（T1=500、T2=1000、T3=1500…T20=10000），预算内每抵扣 1 伤害消耗 2 能量；超出预算后每多抵扣 100 伤害，每 1 伤害所需能量 +1（第 1 段 3 能、第 2 段 4 能…无上限递增，例：T1 挡 700 伤 = 500×2 + 100×3 + 100×4 = 1700 能量）。能量优先取自护盾自身，不足时经毫米波瞬间从电池抽电（遵循跳损规则）。辐射与指挥塔伤害不在防御范围。维修塔/毫米波可为其充能。</p>
+      <p>🔮 <b style="color:#67e8f9">球状闪电发生器</b>：初始 1000 金币（与光棱炮互换价格；通用升级公式，T20 累计约 1721 万）。T1-T19 无任何攻击力；T20 激活核心：每 2 秒聚能产出 1 枚球状闪电，场上共享上限 = 2 × T20 塔数（3 座塔=6 球）。球体独立游走 10 秒（40-60px/s 随机偏转、边缘反弹），电弧真伤 1000/s（索敌 150px，无视敌方能量盾与特警盾）+2 次连锁跳跃（每跳衰减 20%，不分对空对地）+ 贴身帧伤 300/s。<b>串联共振</b>：索敌到敌人的球为根节点，150px 内未索敌的球经多跳传导接入（每跳 150px），其伤害按 0.8^跳数 衰减叠加到根节点攻击（B 在旁传 80%，C 经 B 传 64%…）；一个空闲球同帧只给一个网络供电。满 6 球共振最高约 3.69 倍（3690/s）。到期爆炸：55px 内 3000 真伤 + 120px 小型 EMP（敌方护盾怪清盾瘫 5 秒，对己方无影响）。最后 0.5 秒预警（减速闪烁）。工作开关关闭时聚能进度每秒倒退 20%；满上限时新球排斥消散（进度重置）。塔与球体完全免疫 EMP。按键 . 快速选择。</p>
+      <p>🛡️ <b style="color:#38bdf8">电磁护盾</b>：不可攻击、可升 T20。为 3×3 格内的维修塔/拦截器/转换器/电击器/光棱炮T1-T9抵挡 EMP：受护塔按护盾等级扣血比例受损+按护盾等级秒数短暂瘫痪+电量清零；每次庇护扣耗能，自身能量不足时经毫米波瞬间从电池组抽电补足，仍不足则本次不庇护；受护塔将死时保留 1 点耐久，溢出致死伤害由护盾替死承受（护盾可能过载摧毁）。「⚡ 超频EMP免疫」为全局开关（默认关，选中任一护盾切换，作用于所有护盾）：EMP 完全免疫（不扣血/不瘫痪/不清电），每次耗能 = 庇护耗能 costPerHit + 受护塔最大生命值×3（同样支持毫米波抽电），能量不足自动回退普通庇护。T15 起为 3×3 格内所有建筑及自身（含光棱炮）抵挡能量攻击（激光怪光束/远程能量炮弹）；T20 起再抵挡近战攻击与核爆（护盾挡不了光棱炮 T20 轨道打击的友伤）。庇护时受护塔的扣血先由护盾能量抵扣（走通用预算/汇率/抽电），剩余才扣塔本体，将死再替死。T20 致命替死：可为范围内任意一座炮台抵御一次任何类型的致命伤害（含核爆），抵挡后自身死亡；被救塔保留 10% 最大耐久（T20 以下护盾保留 1 HP）；一次爆炸只救一座、救最贵的（invested 最大）、不救护盾自己。通用防御费率：每秒防御预算 = 500×等级（T1=500、T2=1000、T3=1500…T20=10000），预算内每抵扣 1 伤害消耗 2 能量；超出预算后每多抵扣 100 伤害，每 1 伤害所需能量 +1（第 1 段 3 能、第 2 段 4 能…无上限递增，例：T1 挡 700 伤 = 500×2 + 100×3 + 100×4 = 1700 能量）。能量优先取自护盾自身，不足时经毫米波瞬间从电池抽电（遵循跳损规则）。辐射与指挥塔伤害不在防御范围。维修塔/毫米波可为其充能。</p>
       <p>☢️ <b>核弹发射井</b>：建核弹300万/30s，最多存5枚。发射后直径90%范围秒杀敌人；范围内己方塔扣除90%最大耐久（当前耐久≤90%即被摧毁），指挥塔固定扣900（扣死即失败）；并留下辐射区：区内己方设施（含指挥塔）每秒受到 15 点持续伤害。</p>
       <p>🚀 <b>导弹发射井</b>：可升级，升级加速建弹、增加伤害与弹夹。全图集群齐射（单体伤害，激光怪可拦截）。</p>
       <p>💡 <b>工作开关</b>：选中任意设施，升级按钮上方可切换工作状态。停用后该设施停止一切运作（建造/升级进度照常完成）。</p>
+      <p>🌊 <b>波次节奏</b>：固定每 40 秒开始新一波（从每波开始计时，场上敌人延续、不清场）；无波间等待、无超时强制推进，高倍速也不再瞬间跳过。开局首波保留 8 秒准备。敌人不足 3 且本波未生成完毕时自动提前增援（⚡增援）。波内清空全部敌人仍发放波次奖励，但下一波仍按 40 秒节奏到达。</p>
       <p>⚡ <b style="color:#ff00ff">激光怪</b>：陆空双形态。发射品红色光束持续灼烧防御设施（帧伤），并会拦截我方战术导弹（150px内，最快0.1s/枚）。其光束属能量攻击，可被 T15+ 电磁护盾抵扣。</p>
       <p>➕ <b style="color:#7ef0a0">治疗怪</b>：陆空双形态。跟随敌军并持续治疗伤员，优先击杀它！</p>
       <p>🛡️ <b style="color:#6366f1">特警怪</b>：持盾渗透。第20波起出现：50 波前随机持单盾——防弹盾（挡机枪类子弹）或橡胶盾（挡电击），50 波起双盾齐备。盾只挡正面 ±45°，用机枪/电击器从侧面、背后攻击仍可命中；火炮/喷火等其他攻击无视盾牌。盾牌为纯物理装备，不受 EMP 影响。血厚速慢，绕后击杀效率最高。</p>
@@ -411,6 +412,10 @@ const CASTLE_MAX_HP = 1000;
 
 // 维修塔「供能光棱炮」全局开关（作用于所有维修塔，非单塔设置）
 let repToPrismGlobal = true;
+// 电磁护盾「超频 EMP 免疫」全局开关（作用于所有护盾，非单塔设置）
+let ocGlobal = false;
+// 波次节奏：固定每 40 秒一波（无波间等待/无超时强制推进/高倍速不跳过）；开局首波仍为 8s 准备
+const WAVE_INTERVAL = 40;
 
 const blocked = new Set();
 (function markCastle() {
@@ -555,7 +560,7 @@ const TOWER_DEFS = {
     })
   },
   prism: {
-    key: 'prism', name: '光棱炮', icon: '💠', cost: 1000, color: '#f8fafc',
+    key: 'prism', name: '光棱炮', icon: '💠', cost: 1500, color: '#f8fafc',
     kind: 'prism', desc: 'T1-T19无攻击。T20满10万能量时触发轨道打击。',
     levels: Array.from({length: 20}, (_, i) => ({
       name: '光棱炮 T' + (i+1), damage: 0, range: 0, cooldown: 1,
@@ -563,13 +568,13 @@ const TOWER_DEFS = {
     }))
   },
   ballLightning: {
-    key: 'ballLightning', name: '球状闪电发生器', icon: '🔮', cost: 1500, color: '#0891b2',
-    kind: 'ballLightning', desc: '终极吞金塔：T20 前无任何攻击力。T20 激活核心：每 2 秒聚能产出 1 枚球状闪电（场上共享上限 = 2 × T20 塔数），球体独立游走 10 秒，电弧真伤（无视敌方能量盾/特警盾）+2 次连锁跳跃（每跳衰减20%）+贴身帧伤，到期爆炸（55px 内 dps×3 真伤 + 120px 小型 EMP 破敌方护盾怪 5 秒，对己方无影响）。塔与球体完全免疫 EMP。关闭工作开关时聚能进度每秒倒退 20%',
+    key: 'ballLightning', name: '球状闪电发生器', icon: '🔮', cost: 1000, color: '#0891b2',
+    kind: 'ballLightning', desc: '终极吞金塔：T20 前无任何攻击力。T20 激活核心：每 2 秒聚能产出球状闪电（共享上限 = 2×T20塔数），电弧真伤 1000/s（索敌150px，无视敌方能量盾/特警盾）+2 连锁跳（每跳-20%）+贴身300/s；串联共振：空闲球经多跳150px传导给索敌球供电，伤害×0.8^跳数 叠加（同帧每球只供一网）；爆炸 3000 真伤+小型EMP破敌方护盾。塔与球完全免疫EMP，关闭开关时聚能进度每秒-20%',
     levels: genLevels('球状闪电发生器', 20, 20, 0, 0, 1, {})
   },
   empShield: {
     key: 'empShield', name: '电磁护盾', icon: '🛡️', cost: 500, color: '#3b82f6',
-    kind: 'empShield', desc: '不可攻击。为3×3格内的维修塔/拦截器/转换器/电击器/光棱炮T1-T9抵挡EMP冲击：受护塔按护盾等级扣血比例受损+按护盾等级秒数瘫痪+电量清零；庇护耗能不足时经毫米波瞬间抽电，仍不足则本次不庇护；可开启超频=EMP完全免疫（每次耗能=costPerHit+受护塔maxHp×3）。T20另防近战/核爆并致命替死（被救塔留10%最大耐久，救最贵的一座，不救护盾自己）。T15起为3×3内所有建筑及自身抵挡能量攻击（激光/远程能量炮），T20起再挡近战；每秒防御预算=500×等级，预算内1伤害=2能量，超预算100伤害窗口内1伤害=3能量，窗口外不抵扣',
+    kind: 'empShield', desc: '不可攻击。为3×3格内的维修塔/拦截器/转换器/电击器/光棱炮T1-T9抵挡EMP冲击：受护塔按护盾等级扣血比例受损+按护盾等级秒数瘫痪+电量清零；庇护耗能不足时经毫米波瞬间抽电，仍不足则本次不庇护；超频（全局开关）=EMP完全免疫（每次耗能=costPerHit+受护塔maxHp×3）。T20另防近战/核爆并致命替死（被救塔留10%最大耐久，救最贵的一座，不救护盾自己）。T15起为3×3内所有建筑及自身抵挡能量攻击（激光/远程能量炮），T20起再挡近战；每秒防御预算=500×等级，预算内1伤害=2能量，超预算100伤害窗口内1伤害=3能量，窗口外不抵扣',
     levels: Array.from({ length: 20 }, (_, i) => {
       const lv = i + 1;
       let shieldHp, maxEnergy, costPerHit, hpLossRatio, paralysisTime;
@@ -724,7 +729,8 @@ async function decryptSave(combined) {
 
 let gold, waveNum, enemies, towers, bullets, missiles, particles, floats, lightningEffects, enemyBullets, interceptorBeams, mmwaveBeams, orbitalStrikes, radiationZones, enemyLaserBeams, empBlasts;
 let ballLightnings, ballArcs, ballBlasts, ballRepelBeams, ballResonance; // 球状闪电
-const BALL_DPS = 90; // 球状闪电电弧每秒真伤（接触帧伤 = dps×0.3，爆炸 = dps×3）
+const BALL_DPS = 1000; // 球状闪电电弧每秒真伤（接触帧伤 = dps×0.3，爆炸 = dps×3，串联共振按跳数衰减 0.8）
+const BALL_ARC_RANGE = 150; // 球体索敌与串联共振传导半径（px）
 let selectedType, selectedTower, aimingNukeTower, aimingMissile;
 let paused, speedMul, gameOver;
 let wave;
@@ -751,6 +757,8 @@ function reset() {
   enemies = []; towers = []; bullets = []; missiles = []; particles = []; floats = []; lightningEffects = []; enemyBullets = []; interceptorBeams = []; mmwaveBeams = []; orbitalStrikes = []; radiationZones = []; enemyLaserBeams = []; empBlasts = [];
   ballLightnings = []; ballArcs = []; ballBlasts = []; ballRepelBeams = []; ballResonance = 0;
   selectedType = null; selectedTower = null; aimingNukeTower = null; aimingMissile = false;
+  repToPrismGlobal = true; // 全局开关随新游戏重置
+  ocGlobal = false;
   paused = false; speedMul = 1; gameOver = false;
   wave = { active: false, list: [], idx: 0, time: 0, hpMul: 1, speedMul: 1, earlySpawnTimer: 0 };
   waveTimer = 8;
@@ -1096,19 +1104,14 @@ function startWave() {
   updateHUD();
 }
 
-function finishWave(isTimeout = false) {
+function finishWave() {
+  // 清波奖励：敌人清空且生成完毕时发放；波次节奏不受影响（固定 40s 后开下一波）
   wave.active = false;
-  if (!isTimeout) {
-    const bonus = 50 + waveNum * 20;
-    gold += bonus;
-    castleHp = Math.min(CASTLE_MAX_HP, castleHp + 50);
-    addFloat(W / 2, H / 2 - 40, '波次奖励 +' + bonus, '#7ef0a0');
-    addLog(`第 ${waveNum} 波清空，获得 ${bonus} 金币`, 'success');
-    waveTimer = 8;
-  } else {
-    addLog(`第 ${waveNum} 波超时，强制推进！`, 'warning');
-    waveTimer = 0;
-  }
+  const bonus = 50 + waveNum * 20;
+  gold += bonus;
+  castleHp = Math.min(CASTLE_MAX_HP, castleHp + 50);
+  addFloat(W / 2, H / 2 - 40, '波次奖励 +' + bonus, '#7ef0a0');
+  addLog(`第 ${waveNum} 波清空，获得 ${bonus} 金币`, 'success');
   updateHUD();
 }
 
@@ -1852,27 +1855,56 @@ function updateBalls(dt) {
     if (b.y < b.radius) { b.y = b.radius; b.vy = Math.abs(b.vy); }
     if (b.y > H - b.radius) { b.y = H - b.radius; b.vy = -Math.abs(b.vy); }
 
-    // 电弧索敌（射程 90）：主目标帧伤 + 2 连锁
-    let tgt = null, bd = 90;
-    for (const e of enemies) {
-      if (!e.alive) continue;
-      const d = Math.hypot(e.x - b.x, e.y - b.y);
-      if (d < bd) { bd = d; tgt = e; }
-    }
-    if (tgt) {
-      const dmg = BALL_DPS * dt;
-      damageEnemy(tgt, dmg, 'lightning'); // 真伤：无视敌方能量盾；不传 attackAngle，特警盾不挡
-      ballArcs.push({ x1: b.x, y1: b.y, x2: tgt.x, y2: tgt.y, life: 0.06 });
-      ballChainZap(tgt, dmg);
-    }
-
-    // 接触帧伤：贴身 dps×0.3
+    // 接触帧伤：贴身 dps×0.3（每球独立结算，不受共振影响）
     for (const e of enemies) {
       if (!e.alive) continue;
       if (Math.hypot(e.x - b.x, e.y - b.y) <= b.radius + e.radius) {
         damageEnemy(e, BALL_DPS * 0.3 * dt, 'lightning');
       }
     }
+  }
+
+  // ===== 串联共振伤害网络（多级连跳传导，同毫米波 BFS 风格）=====
+  // 第一遍：索敌——每球在 150px 内找最近敌，索到者为「根节点」
+  for (const b of ballLightnings) {
+    b.target = null;
+    let bd = BALL_ARC_RANGE;
+    for (const e of enemies) {
+      if (!e.alive) continue;
+      const d = Math.hypot(e.x - b.x, e.y - b.y);
+      if (d < bd) { bd = d; b.target = e; }
+    }
+  }
+  // 第二遍：逐根构建传导网络——未索敌球经多跳（每跳 150px）接入，伤害按 0.8^跳数 衰减叠加到根的攻击
+  // 防重复征用：一个未索敌球同帧只给一个网络供电（按根节点顺序先到先得）
+  const claimed = new Set();
+  for (const root of ballLightnings) {
+    if (!root.target) continue;
+    let mult = 1; // 根自身伤害系数
+    let frontier = [root];
+    const visited = new Set([root]);
+    let hop = 0;
+    while (frontier.length > 0) {
+      hop++;
+      const next = [];
+      for (const cur of frontier) {
+        for (const cand of ballLightnings) {
+          if (cand.target || visited.has(cand) || claimed.has(cand)) continue; // 只征用未索敌且未被占用的球
+          if (Math.hypot(cand.x - cur.x, cand.y - cur.y) > BALL_ARC_RANGE) continue;
+          visited.add(cand);
+          claimed.add(cand);
+          next.push(cand);
+          mult += Math.pow(0.8, hop);
+          // 视觉：传导链球间电弧
+          ballArcs.push({ x1: cur.x, y1: cur.y, x2: cand.x, y2: cand.y, life: 0.06 });
+        }
+      }
+      frontier = next;
+    }
+    const dmg = BALL_DPS * dt * mult;
+    damageEnemy(root.target, dmg, 'lightning'); // 真伤：无视敌方能量盾；不传 attackAngle，特警盾不挡
+    ballArcs.push({ x1: root.x, y1: root.y, x2: root.target.x, y2: root.target.y, life: 0.06 });
+    ballChainZap(root.target, dmg); // 2 次连锁跳打（每跳 ×0.8），基数随共振放大
   }
   // 视觉计时衰减
   if (ballResonance > 0) ballResonance -= dt;
@@ -1999,8 +2031,8 @@ function explodeEMP(x, y) {
       if (p) {
         const pSt = towerStats(p);
 
-        // ⚡ 超频模式：完全免疫，耗能 = 庇护耗能 costPerHit + 受护塔 maxHp × 3
-        if (p.overclock === true) {
+        // ⚡ 超频模式（全局开关）：完全免疫，耗能 = 庇护耗能 costPerHit + 受护塔 maxHp × 3
+        if (ocGlobal === true) {
           const ocCost = pSt.costPerHit + t.maxHp * 3;
           if (p.energy + 1e-9 < ocCost) {
             p.energy += instantMmwaveDraw(p, ocCost - p.energy);
@@ -2418,8 +2450,16 @@ function update(dt) {
     }
   }
 
-  if (!wave.active && !gameOver) {
-    if (speedMul >= 20) waveTimer = 0;
+  // 波次节奏：开过波后固定 40s 一波（wave.active 与否都计时；无波间等待/无超时/高倍速不跳过）
+  if (waveNum > 0 && !gameOver) {
+    wave.time += dt;
+    if (wave.time >= WAVE_INTERVAL) {
+      startWave(); // 直接开始下一波，场上敌人延续
+    }
+  }
+
+  // 开局首波：8s 准备时间（高倍速下自然加速，无瞬间跳过）
+  if (!wave.active && !gameOver && waveNum === 0) {
     waveTimer -= dt;
     if (waveTimer <= 0) {
       waveTimer = 0;
@@ -2428,11 +2468,8 @@ function update(dt) {
   }
 
   if (wave.active) {
-    wave.time += dt;
-
-    if (wave.time >= 30) {
-      finishWave(true);
-      startWave();
+    if (wave.time >= WAVE_INTERVAL) {
+      // 已由上方 40s 节奏开启下一波，本帧跳过生成
     } else {
       while (wave.idx < wave.list.length && wave.list[wave.idx].t <= wave.time) {
         const _wi = wave.list[wave.idx++];
@@ -3139,7 +3176,7 @@ function update(dt) {
   }
 
   if (wave.active && wave.idx >= wave.list.length && enemies.length === 0) {
-    finishWave(false);
+    finishWave();
   }
 }
 
@@ -4346,11 +4383,12 @@ function draw() {
   // 电弧感应共鸣：所有球两两青色抖动折线（0.35s）
   if (ballResonance > 0 && ballLightnings.length >= 2) {
     ctx.save();
-    ctx.strokeStyle = 'rgba(103,232,249,' + Math.min(1, ballResonance / 0.35) + ')';
+    ctx.strokeStyle = 'rgba(103,232,249,' + (0.8 * Math.min(1, ballResonance / 0.35)) + ')';
     ctx.lineWidth = 1.5;
     for (let i = 0; i < ballLightnings.length; i++) {
       for (let j = i + 1; j < ballLightnings.length; j++) {
         const a = ballLightnings[i], b2 = ballLightnings[j];
+        if (Math.hypot(b2.x - a.x, b2.y - a.y) > 150) continue; // 远距离不连线，防满屏乱线
         const mx = (a.x + b2.x) / 2 + (Math.random() - 0.5) * 6;
         const my = (a.y + b2.y) / 2 + (Math.random() - 0.5) * 6;
         ctx.beginPath();
@@ -4362,56 +4400,90 @@ function draw() {
     }
     ctx.restore();
   }
-  // 球体五层：白热核心 → 等离子 → 边缘电弧 → 深青描边；预警最后 0.5s 闪烁暖黄
+  // 球体：白热等离子（径向渐变）+ 呼吸脉动 + 外发光 + 末段高频故障闪烁（球多时自动降级省发光层）
+  const ballHeavy = ballLightnings.length > 6; // 表现降级：省略外发光与装饰电弧
+  const nowMs = performance.now();
   for (const b of ballLightnings) {
     const warning = b.age >= b.life - 0.5;
-    const flick = warning ? (0.55 + 0.45 * Math.sin(performance.now() / 40)) : 1;
+    // 呼吸脉动：±6% 半径正弦；预警期改为高频故障闪烁（开关式 strobe）
+    const breathe = 1 + 0.06 * Math.sin(nowMs / 300 + b.x * 0.1);
+    const strobe = warning ? (Math.sin(nowMs / 25) > 0 ? 1 : 0.25) : 1;
+    const r = b.radius * breathe;
     ctx.save();
-    ctx.strokeStyle = '#0891b2';
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2); ctx.stroke();
-    ctx.fillStyle = warning ? `rgba(251,191,36,${0.55 * flick})` : 'rgba(103,232,249,.55)';
-    ctx.beginPath(); ctx.arc(b.x, b.y, b.radius - 2, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = warning ? `rgba(251,191,36,${0.9 * flick})` : 'rgba(165,243,252,.8)';
-    ctx.lineWidth = 1;
-    for (let k = 0; k < 3; k++) {
-      const a0 = Math.random() * Math.PI * 2;
-      ctx.beginPath();
-      ctx.moveTo(b.x + Math.cos(a0) * (b.radius - 4), b.y + Math.sin(a0) * (b.radius - 4));
-      ctx.lineTo(b.x + Math.cos(a0 + 0.6) * (b.radius + 2), b.y + Math.sin(a0 + 0.6) * (b.radius + 2));
-      ctx.stroke();
+    // 外发光：极淡大圆模拟光源感（降级时跳过）
+    if (!ballHeavy) {
+      const glow = ctx.createRadialGradient(b.x, b.y, r * 0.4, b.x, b.y, r * 2.1);
+      glow.addColorStop(0, warning ? 'rgba(251,191,36,.22)' : 'rgba(103,232,249,.20)');
+      glow.addColorStop(1, 'rgba(103,232,249,0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath(); ctx.arc(b.x, b.y, r * 2.1, 0, Math.PI * 2); ctx.fill();
     }
-    ctx.fillStyle = warning ? `rgba(254,243,199,${flick})` : '#f0fdff';
-    ctx.shadowBlur = 10; ctx.shadowColor = '#67e8f9';
-    ctx.beginPath(); ctx.arc(b.x, b.y, b.radius * 0.35, 0, Math.PI * 2); ctx.fill();
-    ctx.shadowBlur = 0;
+    // 等离子主体：中心白热 → 青 → 边缘透明
+    const body = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, r);
+    if (warning) {
+      body.addColorStop(0, `rgba(254,243,199,${0.95 * strobe})`);
+      body.addColorStop(0.35, `rgba(251,191,36,${0.72 * strobe})`);
+      body.addColorStop(1, 'rgba(251,191,36,0)');
+    } else {
+      body.addColorStop(0, 'rgba(240,253,255,.95)');
+      body.addColorStop(0.35, 'rgba(103,232,249,.75)');
+      body.addColorStop(1, 'rgba(8,145,178,0)');
+    }
+    ctx.fillStyle = body;
+    ctx.beginPath(); ctx.arc(b.x, b.y, r, 0, Math.PI * 2); ctx.fill();
+    // 深青描边（保留识别度）
+    ctx.strokeStyle = warning ? `rgba(251,191,36,${0.85 * strobe})` : 'rgba(8,145,178,.85)';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.arc(b.x, b.y, r, 0, Math.PI * 2); ctx.stroke();
     ctx.restore();
   }
-  // 攻击电弧：亮 #e0f7ff 粗折线
+  // 攻击电弧：底层粗暗光 + 表层细高光双层，1-2 个随机中点，生命渐隐（降级时仅单层）
   ctx.save();
-  ctx.strokeStyle = '#e0f7ff';
-  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
   for (const arc of ballArcs) {
-    const mx = (arc.x1 + arc.x2) / 2 + (Math.random() - 0.5) * 8;
-    const my = (arc.y1 + arc.y2) / 2 + (Math.random() - 0.5) * 8;
-    ctx.globalAlpha = Math.min(1, arc.life / 0.06);
-    ctx.beginPath();
-    ctx.moveTo(arc.x1, arc.y1);
-    ctx.lineTo(mx, my);
-    ctx.lineTo(arc.x2, arc.y2);
-    ctx.stroke();
+    const fade = Math.min(1, arc.life / 0.06);
+    const dx = arc.x2 - arc.x1, dy = arc.y2 - arc.y1;
+    const len = Math.hypot(dx, dy) || 1;
+    const jit = Math.min(14, len * 0.22); // 抖动幅度随长度，封顶 14px
+    const m1x = arc.x1 + dx * 0.38 + (Math.random() - 0.5) * jit;
+    const m1y = arc.y1 + dy * 0.38 + (Math.random() - 0.5) * jit;
+    const m2x = arc.x1 + dx * 0.68 + (Math.random() - 0.5) * jit;
+    const m2y = arc.y1 + dy * 0.68 + (Math.random() - 0.5) * jit;
+    const path = () => {
+      ctx.beginPath();
+      ctx.moveTo(arc.x1, arc.y1);
+      ctx.lineTo(m1x, m1y);
+      ctx.lineTo(m2x, m2y);
+      ctx.lineTo(arc.x2, arc.y2);
+    };
+    if (!ballHeavy) {
+      // 底层：粗暗光
+      ctx.globalAlpha = 0.28 * fade;
+      ctx.strokeStyle = '#67e8f9';
+      ctx.lineWidth = 4.5;
+      path(); ctx.stroke();
+    }
+    // 表层：细高光
+    ctx.globalAlpha = 0.95 * fade;
+    ctx.strokeStyle = '#e0f7ff';
+    ctx.lineWidth = 1.5;
+    path(); ctx.stroke();
   }
   ctx.globalAlpha = 1;
   ctx.restore();
-  // 满上限排斥：球→塔粗电弧暖黄
+  // 满上限排斥：球→塔暖黄电弧（距离 >150px 不画，透明度封顶 0.5 防瞎眼）
   ctx.save();
+  ctx.lineCap = 'round';
   ctx.strokeStyle = '#fbbf24';
   ctx.lineWidth = 2.5;
   for (const rb of ballRepelBeams) {
-    ctx.globalAlpha = Math.min(1, rb.life / 0.3);
+    if (Math.hypot(rb.x2 - rb.x1, rb.y2 - rb.y1) > 150) continue;
+    ctx.globalAlpha = Math.min(0.5, 0.5 * rb.life / 0.3);
+    const mx = (rb.x1 + rb.x2) / 2 + (Math.random() - 0.5) * 10;
+    const my = (rb.y1 + rb.y2) / 2 + (Math.random() - 0.5) * 10;
     ctx.beginPath();
     ctx.moveTo(rb.x1, rb.y1);
-    ctx.lineTo((rb.x1 + rb.x2) / 2 + (Math.random() - 0.5) * 8, (rb.y1 + rb.y2) / 2 + (Math.random() - 0.5) * 8);
+    ctx.lineTo(mx, my);
     ctx.lineTo(rb.x2, rb.y2);
     ctx.stroke();
   }
@@ -4495,18 +4567,18 @@ function updateHUD() {
   } else if (wave.active) {
     statusLine.classList.add('fight');
     statusFill.classList.add('fight');
-    const total = Math.max(1, waveStartTotal);
-    const progress = Math.min(1, wave.time / total);
+    const progress = Math.min(1, wave.time / WAVE_INTERVAL);
     statusLabel.textContent = '第 ' + waveNum + ' 波';
 
-    const timeLeft = Math.max(0, 30 - wave.time).toFixed(0);
     const earlyBoost = (wave.idx < wave.list.length && enemies.length < 3);
-    statusValue.textContent = '剩余 ' + enemies.length + ' 敌 (' + timeLeft + 's超时)' + (earlyBoost ? ' ⚡增援' : '');
+    statusValue.textContent = '剩余 ' + enemies.length + ' 敌' + (earlyBoost ? ' ⚡增援' : '');
     statusFill.style.width = (progress * 100).toFixed(1) + '%';
   } else {
     statusLine.classList.add('wait');
     statusLabel.textContent = '下一波';
-    statusValue.textContent = waveTimer.toFixed(1) + 's';
+    statusValue.textContent = (waveNum > 0
+      ? Math.max(0, WAVE_INTERVAL - wave.time).toFixed(1) + 's'
+      : waveTimer.toFixed(1) + 's');
     statusFill.style.width = '0%';
   }
 
@@ -4669,7 +4741,7 @@ function updateHUD() {
       } else {
         $('selDmg').textContent = `产球 ${Math.floor((t.chargeProgress || 0) * 100)}% · 池 ${ballLightnings.length}/${ballCapacity()}`;
       }
-      $('selRange').textContent = '电弧 90';
+      $('selRange').textContent = '电弧 150 · 共振';
       $('selRate').textContent = '2s/球';
     } else if (t.type === 'prism') {
       $('selStatLabel').textContent = '状态';
@@ -4730,8 +4802,8 @@ function updateHUD() {
     const isShield = t.type === 'empShield';
     boc.style.display = isShield ? 'block' : 'none';
     if (isShield) {
-      boc.textContent = '⚡ 超频EMP免疫：' + (t.overclock === true ? '开' : '关');
-      boc.className = t.overclock === true ? 'btn auto-on' : 'btn auto-off';
+      boc.textContent = '⚡ 超频EMP免疫(全局)：' + (ocGlobal ? '开' : '关');
+      boc.className = ocGlobal ? 'btn auto-on' : 'btn auto-off';
     }
     if (t.type === 'nukeSilo') {
       ub.textContent = '无法升级';
@@ -5053,8 +5125,8 @@ $('btnRepPrism').addEventListener('click', () => {
 $('btnOverclock').addEventListener('click', () => {
   const t = selectedTower;
   if (!t || t.destroyed || t.type !== 'empShield') return;
-  t.overclock = !(t.overclock === true); // 超频默认关
-  addLog(`电磁护盾 超频EMP免疫：${t.overclock === true ? '开' : '关'}（每次完全免疫耗能=受护塔最大生命值，可毫米波抽电）`, 'info');
+  ocGlobal = !ocGlobal; // 全局开关：作用于所有护盾（默认关）
+  addLog(`电磁护盾 超频EMP免疫（全局）：${ocGlobal ? '开' : '关'}（每次完全免疫耗能=庇护耗能+受护塔maxHp×3，可毫米波抽电）`, 'info');
   updateHUD();
 });
 
@@ -5243,7 +5315,7 @@ async function saveGame() {
   if (gameOver) { toast('游戏已结束，无法保存'); return; }
   try {
     const data = {
-      v: 15,
+      v: 16,
       savedAt: Date.now(),
       gold: Math.floor(gold),
       castleHp,
@@ -5261,6 +5333,7 @@ async function saveGame() {
         flying: !!e.def.flying
       })),
       repToPrismGlobal: repToPrismGlobal !== false,
+      ocGlobal: ocGlobal === true,
       ballLightnings: ballLightnings.map(b => ({ x: b.x, y: b.y, vx: b.vx, vy: b.vy, age: b.age })),
       totalLightningBuilt,
       achTesla,
@@ -5286,7 +5359,6 @@ async function saveGame() {
           enabled: t.enabled !== false,
           mmToConverter: t.mmToConverter === true,
           mmToPrism: t.mmToPrism === true,
-          overclock: t.overclock === true,
           chargeProgress: t.type === 'ballLightning' ? (t.chargeProgress || 0) : undefined,
           batteryTier: Math.min(3, Math.max(1, Math.floor(t.batteryTier) || 1)),
           hp: hp, maxHp: maxHp,
@@ -5370,7 +5442,7 @@ function applySave(data) {
     waveStartTotal = Math.max(1, wave.list[wave.list.length - 1].t);
   } else {
     wave = { active: false, list: [], idx: 0, time: 0, hpMul: 1, speedMul: 1, earlySpawnTimer: 0 };
-    waveTimer = 8;
+    waveTimer = 8; // waveNum=0 首波准备；waveNum>0 由 40s 节奏接管（time 从 0 重计）
     enemies = [];
   }
 
@@ -5410,7 +5482,6 @@ function applySave(data) {
       enabled: td.enabled !== false,
       mmToConverter: !!td.mmToConverter,
       mmToPrism: !!td.mmToPrism,
-      overclock: !!td.overclock,
       chargeProgress: td.chargeProgress || 0,
       paralysisTimer: 0,
       empShieldTimer: 0,
@@ -5435,6 +5506,11 @@ function applySave(data) {
       convertFloatTimer: 0
     });
   });
+
+  // 超频全局开关：优先读全局字段；旧档（v15-）任一护盾曾开启则迁移为全局开
+  ocGlobal = data.ocGlobal !== undefined
+    ? data.ocGlobal === true
+    : (data.towers || []).some(td => td.overclock === true);
 
   ballLightnings = (data.ballLightnings || []).map(bd => ({
     x: bd.x, y: bd.y, vx: bd.vx || 40, vy: bd.vy || 0,
