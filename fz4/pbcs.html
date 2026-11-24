@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>极简跑步模拟器 · 章节版</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F2EDE3; --ink:#17150F; --accent:#E8490F;
+  --dim:rgba(23,21,15,.5); --groundtop:72vh;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:'Space Grotesk',-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;
+  user-select:none;-webkit-user-select:none;touch-action:none;
+}
+#trackbar{ position:fixed;left:0;right:0;top:calc(var(--groundtop) + 3px);bottom:0; background:#E9E2CF;z-index:0;pointer-events:none; }
+#groundbar{ position:fixed;left:0;right:0;top:var(--groundtop);height:3px; background:var(--ink);z-index:2;pointer-events:none; }
+canvas{ position:fixed;inset:0;width:100%;height:100%; display:block;z-index:1; }
+#grain{ position:fixed;inset:0;pointer-events:none;z-index:5;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E"); }
+#err{ position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:50;display:none;
+  background:var(--accent);color:#fff;font:500 12px/1.4 'IBM Plex Mono',monospace;
+  letter-spacing:.06em;padding:8px 14px;border-radius:8px;max-width:72vw;word-break:break-all; }
+#hud{position:fixed;inset:0;pointer-events:none;z-index:10}
+#prog{position:absolute;top:0;left:0;height:3px;width:100%;background:rgba(23,21,15,.08)}
+#prog i{display:block;height:100%;width:0;background:var(--accent)}
+#panel{position:absolute;top:26px;left:30px}
+.lab{font-size:11px;letter-spacing:.24em;color:var(--dim);font-weight:500}
+.lab b{color:var(--accent);font-weight:700}
+#dist{font-family:'IBM Plex Mono',monospace;font-size:62px;font-weight:600;line-height:1;letter-spacing:-.02em;margin-top:10px}
+#dist i{font-style:normal;font-size:20px;color:var(--dim);margin-left:6px;font-weight:400}
+.row{display:flex;gap:24px;margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--dim)}
+#speed{transition:color .15s}
+#bestbox{position:absolute;top:26px;right:30px;text-align:right}
+#best{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:500;margin-top:6px}
+#goldDisplay{ position:absolute;top:24px;left:50%;transform:translateX(-50%);
+  font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:var(--ink);
+  display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.45);
+  padding:6px 16px;border-radius:99px;border:1.5px solid var(--ink);
+  pointer-events:none;box-shadow:0 4px 12px rgba(23,21,15,.05); }
+#ready{position:absolute;bottom:118px;width:100%;text-align:center;font-size:13px;letter-spacing:.32em;animation:bob 1.6s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-6px);opacity:.5}}
+#keywrap{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);text-align:center;pointer-events:auto}
+.krow{display:flex;gap:14px;justify-content:center;align-items:center}
+.keycap{ width:52px;height:52px;border:2px solid var(--ink);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;
+  background:rgba(255,255,255,.45);transition:transform .06s,background .06s; }
+.keycap.on{background:var(--accent);border-color:var(--accent);color:#fff;transform:translateY(2px)}
+.sep{width:7px;height:2px;background:var(--dim)}
+.hint{margin-top:10px;font-size:11px;letter-spacing:.18em;color:var(--dim)}
+#keywrap.teach .keycap{animation:teach 1.5s infinite}
+#keywrap.teach #keyD{animation-delay:.75s}
+@keyframes teach{0%,14%,100%{background:rgba(255,255,255,.45);border-color:var(--ink);color:var(--ink)}
+ 7%{background:var(--accent);border-color:var(--accent);color:#fff}}
+#corner{position:absolute;right:30px;bottom:28px;font-size:11px;letter-spacing:.18em;color:var(--dim)}
+#diag{ position:absolute;left:30px;bottom:28px;font-family:'IBM Plex Mono',monospace;
+  font-size:11px;letter-spacing:.06em;color:var(--dim); }
+#overlay{ position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:20;
+  background:rgba(242,237,227,.72);backdrop-filter:blur(3px); }
+#ovbox{text-align:center;animation:in .4s cubic-bezier(.2,.9,.3,1.15)}
+@keyframes in{from{opacity:0;transform:translateY(16px)}}
+.ovlab{font-size:12px;letter-spacing:.36em;color:var(--accent);font-weight:700}
+.ovnum{font-family:'IBM Plex Mono',monospace;font-size:86px;font-weight:600;margin:12px 0 4px;line-height:1}
+.ovnum i{font-style:normal;font-size:30px;color:var(--dim)}
+.ovnew{display:inline-block;margin-top:10px;padding:5px 14px;border:1.5px solid var(--accent);color:var(--accent);font-size:12px;letter-spacing:.26em;border-radius:99px}
+.ovsub{font-size:13px;color:var(--dim);letter-spacing:.1em;margin-top:6px}
+.ovhint{margin-top:20px;font-size:12px;letter-spacing:.24em;color:var(--dim)}
+.ovgold{margin-top:16px;font:600 22px 'IBM Plex Mono',monospace;color:var(--accent)}
+.ovgold span{display:block;font-size:11px;font-weight:400;color:var(--dim);margin-top:3px;letter-spacing:.08em}
+.ovunlock{display:inline-block;margin-top:12px;padding:5px 16px;border-radius:99px;background:var(--accent);color:#fff;font-size:12px;font-weight:700;letter-spacing:.18em}
+.contbtn{ margin-top:26px;border:2px solid var(--ink);border-radius:12px;
+  padding:12px 42px;font:600 15px 'Space Grotesk',sans-serif;letter-spacing:.2em;
+  background:var(--ink);color:var(--paper);cursor:pointer;pointer-events:auto;
+  -webkit-tap-highlight-color:transparent; }
+.contbtn:active{background:var(--accent);border-color:var(--accent)}
+/* ---------- 右上角：按钮 + 双列装备 ---------- */
+#hudbtns{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+.ibtn{ width:40px;height:40px;border:2px solid var(--ink);border-radius:11px;
+  background:rgba(255,255,255,.55);cursor:pointer;pointer-events:auto;
+  display:flex;align-items:center;justify-content:center;font-size:19px;line-height:1;
+  padding:0;color:var(--ink);transition:transform .06s,background .06s;
+  -webkit-tap-highlight-color:transparent; }
+.ibtn:active{background:var(--accent);border-color:var(--accent);color:#fff;transform:translateY(2px)}
+#gearRow{display:flex;gap:12px;justify-content:flex-end;margin-top:10px;align-items:flex-start}
+.gcol{display:flex;flex-direction:column;gap:9px;align-items:center}
+.itemball{ position:relative;width:42px;height:42px;border-radius:50%;
+  border:2px solid var(--ink);background:rgba(255,255,255,.55);
+  display:flex;align-items:center;justify-content:center;font-size:20px;line-height:1;
+  pointer-events:auto;cursor:pointer;transition:transform .08s,filter .2s,opacity .2s;
+  -webkit-tap-highlight-color:transparent; }
+.itemball:active{transform:scale(.9)}
+.itemball.dim{filter:grayscale(1);opacity:.35;border-color:rgba(23,21,15,.45)}
+.itemball.onveh{border-color:var(--accent);background:rgba(232,73,15,.14);box-shadow:0 0 0 2px rgba(232,73,15,.28)}
+.itemball .cnt{ position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 3px;
+  border-radius:9px;background:#fff;border:1.5px solid var(--ink);
+  font:600 10px/15px 'IBM Plex Mono',monospace;color:var(--ink);text-align:center; }
+/* ---------- 弹窗 ---------- */
+#modal{ position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:30;
+  background:rgba(242,237,227,.82);backdrop-filter:blur(4px);pointer-events:auto; }
+#mobox{ background:var(--paper);border:2px solid var(--ink);border-radius:18px;
+  padding:24px 26px;min-width:min(88vw,400px);max-width:92vw;max-height:82vh;overflow:auto;
+  box-shadow:0 18px 50px rgba(23,21,15,.18); animation:in .3s cubic-bezier(.2,.9,.3,1.15);text-align:center; }
+.mtitle{font-size:12px;letter-spacing:.3em;font-weight:700;color:var(--accent)}
+.mgold{margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600}
+.mgold b{color:var(--accent)}
+.stitle{margin-top:16px;font-size:11px;letter-spacing:.22em;color:var(--dim);text-align:left;font-weight:700}
+.slist{margin-top:10px;display:flex;flex-direction:column;gap:10px;text-align:left}
+.sitem{display:flex;align-items:center;gap:12px;border:1.5px solid rgba(23,21,15,.16);border-radius:12px;padding:10px 12px}
+.sico{width:44px;height:44px;border-radius:50%;border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;font-size:21px;flex:0 0 auto;background:rgba(255,255,255,.6)}
+.sinfo{flex:1;min-width:0}
+.sname{font-size:14px;font-weight:700}
+.sown{font-family:'IBM Plex Mono',monospace;font-weight:500;color:var(--dim);font-size:12px}
+.sdesc{font-size:11px;line-height:1.45;color:var(--dim);margin-top:3px}
+.buybtn{ flex:0 0 auto;border:2px solid var(--ink);background:rgba(255,255,255,.6);
+  border-radius:10px;padding:8px 12px;font:600 13px 'IBM Plex Mono',monospace;
+  color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent; }
+.buybtn:active{background:var(--accent);border-color:var(--accent);color:#fff}
+.buybtn:disabled{opacity:.32;cursor:not-allowed}
+.mclose{ margin-top:20px;border:2px solid var(--ink);background:transparent;border-radius:11px;
+  padding:10px 28px;font:600 13px 'Space Grotesk',sans-serif;letter-spacing:.16em;
+  color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent; }
+.mclose:active{background:var(--ink);color:var(--paper)}
+.chtitle{margin-top:18px;font-size:12px;letter-spacing:.22em;font-weight:700;color:var(--ink);text-align:left}
+.chlock{font-size:11px;color:var(--dim);letter-spacing:.1em;padding:12px;border:1.5px dashed rgba(23,21,15,.3);border-radius:10px;margin-top:8px;text-align:center}
+.lvgrid{margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.lvbtn{ border:2px solid var(--ink);background:rgba(255,255,255,.6);border-radius:12px;
+  padding:14px 8px;font:600 15px 'IBM Plex Mono',monospace;color:var(--ink);cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  -webkit-tap-highlight-color:transparent; }
+.lvbtn small{font-size:10px;font-weight:400;color:var(--dim);letter-spacing:.06em}
+.lvbtn:active{transform:translateY(1px)}
+.lvbtn.cur{background:var(--accent);border-color:var(--accent);color:#fff}
+.lvbtn.cur small{color:rgba(255,255,255,.82)}
+.lvbtn.lock{opacity:.4;cursor:not-allowed;border-style:dashed}
+@media (max-width:640px){
+  #dist{font-size:44px}
+  .ovnum{font-size:58px}
+  #panel{top:16px;left:18px}
+  #bestbox{top:16px;right:18px}
+  #goldDisplay{top:16px;font-size:15px;padding:5px 12px}
+  #hudbtns{margin-top:8px}
+  .ibtn{width:36px;height:36px;font-size:17px}
+  .itemball{width:38px;height:38px;font-size:18px}
+  #gearRow{gap:9px}
+}
+</style>
+</head>
+<body>
+<div id="trackbar"></div>
+<div id="groundbar"></div>
+<canvas id="cv"></canvas>
+<div id="grain"></div>
+<div id="err"></div>
+<div id="hud">
+  <div id="prog"><i></i></div>
+  <div id="goldDisplay">💰 <span id="goldNum">0</span></div>
+  <div id="panel">
+    <div class="lab"><span id="lvname">50 M DASH</span> <b>·</b> 极简跑步模拟器</div>
+    <div id="dist"><span id="dn">0.0</span><i>m</i></div>
+    <div class="row"><span id="time">0.00 s</span><span id="speed">0.0 m/s</span></div>
+  </div>
+  <div id="bestbox">
+    <div class="lab">BEST</div>
+    <div id="best">—</div>
+    <div id="hudbtns">
+      <button class="ibtn" id="btnShop" title="商店">🛒</button>
+      <button class="ibtn" id="btnLevel" title="关卡">🚩</button>
+    </div>
+    <div id="gearRow">
+      <div class="gcol" id="vehCol"></div>
+      <div class="gcol" id="itemCol"></div>
+    </div>
+  </div>
+  <div id="ready">按 A / D 起跑</div>
+  <div id="keywrap" class="teach">
+    <div class="krow">
+      <div class="keycap" id="keyA">A</div>
+      <div class="sep"></div>
+      <div class="keycap" id="keyD">D</div>
+    </div>
+    <div class="hint">跑步：交替按 · 摔了就继续按，腿蹬着自然爬起来 · 1/2 用道具</div>
+  </div>
+  <div id="diag"></div>
+  <div id="corner">R 重来 · M 声音</div>
+</div>
+<div id="overlay"><div id="ovbox"></div></div>
+<div id="modal"><div id="mobox"></div></div>
+<script>
+'use strict';
+/* ============ 错误面板 ============ */
+const errBox = document.getElementById('err');
+function reportErr(tag, e){
+  const msg = (e && e.message) ? e.message : String(e||'未知错误');
+  errBox.textContent = '⚠ ' + tag + '：' + msg;
+  errBox.style.display = 'block';
+  if(window.console && console.error) console.error(tag, e);
+}
+addEventListener('error', ev => reportErr('脚本', ev.error || ev.message));
+addEventListener('unhandledrejection', ev => reportErr('异步', ev.reason));
+
+/* ============ 参数（原版手感，无摔倒判定） ============ */
+const CFG = {
+  dt:1/240, iter:6, g:9.8, damp:0.9999, rest:0.02, mu:0.7, bite:0.21,
+  swingT:0.26, huntT:0.55, pushT:0.15,
+  swingKp:260, swingKd:24, swingFmax:90,           // ← 260 / 90，原版
+  strideBase:0.55, strideGain:0.05, strideMax:1.15, swingLift:0.28,  // ← 0.05 / 1.15，原版
+  coreDrive:14, kneeFollow:0.30, stepDownA:26,     // ← 14 / 26，原版
+  pushH:55, pushV:16, pushF:20,                    // ← 55 / 16，原版
+  armKp:150, armKd:16, armFmax:28, armReach:0.30,
+  upKp:180, upKd:20, lean:0.10,
+  springK:520, springD:32, springLen:0.865, springMax:0.18, springFmax:110, springMinHip:0.10,
+  standKp:40, standKd:10, standAmax:45, standChest:0.45, standFootReact:0.12, standFootMax:0.55,
+  dragK:0.02, relax:60,
+  /* ---- 泡泡球 ---- */
+  ballR:0.85, ballM:6, ballDamp:0.5, ballRest:0.55, ballMu:0.5,
+  ballRoll:0.35, ballPush:85,
+};
+
+/* ============ 章节 & 关卡 ============ */
+const CHAPTERS = [
+  { name:'第一章 · 平地跑', hurdle:false, levels:[
+    {dist:50,name:'50 M'},{dist:100,name:'100 M'},{dist:400,name:'400 M'},
+    {dist:800,name:'800 M'},{dist:1000,name:'1 KM'},{dist:3000,name:'3 KM'},
+    {dist:5000,name:'5 KM'},{dist:10000,name:'10 KM'} ]},
+  { name:'第二章 · 跨栏', hurdle:true, levels:[
+    {dist:50,name:'50 M'},{dist:100,name:'100 M'},{dist:200,name:'200 M'},
+    {dist:300,name:'300 M'},{dist:500,name:'500 M'},{dist:800,name:'800 M'},
+    {dist:1000,name:'1 KM'},{dist:3000,name:'3 KM'},{dist:5000,name:'5 KM'} ]},
+];
+const LEVELS = [];
+CHAPTERS.forEach((c,ci)=>c.levels.forEach(lv=>LEVELS.push({dist:lv.dist,name:lv.name,ch:ci,hurdle:c.hurdle})));
+const CH2_START = 8; // 第二章第一关的扁平索引
+
+/* ============ 道具 / 载具 & 存档 ============ */
+const ITEMS = {
+  bomb:{ name:'炸弹', price:1000, icon:'💣', desc:'在身后引爆，把你向前炸飞——当前速度越快炸得越猛，连炸可以起飞。电脑按 1 使用，触屏点右侧图标。' },
+  mine:{ name:'地雷', price:500, icon:'💥', desc:'放置在身前脚下，踩中后向上向前炸飞。电脑按 2 放置，触屏点右侧图标。' }
+};
+const VEHICLES = {
+  bubble:{ name:'泡泡球', price:3000, icon:'🫧',
+    desc:'钻进大泡泡里跑：腿蹬球内壁驱动它滚动，腾空落地还会弹跳。永久拥有，点左侧图标随时穿/脱。' }
+};
+const SAVE_KEY = 'dash100saveV3';
+let SAVE = { gold:0, unlocked:1, items:{bomb:0,mine:0}, vehicles:{bubble:false}, vehicleOn:{bubble:false}, bests:{}, lastLevel:0 };
+let levelIndex = 0;
+let distTarget = LEVELS[0].dist;
+
+function loadSave(){
+  try{
+    let raw = localStorage.getItem(SAVE_KEY);
+    if(!raw){
+      const old = localStorage.getItem('dash100saveV2'); // 迁移旧档
+      if(old){
+        const o = JSON.parse(old)||{};
+        SAVE.gold = Math.max(0,o.gold|0);
+        SAVE.bests = o.bests||{};
+        SAVE.items = Object.assign({bomb:0,mine:0}, o.items||{});
+        SAVE.unlocked = Math.max(1, Math.min(LEVELS.length,(o.unlocked|0)||1));
+        SAVE.lastLevel = Math.max(0, Math.min(SAVE.unlocked-1, o.lastLevel|0));
+        saveSave();
+      }
+      return;
+    }
+    const o = JSON.parse(raw)||{};
+    SAVE.gold = Math.max(0, o.gold|0);
+    SAVE.unlocked = Math.max(1, Math.min(LEVELS.length,(o.unlocked|0)||1));
+    SAVE.items = Object.assign({bomb:0,mine:0}, o.items||{});
+    SAVE.vehicles = Object.assign({bubble:false}, o.vehicles||{});
+    SAVE.vehicleOn = Object.assign({bubble:false}, o.vehicleOn||{});
+    SAVE.bests = o.bests||{};
+    SAVE.lastLevel = Math.max(0, Math.min(SAVE.unlocked-1, o.lastLevel|0));
+  }catch(e){}
+}
+function saveSave(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(SAVE)); }catch(e){} }
+
+/* ============ 画布 & DOM 地面 ============ */
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const groundbar = document.getElementById('groundbar');
+let W=0, H=0, S=100, groundPx=0, dpr=1, canvasOK=true, frameN=0;
+function canvasSelfTest(){
+  try{
+    ctx.save(); ctx.setTransform(1,0,0,1,0,0);
+    ctx.fillStyle='#FF0000'; ctx.fillRect(0,0,1,1);
+    const d = ctx.getImageData(0,0,1,1).data; ctx.restore();
+    canvasOK = (d[0]===255);
+    if(!canvasOK) reportErr('画布','像素读写失败——黑线地面由页面结构保证');
+  }catch(e){ canvasOK=false; reportErr('画布', e); }
+}
+function resize(){
+  dpr = Math.min(devicePixelRatio||1, 2);
+  W = innerWidth; H = innerHeight;
+  cv.width = Math.max(1, Math.round(W*dpr));
+  cv.height = Math.max(1, Math.round(H*dpr));
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  S = Math.max(68, Math.min(150, Math.min(W,H)*0.155));
+  groundPx = groundbar.getBoundingClientRect().top;
+  canvasSelfTest();
+}
+addEventListener('resize', resize);
+try{ new ResizeObserver(()=>resize()).observe(document.documentElement); }catch(e){}
+resize();
+
+/* ============ 音效 ============ */
+let AC=null, muted=false;
+function initAudio(){
+  if(!AC){ try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+  if(AC && AC.state==='suspended') AC.resume();
+}
+function noiseBurst(dur, freq, vol){
+  if(!AC||muted) return;
+  const t=AC.currentTime, buf=AC.createBuffer(1, AC.sampleRate*dur|0, AC.sampleRate);
+  const ch=buf.getChannelData(0);
+  for(let i=0;i<ch.length;i++) ch[i]=(Math.random()*2-1)*(1-i/ch.length);
+  const src=AC.createBufferSource(); src.buffer=buf;
+  const f=AC.createBiquadFilter(); f.type='lowpass'; f.frequency.value=freq;
+  const g=AC.createGain();
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(1e-4,t+dur);
+  src.connect(f); f.connect(g); g.connect(AC.destination); src.start(t);
+}
+function tone(fr,dur,vol,delay=0,type='triangle'){
+  if(!AC||muted) return;
+  const t=AC.currentTime+delay;
+  const o=AC.createOscillator(), g=AC.createGain();
+  o.type=type; o.frequency.value=fr;
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(1e-4,t+dur);
+  o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+dur+0.02);
+}
+const sfxStep = v => noiseBurst(0.07, 650+Math.random()*300, 0.16*Math.min(v,2));
+const sfxFinish= () => { tone(523,.14,.15); tone(659,.14,.15,.11); tone(784,.14,.15,.22); tone(1047,.32,.16,.33); };
+const sfxBoom = () => { noiseBurst(0.4, 220, 0.55); tone(48,0.45,0.3,0,'sine'); tone(120,0.18,0.14,0,'square'); };
+const sfxBuy = () => { tone(880,.09,.13); tone(1320,.13,.11,.09); };
+const sfxDeny = () => { tone(160,.14,.12,0,'square'); };
+const sfxHit = () => { noiseBurst(0.1, 900, 0.3); tone(220,0.08,0.12,0,'square'); };
+
+/* ============ 人体 ============ */
+const SOLE = 0.012;
+let pts=[], cons=[], hip,chest,head,legL,legR, ghost=null;
+let ORIG_GY=[];
+let heldA=false, heldD=false;
+function clampF(fx,fy,fmax){
+  const m=Math.hypot(fx,fy);
+  if(m>fmax && m>1e-9){ const s=fmax/m; return [fx*s,fy*s]; }
+  return [fx,fy];
+}
+function buildBody(){
+  const mk=(x,y,m,gy=0)=>({x,y,px:x,py:y,ax:0,ay:0,m,im:1/m,landV:0,gy});
+  hip   = mk( 0.00,-0.880, 8.0, -0.024);
+  chest = mk( 0.02,-1.300, 6.0, -0.024);
+  head  = mk( 0.03,-1.640, 4.0, -0.125);
+  const Lk=mk(0.07,-0.445,1.2,-0.028), Lf=mk( 0.02,-SOLE,1.0,-SOLE);
+  const Rk=mk(0.05,-0.445,1.2,-0.028), Rf=mk( 0.00,-SOLE,1.0,-SOLE);
+  const Le=mk(-0.10,-1.020,0.8,-0.018), Lh=mk(-0.06,-0.740,0.6,-0.018);
+  const Re=mk( 0.12,-1.020,0.8,-0.018), Rh=mk( 0.16,-0.740,0.6,-0.018);
+  pts=[hip,chest,head,Lk,Lf,Rk,Rf,Le,Lh,Re,Rh];
+  cons=[];
+  const rod=(a,b,l)=>cons.push({a,b,len:l,k:1,type:'rod'});
+  rod(head,chest,0.34); rod(chest,hip,0.42);
+  rod(hip,Lk,0.44); rod(Lk,Lf,0.44);
+  rod(hip,Rk,0.44); rod(Rk,Rf,0.44);
+  rod(chest,Le,0.30); rod(Le,Lh,0.28);
+  rod(chest,Re,0.30); rod(Re,Rh,0.28);
+  cons.push({a:head,b:hip,len:0.70,k:0.6,type:'min'});
+  legL={foot:Lf,knee:Lk,elbow:Le,hand:Lh,phase:'idle',t:0,skid:null};
+  legR={foot:Rf,knee:Rk,elbow:Re,hand:Rh,phase:'idle',t:0,skid:null};
+  for(let i=0;i<CFG.relax;i++){
+    for(const c of cons) solveCon(c);
+    jointDirs();
+    for(const p of pts) collideGround(p, CFG.dt);
+  }
+  for(const p of pts){ p.px=p.x; p.py=p.y; }
+  for(const p of pts){ p.x-=1.02; p.px=p.x; }
+  ghost=pts.map(p=>[p.x,p.y]);
+  ORIG_GY=pts.map(p=>p.gy);
+}
+/* ============ 关节方向 ============ */
+function jdir(a,b,c,fwd,minOff,k){
+  const acx=c.x-a.x, acy=c.y-a.y, l=Math.hypot(acx,acy)||1e-9;
+  let nx=-acy/l, ny=acx/l;
+  if(nx*fwd<0){ nx=-nx; ny=-ny; }
+  const off=(b.x-a.x)*nx+(b.y-a.y)*ny;
+  if(off<minOff){
+    const push=(minOff-off)*k;
+    if(b.y+ny*push > b.gy) ny=0;
+    b.x+=nx*push; b.y+=ny*push;
+  }
+}
+function jointDirs(){
+  jdir(hip,legL.knee,legL.foot, 1,0.05,0.5);
+  jdir(hip,legR.knee,legR.foot, 1,0.05,0.5);
+  jdir(chest,legL.elbow,legL.hand,-1,0.02,0.3);
+  jdir(chest,legR.elbow,legR.hand,-1,0.02,0.3);
+}
+/* ============ 地面碰撞 ============ */
+function collideGround(p,dt){
+  const g0=p.gy;
+  if(p.y<=g0) return;
+  const vx=p.x-p.px, vy=p.y-p.py;
+  p.y=g0;
+  let nvx=vx*(1-CFG.bite);
+  if(vy>0){
+    p.py=g0+vy*CFG.rest;
+    const cut=Math.min(Math.abs(nvx), CFG.mu*vy*0.6);
+    nvx-=Math.sign(nvx)*cut;
+    if(vy>0.02) p.landV=vy;
+  }
+  p.px=p.x-nvx;
+}
+/* ============ 约束求解 ============ */
+function solveCon(c){
+  const a=c.a,b=c.b;
+  let dx=b.x-a.x, dy=b.y-a.y;
+  const d=Math.hypot(dx,dy)||1e-9;
+  if(c.type==='min' && d>=c.len) return;
+  const diff=(d-c.len)/d*c.k;
+  const wa=a.im/(a.im+b.im), wb=b.im/(a.im+b.im);
+  a.x+=dx*diff*wa; a.y+=dy*diff*wa;
+  b.x-=dx*diff*wb; b.y-=dy*diff*wb;
+}
+/* ============ 肌肉与控制 ============ */
+function upright(dt){
+  const vxh=(hip.x-hip.px)/dt;
+  const eh=(hip.x+CFG.lean)-head.x;
+  const Fh=Math.max(-40, Math.min(eh*CFG.upKp-((head.x-head.px)/dt-vxh)*CFG.upKd, 70));
+  head.ax+=Fh; hip.ax-=Fh*0.3;
+  const ec=(hip.x+0.06)-chest.x;
+  const Fc=Math.max(-25, Math.min(ec*CFG.upKp*0.5-((chest.x-chest.px)/dt-vxh)*CFG.upKd*0.5, 45));
+  chest.ax+=Fc; hip.ax-=Fc*0.15;
+}
+function standMuscle(dt,targetHip){
+  for(const leg of [legL,legR]){
+    const f=leg.foot;
+    if(f.y < f.gy-0.03) continue;
+    if(Math.abs(hip.x-f.x) > CFG.standFootMax) continue;
+    const vyh=(hip.y-hip.py)/dt;
+    let aUp=(hip.y-targetHip)*CFG.standKp + vyh*CFG.standKd;
+    aUp=Math.max(0, Math.min(aUp, CFG.standAmax));
+    if(aUp<=0) continue;
+    hip.ay -= aUp; chest.ay-= aUp*CFG.standChest; head.ay -= aUp*0.12;
+    f.ay += aUp*CFG.standFootReact; leg.knee.ay += aUp*0.05;
+  }
+}
+function legSpring(dt,gain){
+  for(const leg of [legL,legR]){
+    if(leg.phase==='swing' && leg.t>CFG.swingT*0.45) continue;
+    const f=leg.foot;
+    if(f.y < f.gy-0.03) continue;
+    if(f.y-hip.y < CFG.springMinHip) continue;
+    const dx=hip.x-f.x, dy=hip.y-f.y, d=Math.hypot(dx,dy)||1e-9;
+    const deficit=Math.min(CFG.springLen-d, CFG.springMax);
+    if(deficit<=0) continue;
+    const nx=dx/d, ny=dy/d;
+    const rv=((hip.x-hip.px)-(f.x-f.px))*nx+((hip.y-hip.py)-(f.y-f.py))*ny;
+    let F=deficit*CFG.springK-(rv/dt)*CFG.springD;
+    F=Math.max(-40, Math.min(F, CFG.springFmax))*gain;
+    hip.ax+=F*nx*0.9; hip.ay+=F*ny*0.9;
+    f.ax -=F*nx*0.25; f.ay -=F*ny*0.25;
+  }
+}
+function legUpdate(leg,dt){
+  const f=leg.foot;
+  switch(leg.phase){
+    case 'swing':{
+      const p=1-leg.t/CFG.swingT;
+      const hv=Math.max(0,(hip.x-hip.px)/dt);
+      const stride=Math.min(CFG.strideBase+hv*CFG.strideGain, CFG.strideMax);
+      const tx=hip.x+stride;
+      const ty=-0.02-CFG.swingLift*Math.sin(Math.PI*p);
+      const rvx=(f.x-f.px)/dt-(hip.x-hip.px)/dt;
+      const rvy=(f.y-f.py)/dt-(hip.y-hip.py)/dt;
+      const [Fx,Fy]=clampF(
+        (tx-f.x)*CFG.swingKp-rvx*CFG.swingKd,
+        (ty-f.y)*CFG.swingKp-rvy*CFG.swingKd,
+        CFG.swingFmax);
+      f.ax+=Fx; f.ay+=Fy;
+      leg.knee.ax+=Fx*CFG.kneeFollow;
+      hip.ax+=CFG.coreDrive*(1-p);
+      leg.t-=dt;
+      if(leg.t<=0){ leg.phase='hunt'; leg.t=CFG.huntT; }
+      break;
+    }
+    case 'hunt':{
+      f.ay+=CFG.stepDownA;
+      leg.t-=dt;
+      if(f.y > f.gy-0.005){ leg.phase='push'; leg.t=CFG.pushT; }
+      else if(leg.t<=0) leg.phase='idle';
+      break;
+    }
+    case 'push':{
+      if(f.y > f.gy-0.03){
+        hip.ax +=CFG.pushH; hip.ay -=CFG.pushV;
+        chest.ax +=CFG.pushH*0.45; chest.ay-=CFG.pushV*0.45;
+        f.ax -=CFG.pushF; f.ay+=6;
+        if((f.x-f.px)/dt<-0.6) skidOn(leg); else skidOff(leg);
+      } else skidOff(leg);
+      leg.t-=dt;
+      if(leg.t<=0){ leg.phase='idle'; skidOff(leg); }
+      break;
+    }
+  }
+}
+function driveArm(arm, tgtX, dt){
+  const e=arm.elbow, h=arm.hand;
+  const vcx=(chest.x-chest.px)/dt, vcy=(chest.y-chest.py)/dt;
+  let Fex=(chest.x+tgtX*0.7-e.x)*CFG.armKp-((e.x-e.px)/dt-vcx)*CFG.armKd;
+  let Fey=(chest.y+0.16-e.y)*CFG.armKp-((e.y-e.py)/dt-vcy)*CFG.armKd;
+  [Fex,Fey]=clampF(Fex,Fey,CFG.armFmax*0.7);
+  e.ax+=Fex; e.ay+=Fey;
+  let Fhx=(chest.x+tgtX-h.x)*CFG.armKp-((h.x-h.px)/dt-vcx)*CFG.armKd;
+  let Fhy=(chest.y+0.32-h.y)*CFG.armKp-((h.y-h.py)/dt-vcy)*CFG.armKd;
+  [Fhx,Fhy]=clampF(Fhx,Fhy,CFG.armFmax);
+  h.ax+=Fhx; h.ay+=Fhy;
+}
+function armDrive(dt){
+  const lF=legL.phase==='swing', rF=legR.phase==='swing';
+  driveArm(legL, rF?CFG.armReach : lF?-CFG.armReach : 0, dt);
+  driveArm(legR, lF?CFG.armReach : rF?-CFG.armReach : 0, dt);
+}
+function muscles(dt){
+  for(const p of pts){
+    p.ay+=CFG.g;
+    const vx=(p.x-p.px)/dt, vy=(p.y-p.py)/dt, sp=Math.hypot(vx,vy);
+    p.ax-=CFG.dragK*sp*vx; p.ay-=CFG.dragK*sp*vy;
+  }
+  if(gameState==='ready'||gameState==='run'){
+    /* 无任何姿势判定：跑、摔、趴着，都是同一套跑步肌肉，
+       按键 → 摆腿 → 蹬地，趴着也能蹬起来，物理自己说话 */
+    upright(dt);
+    standMuscle(dt,-0.86);
+    legSpring(dt,1);
+    legUpdate(legL,dt);
+    legUpdate(legR,dt);
+    armDrive(dt);
+  }
+}
+
+/* ============ 泡泡球物理 ============ */
+let ball=null;
+const ballOn = ()=> !!(ball && SAVE.vehicleOn.bubble);
+function initBall(){
+  let vx0=0;
+  try{ vx0=(chest.x-chest.px)/CFG.dt; }catch(e){}
+  if(!isFinite(vx0)) vx0=0;
+  ball={ x:hip.x, y:-(CFG.ballR+0.03), px:hip.x, vx:vx0, vy:0, th:0, om:vx0/CFG.ballR };
+  legL.phase='idle'; legR.phase='idle'; legL.t=0; legR.t=0;
+}
+function destroyBall(){
+  ball=null;
+  for(let i=0;i<pts.length;i++) pts[i].gy=ORIG_GY[i];
+}
+function stepBall(dt){
+  ball.px=ball.x;                       // 记录上一位置，用于高速扫掠检测
+  ball.vy+=CFG.g;
+  const ad=Math.exp(-CFG.ballDamp*dt);
+  ball.vx*=ad;
+  ball.om*=Math.exp(-0.12*dt);
+  ball.x+=ball.vx*dt; ball.y+=ball.vy*dt;
+  ball.th+=ball.om*dt;
+  const R=CFG.ballR;
+  if(ball.y>-R){                       // 接触地面
+    ball.y=-R;
+    if(ball.vy>0.5){                   // 弹跳
+      ball.vy=-ball.vy*CFG.ballRest;
+      sfxStep(0.9); spawnDust(ball.x,0,2);
+    } else if(ball.vy>0) ball.vy=0;
+    // 接触点滑动摩擦：平动与转动耦合 → 真实滚动
+    const m=CFG.ballM, I=0.66*m*R*R;
+    const s=ball.vx-ball.om*R;
+    const jtN=Math.abs(s)/(1/m+R*R/I);
+    const jtM=CFG.ballMu*m*CFG.g*dt;
+    const jt=Math.min(jtN,jtM);
+    if(s>0){ ball.vx-=jt/m; ball.om+=jt*R/I; }
+    else if(s<0){ ball.vx+=jt/m; ball.om-=jt*R/I; }
+    // 滚动阻力
+    const dec=CFG.ballRoll*dt;
+    if(ball.vx>dec) ball.vx-=dec; else if(ball.vx<-dec) ball.vx+=dec; else ball.vx=0;
+    const s2=ball.vx-ball.om*R;
+    if(Math.abs(s2)<0.08) ball.om+=(ball.vx/R-ball.om)*0.25;
+  }
+}
+function moveFootTo(f,tx,ty,w,dt){
+  const k=Math.min(1,w*dt*3);
+  f.x+=(tx-f.x)*k; f.y+=(ty-f.y)*k;
+  f.px=f.x-ball.vx*dt; f.py=f.y-ball.vy*dt;
+}
+function legUpdateBall(leg,dt){
+  const f=leg.foot;
+  const baseY=CFG.ballR-0.35;
+  switch(leg.phase){
+    case 'swing':{
+      const p=1-leg.t/CFG.swingT;
+      const hv=Math.max(0,ball.vx);
+      const stride=Math.min(CFG.strideBase+hv*0.06, 1.5);
+      moveFootTo(f, ball.x+stride*0.9, ball.y+baseY-0.22*Math.sin(Math.PI*p), 22, dt);
+      leg.t-=dt;
+      if(leg.t<=0){ leg.phase='hunt'; leg.t=CFG.huntT*0.25; }
+      break;
+    }
+    case 'hunt':{
+      moveFootTo(f, ball.x+0.12, ball.y+baseY, 18, dt);
+      leg.t-=dt;
+      if(leg.t<=0){ leg.phase='push'; leg.t=CFG.pushT; }
+      break;
+    }
+    case 'push':{
+      moveFootTo(f, ball.x-0.32, ball.y+baseY+0.02, 16, dt);
+      // 蹬球内壁：向前推 + 力矩（作用在球下部 → 让球向前滚）
+      ball.vx += CFG.ballPush/CFG.ballM*dt;
+      ball.om += CFG.ballPush*0.55/(0.66*CFG.ballM*CFG.ballR*CFG.ballR)*dt;
+      leg.t-=dt;
+      if(leg.t<=0) leg.phase='idle';
+      break;
+    }
+    default:
+      moveFootTo(f, ball.x+0.02, ball.y+baseY, 14, dt);
+  }
+}
+function stepBallBody(dt){
+  const bvx=ball.vx, bvy=ball.vy;
+  const setP=(p,ox,oy,w)=>{
+    const k=Math.min(1,w*dt*3);
+    p.x+=(ball.x+ox-p.x)*k; p.y+=(ball.y+oy-p.y)*k;
+    p.px=p.x-bvx*dt; p.py=p.y-bvy*dt;
+    p.ax=0; p.ay=0;
+  };
+  setP(hip,0,-0.10,26); setP(chest,0.02,-0.46,26); setP(head,0.03,-0.74,26);
+  legUpdateBall(legL,dt); legUpdateBall(legR,dt);
+  for(const leg of [legL,legR]){          // 膝盖跟随
+    const f=leg.foot, kn=leg.knee, k3=Math.min(1,20*dt*3);
+    kn.x+=(((hip.x+f.x)/2+0.10)-kn.x)*k3;
+    kn.y+=(((hip.y+f.y)/2+0.02)-kn.y)*k3;
+    kn.px=kn.x-bvx*dt; kn.py=kn.y-bvy*dt;
+  }
+  const lS=legL.phase==='swing', rS=legR.phase==='swing';
+  moveFootTo(legL.hand, ball.x+(rS?0.17:(lS?-0.17:0.02)), ball.y-0.16, 18, dt);
+  moveFootTo(legR.hand, ball.x+(lS?0.17:(rS?-0.17:0.02)), ball.y-0.16, 18, dt);
+  const k2=Math.min(1,18*dt*3);
+  legL.elbow.x+=(((chest.x+legL.hand.x)/2-0.05)-legL.elbow.x)*k2;
+  legL.elbow.y+=(((chest.y+legL.hand.y)/2)-legL.elbow.y)*k2;
+  legL.elbow.px=legL.elbow.x-bvx*dt; legL.elbow.py=legL.elbow.y-bvy*dt;
+  legR.elbow.x+=(((chest.x+legR.hand.x)/2-0.05)-legR.elbow.x)*k2;
+  legR.elbow.y+=(((chest.y+legR.hand.y)/2)-legR.elbow.y)*k2;
+  legR.elbow.px=legR.elbow.x-bvx*dt; legR.elbow.py=legR.elbow.y-bvy*dt;
+}
+
+/* ============ 跨栏 ============ */
+let hurdles=[], hurdleIdx=0;
+function buildHurdles(){
+  hurdles=[]; hurdleIdx=0;
+  if(!LEVELS[levelIndex].hurdle) return;
+  const interval=9;
+  for(let x=7; x<distTarget-1.5; x+=interval)
+    hurdles.push({x, y:-0.475, ang:0, vx:0, vy:0, va:0, state:'up'});
+}
+function knockHurdle(h,ivx){
+  h.state='fly';
+  h.vx=ivx+1.2;
+  h.vy=-(1.2+Math.random()*2.4);
+  h.va=(Math.random()*9-2)+(ivx>2?3.5:0);
+}
+function blastHurdles(x,y){
+  for(const h of hurdles){
+    if(h.state==='fly') continue;
+    const d=Math.hypot(h.x-x, -0.45-y);
+    if(d<2.4){
+      const fo=Math.max(0,1-d/2.4), dir=(h.x-x)>=0?1:-1;
+      h.state='fly';
+      h.vx=dir*(3.5+fo*11); h.vy=-(2+fo*8); h.va=(Math.random()*16-8)+dir*4;
+    }
+  }
+}
+function ballHitHurdles(){
+  while(hurdleIdx<hurdles.length && hurdles[hurdleIdx].x < ball.x-3.5) hurdleIdx++;
+  const bx0=Math.min(ball.x,ball.px)-0.15, bx1=Math.max(ball.x,ball.px)+0.15;
+  for(let i=hurdleIdx;i<hurdles.length;i++){
+    const h=hurdles[i];
+    if(h.x>ball.x+3.5) break;
+    if(h.state!=='up') continue;
+    if(h.x>bx0 && h.x<bx1 && ball.y>-(CFG.ballR+0.95) && ball.y<-CFG.ballR+0.4){
+      knockHurdle(h, Math.max(4, ball.vx*1.05+1));
+      ball.vx*=0.985;
+      sfxHit(); spawnDust(h.x,-0.85,3);
+    }
+  }
+}
+
+/* ============ 物理主步 ============ */
+function explodeMine(m){
+  if(ballOn()){
+    const bv=Math.abs(ball.vx);
+    ball.vy -= (12 + bv*0.30);
+    ball.vx += (5 + bv*0.15);
+    ball.om += 3;
+  }else{
+    const hv=Math.max(0,(hip.x-hip.px)/CFG.dt);
+    for(const p of pts){
+      const dx=p.x-m.x, dy=p.y-m.y;
+      const d=Math.hypot(dx,dy)||1e-4;
+      const fo=Math.max(0, 1-d/2.0);
+      if(fo<=0) continue;
+      const vx=fo*(7+hv*0.35);          // 速度越快，向前越猛
+      const vy=-fo*(16+hv*0.30);        // 速度越快，抛得越高
+      p.px-=vx*CFG.dt; p.py-=vy*CFG.dt;
+    }
+  }
+  sfxBoom(); booms.push({x:m.x, y:m.y, t:0});
+  for(let j=0;j<10;j++) spawnDust(m.x+rnd(-.2,.2), m.y+rnd(-.2,.2), 6);
+  blastHurdles(m.x,m.y);
+}
+function physStep(dt){
+  /* ---------- 泡泡球模式：人被包在球里 ---------- */
+  if(ballOn()){
+    stepBall(dt);
+    stepBallBody(dt);
+    if(gameState==='run'){
+      runT+=dt;
+      ballHitHurdles();
+      for(let i=mines.length-1;i>=0;i--){
+        const m=mines[i];
+        const s0=Math.min(ball.x,ball.px)-0.5, s1=Math.max(ball.x,ball.px)+0.5;
+        if(m.x>s0 && m.x<s1 && ball.y>-(CFG.ballR+0.35)){ explodeMine(m); mines.splice(i,1); }
+      }
+      if(chest.x>=distTarget) doFinish();
+    }
+    if(!isFinite(ball.x)||!isFinite(ball.y)){
+      ball.x=chest.x; ball.y=-(CFG.ballR+0.05); ball.px=ball.x; ball.vx=0; ball.vy=0; ball.om=0; ball.th=0;
+    }
+    return;
+  }
+  /* ---------- 普通模式 ---------- */
+  muscles(dt);
+  for(const p of pts){
+    const vx=(p.x-p.px)*CFG.damp, vy=(p.y-p.py)*CFG.damp;
+    p.px=p.x; p.py=p.y;
+    p.x+=vx+p.ax*dt*dt; p.y+=vy+p.ay*dt*dt;
+    p.ax=0; p.ay=0;
+  }
+  for(let i=0;i<CFG.iter;i++){
+    for(const c of cons) solveCon(c);
+    jointDirs();
+    for(const p of pts) collideGround(p,dt);
+  }
+  for(const p of pts){
+    if(p.y > p.gy){ p.y = p.gy; if(p.py > p.gy) p.py = p.gy; }
+  }
+  let bad=false;
+  for(const p of pts) if(!isFinite(p.x)||!isFinite(p.y)){ bad=true; break; }
+  if(bad && ghost){
+    for(let i=0;i<pts.length;i++){
+      pts[i].x=ghost[i][0]; pts[i].y=ghost[i][1];
+      pts[i].px=ghost[i][0]; pts[i].py=ghost[i][1];
+    }
+  }else{
+    for(let i=0;i<pts.length;i++){ ghost[i][0]=pts[i].x; ghost[i][1]=pts[i].y; }
+  }
+  for(const p of pts){
+    if(p.landV>1.0){
+      spawnDust(p.x, -0.01, Math.min(p.landV,7));
+      if(p===legL.foot||p===legR.foot) sfxStep(0.6+Math.min(p.landV*0.1,0.5));
+      p.landV=0;
+    }
+  }
+  /* 跨栏碰撞：随便撞，栏飞人不倒（扫掠检测防高速穿模） */
+  if(LEVELS[levelIndex].hurdle && gameState==='run'){
+    while(hurdleIdx<hurdles.length && hurdles[hurdleIdx].x < chest.x-3.5) hurdleIdx++;
+    for(let i=hurdleIdx;i<hurdles.length;i++){
+      const h=hurdles[i];
+      if(h.x>chest.x+3.5) break;
+      if(h.state!=='up') continue;
+      let hit=false;
+      for(const p of pts){
+        const x0=Math.min(p.x,p.px)-0.16, x1=Math.max(p.x,p.px)+0.16;
+        if(h.x>x0 && h.x<x1 && p.y>h.y-0.55 && p.y<h.y+0.55){ hit=true; break; }
+      }
+      if(hit){
+        knockHurdle(h, Math.max(3.5,(chest.x-chest.px)/CFG.dt*0.85));
+        for(const q of pts){ q.px+=(q.x-q.px)*0.04; }   // 轻微减速
+        sfxHit(); spawnDust(h.x,-0.85,3);
+      }
+    }
+  }
+  /* 地雷（扫掠检测） */
+  if(gameState==='run' && mines.length>0){
+    for(let i=mines.length-1;i>=0;i--){
+      const m=mines[i];
+      let hit=false;
+      for(const p of pts){
+        const x0=Math.min(p.x,p.px)-0.3, x1=Math.max(p.x,p.px)+0.3;
+        if(m.x>x0 && m.x<x1 && p.y>-0.45){ hit=true; break; }
+      }
+      if(hit){ explodeMine(m); mines.splice(i,1); }
+    }
+  }
+  if(gameState==='run'){
+    runT+=dt;
+    if(chest.x>=distTarget) doFinish();
+  }
+}
+
+/* ============ 粒子 / 擦痕 / 爆炸 ============ */
+let dust=[], skids=[], booms=[], mines=[];
+function rnd(a,b){ return a+Math.random()*(b-a); }
+function spawnDust(x,y,pow){
+  const n=3+Math.min(pow|0,8);
+  for(let i=0;i<n;i++) dust.push({x:x+rnd(-.06,.06), y:y-rnd(0,.05), vx:rnd(-1,1)*.5-pow*.1, vy:-rnd(.3,1)*pow*.28, life:rnd(.35,.85), max:.85, r:rnd(.018,.05)});
+}
+function skidOn(leg){
+  const f=leg.foot;
+  if(!leg.skid){ leg.skid={x1:f.x,x2:f.x,life:1.8}; skids.push(leg.skid); }
+  leg.skid.x2=f.x;
+}
+function skidOff(leg){ leg.skid=null; }
+function updateFX(dt){
+  for(const d of dust){
+    d.vy+=3*dt; d.x+=d.vx*dt; d.y+=d.vy*dt;
+    if(d.y>0)d.y=0;
+    d.life-=dt;
+  }
+  dust=dust.filter(d=>d.life>0);
+  for(const s of skids) s.life-=dt;
+  skids=skids.filter(s=>s.life>0);
+  for(const b of booms) b.t+=dt;
+  booms=booms.filter(b=>b.t<0.5);
+  for(const h of hurdles){                 // 栏的飞行物理
+    if(h.state!=='fly') continue;
+    h.vy+=9.8*dt; h.x+=h.vx*dt; h.y+=h.vy*dt; h.ang+=h.va*dt;
+    if(h.y>-0.18){
+      h.y=-0.18;
+      if(Math.abs(h.vy)>0.8){ h.vy*=-0.32; h.vx*=0.72; h.va*=0.6; }
+      else{
+        h.state='down'; h.vx=0; h.vy=0; h.va=0;
+        h.ang=Math.round(h.ang/(Math.PI/2))*(Math.PI/2);
+      }
+    }
+  }
+}
+
+/* ============ 游戏状态 ============ */
+let gameState='ready', runT=0, finalT=0, newBest=false;
+let camX=0;
+const $=id=>document.getElementById(id);
+function startRun(){
+  gameState='run';
+  $('keywrap').classList.remove('teach');
+  $('ready').style.display='none';
+}
+/* ---------- 奖励 / 解锁 ---------- */
+function computeReward(dist, t){
+  const base = dist;
+  const limit = dist * 0.5;
+  const bonus = Math.max(0, Math.floor(limit - t));
+  return {base, bonus, total: base + bonus};
+}
+function doFinish(){
+  gameState='done'; finalT=runT; sfxFinish();
+  const dist = distTarget;
+  const key = 'L'+levelIndex;
+  const prev = SAVE.bests[key];
+  newBest = (prev===undefined || finalT<prev);
+  if(newBest) SAVE.bests[key]=finalT;
+  const rw = computeReward(dist, finalT);
+  SAVE.gold += rw.total;
+  let unlockMsg='';
+  if(levelIndex===5 && SAVE.unlocked<CH2_START+1){          // 3KM 达标 → 解锁第二章
+    SAVE.unlocked=CH2_START+1;
+    unlockMsg='🔓 解锁 第二章 · 跨栏';
+  }else{
+    const ni=levelIndex+1;
+    if(ni<LEVELS.length && finalT<=dist*0.1 && SAVE.unlocked<ni+1){
+      SAVE.unlocked=ni+1;
+      unlockMsg='🔓 解锁 '+(LEVELS[ni].ch!==LEVELS[levelIndex].ch?CHAPTERS[LEVELS[ni].ch].name+' · ':'')+LEVELS[ni].name;
+    }
+  }
+  saveSave(); renderGear(); renderBest(); updateGoldUI();
+  const bestT = SAVE.bests[key];
+  const verdict = ballOn() ? '泡泡球模式 · 一路翻滚' : '人类模式';
+  $('ovbox').innerHTML = `<div class="ovlab">FINISH · ${dist} M</div>
+    <div class="ovnum">${finalT.toFixed(2)}<i> s</i></div>
+    ${newBest?'<div class="ovnew">新纪录</div>':`<div class="ovsub">最佳 ${bestT.toFixed(2)} s</div>`}
+    <div class="ovgold">+${rw.total} 💰${rw.bonus>0?`<span>基础 ${rw.base} ＋ 时间奖励 ${rw.bonus}</span>`:''}</div>
+    ${unlockMsg?`<div class="ovunlock">${unlockMsg}</div>`:''}
+    <div class="ovsub">${verdict}</div>
+    <button class="contbtn" id="btnCont">继 续</button>
+    <div class="ovhint">按 R 再跑一次</div>`;
+  $('overlay').style.display='flex';
+  const bc = document.getElementById('btnCont');
+  if(bc) bc.addEventListener('click', ()=>{ reset(); });
+}
+function reset(){
+  closeModal();
+  gameState='ready';
+  runT=0; finalT=0; newBest=false;
+  heldA=false; heldD=false;
+  capOff('a'); capOff('d');
+  buildBody();
+  dust=[]; skids=[]; booms=[]; mines=[];
+  buildHurdles();
+  camX=chest.x;
+  $('overlay').style.display='none';
+  const rd=$('ready');
+  rd.textContent = LEVELS[levelIndex].hurdle ? '按 A / D 起跑 · 栏可以直接撞飞' : '按 A / D 起跑';
+  rd.style.display='';
+  $('keywrap').classList.add('teach');
+  if(SAVE.vehicles.bubble && SAVE.vehicleOn.bubble) initBall(); else ball=null;
+}
+
+/* ============ 输入 ============ */
+function doKey(k){
+  initAudio();
+  if(gameState==='done') return;
+  const leg=k==='a'?legL:legR;
+  /* 无任何姿势判定：任何时候按键都是摆腿，
+     趴在地上蹬着蹬着自然就起来了 */
+  if(leg.phase!=='swing'||leg.t<CFG.swingT*0.45){
+    leg.phase='swing'; leg.t=CFG.swingT; skidOff(leg);
+  }
+  if(gameState==='ready') startRun();
+}
+const capA=$('keyA'), capD=$('keyD');
+function capOn(k){ (k==='a'?capA:capD).classList.add('on'); }
+function capOff(k){ (k==='a'?capA:capD).classList.remove('on'); }
+addEventListener('keydown',e=>{
+  const k=e.key.toLowerCase();
+  if(k==='r'&&!e.repeat){ reset(); return; }
+  if(k==='m'&&!e.repeat){ muted=!muted; $('corner').textContent=muted?'R 重来 · M 已静音':'R 重来 · M 声音'; return; }
+  if(k==='1'&&!e.repeat){ useItem('bomb'); return; }
+  if(k==='2'&&!e.repeat){ useItem('mine'); return; }
+  if(k==='escape'&&!e.repeat){ closeModal(); return; }
+  let leg=null;
+  if(k==='a'||k==='arrowleft') leg='a';
+  else if(k==='d'||k==='arrowright') leg='d';
+  if(leg){
+    e.preventDefault();
+    capOn(leg);
+    if(e.repeat) return;
+    doKey(leg);
+  }
+});
+addEventListener('keyup',e=>{
+  const k=e.key.toLowerCase();
+  if(k==='a'||k==='arrowleft') capOff('a');
+  if(k==='d'||k==='arrowright') capOff('d');
+});
+addEventListener('blur',()=>{ capOff('a'); capOff('d'); });
+capA.addEventListener('pointerdown',e=>{e.stopPropagation(); capOn('a'); doKey('a');});
+capD.addEventListener('pointerdown',e=>{e.stopPropagation(); capOn('d'); doKey('d');});
+capA.addEventListener('pointerup',()=>capOff('a'));
+capD.addEventListener('pointerup',()=>capOff('d'));
+capA.addEventListener('pointerleave',()=>capOff('a'));
+capD.addEventListener('pointerleave',()=>capOff('d'));
+document.addEventListener('pointerdown',e=>{
+  if(e.target.closest('.keycap,.itemball,.ibtn,button,#modal')) return;
+  const k=e.clientX<W/2?'a':'d';
+  capOn(k); doKey(k);
+  setTimeout(()=>capOff(k),110);
+});
+
+/* ============ 道具 & 载具 ============ */
+function useItem(type){
+  if(gameState!=='run') return;
+  if((SAVE.items[type]|0)<=0){ sfxDeny(); return; }
+  SAVE.items[type]--; saveSave(); renderGear(); updateGoldUI();
+  if(type === 'bomb'){
+    const ex=(ballOn()?ball.x:hip.x)-0.55, ey=(ballOn()?ball.y+0.2:hip.y+0.15);
+    if(ballOn()){
+      ball.vx += 12 + Math.abs(ball.vx)*0.55;   // 速度越快炸得越猛
+      ball.vy -= 3.5; ball.om += 2;
+    }else{
+      const hv=Math.max(0,(chest.x-chest.px)/CFG.dt);
+      const boost = 18 + hv*0.55;               // 按当前速度比例加速
+      for(const p of pts){
+        const dx=p.x-ex, dy=p.y-ey;
+        const d=Math.hypot(dx,dy)||1e-4;
+        const fo=Math.max(0, 1-d/2.4);
+        if(fo<=0) continue;
+        const vx = fo * boost;
+        const vy = fo * 4;
+        p.px -= vx*CFG.dt; p.py -= vy*CFG.dt;
+      }
+    }
+    sfxBoom(); booms.push({x:ex,y:ey,t:0});
+    for(let i=0;i<10;i++) spawnDust(ex+rnd(-.2,.2), ey+rnd(-.2,.2), 6);
+    blastHurdles(ex,ey);         // 炸弹也把栏炸飞
+  }else if(type === 'mine'){
+    const mx=(ballOn()?ball.x:hip.x)+0.9;
+    mines.push({x:mx, y:0});
+    sfxBuy();
+  }
+}
+function toggleVehicle(k){
+  if(!SAVE.vehicles[k]){ sfxDeny(); openShop(); return; }
+  SAVE.vehicleOn[k]=!SAVE.vehicleOn[k];
+  saveSave(); renderGear();
+  if(SAVE.vehicleOn[k]) initBall(); else destroyBall();
+}
+function buyVehicle(k){
+  const v=VEHICLES[k];
+  if(!v || SAVE.vehicles[k]) return false;
+  if(SAVE.gold < v.price){ sfxDeny(); return false; }
+  SAVE.gold-=v.price;
+  SAVE.vehicles[k]=true;
+  saveSave(); renderGear(); updateGoldUI(); sfxBuy();
+  return true;
+}
+
+/* ============ 商店 / 关卡 UI ============ */
+let modalOpen=false;
+function openModal(html){
+  $('mobox').innerHTML = html;
+  $('modal').style.display = 'flex';
+  modalOpen = true;
+}
+function closeModal(){ $('modal').style.display='none'; modalOpen=false; }
+function buyItem(k){
+  const it = ITEMS[k];
+  if(!it) return false;
+  if(SAVE.gold < it.price){ sfxDeny(); return false; }
+  SAVE.gold -= it.price;
+  SAVE.items[k] = (SAVE.items[k]|0) + 1;
+  saveSave(); renderGear(); updateGoldUI(); sfxBuy();
+  return true;
+}
+function openShop(){
+  initAudio();
+  let h = '<div class="mtitle">商店 · SHOP</div>';
+  h += `<div class="mgold">💰 <b>${SAVE.gold}</b></div>`;
+  h += '<div class="stitle">消耗道具</div><div class="slist">';
+  for(const k in ITEMS){
+    const it = ITEMS[k], own = SAVE.items[k]|0;
+    const dis = SAVE.gold < it.price ? ' disabled' : '';
+    h += `<div class="sitem">
+      <div class="sico">${it.icon}</div>
+      <div class="sinfo">
+        <div class="sname">${it.name} <span class="sown">持有 ×${own}</span></div>
+        <div class="sdesc">${it.desc}</div>
+      </div>
+      <button class="buybtn" data-k="${k}"${dis}>${it.price}💰</button>
+    </div>`;
+  }
+  h += '</div><div class="stitle">永久载具</div><div class="slist">';
+  for(const k in VEHICLES){
+    const v = VEHICLES[k], owned = !!SAVE.vehicles[k];
+    h += `<div class="sitem">
+      <div class="sico">${v.icon}</div>
+      <div class="sinfo">
+        <div class="sname">${v.name} <span class="sown">${owned?'已拥有 · 永久':''}</span></div>
+        <div class="sdesc">${v.desc}</div>
+      </div>
+      <button class="buybtn" data-v="${k}"${owned?' disabled':(SAVE.gold<v.price?' disabled':'')}>${owned?'已拥有':v.price+'💰'}</button>
+    </div>`;
+  }
+  h += '</div><button class="mclose">关 闭</button>';
+  openModal(h);
+  document.querySelectorAll('.buybtn[data-k]').forEach(b=>{
+    b.addEventListener('click', ()=>{ if(buyItem(b.dataset.k)) openShop(); });
+  });
+  document.querySelectorAll('.buybtn[data-v]').forEach(b=>{
+    b.addEventListener('click', ()=>{ if(buyVehicle(b.dataset.v)) openShop(); });
+  });
+  const mc = document.querySelector('.mclose');
+  if(mc) mc.addEventListener('click', closeModal);
+}
+function openLevels(){
+  initAudio();
+  let h = '<div class="mtitle">关卡 · LEVELS</div>';
+  CHAPTERS.forEach((c,ci)=>{
+    const chLock = ci===1 && SAVE.unlocked<CH2_START+1;
+    h += `<div class="chtitle">${c.name}${chLock?' 🔒':''}</div>`;
+    if(chLock){ h += '<div class="chlock">跑完第一章 3 KM 解锁本章</div>'; return; }
+    h += '<div class="lvgrid">';
+    c.levels.forEach((lv,li)=>{
+      const i = LEVELS.findIndex(L=>L.ch===ci && L.name===lv.name && L.dist===lv.dist);
+      const locked = i>=SAVE.unlocked;
+      const cur = i===levelIndex;
+      const b = SAVE.bests['L'+i];
+      h += `<button class="lvbtn${cur?' cur':''}${locked?' lock':''}" data-i="${i}"${locked?' disabled':''}>
+        <span>${locked?'🔒 ':''}${lv.name}</span>
+        <small>${locked?'未解锁':(b?b.toFixed(2)+' s':'—')}</small>
+      </button>`;
+    });
+    h += '</div>';
+  });
+  h += '<button class="mclose">关 闭</button>';
+  openModal(h);
+  document.querySelectorAll('.lvbtn').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      if(b.disabled) return;
+      setLevel(+b.dataset.i);
+      closeModal();
+    });
+  });
+  const mc = document.querySelector('.mclose');
+  if(mc) mc.addEventListener('click', closeModal);
+}
+function renderGear(){
+  const vc=$('vehCol'), ic=$('itemCol');
+  if(!vc||!ic) return;
+  vc.innerHTML=''; ic.innerHTML='';
+  for(const k in VEHICLES){                    // 左列：载具（永久）
+    const v=VEHICLES[k], owned=!!SAVE.vehicles[k], on=!!SAVE.vehicleOn[k];
+    const el=document.createElement('div');
+    el.className='itemball'+(owned?(on?' onveh':''):' dim');
+    el.title=v.name+(owned?(on?' · 使用中':' · 点击使用'):' · 未拥有');
+    el.innerHTML=`<span class="ico">${v.icon}</span>`;
+    el.addEventListener('pointerdown',e=>{
+      e.stopPropagation(); e.preventDefault();
+      initAudio(); toggleVehicle(k);
+    });
+    vc.appendChild(el);
+  }
+  for(const k in ITEMS){                       // 右列：消耗道具（竖排）
+    const n = SAVE.items[k]|0;
+    const el = document.createElement('div');
+    el.className = 'itemball' + (n>0?'':' dim');
+    el.title = ITEMS[k].name;
+    el.innerHTML = `<span class="ico">${ITEMS[k].icon}</span>` + (n>0?`<span class="cnt">${n}</span>`:'');
+    el.addEventListener('pointerdown', e=>{
+      e.stopPropagation(); e.preventDefault();
+      initAudio(); useItem(k);
+    });
+    ic.appendChild(el);
+  }
+}
+function renderBest(){
+  const b = SAVE.bests['L'+levelIndex];
+  $('best').textContent = b ? b.toFixed(2)+' s' : '—';
+  const lv=LEVELS[levelIndex];
+  $('lvname').textContent = CHAPTERS[lv.ch].name+' · '+lv.name+' DASH';
+}
+function updateGoldUI(){ $('goldNum').textContent = SAVE.gold; }
+function setLevel(i){
+  levelIndex = Math.max(0, Math.min(LEVELS.length-1, i));
+  distTarget = LEVELS[levelIndex].dist;
+  SAVE.lastLevel = levelIndex;
+  saveSave(); renderBest(); reset();
+}
+$('btnShop').addEventListener('pointerdown', e=>{ e.stopPropagation(); e.preventDefault(); openShop(); });
+$('btnLevel').addEventListener('pointerdown', e=>{ e.stopPropagation(); e.preventDefault(); openLevels(); });
+
+/* ============ 渲染 ============ */
+const INK='#17150F', ACC='#E8490F', TRACK='#E7DFCB';
+const X=wx=>W*0.34+(wx-camX)*S;
+const Y=wy=>groundPx+wy*S;
+function seg(a,b,w,c){
+  const lift=(w/2)/S;
+  ctx.strokeStyle=c; ctx.lineWidth=w;
+  ctx.beginPath();
+  ctx.moveTo(X(a.x),Y(a.y-lift));
+  ctx.lineTo(X(b.x),Y(b.y-lift));
+  ctx.stroke();
+}
+function hash(n){ const x=Math.sin(n*127.1)*43758.5453; return x-Math.floor(x); }
+function drawParallax(){
+  for(const L of [{p:.22,a:.06},{p:.5,a:.1}]){
+    const sp=6, halfL=(W*0.34)/S, halfR=(W*0.66)/S;
+    const i0=Math.floor((camX*L.p-halfR)/sp)-1, i1=Math.ceil((camX*L.p+halfL)/sp)+1;
+    for(let i=i0;i<=i1;i++){
+      const wx=i*sp+hash(i*3+1)*sp*0.6, h=0.25+hash(i)*0.55;
+      const sx=W*0.34+(wx-camX*L.p)*S;
+      ctx.strokeStyle=`rgba(23,21,15,${L.a})`;
+      ctx.lineWidth=Math.max(1,S*0.012);
+      ctx.beginPath(); ctx.moveTo(sx,groundPx); ctx.lineTo(sx,groundPx-h*S); ctx.stroke();
+      if(hash(i+9)>0.8){
+        ctx.strokeStyle=`rgba(23,21,15,${L.a*1.5})`;
+        ctx.beginPath(); ctx.moveTo(sx,groundPx-h*S); ctx.lineTo(sx,groundPx-(h+0.35)*S); ctx.stroke();
+        ctx.fillStyle=`rgba(232,73,15,${L.a*4})`;
+        ctx.beginPath();
+        ctx.moveTo(sx,groundPx-(h+0.35)*S);
+        ctx.lineTo(sx+0.18*S,groundPx-(h+0.28)*S);
+        ctx.lineTo(sx,groundPx-(h+0.21)*S);
+        ctx.closePath(); ctx.fill();
+      }
+    }
+  }
+}
+function drawTrack(){
+  const gy=groundPx;
+  ctx.fillStyle=TRACK; ctx.fillRect(0,gy,W,H-gy);
+  ctx.fillStyle='rgba(23,21,15,.06)'; ctx.fillRect(0,gy+4,W,5);
+  const halfL=(W*0.34)/S, halfR=(W*0.66)/S;
+  const m0=Math.floor(camX-halfL)-1, m1=Math.ceil(camX+halfR)+1;
+  for(let m=m0;m<=m1;m++){
+    const sx=X(m);
+    let len,a;
+    if(m%10===0){len=0.24;a=.5;} else if(m%5===0){len=0.15;a=.35;} else {len=0.08;a=.2;}
+    ctx.strokeStyle=`rgba(23,21,15,${a})`;
+    ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(sx,gy); ctx.lineTo(sx,gy+len*S); ctx.stroke();
+  }
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  let lblStep = 10;
+  if(distTarget > 200 && distTarget <= 1000) lblStep = 50;
+  else if(distTarget > 1000 && distTarget <= 3000) lblStep = 200;
+  else if(distTarget > 3000) lblStep = 500;
+  for(let m=lblStep;m<=distTarget;m+=lblStep){
+    if(m<camX-halfL-1||m>camX+halfR+1) continue;
+    const sx=X(m), fin=(m===distTarget);
+    ctx.strokeStyle=INK;
+    ctx.lineWidth=Math.max(1.5,S*0.015);
+    ctx.beginPath(); ctx.moveTo(sx,gy); ctx.lineTo(sx,gy-0.5*S); ctx.stroke();
+    const bw=0.46*S, bh=0.3*S, by=gy-0.5*S-bh*0.72;
+    if(fin){ ctx.fillStyle=ACC; ctx.fillRect(sx-bw/2,by,bw,bh); }
+    else{
+      ctx.fillStyle='rgba(242,237,227,.85)'; ctx.fillRect(sx-bw/2,by,bw,bh);
+      ctx.strokeRect(sx-bw/2,by,bw,bh);
+    }
+    ctx.fillStyle=fin?'#fff':INK;
+    ctx.font=`600 ${Math.max(10,S*0.11)}px 'IBM Plex Mono',monospace`;
+    ctx.fillText(fin?LEVELS[levelIndex].name:(m>=1000?((m/1000).toFixed(0)+'k'):m), sx, by+bh/2-1);
+    ctx.font=`400 ${Math.max(7,S*0.07)}px 'IBM Plex Mono',monospace`;
+    ctx.fillText('m', sx, by+bh*0.78);
+  }
+  const s0=X(0);
+  if(s0>-40&&s0<W+40){
+    ctx.strokeStyle=INK; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(s0,gy); ctx.lineTo(s0,gy+0.3*S); ctx.stroke();
+    ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(s0+6,gy); ctx.lineTo(s0+6,gy+0.3*S); ctx.stroke();
+    ctx.fillStyle='rgba(23,21,15,.5)';
+    ctx.font=`500 ${Math.max(9,S*0.1)}px 'IBM Plex Mono',monospace`;
+    ctx.fillText('START · 0', s0+4, gy+0.44*S);
+  }
+  const f1=X(distTarget);
+  if(f1>-80&&f1<W+80){
+    const cs=0.085*S, rows=2, cols=6;
+    for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+      ctx.fillStyle=((r+c)%2===0)?INK:'#FBF8F1';
+      ctx.fillRect(f1-cs*cols/2+c*cs, gy+0.03*S+r*cs*0.66, cs, cs*0.66);
+    }
+    ctx.strokeStyle=INK;
+    ctx.lineWidth=Math.max(1.5,S*0.02);
+    ctx.beginPath(); ctx.moveTo(f1,gy); ctx.lineTo(f1,gy-1.7*S); ctx.stroke();
+    ctx.fillStyle=ACC;
+    ctx.beginPath();
+    ctx.moveTo(f1,gy-1.7*S); ctx.lineTo(f1+0.34*S,gy-1.58*S); ctx.lineTo(f1,gy-1.46*S);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle='rgba(23,21,15,.5)';
+    ctx.font=`500 ${Math.max(9,S*0.1)}px 'IBM Plex Mono',monospace`;
+    ctx.fillText('FINISH · '+LEVELS[levelIndex].name, f1, gy+0.44*S);
+  }
+}
+function drawMarks(){
+  for(const s of skids){
+    const a=Math.min(1,s.life/1.8)*0.85;
+    ctx.strokeStyle=`rgba(232,73,15,${a})`;
+    ctx.lineWidth=Math.max(2,S*0.03);
+    ctx.beginPath(); ctx.moveTo(X(s.x1),groundPx+7); ctx.lineTo(X(s.x2),groundPx+7); ctx.stroke();
+  }
+}
+function drawShadow(){
+  const h=-hip.y;
+  const t=Math.max(0, Math.min(1, (1.0-h)/0.6));
+  const v=Math.max(0,(chest.x-chest.px)/CFG.dt);
+  const rx=(0.30+t*0.10+Math.min(v*0.02,0.18))*S;
+  ctx.fillStyle=`rgba(23,21,15,${(0.05+t*0.13).toFixed(3)})`;
+  ctx.beginPath(); ctx.ellipse(X(hip.x+0.04), groundPx+4, rx, rx*0.13, 0, 0, 7); ctx.fill();
+}
+function drawDust(){
+  for(const d of dust){
+    ctx.fillStyle=`rgba(140,128,108,${(d.life/d.max)*0.5})`;
+    ctx.beginPath(); ctx.arc(X(d.x),Y(d.y),Math.max(1,d.r*S),0,7); ctx.fill();
+  }
+}
+function drawBooms(){
+  for(const b of booms){
+    const p=b.t/0.5, r=(0.3+p*2.0)*S;
+    ctx.fillStyle=`rgba(255,180,60,${(1-p)*0.25})`;
+    ctx.beginPath(); ctx.arc(X(b.x),Y(b.y),r*0.55,0,7); ctx.fill();
+    ctx.strokeStyle=`rgba(232,73,15,${(1-p)*0.85})`;
+    ctx.lineWidth=Math.max(2, S*0.05*(1-p));
+    ctx.beginPath(); ctx.arc(X(b.x),Y(b.y),r,0,7); ctx.stroke();
+  }
+}
+function drawMines(){
+  for(const m of mines){
+    ctx.fillStyle='#333';
+    ctx.beginPath(); ctx.ellipse(X(m.x), Y(m.y), 0.12*S, 0.05*S, 0, 0, 7); ctx.fill();
+    ctx.fillStyle='#E8490F';
+    ctx.beginPath(); ctx.arc(X(m.x), Y(m.y)-0.05*S, 0.03*S, 0, 7); ctx.fill();
+  }
+}
+function drawHurdles(){
+  for(const h of hurdles){
+    const sx=X(h.x);
+    if(sx<-80||sx>W+80) continue;
+    ctx.save();
+    ctx.translate(sx, Y(h.y));
+    ctx.rotate(h.ang);
+    ctx.strokeStyle=INK;
+    ctx.lineWidth=Math.max(2,S*0.028);
+    ctx.beginPath();
+    ctx.moveTo(-0.26*S, 0.42*S); ctx.lineTo(-0.26*S, -0.40*S);
+    ctx.moveTo( 0.26*S, 0.42*S); ctx.lineTo( 0.26*S, -0.40*S);
+    ctx.moveTo(-0.40*S, 0.42*S); ctx.lineTo(-0.13*S, 0.42*S);
+    ctx.moveTo( 0.13*S, 0.42*S); ctx.lineTo( 0.40*S, 0.42*S);
+    ctx.stroke();
+    ctx.fillStyle='#FBF8F1';
+    ctx.fillRect(-0.32*S, -0.475*S, 0.64*S, 0.115*S);
+    ctx.save();
+    ctx.beginPath(); ctx.rect(-0.32*S,-0.475*S,0.64*S,0.115*S); ctx.clip();
+    ctx.fillStyle=ACC;
+    for(let i=-4;i<5;i++){
+      ctx.beginPath();
+      ctx.moveTo(i*0.16*S, -0.475*S);
+      ctx.lineTo(i*0.16*S+0.08*S, -0.475*S);
+      ctx.lineTo(i*0.16*S+0.08*S-0.115*S, -0.36*S);
+      ctx.lineTo(i*0.16*S-0.115*S, -0.36*S);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+    ctx.strokeStyle=INK;
+    ctx.lineWidth=Math.max(1.5,S*0.02);
+    ctx.strokeRect(-0.32*S, -0.475*S, 0.64*S, 0.115*S);
+    ctx.restore();
+  }
+}
+function drawBallBack(){
+  if(!ballOn()) return;
+  const x=X(ball.x), y=Y(ball.y), r=CFG.ballR*S;
+  const hgt=Math.max(0,(-ball.y)-CFG.ballR);
+  const sh=Math.max(0, 1-hgt/2.5);
+  ctx.fillStyle=`rgba(23,21,15,${(0.10*sh+0.03).toFixed(3)})`;
+  ctx.beginPath();
+  ctx.ellipse(X(ball.x), groundPx+4, r*0.9*(0.55+0.45*sh), r*0.12*(0.55+0.45*sh), 0, 0, 7);
+  ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.42)';
+  ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill();
+  ctx.save();
+  ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.clip();
+  ctx.translate(x,y); ctx.rotate(ball.th);
+  ctx.strokeStyle='rgba(232,73,15,.28)';
+  ctx.lineWidth=Math.max(1.5,S*0.016);
+  ctx.beginPath(); ctx.moveTo(-r,0); ctx.lineTo(r,0); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0,-r); ctx.lineTo(0,r); ctx.stroke();
+  ctx.fillStyle='rgba(232,73,15,.28)';
+  for(let i=0;i<6;i++){
+    const a=i*Math.PI/3;
+    ctx.beginPath();
+    ctx.arc(Math.cos(a)*r*0.62, Math.sin(a)*r*0.62, Math.max(2,S*0.035), 0, 7);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+function drawBallFront(){
+  if(!ballOn()) return;
+  const x=X(ball.x), y=Y(ball.y), r=CFG.ballR*S;
+  ctx.strokeStyle=INK;
+  ctx.lineWidth=Math.max(2.5,S*0.04);
+  ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,.85)';
+  ctx.lineWidth=Math.max(2,S*0.03);
+  ctx.beginPath(); ctx.arc(x-r*0.25,y-r*0.25,r*0.62, Math.PI*1.05, Math.PI*1.45); ctx.stroke();
+}
+function limb(h,k,f,w,c){
+  seg(h,k,w,c); seg(k,f,w,c);
+  const ws=w*0.9;
+  const sy=f.y+SOLE-(ws/2)/S;
+  ctx.strokeStyle=c; ctx.lineWidth=ws;
+  ctx.beginPath();
+  ctx.moveTo(X(f.x-0.085),Y(sy));
+  ctx.lineTo(X(f.x+0.105),Y(sy));
+  ctx.stroke();
+}
+function drawPerson(){
+  const far='rgba(23,21,15,.45)', near=INK;
+  const lw=S*0.055;
+  limb(hip,legL.knee,legL.foot,lw*0.85,far);
+  seg(chest,legL.elbow,lw*0.6,far);
+  seg(legL.elbow,legL.hand,lw*0.55,far);
+  seg(hip,chest,lw*1.1,INK);
+  const hs=lw*0.85, hl=(hs/2)/S;
+  ctx.strokeStyle=INK; ctx.lineWidth=hs;
+  ctx.beginPath(); ctx.arc(X(head.x),Y(head.y-hl),0.115*S,0,7); ctx.stroke();
+  limb(hip,legR.knee,legR.foot,lw,near);
+  seg(chest,legR.elbow,lw*0.72,INK);
+  seg(legR.elbow,legR.hand,lw*0.66,INK);
+  if(!ballOn()){                                // 摆腿轨迹虚线（任何时候都画）
+    for(const leg of [legL,legR]){
+      if(leg.phase==='swing'){
+        const p=1-leg.t/CFG.swingT;
+        const hv=Math.max(0,(hip.x-hip.px)/CFG.dt);
+        const stride=Math.min(CFG.strideBase+hv*CFG.strideGain, CFG.strideMax);
+        const tx=hip.x+stride, ty=-0.02-CFG.swingLift*Math.sin(Math.PI*p);
+        ctx.strokeStyle='rgba(232,73,15,.22)';
+        ctx.lineWidth=1.5;
+        ctx.setLineDash([4,4]);
+        ctx.beginPath();
+        ctx.moveTo(X(leg.foot.x),Y(leg.foot.y));
+        ctx.lineTo(X(tx),Y(ty));
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+    for(const leg of [legL,legR]){
+      if(leg.phase==='push'&&leg.foot.y>leg.foot.gy-0.02){
+        const a=leg.t/CFG.pushT;
+        ctx.strokeStyle=`rgba(232,73,15,${0.75*a})`;
+        ctx.lineWidth=Math.max(2,S*0.035);
+        const fx=X(leg.foot.x);
+        ctx.beginPath(); ctx.moveTo(fx-0.1*S,groundPx+6); ctx.lineTo(fx+0.14*S,groundPx+6); ctx.stroke();
+      }
+    }
+  }
+}
+function drawSpeedLines(v){
+  if(v<6.2) return;
+  const n=Math.min(4+Math.floor(v/8),18);
+  ctx.strokeStyle='rgba(23,21,15,.09)';
+  ctx.lineWidth=2;
+  for(let i=0;i<n;i++){
+    const yy=hip.y+rnd(-0.65,0.4), xx=hip.x-rnd(0.6,1.8), len=(v-5)*0.12;
+    ctx.beginPath(); ctx.moveTo(X(xx),Y(yy)); ctx.lineTo(X(xx+len),Y(yy)); ctx.stroke();
+  }
+}
+function draw(){
+  if(!canvasOK){ drawMinimal(); return; }
+  ctx.fillStyle='#F2EDE3'; ctx.fillRect(0,0,W,H);
+  drawParallax(); drawTrack(); drawMarks();
+  if(!ballOn()) drawShadow();
+  drawDust();
+  const v=ballOn()?Math.max(0,ball.vx):Math.max(0,(chest.x-chest.px)/CFG.dt);
+  drawSpeedLines(v);
+  drawBooms(); drawMines(); drawHurdles();
+  drawBallBack();
+  drawPerson();
+  drawBallFront();
+}
+function drawMinimal(){
+  try{
+    ctx.fillStyle='#F2EDE3'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle=TRACK; ctx.fillRect(0,groundPx,W,H-groundPx);
+    drawBooms(); drawMines(); drawHurdles();
+    drawBallBack();
+    if(pts && pts.length===11) drawPerson();
+    drawBallFront();
+  }catch(_){}
+}
+
+/* ============ HUD ============ */
+function updateHUD(){
+  const d=Math.max(0,Math.min(distTarget,chest.x));
+  $('dn').textContent=d.toFixed(1);
+  $('prog').firstElementChild.style.width=(d/distTarget*100)+'%';
+  $('time').textContent=(gameState==='done'?finalT:runT).toFixed(2)+' s';
+  const v=ballOn()?Math.max(0,ball.vx):Math.max(0,(chest.x-chest.px)/CFG.dt);
+  const spEl=$('speed');
+  spEl.textContent=(v>50?'⚡ ':'')+v.toFixed(1)+' m/s';
+  spEl.style.color = v>25 ? 'var(--accent)' : '';
+}
+
+/* ============ 初始化 & 主循环 ============ */
+loadSave();
+levelIndex = SAVE.lastLevel || 0;
+distTarget = LEVELS[levelIndex].dist;
+renderGear();
+renderBest();
+updateGoldUI();
+buildBody();
+buildHurdles();
+camX=chest.x;
+if(SAVE.vehicles.bubble && SAVE.vehicleOn.bubble) initBall();
+
+let acc=0, last=performance.now();
+function frame(now){
+  const fdt=Math.min((now-last)/1000,0.05);
+  last=now;
+  frameN++;
+  if(modalOpen){ requestAnimationFrame(frame); return; }
+  try{ groundPx = groundbar.getBoundingClientRect().top; }catch(_){}
+  try{
+    acc+=fdt;
+    while(acc>=CFG.dt){ physStep(CFG.dt); acc-=CFG.dt; }
+  }catch(e){ reportErr('物理', e); }
+  /* 镜头跟随速度随移速自适应 */
+  if(isFinite(chest.x)){
+    const vNow=ballOn()?Math.abs(ball.vx):Math.abs((chest.x-chest.px)/CFG.dt);
+    const k=5+Math.min(vNow*0.9,260);
+    camX+=(chest.x-camX)*(1-Math.exp(-k*fdt));
+  }
+  try{ updateFX(fdt); }catch(e){ reportErr('特效', e); }
+  try{ draw(); }catch(e){ reportErr('渲染', e); drawMinimal(); }
+  try{ updateHUD(); }catch(e){ reportErr('HUD', e); }
+  try{
+    if(ballOn()){
+      $('diag').textContent=`球速 ${ball.vx.toFixed(1)} m/s · Ω ${ball.om.toFixed(1)} rad/s · ${frameN}帧`;
+    }else{
+      const gap=Math.min((legL.foot.y+SOLE)*S, (legR.foot.y+SOLE)*S);
+      let touch=0;
+      for(const p of pts) if(p.y>p.gy-0.005) touch++;
+      let pose='倒';
+      if(hip.y<-0.70 && head.y<-1.0) pose='站';
+      else if(hip.y<-0.30 && head.y<-0.8) pose='蹲';
+      const hipH=(-hip.y*S)|0;
+      $('diag').textContent=`${pose} 髋高${hipH}px · 鞋底-线 ${gap>=0?'+':''}${gap.toFixed(1)}px · 触地 ${touch}/11 · ${frameN}帧`;
+    }
+  }catch(_){}
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
