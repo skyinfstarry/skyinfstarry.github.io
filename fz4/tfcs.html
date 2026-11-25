@@ -212,6 +212,27 @@
   .btn.auto-on { background: linear-gradient(180deg, #2f9e5e, #1f7a45); border-color: #37c47a; color: #fff; }
   .btn.auto-off { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.15); color: #dbe6f2; }
 
+  /* 光棱炮轨道打击档位滑块（节能/普通/极致） */
+  .pm-track {
+    position: relative; display: flex; height: 30px;
+    background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.10);
+    border-radius: 8px; overflow: hidden; user-select: none; -webkit-user-select: none; touch-action: none;
+  }
+  .pm-opt {
+    flex: 1; position: relative; z-index: 2; border: none; background: transparent;
+    color: #8fa0b5; font-family: inherit; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: color .15s; padding: 0;
+  }
+  .pm-opt.pm-active { color: #f0fdff; font-weight: 700; }
+  .pm-thumb {
+    position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc((100% - 4px) / 3);
+    border-radius: 6px; z-index: 1; pointer-events: none;
+    background: linear-gradient(180deg, #67e8f9, #0891b2);
+    box-shadow: 0 2px 10px rgba(8,145,178,.55);
+    transition: transform .18s cubic-bezier(.4,0,.2,1);
+  }
+  .pm-label { font-size: 11px; color: #6f8499; letter-spacing: 1px; margin: 6px 0 3px 1px; }
+
   .ctrl { display: flex; gap: 6px; }
   .ctrl .btn { flex: 1; }
 
@@ -317,6 +338,15 @@
       <button class="btn auto-off" id="btnMmPrism" style="display:none; margin-top:4px;">💠 供能光棱炮：关</button>
       <button class="btn auto-on" id="btnRepPrism" style="display:none; margin-top:4px;">💠 供能光棱炮(全局)：开</button>
       <button class="btn auto-off" id="btnOverclock" style="display:none; margin-top:4px;">⚡ 超频EMP免疫(全局)：关</button>
+      <div id="prismModeBox" style="display:none;">
+        <div class="pm-label">💥 轨道打击档位</div>
+        <div class="pm-track" id="pmTrack">
+          <div class="pm-thumb" id="pmThumb"></div>
+          <button class="pm-opt" data-mode="eco">节能</button>
+          <button class="pm-opt" data-mode="normal">普通</button>
+          <button class="pm-opt" data-mode="max">极致</button>
+        </div>
+      </div>
       <button class="btn auto-off" id="btnPrismHV" style="display:none; margin-top:4px;">🎯 仅攻击高价值目标：关</button>
       <button class="btn up" id="btnUpgrade">升级</button>
       <button class="btn sell" id="btnSell">出售</button>
@@ -374,7 +404,7 @@
       <p>🛰️ <b>拦截器</b>：消耗 100 能量发射红色激光拦截炮弹（无冷却）。</p>
       <p>🧊 <b>电池组</b>：储存能量，供毫米波使用与护盾抽电（T1 容量 12500）。T20 满级后可升阶：中型容量×2、大型容量×4；升阶费为 T21 原价×2，升级费×3/×9。电池组完全免疫 EMP。（能量电池已移除，按键 8 直达电池组）</p>
       <p>📡 <b>毫米波</b>：瞬间从电池组抽电修复范围内所有建筑，并给拦截器/电池组/光棱炮/电磁护盾充能。直连电池组无损，经中继毫米波每跳损耗 10%（无冷却）。选中后可设置是否为转换器/光棱炮充能（默认关）。电磁护盾防御/替死能量不足时，会经毫米波瞬间从电池组抽电补能（遵循同样跳损规则，关闭/建造中的毫米波与电池组不参与）。</p>
-      <p>💠 <b>光棱炮</b>：T1-T9 为充能状态，受 EMP 惩罚（清空电量+扣80%最大耐久+瘫痪5秒），但在电磁护盾九宫格内可被庇护减伤减秒。T10-T19 自身免疫 EMP（受冲击时短暂闪现小护盾圈）。T20 且满 50 万能量时引发轨道激光打击（圈内己方塔与指挥塔耐久均设为 1），被轨道打击击杀的 EMP 怪不自爆、核爆 BOSS 不核爆。选中 T20 光棱炮可开启「🎯 仅攻击高价值目标」：轨道打击只瞄准 EMP 怪与核爆 BOSS（场上没有则不发射、能量保留）。T20 免疫 EMP 并为九宫格内电子设施提供完全庇护（建造中/关闭时不作庇护源）。</p>
+      <p>💠 <b>光棱炮</b>：T1-T9 为充能状态，受 EMP 惩罚（清空电量+扣80%最大耐久+瘫痪5秒），但在电磁护盾九宫格内可被庇护减伤减秒。T10-T19 自身免疫 EMP（受冲击时短暂闪现小护盾圈）。T20 轨道打击三档滑块（储能上限统一 100 万，不随档位缩放）：节能档满 10 万能量即发射，仅击杀敌人，被击杀敌人的 EMP 自爆与核爆照常发生；普通档满 50 万发射，击杀敌人并使 EMP 怪不自爆，核爆照常；极致档满 100 万发射，EMP 与核爆均不引爆。轨道打击圈内己方塔与指挥塔耐久均设为 1。选中 T20 光棱炮可开启「🎯 仅攻击高价值目标」：轨道打击只瞄准 EMP 怪、核爆 BOSS 与战术核弹怪（场上没有则不发射、能量保留）。T20 免疫 EMP 并为九宫格内电子设施提供完全庇护（建造中/关闭时不作庇护源）。</p>
       <p>🔮 <b style="color:#67e8f9">球状闪电发生器</b>：初始 1000 金币（与光棱炮互换价格；通用升级公式，T20 累计约 1721 万）。T1-T19 无任何攻击力；T20 激活核心：每 2 秒聚能产出 1 枚球状闪电，场上共享上限 = 2 × T20 塔数（3 座塔=6 球）。球体独立游走 10 秒（40-60px/s 随机偏转、边缘反弹），电弧真伤 1000/s（索敌 150px，无视敌方能量盾与特警盾）+2 次连锁跳跃（每跳衰减 20%，不分对空对地）+ 贴身帧伤 300/s。<b>串联共振</b>：索敌到敌人的球为根节点，150px 内未索敌的球经多跳传导接入（每跳 150px），其伤害按 0.8^跳数 衰减叠加到根节点攻击（B 在旁传 80%，C 经 B 传 64%…）；一个空闲球同帧只给一个网络供电。满 6 球共振最高约 3.69 倍（3690/s）。成就「三体前传」：场上 3 枚球状闪电产生共振后，球状闪电全部伤害×1.5。到期爆炸：55px 内 3000 真伤 + 120px 小型 EMP（敌方护盾怪清盾瘫 5 秒，对己方无影响）。最后 0.5 秒预警（减速闪烁）。工作开关关闭时聚能进度每秒倒退 20%；满上限时新球排斥消散（进度重置）。塔与球体完全免疫 EMP。按键 . 快速选择。</p>
       <p>🛡️ <b style="color:#38bdf8">电磁护盾</b>：不可攻击、可升 T20。为 3×3 格内的维修塔/拦截器/转换器/电击器/光棱炮T1-T9抵挡 EMP：受护塔按护盾等级扣血比例受损+按护盾等级秒数短暂瘫痪+电量清零；每次庇护扣耗能，自身能量不足时经毫米波瞬间从电池组抽电补足，仍不足则本次不庇护；受护塔将死时保留 1 点耐久，溢出致死伤害由护盾替死承受（护盾可能过载摧毁）。「⚡ 超频EMP免疫」为全局开关（默认关，选中任一护盾切换，作用于所有护盾）：EMP 完全免疫（不扣血/不瘫痪/不清电），每次耗能 = 庇护耗能 costPerHit + 受护塔最大生命值×3（同样支持毫米波抽电），能量不足自动回退普通庇护。T15 起为 3×3 格内所有建筑及自身（含光棱炮）抵挡能量攻击（激光怪光束/远程能量炮弹）；T20 起再抵挡近战攻击与核爆（护盾挡不了光棱炮 T20 轨道打击的友伤）。庇护时受护塔的扣血先由护盾能量抵扣（走通用预算/汇率/抽电），剩余才扣塔本体，将死再替死。T20 致命替死：可为范围内任意一座炮台抵御一次任何类型的致命伤害（含核爆），抵挡后自身死亡；被救塔保留 10% 最大耐久（T20 以下护盾保留 1 HP）；一次爆炸只救一座、救最贵的（invested 最大）、不救护盾自己。通用防御费率：每秒防御预算 = 500×等级（T1=500、T2=1000、T3=1500…T20=10000），预算内每抵扣 1 伤害消耗 2 能量；超出预算后每多抵扣 100 伤害，每 1 伤害所需能量 +1（第 1 段 3 能、第 2 段 4 能…无上限递增，例：T1 挡 700 伤 = 500×2 + 100×3 + 100×4 = 1700 能量）。能量优先取自护盾自身，不足时经毫米波瞬间从电池抽电（遵循跳损规则）。辐射与指挥塔伤害不在防御范围。维修塔/毫米波可为其充能。</p>
       <p>☢️ <b>核弹发射井</b>：建核弹300万/30s，最多存5枚。发射后直径90%范围秒杀敌人；范围内己方塔扣除90%最大耐久（当前耐久≤90%即被摧毁；马奇诺/终极防线成就减伤适用），指挥塔固定扣900（走成就减伤，扣死即失败）；并留下辐射区：区内己方设施（含指挥塔）每秒受到 15 点持续伤害（走成就减伤）。</p>
@@ -384,8 +414,9 @@
       <p>⚡ <b style="color:#ff00ff">激光怪</b>：陆空双形态。发射品红色光束持续灼烧防御设施（帧伤），并会拦截我方战术导弹（150px内，最快0.1s/枚）。其光束属能量攻击，可被 T15+ 电磁护盾抵扣。</p>
       <p>➕ <b style="color:#7ef0a0">治疗怪</b>：陆空双形态。跟随敌军并持续治疗伤员，优先击杀它！</p>
       <p>🛡️ <b style="color:#6366f1">特警怪</b>：持盾渗透。第20波起出现：50 波前随机持单盾——防弹盾（挡机枪类子弹）或橡胶盾（挡电击），50 波起双盾齐备。盾只挡正面 ±45°，用机枪/电击器从侧面、背后攻击仍可命中；火炮/喷火等其他攻击无视盾牌。盾牌为纯物理装备，不受 EMP 影响。血厚速慢，绕后击杀效率最高。</p>
+      <p>🧨 <b style="color:#fb923c">战术核弹怪</b>：不攻击，背负小型战术核弹渗透直捣指挥塔，行为同 EMP 怪（接触防御塔/到达指挥塔自爆，被打死同样自爆）。核爆规格 = BOSS 核爆的 40%，仅缩小范围：爆炸半径与辐射区均为 BOSS 的 40%，杀伤与辐射机制同规格——范围内敌人秒杀；己方塔扣 90% 最大耐久、指挥塔扣 900（均走马奇诺/终极防线成就减伤，T20 电磁护盾可替死救最贵的一座）；辐射区持续 100 秒、区内己方设施（含指挥塔）每秒 15 点。第 30-46 波隔波出现（30/32/…/46），第 47 波起每波必出；数量约每 20 波 +1，后期最多 5 只并发，出场间隔 8 秒递减至 3 秒。务必在远离塔群处击杀，或用极致档轨道打击免爆击杀！</p>
       <p>⚡ <b style="color:#4fd8ff">EMP电磁怪</b>：不攻击，渗透直捣指挥塔。陆地形态接触任意防御塔或到达指挥塔即自爆；飞行形态到达指挥塔附近自爆；被打死同样自爆（直径全图60%，判定使用平面距离、飞行形态不与地面塔碰撞）。受罚名单：维修塔/拦截器/转换器/电击器/光棱炮T1-T9——清空电量+扣80%最大耐久+瘫痪5秒；T10-T19光棱炮自身免疫；T20光棱炮免疫并庇护九宫格电子设施；电池组/毫米波/物理塔/球状闪电发生器免疫；电磁护盾（耗能）为九宫格内维修塔/拦截器/转换器/电击器/光棱炮T1-T9分担伤害（能量不足时经毫米波瞬间抽电，仍不足则该塔本次不受庇护）。关闭设施免疫 EMP、不接受充能但照常被修；关闭光棱炮不作庇护源。还会瘫痪范围内护盾怪的护盾5秒（特警怪的物理盾牌不受影响）。第15波起出现，第25波起出现飞行形态。</p>
-      <p>☢️ <b style="color:#ff8a3d">BOSS 自爆</b>：第50波起 BOSS 死亡原地核爆（大范围秒杀敌人；对己方塔与指挥塔的伤害与核弹一致（均走马奇诺/终极防线成就减伤）：塔扣90%最大耐久，指挥塔扣900扣死即失败；辐射区同规格：区内己方设施含指挥塔每秒15点）。T20 电磁护盾可替死保住范围内将死的塔中最贵的一座（护盾自身死亡）。第100波起额外引发 EMP 电磁脉冲！留意击杀位置。</p>
+      <p>☢️ <b style="color:#ff8a3d">BOSS 自爆</b>：第50波起 BOSS 死亡原地核爆（大范围秒杀敌人；对己方塔与指挥塔的伤害与核弹一致（均走马奇诺/终极防线成就减伤）：塔扣90%最大耐久，指挥塔扣900扣死即失败；辐射区同规格：区内己方设施含指挥塔每秒15点）。T20 电磁护盾可替死保住范围内将死的塔中最贵的一座（护盾自身死亡）。第100波起死亡额外引发 EMP 电磁脉冲，脉冲半径为全图宽度的 60%（大于 EMP 怪自爆范围）！留意击杀位置。</p>
     </div>
   </div>
 </div>
@@ -484,7 +515,7 @@ function genLevels(baseName, tiers, lvlCount, baseDmg, baseRange, baseCd, extra 
 
     if (extra.isLaser) obj.maxEnergy = i * 100;
     if (extra.isBattery) obj.maxEnergy = i * 2500 * (extra.batteryMul || 1);
-    if (extra.isPrism) obj.maxEnergy = 500000; // 激活门槛 50 万（原 10 万封顶导致轨道打击永不可达）
+    if (extra.isPrism) obj.maxEnergy = 1000000; // 储能上限统一 100 万（三档：节能 10 万 / 普通 50 万 / 极致 100 万触发）
 
     res.push(obj);
   }
@@ -563,10 +594,10 @@ const TOWER_DEFS = {
   },
   prism: {
     key: 'prism', name: '光棱炮', icon: '💠', cost: 1500, color: '#f8fafc',
-    kind: 'prism', desc: 'T1-T19无攻击。T20满50万能量时触发轨道打击（可设仅攻击高价值目标；轨道击杀的EMP怪/BOSS不引爆）。',
+    kind: 'prism', desc: 'T1-T19无攻击。T20轨道打击三档（节能10万/普通50万/极致100万；储能上限统一100万），轨道击杀对EMP/核爆的压制随档位增强。',
     levels: Array.from({length: 20}, (_, i) => ({
       name: '光棱炮 T' + (i+1), damage: 0, range: 0, cooldown: 1,
-      armor: Math.floor(i/2), isPrism: true, maxEnergy: 500000
+      armor: Math.floor(i/2), isPrism: true, maxEnergy: 1000000
     }))
   },
   ballLightning: {
@@ -638,6 +669,7 @@ const ENEMY_DEFS = {
   flyer:  { hp: 35,   speed: 85,  radius: 10, color: '#38bdf8', towerDamage: 8,  attackCooldown: 1.0, name: '飞行器', flying: true },
   laserE: { hp: 90,   speed: 42,  radius: 13, color: '#ff00ff', towerDamage: 9,  attackCooldown: 1.0, name: '激光怪', beamRange: 170, interceptRange: 150, interceptCd: 0.1 },
   emp:    { hp: 120,  speed: 40,  radius: 13, color: '#4fd8ff', towerDamage: 0,  attackCooldown: 1.0, name: 'EMP怪' },
+  tacnuke: { hp: 550, speed: 32, radius: 16, color: '#fb923c', towerDamage: 0,  attackCooldown: 1.0, name: '战术核弹怪' },
   healer: { hp: 60,   speed: 46,  radius: 12, color: '#7ef0a0', towerDamage: 0,  attackCooldown: 1.0, name: '治疗怪', healRange: 90 },
   swat:   { hp: 260,  speed: 42,  radius: 14, color: '#6366f1', towerDamage: 8,  attackCooldown: 1.0, name: '特警怪' },
   boss:   { hp: 1600, speed: 28,  radius: 21, color: '#ff2d6f', towerDamage: 45, attackCooldown: 1.4, name: 'BOSS' }
@@ -809,6 +841,7 @@ function reset() {
     mmToConverter: false,
     mmToPrism: false,
     prismHV: false,
+    prismMode: 'normal', // 轨道打击档位（eco节能/normal普通/max极致），默认普通
     paralysisTimer: 0,
     empShieldTimer: 0,
     selfShieldTimer: 0,
@@ -1089,6 +1122,12 @@ function buildSpawnList(w) {
     const gapE = Math.max(2, 6 - (w - 15) * 0.1);
     add('emp', nE, gapE, 2);
     if (w >= 25) add('emp', Math.floor(nE / 2), gapE, 3, true);
+  }
+  // 战术核弹怪：30-46 隔波出现（偶波：30/32/…/46），47 起每波必出；数量约每 20 波 +1，上限 5 只；间隔 8s→3s 递减
+  if (w >= 30 && (w >= 47 || w % 2 === 0)) {
+    const nN = Math.min(5, 1 + Math.floor((w - 30) / 20));
+    const gapN = Math.max(3, 8 - (w - 30) * 0.05);
+    add('tacnuke', nN, gapN, 8);
   }
 
   list.sort((a, b) => a.t - b.t);
@@ -1545,15 +1584,41 @@ function detonateBoss(e) {
 
   if (waveNum >= 100) {
     addLog('⚡ BOSS 死亡引发电磁脉冲爆发！', 'danger');
-    explodeEMP(e.x, e.y);
+    explodeEMP(e.x, e.y, BOSS_EMP_BLAST_RADIUS); // BOSS 专属大半径（全图宽 60%），EMP 怪自爆口径不同
   }
 }
 
-// EMP 电磁怪：不直接攻击，走向指挥塔渗透；到达指挥塔附近、（陆地形态）接触任意防御塔或被打死时自爆。
+// 战术核弹怪死亡自爆：规格 = BOSS 核爆 × 0.4（仅缩小范围，杀伤与辐射机制同规格）
+// 爆炸半径 = MAP_DIAG 45%×0.4=18%；辐射区 = MAP_DIAG 20%×0.4=8%（100 秒，每秒 15 点）；范围内敌人秒杀
+function detonateTacticalNuke(e) {
+  if (e.detonated) return;
+  e.detonated = true;
+  const blastRadius = MAP_DIAG * 0.45 * 0.4;
+  orbitalStrikes.push({ x: e.x, y: e.y, radius: blastRadius, life: 3.0, maxLife: 3.0, isNuke: true });
+  for (const o of enemies) {
+    if (o.alive && o !== e && Math.hypot(o.x - e.x, o.y - e.y) <= blastRadius) {
+      o.hp = 0;
+      o.alive = false;
+      addParticles(o.x, o.y, '#fff', 8, 160);
+    }
+  }
+  nukeBlastOwnSide(e.x, e.y, blastRadius);
+  radiationZones.push({ x: e.x, y: e.y, radius: MAP_DIAG * 0.2 * 0.4, life: 100, maxLife: 100 });
+  addLog('🧨 战术核弹怪自爆！小型核爆轰然而至！', 'danger');
+}
+
+// EMP 电磁怪 / 战术核弹怪：不直接攻击，走向指挥塔渗透；到达指挥塔附近、（陆地形态）接触任意防御塔或被打死时引爆。
 // 判定使用平面距离（不考虑高度）；飞行形态不与地面塔发生碰撞；不设出场无敌/碰撞延迟。
 function updateEmpEnemy(e, dt) {
   const detonateHere = () => {
     if (e.detonated) return;
+    if (e.type === 'tacnuke') {
+      // detonateTacticalNuke 自带 detonated 幂等与置位，勿在此先行置位（否则被幂等门拦截成哑弹）
+      detonateTacticalNuke(e);
+      e.hp = 0;
+      e.alive = false;
+      return;
+    }
     e.detonated = true;
     e.hp = 0;
     e.alive = false;
@@ -1589,8 +1654,21 @@ function updateEmpEnemy(e, dt) {
   }
 }
 
-// EMP 自爆：半径 = 全图宽度 60%
-const EMP_BLAST_RADIUS = W * 0.3; // 直径 = 全图宽 60%
+// EMP 怪自爆：半径 = 全图宽度 30%（直径 60%，11-23 批次口径，仅 EMP 怪使用）
+const EMP_BLAST_RADIUS = W * 0.3;
+// BOSS 死亡电磁脉冲：半径 = 全图宽度 60%（恢复 11-23 前旧口径，仅 BOSS 使用，比 EMP 怪自爆大一倍）
+const BOSS_EMP_BLAST_RADIUS = W * 0.6;
+
+// 光棱炮 T20 轨道打击三档（储能上限统一 100 万，不随档位缩放）：
+//   节能 eco    —— 满 10 万能量即发射；仅击杀敌人，EMP 自爆与核爆照常发生（不做任何压制）
+//   普通 normal —— 满 50 万发射；击杀敌人并压制 EMP 怪自爆（noDetonate），核爆（BOSS/战术核弹怪）照常
+//   极致 max    —— 满 100 万发射；EMP 自爆与核爆均不引爆（noDetonate + noNuke）
+const PRISM_MODES = {
+  eco:    { key: 'eco',    label: '节能', threshold: 100000,  suppressEmp: false, suppressNuke: false },
+  normal: { key: 'normal', label: '普通', threshold: 500000,  suppressEmp: true,  suppressNuke: false },
+  max:    { key: 'max',    label: '极致', threshold: 1000000, suppressEmp: true,  suppressNuke: true }
+};
+const prismModeOf = (t) => PRISM_MODES[t.prismMode] || PRISM_MODES.normal;
 
 // 毫米波瞬间抽电：电磁护盾替死抵扣溢出伤害时，从电池瞬间抽取能量（不改常规修复/充能带宽）
 // 起点 = 覆盖护盾的全部可用毫米波（未摧毁/未建造中/未关闭，且护盾中心在其射程内）
@@ -1972,11 +2050,12 @@ function sacrificeShield(p, target) {
   checkEnclosure();
 }
 
-function explodeEMP(x, y) {
-  empBlasts.push({ x, y, life: 0.9, maxLife: 0.9, maxRadius: EMP_BLAST_RADIUS });
+function explodeEMP(x, y, radius) {
+  const R = (radius === undefined || !(radius > 0)) ? EMP_BLAST_RADIUS : radius;
+  empBlasts.push({ x, y, life: 0.9, maxLife: 0.9, maxRadius: R });
   addParticles(x, y, '#4fd8ff', 30, 280);
   addFloat(x, y - 20, 'EMP!', '#4fd8ff');
-  addLog('⚡ EMP电磁怪自爆！范围内设施遭电磁冲击！', 'danger');
+  addLog(R > EMP_BLAST_RADIUS ? '⚡ 大范围电磁脉冲爆发！范围内设施遭电磁冲击！' : '⚡ EMP电磁怪自爆！范围内设施遭电磁冲击！', 'danger');
 
   // T20 光棱炮庇护源：未摧毁、不在建造中、未关闭的 T20 光棱炮（建造中/关闭的均不作庇护源）
   const t20Shelters = [];
@@ -1997,7 +2076,7 @@ function explodeEMP(x, y) {
   const flashT20 = new Set();
   for (const p of towers) {
     if (p.destroyed || p.type !== 'prism' || p.buildingTimer > 0 || p.enabled === false) continue;
-    if (Math.hypot(p.x - x, p.y - y) > EMP_BLAST_RADIUS) continue;
+    if (Math.hypot(p.x - x, p.y - y) > R) continue;
     if (p.level >= 20) flashT20.add(p);
     else if (p.level >= 10) p.selfShieldTimer = 1.5;
   }
@@ -2031,7 +2110,7 @@ function explodeEMP(x, y) {
   for (let i = 0; i < towers.length; i++) {
     const t = towers[i];
     if (t.destroyed) continue;
-    if (Math.hypot(t.x - x, t.y - y) > EMP_BLAST_RADIUS) continue;
+    if (Math.hypot(t.x - x, t.y - y) > R) continue;
 
     // 建造中的塔免疫 EMP（升级中的塔不免疫）
     if (t.buildingTimer > 0) continue;
@@ -2170,7 +2249,7 @@ function explodeEMP(x, y) {
   for (let i = 0; i < enemies.length; i++) {
     const e = enemies[i];
     if (!e.alive || e.maxShield <= 0) continue;
-    if (Math.hypot(e.x - x, e.y - y) > EMP_BLAST_RADIUS) continue;
+    if (Math.hypot(e.x - x, e.y - y) > R) continue;
     e.shield = 0;
     e.shieldParalysisTimer = 5;
     addFloat(e.x, e.y - 18, '⚡破盾!', '#4fd8ff');
@@ -2312,7 +2391,7 @@ function updateEnemy(e, dt) {
 
   if (e.type === 'laserE') { updateLaserEnemy(e, dt); return; }
   if (e.type === 'healer') { updateHealerEnemy(e, dt); return; }
-  if (e.type === 'emp') { updateEmpEnemy(e, dt); return; }
+  if (e.type === 'emp' || e.type === 'tacnuke') { updateEmpEnemy(e, dt); return; }
 
   const dCastle = Math.hypot(e.x - CASTLE_CX, e.y - CASTLE_CY);
 
@@ -2532,7 +2611,8 @@ function update(dt) {
     const _e = enemies[i];
     if (!_e.alive || _e.hp <= 0) {
       if (_e.type === 'emp' && !_e.detonated && !_e.noDetonate) { _e.detonated = true; explodeEMP(_e.x, _e.y); }
-      if (_e.type === 'boss' && !_e.detonated && !_e.noDetonate) detonateBoss(_e);
+      if (_e.type === 'boss' && !_e.detonated && !_e.noNuke) detonateBoss(_e);
+      if (_e.type === 'tacnuke' && !_e.detonated && !_e.noNuke) detonateTacticalNuke(_e);
       enemies.splice(i, 1);
     }
   }
@@ -2888,13 +2968,14 @@ function update(dt) {
     }
 
     if (t.type === 'prism') {
-      if (t.level === 20 && t.energy >= 500000) {
-        // 「仅攻击高价值目标」开启时只瞄准 EMP 怪与核爆 BOSS；池空则不触发（能量保留）
+      const pm = prismModeOf(t);
+      if (t.level === 20 && t.energy >= pm.threshold) {
+        // 「仅攻击高价值目标」开启时只瞄准 EMP 怪、核爆 BOSS 与战术核弹怪；池空则不触发（能量保留）
         const pool = t.prismHV === true
-          ? enemies.filter(e => e.alive && (e.type === 'emp' || e.type === 'boss'))
+          ? enemies.filter(e => e.alive && (e.type === 'emp' || e.type === 'boss' || e.type === 'tacnuke'))
           : enemies.filter(e => e.alive);
         if (pool.length === 0) { continue; }
-        t.energy -= 500000;
+        t.energy -= pm.threshold;
 
         const targetEnemy = pool[Math.floor(Math.random() * pool.length)];
         const targetX = targetEnemy.x;
@@ -2915,7 +2996,9 @@ function update(dt) {
           if (e.alive && Math.hypot(e.x - targetX, e.y - targetY) <= strikeRadius) {
             e.hp = 0;
             e.alive = false;
-            e.noDetonate = true; // 被轨道打击击杀的 EMP 怪不自爆、BOSS 不核爆
+            // 档位压制：节能不设（EMP 与核爆照常）；普通仅压制 EMP 自爆；极致再压制核爆（BOSS/战术核弹怪）
+            if (pm.suppressEmp) e.noDetonate = true;
+            if (pm.suppressNuke) e.noNuke = true;
             addParticles(e.x, e.y, '#fff', 10, 200);
           }
         }
@@ -3206,7 +3289,8 @@ function update(dt) {
     const _e = enemies[i];
     if (!_e.alive || _e.hp <= 0) {
       if (_e.type === 'emp' && !_e.detonated && !_e.noDetonate) { _e.detonated = true; explodeEMP(_e.x, _e.y); }
-      if (_e.type === 'boss' && !_e.detonated && !_e.noDetonate) detonateBoss(_e);
+      if (_e.type === 'boss' && !_e.detonated && !_e.noNuke) detonateBoss(_e);
+      if (_e.type === 'tacnuke' && !_e.detonated && !_e.noNuke) detonateTacticalNuke(_e);
       enemies.splice(i, 1);
     }
   }
@@ -3981,6 +4065,35 @@ function drawEnemy(e) {
     ctx.lineTo(x + 0.5, y - 0.5);
     ctx.closePath();
     ctx.fill();
+    ctx.restore();
+  }
+
+  if (e.type === 'tacnuke') {
+    // 战术核弹怪：背负小型战术核弹（橙色弹体 + ☢ 标记 + 呼吸警戒环）
+    ctx.save();
+    const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 300);
+    ctx.strokeStyle = `rgba(251,146,60,${(0.22 + 0.35 * pulse).toFixed(3)})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(x, y, r + 5 + pulse * 3, 0, Math.PI * 2); ctx.stroke();
+    // 背负核弹：竖直弹体立于背后
+    ctx.translate(x, y - r - 3);
+    ctx.fillStyle = '#c2410c';
+    ctx.strokeStyle = '#fdba74';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 1.15);
+    ctx.quadraticCurveTo(r * 0.42, -r * 0.45, r * 0.42, 0);
+    ctx.lineTo(r * 0.42, r * 0.55);
+    ctx.quadraticCurveTo(0, r * 0.75, -r * 0.42, r * 0.55);
+    ctx.lineTo(-r * 0.42, 0);
+    ctx.quadraticCurveTo(-r * 0.42, -r * 0.45, 0, -r * 1.15);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#ffedd5';
+    ctx.font = `bold ${Math.max(8, Math.round(r * 0.7))}px system-ui`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('☢', 0, r * 0.12);
     ctx.restore();
   }
 
@@ -4782,18 +4895,20 @@ function updateHUD() {
       $('selRange').textContent = '电弧 150 · 共振';
       $('selRate').textContent = '2s/球';
     } else if (t.type === 'prism') {
+      const pm = prismModeOf(t);
       $('selStatLabel').textContent = '状态';
       if (t.level < 20) {
         $('selDmg').textContent = '未解锁 (需T20)';
-      } else if (t.energy >= 500000) {
-        $('selDmg').textContent = '轨道打击就绪';
+        $('selDmg').style.color = '';
+      } else if (t.energy >= pm.threshold) {
+        $('selDmg').textContent = `${pm.label}档 · 打击就绪`;
         $('selDmg').style.color = '#f8fafc';
       } else {
-        $('selDmg').textContent = '充能中';
+        $('selDmg').textContent = `${pm.label}档 充能 ${(t.energy / pm.threshold * 100).toFixed(1)}% (${Math.floor(t.energy)}/${pm.threshold})`;
         $('selDmg').style.color = '#9fb0c4';
       }
       $('selRange').textContent = '无限';
-      $('selRate').textContent = '—';
+      $('selRate').textContent = pm.label + '（' + (pm.suppressNuke ? 'EMP核爆均不炸' : pm.suppressEmp ? 'EMP不炸核爆照常' : 'EMP核爆照常') + '）';
     } else if (t.type === 'nukeSilo') {
       $('selStatLabel').textContent = '库存';
       $('selDmg').textContent = `${t.nukeCount} / 5`;
@@ -4846,6 +4961,10 @@ function updateHUD() {
       bph.textContent = '🎯 仅攻击高价值目标：' + (t.prismHV === true ? '开' : '关');
       bph.className = t.prismHV === true ? 'btn auto-on' : 'btn auto-off';
     }
+    // 轨道打击档位滑块：选中光棱炮时显示（与高价值目标按钮同条件）
+    const pmb = $('prismModeBox');
+    pmb.style.display = isPrismSel ? 'block' : 'none';
+    if (isPrismSel && typeof window.__pmPaint === 'function') window.__pmPaint(t.prismMode || 'normal');
     if (isShield) {
       boc.textContent = '⚡ 超频EMP免疫(全局)：' + (ocGlobal ? '开' : '关');
       boc.className = ocGlobal ? 'btn auto-on' : 'btn auto-off';
@@ -4950,6 +5069,7 @@ function updateHUD() {
     $('btnRepPrism').style.display = 'none';
     $('btnOverclock').style.display = 'none';
     $('btnPrismHV').style.display = 'none';
+    $('prismModeBox').style.display = 'none';
   }
 }
 
@@ -5054,6 +5174,7 @@ function tryBuild(gx, gy, type) {
     mmToConverter: false,
     mmToPrism: false,
     prismHV: false,
+    prismMode: 'normal', // 轨道打击档位（eco节能/normal普通/max极致），默认普通
     paralysisTimer: 0,
     empShieldTimer: 0,
     selfShieldTimer: 0,
@@ -5172,9 +5293,55 @@ $('btnPrismHV').addEventListener('click', () => {
   const t = selectedTower;
   if (!t || t.destroyed || t.type !== 'prism') return;
   t.prismHV = !(t.prismHV === true); // 默认关
-  addLog(`光棱炮 仅攻击高价值目标：${t.prismHV === true ? '开' : '关'}（只瞄准 EMP 怪与核爆 BOSS，场上没有则不发射）`, 'info');
+  addLog(`光棱炮 仅攻击高价值目标：${t.prismHV === true ? '开' : '关'}（只瞄准 EMP 怪、核爆 BOSS 与战术核弹怪，场上没有则不发射）`, 'info');
   updateHUD();
 });
+
+// 光棱炮轨道打击档位滑块：点击分段或拖动切换（节能 10 万 / 普通 50 万 / 极致 100 万）
+(function () {
+  const track = $('pmTrack'), thumb = $('pmThumb');
+  const opts = (typeof track.querySelectorAll === 'function')
+    ? Array.prototype.slice.call(track.querySelectorAll('.pm-opt'))
+    : [];
+  const ORDER = ['eco', 'normal', 'max'];
+  const paint = (m) => {
+    const i = Math.max(0, ORDER.indexOf(m));
+    thumb.style.transform = `translateX(${i * 100}%)`;
+    for (const o of opts) {
+      const on = o.getAttribute('data-mode') === m;
+      o.className = 'pm-opt' + (on ? ' pm-active' : '');
+    }
+  };
+  const fmtE = (v) => v >= 10000 ? (v / 10000) + '万' : String(v);
+  const setMode = (m) => {
+    if (!PRISM_MODES[m]) return;
+    const t = selectedTower;
+    if (!t || t.destroyed || t.type !== 'prism') return;
+    if (t.prismMode === m) { paint(m); return; }
+    t.prismMode = m;
+    const pm = PRISM_MODES[m];
+    const sup = pm.suppressNuke ? 'EMP 自爆与核爆均不引爆'
+      : pm.suppressEmp ? 'EMP 怪不自爆、核爆照常'
+      : 'EMP 自爆与核爆照常发生';
+    addLog(`光棱炮 轨道打击档位：${pm.label}（满 ${fmtE(pm.threshold)} 能量发射；击杀半径内敌人；${sup}）`, 'info');
+    paint(m);
+    updateHUD();
+  };
+  for (const o of opts) o.addEventListener('click', () => setMode(o.getAttribute('data-mode')));
+  // 拖动：按指针所在分段切换（点击视为零位移拖动，与 click 双触发但 setMode 幂等）
+  let dragging = false;
+  const segFromEvent = (ev) => {
+    const rect = track.getBoundingClientRect();
+    const rel = Math.max(0, Math.min(1, (ev.clientX - rect.left) / Math.max(1, rect.width)));
+    return ORDER[Math.min(2, Math.floor(rel * 3))];
+  };
+  track.addEventListener('pointerdown', (ev) => { dragging = true; setMode(segFromEvent(ev)); });
+  window.addEventListener('pointermove', (ev) => { if (dragging) setMode(segFromEvent(ev)); });
+  window.addEventListener('pointerup', () => { dragging = false; });
+  window.addEventListener('pointercancel', () => { dragging = false; });
+  window.__pmPaint = paint; // 供选中面板刷新时同步滑块位置
+  paint('normal'); // 初始默认普通档
+})();
 
 $('btnOverclock').addEventListener('click', () => {
   const t = selectedTower;
@@ -5367,7 +5534,7 @@ async function saveGame() {
   if (gameOver) { toast('游戏已结束，无法保存'); return; }
   try {
     const data = {
-      v: 17,
+      v: 18,
       savedAt: Date.now(),
       gold: Math.floor(gold),
       castleHp,
@@ -5413,6 +5580,7 @@ async function saveGame() {
           mmToConverter: t.mmToConverter === true,
           mmToPrism: t.mmToPrism === true,
           prismHV: t.type === 'prism' ? t.prismHV === true : undefined,
+          prismMode: t.type === 'prism' ? (t.prismMode || 'normal') : undefined,
           chargeProgress: t.type === 'ballLightning' ? (t.chargeProgress || 0) : undefined,
           batteryTier: Math.min(3, Math.max(1, Math.floor(t.batteryTier) || 1)),
           hp: hp, maxHp: maxHp,
@@ -5537,6 +5705,7 @@ function applySave(data) {
       mmToConverter: !!td.mmToConverter,
       mmToPrism: !!td.mmToPrism,
       prismHV: !!td.prismHV,
+      prismMode: (td.type === 'prism' && (td.prismMode === 'eco' || td.prismMode === 'max')) ? td.prismMode : 'normal',
       chargeProgress: td.chargeProgress || 0,
       paralysisTimer: 0,
       empShieldTimer: 0,
